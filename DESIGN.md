@@ -21,11 +21,11 @@ SamplerCustomAdvanced, VAEDecode, Power Lora Loader
 **Parameters (right panel)**:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| Model family | Dropdown | Z-Image Turbo | zimage, krea2, flux2_klein |
+| Model family | Dropdown | Z-Image Turbo | zimage, krea2, flux2_klein. Changing the model **automatically sets the steps slider** to the default for that family. |
 | Aspect ratio | Dropdown | 2:3 (Portrait) | 1:1, 2:3, 3:2, 3:4, 4:3, 9:16, 16:9, custom |
 | Custom ratio (W:H) | Text × 2 | — | Only when aspect_ratio = custom |
 | Megapixels | Slider | 1.0 | Resolution target (0.25 – 4.0) |
-| Steps | Slider | 8 | Inference steps (1 – 15) |
+| Steps | Slider | 10 | Inference steps (1 – 15). Auto-updates when model family changes: Z-Image Turbo → 10, Krea 2 → 8, FLUX.2 Klein → 8. |
 | Seed | Number | -1 | -1 = random, ≥0 = fixed |
 | LoRAs | Dynamic list | none | Up to 4 LoRAs (name + strength) |
 

@@ -690,10 +690,10 @@
           <button class="gear-btn" onclick="openModal('generate')">⚙️ Advanced</button>
           <div class="field">
             <label>Model Family</label>
-            <select>
-              <option>Z-Image Turbo</option>
-              <option>Krea 2</option>
-              <option>FLUX.2 Klein</option>
+            <select id="genModelFamily" onchange="onModelFamilyChange()">
+              <option data-steps="10">Z-Image Turbo</option>
+              <option data-steps="8">Krea 2</option>
+              <option data-steps="8">FLUX.2 Klein</option>
             </select>
           </div>
           <div class="field">
@@ -725,9 +725,9 @@
             <span class="range-value">1 MP</span>
           </div>
           <div class="field">
-            <label>Steps <span style="font-weight:400">(8)</span></label>
-            <input type="range" min="1" max="15" value="8" oninput="this.nextElementSibling.textContent=this.value">
-            <span class="range-value">8</span>
+            <label>Steps <span style="font-weight:400" id="genStepsLabel">(10)</span></label>
+            <input type="range" min="1" max="15" value="10" id="genSteps" oninput="this.nextElementSibling.textContent=this.value">
+            <span class="range-value" id="genStepsVal">10</span>
           </div>
           <div class="field">
             <label>Seed</label>
@@ -981,6 +981,19 @@
   function selectRadio(btn) {
     btn.parentElement.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+  }
+
+  // Auto-set steps when model family changes (Generate Image tab)
+  function onModelFamilyChange() {
+    const sel = document.getElementById('genModelFamily');
+    const opt = sel.options[sel.selectedIndex];
+    const steps = parseInt(opt.getAttribute('data-steps')) || 8;
+    const slider = document.getElementById('genSteps');
+    const label = document.getElementById('genStepsLabel');
+    const valEl = document.getElementById('genStepsVal');
+    slider.value = steps;
+    label.textContent = `(${steps})`;
+    valEl.textContent = steps;
   }
 
   // Toast notification
