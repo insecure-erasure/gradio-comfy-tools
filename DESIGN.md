@@ -172,8 +172,9 @@ loop, muted).
 
 ### Advanced parameters modal (all tabs)
 
-Each tab has a ⚙️ gear icon (top-right of the parameters pane) that opens a
-modal dialog. The modal shows **user-level valves only** — the ComfyUI admin
+A single ⚙️ **Advanced** button sits in the tab bar to the right of the tab
+labels, always visible. Clicking it opens a modal with the advanced parameters
+for whichever tab is currently active. The modal shows **user-level valves only** — the ComfyUI admin
 valves are configured server-side and not exposed here. The modal contains:
 
 - Tool-specific advanced fields as listed above.
@@ -189,13 +190,12 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [Generate Image] [Edit Image] [Upscale] [Generate Video]│  ← Tabs
+│  [Generate Image] [Edit Image] [Upscale] [Generate Video]│  ⚙️ Advanced  ← Tabs
 ├───────────────────────────┬─────────────────────────────┤
-│                           │  ⚙️ Advanced                │
-│     Generation Output     │  Model family: [dropdown]   │
-│     (image / slider /     │  Aspect ratio: [dropdown]   │
-│      video)               │  W: [832] H: [1248] MP:[-]│
-│                           │  Steps: [-] Seed:[_] ☑Rand │
+│                           │  Model family: [dropdown]   │
+│     Generation Output     │  Aspect ratio: [dropdown]   │
+│     (image / slider /     │  W: [832] H: [1248] MP:[-] │
+│      video)               │  Steps: [-] Seed:[_] ☑Rand │
 │                           │  LoRAs:       [+ Add]      │
 │                           │                             │
 │                           │  [Generate] [Reset]         │
@@ -208,14 +208,13 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌──────────────────────────────────────┐
-│  [Generate Image] [Edit] [Upscale]…  │  ← Tabs (scrollable)
+│  [Generate Image] [Edit] [Upscale]…       ⚙️ Advanced  │  ← Tabs
 ├──────────────────────────────────────┤
 │                                      │
 │        Generation Output             │  ← Output on top
 │        (image / slider / video)      │
 │                                      │
 ├──────────────────────────────────────┤
-│  ⚙️ Advanced                         │
 │  Model family: [dropdown]            │  ← Parameters below
 │  Aspect ratio: [dropdown]            │
 │  W: [832]  H: [1248]  MP: [-] [+]   │
@@ -228,8 +227,10 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ### Layout details
 
-- **Tabs**: Horizontal tab bar at the very top. Each tab switches the entire
-  content area (output + parameters + prompt). The active tab is visually
+- **Tabs**: Horizontal tab bar at the very top. Tab buttons on the left switch
+  the content area (output + parameters + prompt). A single ⚙️ **Advanced**
+  button sits on the right side of the tab bar and opens the advanced
+  parameters modal for the currently active tab. The active tab is visually
   highlighted.
 - **Landscape (≥1024px)**:
   - **Left panel (output)**: Takes ~60% of the width. Contains the generation
