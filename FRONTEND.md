@@ -130,18 +130,20 @@ Draggable divider (pointer events), Original/Edited (or Upscaled) labels, handle
 Opens a menu with two sections:
 
 - **Appearance**: `🌓 Toggle light / dark theme` — manual toggle switching CSS custom properties (dark default: `--bg #1a1a2e`, `--surface #16213e`, `--accent #e94560`, `--text #eaeaea`, `--border #2a2a4a`; light: `#f0f0f5`/`#ffffff`/… and output background `#eaeaef`). **No `prefers-color-scheme`** (deviation from the original design).
-- **ComfyUI Connection**: `🔌 Server URL` (shows `localhost:8188`) · `🖼️ Image base URL` (shows `default`). WIP placeholders in the mockup.
+- **ComfyUI Connection**: `🔌 Server URL` (shows `localhost:8188`) · `🖼️ Media base URL` (shows `default`). WIP placeholders in the mockup. **These are global settings** — there is exactly one server URL (`COMFYUI_BASE_URL`) and one media base URL (`COMFYUI_MEDIA_BASE_URL`, covers images and videos) for the whole app, not per-tool values.
 
 ### 4.6 Advanced modal (⚙️)
 
-Single modal, content rendered dynamically per active tab (`currentTab`). **Only reachable from Generate and Video** (the only gear locations); the Edit and Upscale configs are defined in the mockup but have **no button that opens them**.
+Single modal, content rendered dynamically per active tab (`currentTab`). **Only reachable from Generate and Video** (the only gear locations); Edit has a config defined but no gear, and Upscale has no advanced fields at all.
+
+No override layers and no per-tool base URL: the Gradio app is single-user (no admin/user LoRA hierarchy, no "Override system LoRAs"), and the ComfyUI server URL and media base URL (`COMFYUI_MEDIA_BASE_URL`) are global settings in the 🎨 dropdown.
 
 | Tab | Fields |
 |---|---|
-| Generate | `Model name` (text) · `LoRA config (JSON)` (textarea) · `Override system LoRAs` (toggle) · `Image base URL` (text) |
-| Edit | `LoRA config (JSON)` · `Override system LoRAs` · `Image base URL` — *unreachable* |
-| Upscale | `Image base URL` — *unreachable* |
-| Video | `Diffusion model (JSON)` (textarea) · `LoRA config (JSON)` · `Video base URL` (text) |
+| Generate | `Model name` (text) · `LoRA config (JSON)` (textarea) |
+| Edit | `LoRA config (JSON)` — *unreachable (no gear)* |
+| Upscale | *(none — resolution/blend/color stay as workflow defaults; media base URL is global)* |
+| Video | `Diffusion model (JSON)` (textarea) · `LoRA config (JSON)` |
 
 Footer: `Cancel` + `Save`. Esc or ✕ closes without saving; Save applies and closes. In the real app values persist per tab for the session.
 
@@ -170,7 +172,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | Prompt textarea | `gr.Textbox(lines=…, placeholder=…)` |
 | ✨🖌️🩹🔍🎬 buttons | `gr.Button` (primary/secondary variants) |
 | Advanced modal | Gradio modal (`gr.Modal` in Gradio 5) or HTML overlay |
-| 🎨 dropdown (theme, server URL, base URL) | `gr.Dropdown`/`gr.Button` + settings modal |
+| 🎨 dropdown (theme, server URL, media base URL) | `gr.Dropdown`/`gr.Button` + settings modal |
 | Toast | `gr.Info` / `gr.Warning` |
 | Result URL + 📋 | `gr.Markdown`/`gr.Textbox` + copy `gr.Button` (JS clipboard) |
 
@@ -183,7 +185,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | `+ Add LoRA` | `showToast('Add LoRA (WIP)')` | Dynamic list of up to 4 LoRAs (name + strength), or delegate to the modal JSON |
 | ↺ Reset | `showToast('Parameters reset')` | Real reset of parameters + tab output |
 | Action buttons | Generate a fake URL (`ComfyUI_<ts>.png`) | Real ComfyUI submission via `comfy_client` |
-| 🎨 dropdown (Server URL / Image base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |
+| 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |
 | Advanced modal Save | `console.log` | Persist values per tab and pass to the backend |
 
 ## 7. Session state

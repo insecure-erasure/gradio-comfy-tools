@@ -1009,8 +1009,8 @@
       <span class="item-icon">🔌</span> Server URL
       <span style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">localhost:8188</span>
     </button>
-    <button class="menu-item" onclick="showToast('Configure image base URL (WIP)'); hideSettingsMenu();">
-      <span class="item-icon">🖼️</span> Image base URL
+    <button class="menu-item" onclick="showToast('Configure media base URL (WIP)'); hideSettingsMenu();">
+      <span class="item-icon">🖼️</span> Media base URL
       <span style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">default</span>
     </button>
   </div>
@@ -1636,36 +1636,35 @@
 
   let currentModalTab = null;
 
+  // No override layers or per-tool base URLs: overrides (admin vs user)
+  // do not apply to the Gradio app (single-user), and the ComfyUI server /
+  // media base URLs (COMFYUI_BASE_URL, COMFYUI_MEDIA_BASE_URL) are global
+  // settings in the 🎨 dropdown, not per tool.
   const modalConfigs = {
     generate: {
       title: 'Generate Image',
       fields: [
         { label: 'Model name', type: 'text', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
         { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0}]' },
-        { label: 'Override system LoRAs', type: 'toggle' },
-        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
       ]
     },
     edit: {
       title: 'Edit Image',
       fields: [
         { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0}]' },
-        { label: 'Override system LoRAs', type: 'toggle' },
-        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
       ]
     },
     upscale: {
       title: 'Upscale',
-      fields: [
-        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
-      ]
+      // No advanced fields: resolution/blend/color stay as workflow defaults
+      // and the media base URL (COMFYUI_MEDIA_BASE_URL) is a global setting.
+      fields: [],
     },
     video: {
       title: 'Generate Video',
       fields: [
-        { label: 'Diffusion model (JSON)', type: 'textarea', placeholder: 'Override model file(s). Object for Wan 2.1, array for Wan 2.2' },
+        { label: 'Diffusion model (JSON)', type: 'textarea', placeholder: 'Model file(s). Object for Wan 2.1, array for Wan 2.2' },
         { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0,"path":"high"}]' },
-        { label: 'Video base URL', type: 'text', placeholder: 'Leave empty for default' },
       ]
     }
   };

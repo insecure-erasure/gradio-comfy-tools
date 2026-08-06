@@ -30,8 +30,8 @@ and a full-width prompt bar at the bottom.
 ┌───────────────────────────────────────────────────────────────┐
 │ app.py  (Gradio Blocks — layout & state per FRONTEND.md)       │
 │   ├── per-tab state (parameters, results)                      │
-│   ├── settings: server URL, image base URL, theme,             │
-│   │   default LoRAs / models (formerly "admin valves")         │
+│   ├── settings: server URL (COMFYUI_BASE_URL), media base URL   │
+│   │   (COMFYUI_MEDIA_BASE_URL), theme, default LoRAs / models    │
 │   └── tools/  (per tool: workflow loading + injector)          │
 ├───────────────────────────────────────────────────────────────┤
 │ comfy_client.py  (ComfyUI REST client)                         │
@@ -45,7 +45,9 @@ Generation flow:
 1. The user fills in parameters and prompt, then clicks the action button (✨/🖌️/🩹/🔍/🎬) in the bottom bar.
 2. `app.py` asks `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
 3. `comfy_client.py` does `POST /prompt`, then polls `GET /history/{prompt_id}` until completion.
-4. The result (image or video) is served from ComfyUI's output via base URL: `{base_url}/view?filename=...&type=output`, and displayed in the active tab's output pane.
+4. The result (image or video) is served from ComfyUI's output via the
+   media base URL: `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`,
+   and displayed in the active tab's output pane.
 5. The result URL is available for copying (📋) and chaining (🔗: edit/upscale/video accept it as source image).
 
 ## Deviations from the original design (already reflected in the docs)
@@ -61,6 +63,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 7. **Action buttons live in the bottom bar** (not in the params panel); Reset is ↺ in the model-row.
 8. **Inline labels** W / H / AR / 📐 / 👣 / 🎞️ / 🌱 with tooltips (not "unlabeled" rows).
 9. **Theme via manual toggle** in the 🎨 dropdown (no `prefers-color-scheme`).
+10. **Global config, no override layers** — the app is single-user: no admin/user hierarchy, no "Override system LoRAs"; `COMFYUI_BASE_URL` and `COMFYUI_MEDIA_BASE_URL` are global settings in the 🎨 dropdown, not per-tool.
 
 ## Files
 
