@@ -301,6 +301,39 @@
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
 
+  /* Source image URL field — transparent overlay, bottom-right of the
+     output pane (Edit/Upscale/Video). The 🔗 button fills it with the
+     last generation; users can also paste an external URL. */
+  .source-url-row {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 5;
+  }
+  .source-url-input {
+    width: 200px;
+    padding: 7px 10px;
+    background: rgba(0,0,0,.35);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: var(--radius);
+    color: #fff;
+    font-size: .78rem;
+    font-family: var(--font);
+    transition: .15s;
+  }
+  .source-url-input::placeholder { color: rgba(255,255,255,.45); }
+  .source-url-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(0,0,0,.6);
+  }
+  .source-url-input:not(:placeholder-shown) {
+    border-color: var(--accent);
+    background: rgba(0,0,0,.6);
+  }
+
   /* ── Form elements ─────────────────────────── */
   .field { display: flex; flex-direction: column; gap: 5px; }
   .field-inline {
@@ -960,6 +993,8 @@
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; }
+    .source-url-row { bottom: 10px; right: 10px; }
+    .source-url-input { width: 130px; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 8px 8px; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
@@ -1109,7 +1144,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
+          <div class="source-url-row">
+            <button class="output-overlay-btn" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
+            <input type="text" class="source-url-input" id="editSourceUrl" placeholder="Paste image URL…" />
+          </div>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -1165,7 +1203,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
+          <div class="source-url-row">
+            <button class="output-overlay-btn" onclick="usePreviousSource('upscale')" title="Use previous generation">🔗</button>
+            <input type="text" class="source-url-input" id="upscaleSourceUrl" placeholder="Paste image URL…" />
+          </div>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -1210,7 +1251,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
+          <div class="source-url-row">
+            <button class="output-overlay-btn" onclick="usePreviousSource('video')" title="Use previous generation">🔗</button>
+            <input type="text" class="source-url-input" id="videoSourceUrl" placeholder="Paste image URL…" />
+          </div>
           <div class="video-mock" onclick="showToast('Video player (WIP)')">
             <div class="play-btn">▶</div>
             <div class="bar"><div class="progress"></div></div>
@@ -1324,6 +1368,23 @@
     }).catch(() => showToast('Copy failed'));
   }
 
+  // Source image URL (Edit/Upscale/Video): the 🔗 button fills the tab's
+  // transparent URL field with the last generation; users can also paste an
+  // external URL directly into the field. The value feeds the tool's input.
+  function usePreviousSource(tab) {
+    const input = document.getElementById(`${tab}SourceUrl`);
+    if (lastGeneratedUrl) {
+      input.value = lastGeneratedUrl;
+      showToast('Source set to previous generation');
+    } else {
+      showToast('No previous generation yet — generate an image first');
+    }
+  }
+  function getSourceUrl(tab) {
+    const input = document.getElementById(`${tab}SourceUrl`);
+    return input ? input.value.trim() : '';
+  }
+
   function generateImage() {
     showToast('Workflow submitted to ComfyUI');
     const ts = Date.now();
@@ -1401,8 +1462,9 @@
     const input = document.getElementById('promptInput');
     const btnCol = document.getElementById('btnCol');
 
-    // Reset copy URL state when switching tools
-    lastGeneratedUrl = null;
+    // Reset the copyable result URL row when switching tools. The source
+    // image URL fields (Edit/Upscale/Video) keep their values and
+    // lastGeneratedUrl persists for chaining (🔗 fills the source field).
     document.getElementById('resultUrl').textContent = '';
     document.getElementById('btnCopyUrl').disabled = true;
 

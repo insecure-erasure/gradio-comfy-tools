@@ -38,7 +38,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 | Upscale | 🔍 | `🔍 Upscale` | **No** (textarea hidden) | — |
 | Video | 🎬 | `🎬 Video` | Yes | "Describe the motion and action (e.g., \"a cat walking slowly through a field of flowers, gentle breeze\")..." |
 
-- On tab switch: each tab's parameters **persist** (the DOM is not rebuilt); the result URL row is **cleared** (`lastGeneratedUrl = null`, 📋 button disabled).
+- On tab switch: each tab's parameters **persist** (the DOM is not rebuilt); the copyable result URL row is **cleared** (📋 button disabled). `lastGeneratedUrl` itself persists for chaining (🔗 fills the source URL field of Edit/Upscale/Video).
 - Shortcuts: `Ctrl+1..4` switches tabs; `Esc` closes the modal.
 
 ## 3. Control inventory per tab (exact to the mockup)
@@ -65,7 +65,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.2 Edit ✏️
 
-**Output pane**: `📁` overlay (top-right, "Upload image") + `🔗` overlay (bottom-right, "Use previous generation") over the **compare slider** (Original | Edited).
+**Output pane**: `📁` overlay (top-right, "Upload image") + source URL row (bottom-right: `🔗` button + transparent URL field) over the **compare slider** (Original | Edited).
 
 **model-row**: `Model` label + dropdown (only `flux-2-klein-9b-nvfp4`) + `⚙️` gear + `↺` reset.
 
@@ -75,7 +75,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.3 Upscale 🔍
 
-**Output pane**: `📁` + `🔗` overlays over the **compare slider** (Original | Upscaled).
+**Output pane**: `📁` overlay (top-right) + source URL row (bottom-right: `🔗` + transparent URL field) over the **compare slider** (Original | Upscaled).
 
 **model-row**: `Model` label + read-only field `SeedVR2` + `↺` reset. **No ⚙️.**
 
@@ -83,7 +83,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.4 Video 🎬
 
-**Output pane**: `📁` + `🔗` overlays over a mock video player (▶ button + progress bar).
+**Output pane**: `📁` overlay (top-right) + source URL row (bottom-right: `🔗` + transparent URL field) over a mock video player (▶ button + progress bar).
 
 **model-row**: `Model` label + dropdown (`Wan 2.1` default, `Wan 2.2`) + `⚙️` gear + `↺` reset.
 
@@ -125,14 +125,24 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 
 Draggable divider (pointer events), Original/Edited (or Upscaled) labels, handle + divider line. Interactive in the mockup; in Gradio, port as HTML+JS component or stacked `gr.Image` with slider.
 
-### 4.5 🎨 Comfy Tools ▾ dropdown
+### 4.5 Source image URL field (Edit/Upscale/Video)
+
+Transparent text field overlaid at the **bottom-right** of the output pane, next to a `🔗` button. It provides the **input image** for the tool:
+
+- The user can paste an external image URL directly into the field.
+- `🔗` fills the field with the last generated URL (`lastGeneratedUrl`); if none exists yet, a toast says so. `lastGeneratedUrl` persists across tab switches so the field can be filled after generating in another tab.
+- Each tab keeps its own field value (persists on tab switch).
+- On generate, the field value is the tool's `image` input (auto-detected as URL vs filename by the backend — see BACKEND.md §6). If empty, the app should prompt for a source (or use 📁 upload / 🔗).
+- Styling: translucent background (`rgba(0,0,0,.35)`), subtle border, white text, placeholder "Paste image URL…", accent border when filled. On <768px the field narrows to 130px.
+
+### 4.6 🎨 Comfy Tools ▾ dropdown
 
 Opens a menu with two sections:
 
 - **Appearance**: `🌓 Toggle light / dark theme` — manual toggle switching CSS custom properties (dark default: `--bg #1a1a2e`, `--surface #16213e`, `--accent #e94560`, `--text #eaeaea`, `--border #2a2a4a`; light: `#f0f0f5`/`#ffffff`/… and output background `#eaeaef`). **No `prefers-color-scheme`** (deviation from the original design).
 - **ComfyUI Connection**: `🔌 Server URL` (shows `localhost:8188`) · `🖼️ Media base URL` (shows `default`). WIP placeholders in the mockup. **These are global settings** — there is exactly one server URL (`COMFYUI_BASE_URL`) and one media base URL (`COMFYUI_MEDIA_BASE_URL`, covers images and videos) for the whole app, not per-tool values.
 
-### 4.6 Advanced modal (⚙️)
+### 4.7 Advanced modal (⚙️)
 
 Single modal, content rendered dynamically per active tab (`currentTab`). Reachable from Generate, Edit and Video (⚙️ in their model-rows); Upscale has no gear and no advanced fields.
 
@@ -147,11 +157,11 @@ No override layers and no per-tool base URL: the Gradio app is single-user (no a
 
 Footer: `Cancel` + `Save`. Esc or ✕ closes without saving; Save applies and closes. In the real app values persist per tab for the session.
 
-### 4.7 Toast
+### 4.8 Toast
 
 Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow submitted to ComfyUI", etc.). In Gradio: `gr.Info`/`gr.Warning`.
 
-### 4.8 Result URL
+### 4.9 Result URL
 
 `setResultUrl(filename)` → `{baseUrl}/view?filename=...&type=output`, shown in the row under the textarea with a 📋 copy button (disabled until a result exists).
 
@@ -168,7 +178,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | LoRAs (all tabs that use them) | `gr.TextArea` for the `LoRA config (JSON)` field in the advanced modal |
 | Compare slider | `gr.HTML` with the mockup's JS (drag) or custom `gr.Image` overlay |
 | Video player | `gr.Video` (autoplay muted loop) or `gr.HTML` |
-| 📁 / 🔗 overlays | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])` |
+| 📁 / 🔗 overlays + source URL field | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])`; the URL field is a `gr.Textbox` styled transparent and overlaid (or placed in the layout with the same look) |
 | Prompt textarea | `gr.Textbox(lines=…, placeholder=…)` |
 | ✨🖌️🩹🔍🎬 buttons | `gr.Button` (primary/secondary variants) |
 | Advanced modal | Gradio modal (`gr.Modal` in Gradio 5) or HTML overlay |
@@ -181,7 +191,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | Element | In the mockup | In Gradio |
 |---|---|---|
 | 📁 Upload image | `showToast('File picker (WIP)')` | Real upload: `gr.Image` upload → `POST /upload/image` to ComfyUI (see BACKEND.md) |
-| 🔗 Use previous generation | `showToast('Use previous generation (WIP)')` | Consume session `last_result_url` (chaining) |
+| 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl`; the field value feeds the tool's `image` input |
 | ↺ Reset | `showToast('Parameters reset')` | Real reset of parameters + tab output |
 | Action buttons | Generate a fake URL (`ComfyUI_<ts>.png`) | Real ComfyUI submission via `comfy_client` |
 | 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |
@@ -190,5 +200,5 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 ## 7. Session state
 
 - Each tab keeps its own parameter state and result independently; switching tabs does not reset anything.
-- Session-global `last_result_url`: cleared on tab switch (per mockup) and repopulated on generation; consumed by 📋 and 🔗.
+- Session-global `lastGeneratedUrl`: the last generation's output URL, built as `{media_base_url}/view?filename=...&type=output`; **persists across tab switches** for chaining (🔗 fills the source URL field). The copyable result URL row is cleared on tab switch (per mockup).
 - Reset (↺) restores defaults and clears that tab's output.

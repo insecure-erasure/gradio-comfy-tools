@@ -48,7 +48,10 @@ Generation flow:
 4. The result (image or video) is served from ComfyUI's output via the
    media base URL: `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`,
    and displayed in the active tab's output pane.
-5. The result URL is available for copying (📋) and chaining (🔗: edit/upscale/video accept it as source image).
+5. The result URL is available for copying (📋) and chaining: Edit/Upscale/Video
+   accept a source image via a **transparent URL text field** overlaid at the
+   bottom-right of their output pane (paste an external URL, or use 🔗 to fill
+   it with the last generation).
 
 ## Deviations from the original design (already reflected in the docs)
 
@@ -64,6 +67,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 8. **Inline labels** W / H / AR / 📐 / 👣 / 🎞️ / 🌱 with tooltips (not "unlabeled" rows).
 9. **Theme via manual toggle** in the 🎨 dropdown (no `prefers-color-scheme`).
 10. **Global config, no override layers** — the app is single-user: no admin/user hierarchy, no "Override system LoRAs"; `COMFYUI_BASE_URL` and `COMFYUI_MEDIA_BASE_URL` are global settings in the 🎨 dropdown, not per-tool.
+11. **Source image URL field** — Edit/Upscale/Video have a transparent text field (bottom-right of the output pane) for the input image URL; `🔗` fills it with the last generation and it persists per tab. Added to the mockup (was not in the original design, which only had attachment buttons in the prompt bar).
 
 ## Files
 

@@ -69,7 +69,7 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
-| 📁 Upload / 🔗 previous | `image` (filename or URL) | `Load Image (URL/Path)` |
+| 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
 | 👣 Steps | `steps` (1–15, default 6) | `KSampler` |
 | 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `KSampler` |
@@ -84,7 +84,7 @@ Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Deco
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
-| 📁 Upload / 🔗 previous | `image` (filename or URL) | `Load Image (URL/Path)` |
+| 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `SeedVR2 Video Upscaler (v2.5.24)` |
 | — (no control) | `resolution` 2048 | `SeedVR2 Video Upscaler` |
 | — (no control) | `color_correction` "lab" | `SeedVR2 Video Upscaler` |
@@ -102,7 +102,7 @@ Other nodes: `SeedVR2 (Down)Load DiT Model`, `SeedVR2 (Down)Load VAE Model`; out
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
 | Model dropdown (Wan 2.1 / 2.2) | `model_version` (wan21 / wan22) | workflow file selection + `Load Diffusion Model`(s) |
-| 📁 Upload / 🔗 previous | `image` (filename or URL) | `Load Image (URL/Path)` |
+| 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🎞️ Frames (81–161, 4n+1) | `length` (4n+1 snap) | `WanImageToVideo` |
 | 👣 Steps (4–10) | `steps` (wan22: odd→even) | `KSampler` (title "KSampler", class KSamplerAdvanced) |
 | 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `EasySeed` |
@@ -121,10 +121,10 @@ Other nodes (wan21 and wan22): `CLIPLoader (GGUF)`, `WanImageToVideo`, `KSampler
 
 ## 6. Chaining (context between tools)
 
-- `last_result_url` (per session): the output URL of the last generation, built as `{base_url}/view?filename=...&type=output`.
-- Consumers: 📋 (copy) and 🔗 (use as source in Edit/Upscale/Video).
-- When consumed as a source, pass the **filename** (not the full URL) to the `Load Image (URL/Path)` node; for external URLs pass the URL directly (scheme+netloc auto-detection, like the tools).
-- The mockup clears `last_result_url` on tab switch — keep that behavior unless decided otherwise.
+- `lastGeneratedUrl` (per session): the output URL of the last generation, built as `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. **Persists across tab switches** so it can be used after generating in another tab.
+- Consumers: 📋 (copy) and 🔗 (fills the source URL field of Edit/Upscale/Video with `lastGeneratedUrl`).
+- The source URL field is the tool's `image` input: paste an external URL directly, or use 🔗/📁. When consumed as a source, pass the **filename** (not the full URL) to the `Load Image (URL/Path)` node; for external URLs pass the URL directly (scheme+netloc auto-detection, like the tools).
+- If the field is empty on generate, the app should prompt for a source (upload via 📁, use 🔗, or paste a URL).
 
 ## 7. Global config (settings)
 
