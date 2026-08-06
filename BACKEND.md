@@ -90,7 +90,7 @@ Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Deco
 | — (no control) | `color_correction` "lab" | `SeedVR2 Video Upscaler` |
 | — (no control) | `blend_factor` 0.15 | `Image Blend` |
 
-Other nodes: `SeedVR2 (Down)Load DiT Model`, `SeedVR2 (Down)Load VAE Model`; output: `Random Preview Image`.
+Other nodes: `SeedVR2 (Down)Load DiT Model` → **`SeedVR2LoadDiTModel`**, `SeedVR2 (Down)Load VAE Model` → **`SeedVR2LoadVAEModel`**, `SeedVR2 Video Upscaler (v2.5.24)` → **`SeedVR2VideoUpscaler`** (exact names confirmed on the dev server; `scripts/check_env.py` validates them); output: `Random Preview Image`.
 
 **⚠️ Note vs the old design** (resolved decisions):
 - `upscale_image/tool.py` exposes `seed` since v1.4 (UserValve, -1 = random, ≥0 = fixed, injected into `SeedVR2 Video Upscaler`).

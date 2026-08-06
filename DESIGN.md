@@ -80,4 +80,16 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `app.py` | Main Gradio application (to be implemented) |
 | `comfy_client.py` | ComfyUI REST API client (to be implemented) |
 | `tools/` | Per-tool modules (to be implemented) |
-| `workflows/` | ComfyUI workflow JSON files (import from ../open-webui-comfy-tools) |
+| `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
+| `scripts/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 scripts/check_env.py [BASE_URL]` |
+
+### workflows/ contents
+
+| File | Tab | Notes |
+|------|-----|-------|
+| `smart_generate_image.json` | Generate | Z-Image / Krea / FLUX.2 families |
+| `edit_image.json` | Edit | flux-2-klein + LoRAs + restore |
+| `seedvr2_upscale.json` | Upscale | SeedVR2 |
+| `generate_video.json` | Video | Wan 2.1 single path |
+| `generate_video_wan22.json` | Video | Wan 2.2 dual high/low path |
+
