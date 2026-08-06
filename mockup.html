@@ -320,8 +320,23 @@
   .field-inline input[type="number"] {
     width: auto;
     max-width: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
     padding: 8px 4px;
+    font-size: .85rem;
+    font-family: var(--font);
     text-align: right;
+  }
+  .field-inline label {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .readonly-field {
     display: inline-block;
@@ -345,11 +360,24 @@
   .field-inline select {
     flex: 1;
     min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: .85rem;
+    font-family: var(--font);
     text-align: right;
     text-align-last: right;
   }
   .field-inline .stepper {
     flex: 1;
+  }
+  .field-inline input:focus,
+  .field-inline select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(233,69,96,.15);
   }
   .field label {
     font-size: .8rem;
