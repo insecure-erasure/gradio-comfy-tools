@@ -324,6 +324,27 @@
     letter-spacing: .04em;
     white-space: nowrap;
     flex-shrink: 0;
+    position: relative;
+  }
+  .field-inline label[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: .7rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    white-space: nowrap;
+    z-index: 20;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0,0,0,.3);
   }
   .readonly-field {
     display: inline-block;
@@ -1222,7 +1243,7 @@
           <!-- Row: Frames | Steps | Seed + Random -->
           <div class="tight-row field-row" style="gap:6px">
             <div class="field-inline" style="flex:1.2">
-              <label>🎞️</label>
+              <label title="Frames (4n+1, 81–161)">🎞️</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
                 <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
@@ -1230,7 +1251,7 @@
               </div>
             </div>
             <div class="field-inline" style="flex:0.7">
-              <label>👣</label>
+              <label title="Steps (4–10)">👣</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
                 <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
