@@ -664,6 +664,8 @@
     color: #fff;
   }
   .btn-generate:hover { background: var(--accent-hover); }
+  .btn-generate:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-generate:disabled:hover { background: var(--accent); }
   .btn-generate.btn-restore {
     flex: 1;
     background: var(--bg);
@@ -1396,25 +1398,35 @@
 
   // Real backend (FastAPI server.py). The UI is app.html, a working copy of
   // the mockup; the mockup stays as the design template.
-  async function api(path, body) {
-    const resp = await fetch(path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {}),
-    });
-    if (!resp.ok) {
-      let detail = resp.statusText;
-      try { const j = await resp.json(); detail = j.detail || detail; } catch (e) {}
-      throw new Error(detail);
+  async function api(path, body, timeoutMs) {
+    // Abort after 240s so a hung request never leaves the button stuck.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs || 240000);
+    try {
+      const resp = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+        signal: ctrl.signal,
+      });
+      if (!resp.ok) {
+        let detail = resp.statusText;
+        try { const j = await resp.json(); detail = j.detail || detail; } catch (e) {}
+        throw new Error(detail);
+      }
+      return resp.json();
+    } finally {
+      clearTimeout(timer);
     }
-    return resp.json();
   }
 
   // Render a result (image or video) into an output pane.
+  // Removes only the previous result/placeholder — keeps overlays like the
+  // loading spinner (which lives inside the pane).
   function showResult(paneId, result, isVideo) {
     const pane = document.getElementById(paneId);
     if (!pane) return;
-    pane.innerHTML = '';
+    pane.querySelectorAll('.result-img, .result-video, .output-placeholder').forEach(el => el.remove());
     if (isVideo) {
       const v = document.createElement('video');
       v.className = 'result-video';
@@ -1493,7 +1505,7 @@
       document.getElementById('btnCopyUrl').disabled = false;
       showToast('✨ Generated');
     }).catch(err => {
-      showToast('❌ ' + err.message);
+      showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
     }).finally(() => {
       if (btn) btn.disabled = false;
       pane.classList.remove('busy');
