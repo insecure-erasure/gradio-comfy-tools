@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import random
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
@@ -24,6 +25,28 @@ VIDEO_MAX_FRAMES = 161
 
 class WorkflowError(ValueError):
     """A workflow node referenced by title was not found or is ambiguous."""
+
+
+# --------------------------------------------------------------------------- #
+# Workflow loading
+# --------------------------------------------------------------------------- #
+def load_workflow_json(path: str | Path) -> dict[str, dict]:
+    """Load and parse a workflow JSON file (validates it is a dict of nodes)."""
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise WorkflowError(f"Workflow {path} is not a JSON object")
+    return data
+
+
+def find_output_image(outputs: dict[str, Any]) -> dict[str, Any]:
+    """First image in the history outputs (Random Preview Image node).
+
+    Returns the image record ``{"filename", "subfolder", "type"}``.
+    """
+    for node_out in outputs.values():
+        for img in node_out.get("images", []):
+            return img
+    raise WorkflowError(f"No image found in outputs: {outputs}")
 
 
 # --------------------------------------------------------------------------- #
