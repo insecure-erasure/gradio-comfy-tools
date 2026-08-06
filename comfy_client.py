@@ -1,0 +1,144 @@
+"""Sync ComfyUI REST client (no Gradio dependency).
+
+Contract validated against ComfyUI 0.29.1 — see PLAN.md §A0:
+
+    GET  /system_stats                health
+    POST /upload/image                multipart upload -> temp filename
+    POST /prompt                      queue workflow -> prompt_id
+    GET  /history/{prompt_id}         poll until outputs appear
+    GET  {media_base}/view?filename=..&type=output    public result URL
+
+Sync by design: Gradio runs handlers in worker threads, so async buys us
+nothing here (the Open WebUI reference is async only because that framework
+requires it).
+"""
+
+from __future__ import annotations
+
+import time
+import uuid
+from pathlib import Path
+from typing import Any, Callable
+
+import httpx
+
+from config import Settings
+
+
+class ComfyError(RuntimeError):
+    """Semantic failure from the ComfyUI API (not an HTTP transport error)."""
+
+
+class ComfyClient:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        timeout: float = 30.0,
+        transport: httpx.BaseTransport | None = None,
+    ) -> None:
+        self.settings = settings or Settings()
+        self._timeout = timeout
+        # transport is injectable for tests (httpx.MockTransport)
+        self._client = httpx.Client(timeout=timeout, transport=transport)
+
+    # ------------------------------------------------------------------ #
+    # Lifecycle
+    # ------------------------------------------------------------------ #
+    def close(self) -> None:
+        self._client.close()
+
+    def __enter__(self) -> "ComfyClient":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+    # ------------------------------------------------------------------ #
+    # Internals
+    # ------------------------------------------------------------------ #
+    def _headers(self) -> dict[str, str]:
+        if self.settings.api_key:
+            return {"Authorization": f"Bearer {self.settings.api_key}"}
+        return {}
+
+    def _url(self, path: str) -> str:
+        return f"{self.settings.comfyui_base_url.rstrip('/')}{path}"
+
+    def _get(self, path: str) -> Any:
+        resp = self._client.get(self._url(path), headers=self._headers())
+        resp.raise_for_status()
+        return resp.json()
+
+    # ------------------------------------------------------------------ #
+    # REST
+    # ------------------------------------------------------------------ #
+    def health(self) -> dict[str, Any]:
+        """GET /system_stats — returns the parsed JSON."""
+        return self._get("/system_stats")
+
+    def upload_image(self, file_path: str | Path) -> str:
+        """Upload a local image; returns the ComfyUI temp filename.
+
+        POST /upload/image with type=temp (used by the image source flow:
+        Edit/Upscale/Video load these via LoadImageByUrlOrPath source=temp).
+        """
+        path = Path(file_path)
+        with path.open("rb") as f:
+            resp = self._client.post(
+                self._url("/upload/image"),
+                headers=self._headers(),
+                files={"image": (path.name, f, "image/png")},
+                data={"type": "temp", "overwrite": "true"},
+            )
+        resp.raise_for_status()
+        data = resp.json()
+        name = data.get("name")
+        if not name:
+            raise ComfyError(f"Upload did not return a name: {data}")
+        return name
+
+    def queue_prompt(self, workflow: dict[str, Any], client_id: str | None = None) -> str:
+        """POST /prompt — queue a workflow; returns the prompt_id."""
+        payload = {
+            "prompt": workflow,
+            "client_id": client_id or str(uuid.uuid4()),
+        }
+        resp = self._client.post(self._url("/prompt"), json=payload, headers=self._headers())
+        resp.raise_for_status()
+        data = resp.json()
+        prompt_id = data.get("prompt_id")
+        if not prompt_id:
+            raise ComfyError(f"ComfyUI did not return a prompt_id: {data}")
+        return prompt_id
+
+    def wait_for_output(
+        self,
+        prompt_id: str,
+        timeout: float = 120.0,
+        poll: float = 1.0,
+    ) -> dict[str, Any]:
+        """Poll GET /history/{prompt_id} until outputs appear.
+
+        Returns the prompt's outputs dict. Raises TimeoutError after
+        ``timeout`` seconds without completion.
+        """
+        url = self._url(f"/history/{prompt_id}")
+        deadline = time.monotonic() + timeout
+        while True:
+            resp = self._client.get(url, headers=self._headers())
+            resp.raise_for_status()
+            history = resp.json()
+            entry = history.get(prompt_id)
+            if entry and entry.get("outputs"):
+                return entry["outputs"]
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"ComfyUI did not finish within {timeout:.0f}s (prompt {prompt_id})"
+                )
+            time.sleep(poll)
+
+    def result_url(self, filename: str, type_: str = "output") -> str:
+        """Public URL of a result file served from the media base URL."""
+        from urllib.parse import urlencode
+
+        return f"{self.settings.media_base_url}/view?{urlencode({'filename': filename, 'type': type_})}"

@@ -1,0 +1,183 @@
+"""Shared workflow-injection helpers for the per-tab tools.
+
+Mirrors the patterns in the Open WebUI reference tools
+(../open-webui-comfy-tools): resolve nodes by unique ``_meta.title``, configure
+the LoadImageByUrlOrPath node via filename-vs-URL auto-detection, snap video
+frames to 4n+1, resolve -1 seeds to random, and apply LoRA configs to the
+rgthree Power Lora Loader (growing slots as needed).
+"""
+
+from __future__ import annotations
+
+import json
+import random
+from typing import Any
+from urllib.parse import urlparse
+
+# uint64 max — ComfyUI KSampler seed range (see /object_info)
+COMFY_SEED_MAX = 18446744073709551615
+
+# WAN temporal VAE stride: valid frame counts are 4n+1
+VIDEO_MIN_FRAMES = 81
+VIDEO_MAX_FRAMES = 161
+
+
+class WorkflowError(ValueError):
+    """A workflow node referenced by title was not found or is ambiguous."""
+
+
+# --------------------------------------------------------------------------- #
+# Node resolution
+# --------------------------------------------------------------------------- #
+def resolve_node(workflow: dict[str, dict], title: str) -> tuple[str, dict]:
+    """Find a workflow node by its unique ``_meta.title``.
+
+    Returns ``(node_id, node_dict)``. Raises WorkflowError if the title is
+    missing or not unique.
+    """
+    matches = [
+        (node_id, node)
+        for node_id, node in workflow.items()
+        if node.get("_meta", {}).get("title") == title
+    ]
+    if not matches:
+        titles = sorted(
+            {
+                node.get("_meta", {}).get("title")
+                for node in workflow.values()
+                if isinstance(node, dict)
+            }
+            - {None}
+        )
+        raise WorkflowError(
+            f"Node with title {title!r} not found in workflow. "
+            f"Available titles: {titles}"
+        )
+    if len(matches) > 1:
+        raise WorkflowError(f"Node with title {title!r} is not unique ({len(matches)} matches)")
+    return matches[0]
+
+
+# --------------------------------------------------------------------------- #
+# Source image (LoadImageByUrlOrPath) — filename vs URL auto-detection
+# --------------------------------------------------------------------------- #
+def is_external_url(value: str) -> bool:
+    """True if the value is an absolute http(s) URL."""
+    parsed = urlparse(value)
+    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def configure_image_node(node_inputs: dict[str, Any], image: str) -> None:
+    """Write the source image into a LoadImageByUrlOrPath node's inputs.
+
+    External URL -> ``source="url"`` + ``url`` (drops ``image``);
+    otherwise     -> ``source="temp"`` + ``image`` (ComfyUI-internal filename).
+    Always drops the "Choose file to upload" widget key.
+    """
+    node_inputs.pop("Choose file to upload", None)
+    if is_external_url(image):
+        node_inputs["source"] = "url"
+        node_inputs["url"] = image
+        node_inputs.pop("image", None)
+    else:
+        node_inputs["source"] = "temp"
+        node_inputs["image"] = image
+        node_inputs["url"] = ""
+
+
+# --------------------------------------------------------------------------- #
+# Seed / frames
+# --------------------------------------------------------------------------- #
+def resolve_seed(seed: int) -> int:
+    """-1 -> random uint64; >=0 -> clamped to the ComfyUI seed range."""
+    if seed == -1:
+        return random.randint(0, COMFY_SEED_MAX)
+    return min(seed, COMFY_SEED_MAX)
+
+
+def snap_frames(n: int, min_frames: int = VIDEO_MIN_FRAMES, max_frames: int = VIDEO_MAX_FRAMES) -> int:
+    """Snap to the nearest valid frame count (4n+1), clamped.
+
+    Exact mirror of ``_snap_to_valid_frames`` in the reference
+    generate_video/tool.py (verified identical for n=1..199).
+    """
+    n = max(min_frames, min(n, max_frames))
+    snapped = ((n - 1) // 4) * 4 + 1
+    if n - snapped > 2:
+        snapped += 4
+    return min(snapped, max_frames)
+
+
+# --------------------------------------------------------------------------- #
+# LoRAs (rgthree Power Lora Loader)
+# --------------------------------------------------------------------------- #
+def parse_lora_config(raw: str) -> list[Any]:
+    """Parse a lora_config JSON string into a list of str-or-dict items.
+
+    Items: ``"name"`` (strength 1.0) or ``{"name"|"model": ..., "strength": ...}``.
+    Raises ValueError with a user-facing message on malformed input.
+    """
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"lora_config is not valid JSON: {e}") from e
+    if not isinstance(parsed, list):
+        raise ValueError(
+            f"lora_config must be a JSON array, got {type(parsed).__name__}. "
+            'Example: ["lora1.sft", {"name": "lora2.sft", "strength": 0.5}]'
+        )
+    for i, item in enumerate(parsed):
+        if isinstance(item, str):
+            continue
+        if isinstance(item, dict):
+            name = item.get("name", item.get("model"))
+            if not isinstance(name, str):
+                raise ValueError(
+                    f"lora_config[{i}] must have a string 'name'/'model', "
+                    f"got {type(name).__name__}"
+                )
+            strength = item.get("strength", 1.0)
+            if not isinstance(strength, (int, float)):
+                raise ValueError(
+                    f"lora_config[{i}] 'strength' must be a number, "
+                    f"got {type(strength).__name__}"
+                )
+            continue
+        raise ValueError(
+            f"lora_config[{i}] must be a string or object, got {type(item).__name__}"
+        )
+    return parsed
+
+
+def apply_loras(loader_inputs: dict[str, Any], loras: list[Any]) -> None:
+    """Fill the Power Lora Loader slots from a parsed lora_config.
+
+    Applied positionally to ``lora_1..lora_N``; grows the workflow with extra
+    slots when there are more LoRAs than the loader defines (rgthree nodes use
+    FlexibleOptionalInputType, like the reference). Empty name or strength 0
+    disables the slot.
+    """
+    max_slots = sum(1 for k in loader_inputs if k.startswith("lora_"))
+    for i in range(max_slots + 1, len(loras) + 1):
+        loader_inputs[f"lora_{i}"] = {"on": False, "lora": "", "strength": 0}
+
+    for i, item in enumerate(loras, start=1):
+        slot = f"lora_{i}"
+        if slot not in loader_inputs:
+            break
+        if isinstance(item, str):
+            name, strength = item, 1.0
+        elif isinstance(item, dict):
+            name = item.get("name", item.get("model", ""))
+            strength = float(item.get("strength", 1.0))
+        else:
+            continue
+
+        if bool(name) and strength != 0:
+            loader_inputs[slot]["on"] = True
+            loader_inputs[slot]["lora"] = name
+            loader_inputs[slot]["strength"] = strength
+        else:
+            loader_inputs[slot]["on"] = False
+            loader_inputs[slot]["lora"] = ""
+            loader_inputs[slot]["strength"] = 0
