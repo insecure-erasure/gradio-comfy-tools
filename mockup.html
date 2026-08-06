@@ -321,10 +321,20 @@
     width: auto;
     max-width: 60px;
     padding: 8px 4px;
+    text-align: right;
+  }
+  .field-inline input[type="number"]:disabled {
+    background: var(--bg);
+    border-color: var(--border);
+    color: var(--text-secondary);
+    opacity: .8;
+    cursor: default;
   }
   .field-inline select {
     flex: 1;
     min-width: 0;
+    text-align: right;
+    text-align-last: right;
   }
   .field-inline .stepper {
     flex: 1;
