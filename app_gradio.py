@@ -64,26 +64,40 @@ footer { display: none !important; }
 .model-row { display: flex !important; align-items: center !important; gap: 8px !important; margin-bottom: 10px !important; }
 .model-row > div { min-width: 0 !important; }
 .model-row label { font-size: .78rem !important; color: #a0a0b0 !important; }
-.btn-icon { background: #16213e !important; color: #a0a0b0 !important; border: 1px solid #2a2a4a !important; border-radius: 8px !important; min-width: 30px !important; width: 30px !important; height: 30px !important; padding: 0 !important; font-size: .9rem !important; box-shadow: none !important; }
+.btn-icon { background: #16213e !important; color: #a0a0b0 !important; border: 1px solid #2a2a4a !important; border-radius: 8px !important; width: 30px !important; min-width: 30px !important; max-width: 30px !important; flex: 0 0 30px !important; height: 30px !important; padding: 0 !important; font-size: .9rem !important; box-shadow: none !important; }
 
 /* field rows + steppers */
 .field-row { gap: 8px !important; margin-bottom: 10px !important; align-items: center !important; }
 .field-inline { gap: 6px !important; align-items: center !important; }
 .field-inline label { font-size: .78rem !important; color: #a0a0b0 !important; }
 .readonly-field { font-size: .82rem !important; color: #eaeaea !important; }
-.stepper { display: flex !important; align-items: center !important; border: 1px solid #2a2a4a !important; border-radius: 8px !important; overflow: hidden !important; background: #16213e !important; }
-.stepper button { background: transparent !important; border: none !important; color: #a0a0b0 !important; width: 26px !important; height: 30px !important; cursor: pointer !important; font-size: .9rem !important; box-shadow: none !important; }
+.stepper { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 0 !important; border: 1px solid #2a2a4a !important; border-radius: 8px !important; overflow: hidden !important; background: #16213e !important; width: auto !important; max-width: none !important; }
+.stepper > .block, .stepper .wrap { flex: 0 0 auto !important; max-width: none !important; min-width: 0 !important; padding: 0 !important; margin: 0 !important; background: transparent !important; }
+.stepper .wrap { display: flex !important; align-items: center !important; }
+.stepper button { background: transparent !important; border: none !important; color: #a0a0b0 !important; width: 26px !important; height: 30px !important; min-width: 26px !important; padding: 0 !important; cursor: pointer !important; font-size: .9rem !important; box-shadow: none !important; flex: 0 0 auto !important; border-radius: 0 !important; margin: 0 !important; }
 .stepper button:hover { background: #1c2a4a !important; color: #eaeaea !important; }
-.stepper input { background: transparent !important; border: none !important; color: #eaeaea !important; text-align: center !important; width: 52px !important; font-size: .8rem !important; box-shadow: none !important; }
+.stepper button:first-child { border-right: 1px solid #2a2a4a !important; }
+.stepper button:last-child { border-left: 1px solid #2a2a4a !important; }
+.stepper input { background: transparent !important; border: none !important; color: #eaeaea !important; text-align: center !important; width: 52px !important; min-width: 52px !important; font-size: .8rem !important; box-shadow: none !important; padding: 0 !important; height: 30px !important; }
+.stepper input:focus { box-shadow: none !important; border: none !important; }
+.stepper label { display: none !important; }
 
 /* bottom bar */
 #bottom-bar { background: #16213e !important; border-top: 1px solid #2a2a4a !important; margin: 0 !important; padding: 8px !important; align-items: stretch !important; }
 #prompt-col { display: flex !important; flex-direction: column !important; gap: 4px !important; }
 #prompt-col textarea { background: #1a1a2e !important; color: #eaeaea !important; border: 1px solid #2a2a4a !important; border-radius: 8px !important; }
 #result-url-row { display: flex !important; align-items: center !important; gap: 8px !important; font-size: .72rem !important; color: #a0a0b0 !important; min-height: 18px !important; }
-#btn-col { display: flex !important; align-items: stretch !important; }
-.btn-generate { background: #e94560 !important; color: #fff !important; border: none !important; border-radius: 8px !important; min-width: 44px !important; padding: 0 16px !important; font-size: 1rem !important; box-shadow: none !important; }
+#result-url-row > * { flex: 0 0 auto !important; }
+#result-url { flex: 1 !important; min-width: 0 !important; }
+#btn-copy { width: 30px !important; min-width: 30px !important; max-width: 30px !important; flex: 0 0 30px !important; height: 26px !important; padding: 0 !important; }
+#btn-col { display: flex !important; align-items: stretch !important; width: 44px !important; }
+#btn-col > * { flex: 1 !important; }
+.btn-generate { background: #e94560 !important; color: #fff !important; border: none !important; border-radius: 8px !important; width: 44px !important; min-width: 44px !important; max-width: 44px !important; flex: 1 !important; padding: 0 !important; font-size: 1.2rem !important; box-shadow: none !important; height: auto !important; }
 .btn-generate:hover { background: #ff6b81 !important; }
+
+/* hide the default Gradio number input spinners */
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
 
 /* hide default labels where we want inline letters */
 .inline-label label { display: none !important; }
