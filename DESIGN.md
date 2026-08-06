@@ -78,7 +78,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Interactive HTML mockup (source of truth for the UI) |
-| `app.py` | Main Gradio application (to be implemented) |
+| `app.py` | Gradio app — B0 skeleton + B1 Generate wired (Edit/Upscale/Video are WIP stubs) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see PLAN.md A0) |
 | `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
 | `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
