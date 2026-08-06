@@ -496,16 +496,47 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  /* Action button fills its column */  
-  .btn-generate {
+  /* Right column: action button top + copy URL button bottom */
+  .btn-col {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
     width: 44px;
-    height: 100%;
-    padding: 12px 0;
+  }
+  .btn-generate, .btn-copy-url {
+    flex: 1;
+    width: 100%;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: .15s;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-secondary);
+  }
+  .btn-generate {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
     font-size: 1.1rem;
-    border: 1px solid transparent;
+  }
+  .btn-generate:hover { background: var(--accent-hover); }
+  .btn-copy-url {
+    font-size: .75rem;
+  }
+  .btn-copy-url:disabled {
+    opacity: .3;
+    cursor: default;
+  }
+  .btn-copy-url:not(:disabled):hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+    border-color: var(--accent);
   }
 
 
@@ -526,9 +557,7 @@
     gap: 4px;
     min-width: 0;
   }
-  .btn-col {
-    align-self: stretch;
-  }
+
   .prompt-col textarea {
     flex: 1;
     background: var(--bg);
@@ -561,24 +590,10 @@
   .result-url-row {
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-top: 2px;
     min-height: 12px;
     line-height: 12px;
   }
-  .btn-copy-url {
-    width: 16px; height: 16px;
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: .55rem;
-    transition: .15s;
-    flex-shrink: 0;
-  }
-  .btn-copy-url:hover { background: var(--surface-hover); color: var(--accent); border-color: var(--accent); }
+
 
   /* ── Slider comparison mock ──────────────── */
   .compare-slider {
@@ -1135,10 +1150,13 @@
     <div class="prompt-col">
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
-      <div class="result-url-row" id="resultUrlRow"></div>
+      <div class="result-url-row" id="resultUrlRow">
+        <span class="result-url" id="resultUrl"></span>
+      </div>
     </div>
     <div class="btn-col">
-      <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
+      <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
+      <button class="btn-copy-url" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
     </div>
   </div>
 
@@ -1171,9 +1189,8 @@
 
   function setResultUrl(filename) {
     lastGeneratedUrl = `${baseUrl}/view?filename=${encodeURIComponent(filename)}&type=output`;
-    const row = document.getElementById('resultUrlRow');
-    row.innerHTML = `<span class="result-url">${lastGeneratedUrl}</span>
-      <button class="btn-copy-url" onclick="copyResultUrl()" title="Copy URL">📋</button>`;
+    document.getElementById('resultUrl').textContent = lastGeneratedUrl;
+    document.getElementById('btnCopyUrl').disabled = false;
   }
 
   function copyResultUrl() {
@@ -1246,6 +1263,13 @@
     const bar = document.getElementById('bottomBar');
     const input = document.getElementById('promptInput');
     const btn = document.getElementById('btnGenerate');
+
+    // Reset copy URL state when switching away from generate
+    if (name !== 'generate') {
+      lastGeneratedUrl = null;
+      document.getElementById('resultUrl').textContent = '';
+      document.getElementById('btnCopyUrl').disabled = true;
+    }
 
     switch(name) {
       case 'generate':
