@@ -742,6 +742,11 @@
     .content { overflow: visible; }
     .tab-panel.active { overflow: visible; }
 
+    /* Icons only — hide text labels to save horizontal space */
+    .tab-btn { padding: 10px 10px; }
+    .tab-label { display: none; }
+    .tab-icon { margin-right: 0; font-size: 1rem; }
+
     /* Stack: output on top, params below, prompt last */
     .split {
       flex-direction: column;
@@ -772,7 +777,6 @@
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
-    .tab-btn { padding: 10px 8px; font-size: .75rem; }
     .tab-gear { width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; max-height: 40vh; }
@@ -792,16 +796,16 @@
     <div class="tabs-output-zone">
       <div class="tabs-inner">
         <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
-          <span class="tab-icon">🖼️</span>Generate
+          <span class="tab-icon">🖼️</span><span class="tab-label">Generate</span>
         </button>
         <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
-          <span class="tab-icon">✏️</span>Edit
+          <span class="tab-icon">✏️</span><span class="tab-label">Edit</span>
         </button>
         <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
-          <span class="tab-icon">🔍</span>Upscale
+          <span class="tab-icon">🔍</span><span class="tab-label">Upscale</span>
         </button>
         <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
-          <span class="tab-icon">🎬</span>Video
+          <span class="tab-icon">🎬</span><span class="tab-label">Video</span>
         </button>
         <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
       </div>
