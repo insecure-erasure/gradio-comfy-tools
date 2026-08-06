@@ -485,12 +485,7 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
   }
-  .bottom-bar .hint {
-    font-size: .75rem;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-  .bottom-bar .result-url {
+  .result-url {
     font-size: .72rem;
     color: var(--text-secondary);
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
@@ -505,6 +500,8 @@
     align-items: center;
     gap: 8px;
     margin-top: 4px;
+    min-height: 24px;
+    line-height: 24px;
   }
   .btn-copy-url {
     width: 26px; height: 26px;
@@ -1125,11 +1122,7 @@
     <div style="flex:1;display:flex;flex-direction:column;">
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
-      <span class="hint" id="promptHint">Describe what you want to generate. Be specific about subject, style, lighting, and composition.</span>
-      <div class="result-url-row" id="resultUrlRow" style="display:none">
-        <span class="result-url" id="resultUrl"></span>
-        <button class="btn-copy-url" onclick="copyResultUrl()" title="Copy URL">📋</button>
-      </div>
+      <div class="result-url-row" id="resultUrlRow"></div>
     </div>
     <div class="bottom-bar-right">
       <button class="btn-attach" title="Attach image" onclick="showToast('Image attachment (WIP)')">🖼️</button>
@@ -1166,11 +1159,9 @@
 
   function setResultUrl(filename) {
     lastGeneratedUrl = `${baseUrl}/view?filename=${encodeURIComponent(filename)}&type=output`;
-    const hint = document.getElementById('promptHint');
     const row = document.getElementById('resultUrlRow');
-    document.getElementById('resultUrl').textContent = lastGeneratedUrl;
-    hint.style.display = 'none';
-    row.style.display = 'flex';
+    row.innerHTML = `<span class="result-url">${lastGeneratedUrl}</span>
+      <button class="btn-copy-url" onclick="copyResultUrl()" title="Copy URL">📋</button>`;
   }
 
   function copyResultUrl() {
@@ -1241,22 +1232,16 @@
 
     // Update prompt bar
     const bar = document.getElementById('bottomBar');
-    const hint = document.getElementById('promptHint');
     const input = document.getElementById('promptInput');
 
     switch(name) {
       case 'generate':
         bar.style.display = 'flex';
         input.placeholder = 'Describe the image you want to generate in detail...';
-        if (!lastGeneratedUrl) {
-          hint.style.display = 'block';
-          document.getElementById('resultUrlRow').style.display = 'none';
-        }
         break;
       case 'edit':
         bar.style.display = 'flex';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-        hint.textContent = 'Describe the desired change. In restore mode, the prompt is optional.';
         break;
       case 'upscale':
         bar.style.display = 'none';
