@@ -353,6 +353,14 @@
   .field-inline .stepper {
     flex: 1;
   }
+  /* Video tab: constrain steppers so Frames+Steps+Seed fit in one row */
+  .tight-row .field-inline .stepper {
+    flex-shrink: 1;
+    min-width: 56px;
+  }
+  .tight-row .field-inline {
+    min-width: 0;
+  }
 
   .field-inline input:focus,
   .field-inline select:focus {
@@ -1213,7 +1221,7 @@
             <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <!-- Row: Frames | Steps | Seed + Random -->
-          <div class="field-row">
+          <div class="tight-row field-row">
             <div class="field-inline" style="flex:1.2">
               <label>Frames</label>
               <div class="stepper">
