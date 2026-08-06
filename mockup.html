@@ -361,11 +361,7 @@
   .tight-row .field-inline {
     min-width: 0;
   }
-  .tight-row .field-inline label {
-    font-size: .7rem;
-  }
 
-  .field-inline input:focus,
   .field-inline select:focus {
     outline: none;
     border-color: var(--accent);
@@ -1226,7 +1222,7 @@
           <!-- Row: Frames | Steps | Seed + Random -->
           <div class="tight-row field-row" style="gap:6px">
             <div class="field-inline" style="flex:1.2">
-              <label>Frames</label>
+              <label>🎞️</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
                 <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
@@ -1234,7 +1230,7 @@
               </div>
             </div>
             <div class="field-inline" style="flex:0.7">
-              <label>Steps</label>
+              <label>👣</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
                 <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
