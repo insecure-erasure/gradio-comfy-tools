@@ -248,6 +248,29 @@
   .pane-loading { opacity: .6; pointer-events: none; }
   .output-pane.busy { background: #101020; }
 
+  /* Spinner overlay over the output pane while a generation is running */
+  .output-pane { position: relative; }
+  .gen-spinner {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10, 12, 24, .45);
+    z-index: 10;
+    pointer-events: none;
+  }
+  .gen-spinner.show { display: flex; }
+  .gen-spinner .ring {
+    width: 96px;
+    height: 96px;
+    border: 8px solid rgba(233, 69, 96, .2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* Params pane */
   .params-pane {
     flex: 4;
@@ -1076,6 +1099,7 @@
             <p>Your generated image<br>will appear here</p>
             <p style="font-size:.75rem;margin-top:6px;">Click to open lightbox</p>
           </div>
+          <div class="gen-spinner" id="genSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
           <!-- Model row: label + dropdown + reset button -->
@@ -1453,8 +1477,10 @@
 
     const btn = document.getElementById('btnGenerate');
     const pane = document.getElementById('genOutputPane');
+    const spinner = document.getElementById('genSpinner');
     btn.disabled = true;
     pane.classList.add('busy');
+    spinner.classList.add('show');
     showToast('Workflow submitted to ComfyUI...');
 
     api('/api/generate', {
@@ -1471,6 +1497,7 @@
     }).finally(() => {
       btn.disabled = false;
       pane.classList.remove('busy');
+      spinner.classList.remove('show');
     });
   }
   // Mirror the backend tools' output naming: the fake result chains from the
