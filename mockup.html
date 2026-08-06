@@ -324,14 +324,11 @@
     letter-spacing: .04em;
     white-space: nowrap;
     flex-shrink: 0;
-    position: relative;
   }
-  .field-inline label[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    top: -28px;
-    left: 50%;
-    transform: translateX(-50%);
+
+  /* Fixed tooltip for emoji labels */
+  .label-tooltip {
+    position: fixed;
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
@@ -339,13 +336,16 @@
     padding: 3px 8px;
     font-size: .7rem;
     font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
+    font-family: var(--font);
     white-space: nowrap;
-    z-index: 20;
+    z-index: 999;
     pointer-events: none;
     box-shadow: 0 2px 8px rgba(0,0,0,.3);
+    opacity: 0;
+    transition: opacity .1s;
   }
+  .label-tooltip.show { opacity: 1; }
+
   .readonly-field {
     display: inline-block;
     width: 48px;
@@ -1096,7 +1096,7 @@
               </div>
             </div>
             <div class="field-inline" style="flex:1.6">
-              <label>Seed</label>
+              <label title="Seed">🌱</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepGenSeed(-1)" title="Decrease">−</button>
                 <input type="number" id="genSeed" value="0" min="0" step="1" disabled oninput="onGenSeedInput()">
@@ -1155,7 +1155,7 @@
               </div>
             </div>
             <div class="field-inline" style="flex:1.6">
-              <label>Seed</label>
+              <label title="Seed">🌱</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepEditSeed(-1)" title="Decrease">−</button>
                 <input type="number" id="editSeed" value="0" min="0" step="1" disabled oninput="onEditSeedInput()">
@@ -1200,7 +1200,7 @@
           <!-- Row: Seed + Random -->
           <div class="field-row">
             <div class="field-inline" style="flex:1.6">
-              <label>Seed</label>
+              <label title="Seed">🌱</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepUpscaleSeed(-1)" title="Decrease">−</button>
                 <input type="number" id="upscaleSeed" value="0" min="0" step="1" disabled oninput="onUpscaleSeedInput()">
@@ -1259,7 +1259,7 @@
               </div>
             </div>
             <div class="field-inline" style="flex:1">
-              <label>Seed</label>
+              <label title="Seed">🌱</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
                 <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
@@ -1569,6 +1569,27 @@
     recalcResolution();
   });
 
+  // ── Label tooltip ────────────────────────
+  const tooltip = document.getElementById('labelTooltip');
+  let tooltipTimeout;
+  document.addEventListener('mouseover', e => {
+    const label = e.target.closest('.field-inline label[title]');
+    if (label) {
+      const rect = label.getBoundingClientRect();
+      tooltip.textContent = label.getAttribute('title');
+      tooltip.style.left = (rect.left + rect.width / 2) + 'px';
+      tooltip.style.top = (rect.bottom + 4) + 'px';
+      tooltip.style.transform = 'translateX(-50%)';
+      tooltip.classList.add('show');
+      clearTimeout(tooltipTimeout);
+    }
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('.field-inline label[title]')) {
+      tooltipTimeout = setTimeout(() => tooltip.classList.remove('show'), 100);
+    }
+  });
+
   // Toast notification
   let toastTimer;
   function showToast(msg) {
@@ -1696,6 +1717,10 @@
     closeModal();
   }
 </script>
+
+
+<!-- Tooltip -->
+<div class="label-tooltip" id="labelTooltip"></div>
 
 </body>
 </html>
