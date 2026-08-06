@@ -69,29 +69,29 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 | 📁 Upload / 🔗 previous | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
 | 👣 Steps | `steps` (1–15, default 6) | `KSampler` |
-| 🌱 Seed + 🎲 | `seed` (🎲 → random) | `KSampler` |
+| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `KSampler` |
 | Modal: LoRA config / Override | `lora_config` + `override_system_loras` | `Power Lora Loader (rgthree)` |
 | Modal: Image base URL | `comfyui_image_base_url` | — |
 | Prompt (bottom bar; optional in restore) | `prompt` | `Prompt` |
 
 Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `Upscale Image (using Model)` / `Load Upscale Model`, `ConditioningZeroOut`, `Concatenate`; output: `Random Preview Image`.
 
-**⚠️ Gap vs the reference**: `edit_image/tool.py` does **not expose a user seed** — it generates `random.randint(0, _COMFY_SEED_MAX)` server-side (line ~632). The mockup does have seed + 🎲. **Decision**: the Gradio backend should expose seed (inject into `KSampler`); if strict parity is preferred, remove the control from the UI.
+**✅ Seed supported**: the reference `edit_image/tool.py` exposes `seed` since v1.6 (UserValve, -1 = random, ≥0 = fixed, injected into `KSampler`).
 
 ### 5.3 Upscale 🔍 — `seedvr2_upscale.json`
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
 | 📁 Upload / 🔗 previous | `image` (filename or URL) | `Load Image (URL/Path)` |
-| 🌱 Seed + 🎲 | `seed` | `SeedVR2 Video Upscaler (v2.5.24)` |
+| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `SeedVR2 Video Upscaler (v2.5.24)` |
 | — (no control) | `resolution` 2048 | `SeedVR2 Video Upscaler` |
 | — (no control) | `color_correction` "lab" | `SeedVR2 Video Upscaler` |
 | — (no control) | `blend_factor` 0.15 | `Image Blend` |
 
 Other nodes: `SeedVR2 (Down)Load DiT Model`, `SeedVR2 (Down)Load VAE Model`; output: `Random Preview Image`.
 
-**⚠️ Gaps vs the reference and the old design**:
-- `upscale_image/tool.py` only exposes `comfyui_image_base_url`; the workflow uses a fixed `seed: 0`. The mockup shows seed + 🎲 → the Gradio backend must inject seed into `SeedVR2 Video Upscaler` (or remove the control from the UI).
+**⚠️ Gap vs the old design**:
+- `upscale_image/tool.py` now exposes `seed` since v1.4 (UserValve, -1 = random, ≥0 = fixed, injected into `SeedVR2 Video Upscaler`).
 - Resolution / blend / color correction **exist in the workflow** but were removed from the UI (deviation from the original design). If they are ever exposed, the contracts are in this table.
 
 ### 5.4 Video 🎬 — `generate_video.json` / `generate_video_wan22.json`
@@ -146,9 +146,7 @@ Equivalent to the Open WebUI **AdminValves**. Configured from the 🎨 dropdown 
 
 ## 9. Gaps and open decisions (summary)
 
-1. **Seed in Edit** — the mockup has it; the reference `edit_image` does not. → Decide: expose it (inject into `KSampler`) or remove the UI control.
-2. **Seed in Upscale** — the mockup has it; the reference `upscale_image` uses a fixed `seed: 0`. → Decide: inject into `SeedVR2 Video Upscaler` or remove the UI control.
-3. **Unreachable advanced modal in Edit/Upscale** — the mockup defines the configs but there is no gear. → Decide: add a gear (deviate from the mockup) or drop the configs.
-4. **Resolution / blend / color in Upscale** — live in the workflow but not in the UI; if exposed, use the §5.3 contracts.
-5. **Edit LoRAs** — only in the modal; the UI has no dynamic list.
-6. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.
+1. **Unreachable advanced modal in Edit/Upscale** — the mockup defines the configs but there is no gear. → Decide: add a gear (deviate from the mockup) or drop the configs.
+2. **Resolution / blend / color in Upscale** — live in the workflow but not in the UI; if exposed, use the §5.3 contracts.
+3. **Edit LoRAs** — only in the modal; the UI has no dynamic list.
+4. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.
