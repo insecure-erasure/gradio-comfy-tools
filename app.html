@@ -1182,8 +1182,8 @@
     <!-- ═══ TAB 2: Edit Image ═══ -->
     <div class="tab-panel" id="tab-edit">
       <div class="split">
-        <div class="output-pane">
-          <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
+        <div class="output-pane" id="editOutputPane">
+          <button class="output-overlay-btn top-right" onclick="uploadForTab('edit')" title="Upload image">📁</button>
           <div class="source-url-field">
             <input type="text" class="source-url-input" id="editSourceUrl" placeholder="Paste image URL…" />
           </div>
@@ -1198,6 +1198,7 @@
             <div class="divider"></div>
             <div class="handle"></div>
           </div>
+          <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
           <!-- Model row -->
@@ -1473,6 +1474,30 @@
     return input ? input.value.trim() : '';
   }
 
+  // 📁 Upload image -> POST /api/upload (ComfyUI temp) -> fill the source field
+  function uploadForTab(tab) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+        if (!resp.ok) throw new Error(resp.statusText);
+        const j = await resp.json();
+        const field = document.getElementById(`${tab}SourceUrl`);
+        if (field) field.value = j.filename;
+        showToast('Image uploaded — source set');
+      } catch (e) {
+        showToast('❌ Upload failed: ' + e.message);
+      }
+    };
+    input.click();
+  }
+
   function generateImage() {
     const familyEl = document.getElementById('genModelFamily');
     const family = (familyEl && familyEl.options[familyEl.selectedIndex]?.getAttribute('data-key')) || 'zimage';
@@ -1525,11 +1550,40 @@
     } catch (e) { /* not a URL */ }
     return 'source';
   }
-  function generateEdit() {
+  function generateEdit(forceMode) {
     const src = getSourceUrl('edit');
     if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
-    showToast('Edit submitted to ComfyUI');
-    setResultUrl(`ComfyUI_edit_${baseNameFromUrl(src)}_${Date.now().toString(36)}_.png`);
+    const mode = forceMode || 'edit';
+    const steps = parseInt(document.getElementById('editSteps')?.value) || 6;
+    const seedEl = document.getElementById('editSeed');
+    const randomEl = document.getElementById('editSeedRandom');
+    const seed = (randomEl && randomEl.checked) ? -1 : (parseInt(seedEl?.value) || 0);
+    const prompt = document.getElementById('promptInput')?.value || '';
+    const loraConfig = (window.advancedValues && window.advancedValues.edit)?.lora || '[]';
+
+    const pane = document.getElementById('editOutputPane');
+    const spinner = document.getElementById('editSpinner');
+    const btn = document.getElementById('btnEdit') || document.querySelector('#btnCol .btn-generate');
+    if (btn) btn.disabled = true;
+    pane.classList.add('busy');
+    spinner.classList.add('show');
+    showToast('Edit submitted to ComfyUI...');
+
+    api('/api/edit', {
+      image: src, mode, prompt, steps, seed, lora_config: loraConfig,
+    }).then(res => {
+      showResult('editOutputPane', res, false);
+      lastGeneratedUrl = res.url;
+      document.getElementById('resultUrl').textContent = res.url;
+      document.getElementById('btnCopyUrl').disabled = false;
+      showToast('✨ Edited');
+    }).catch(err => {
+      showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
+    }).finally(() => {
+      if (btn) btn.disabled = false;
+      pane.classList.remove('busy');
+      spinner.classList.remove('show');
+    });
   }
   function generateUpscale() {
     const src = getSourceUrl('upscale');
@@ -1617,7 +1671,7 @@
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-        btnCol.innerHTML = '<button class="btn-generate" id="btnEdit" onclick="generateEdit()" title="Edit">🖌️</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit()" title="Restore (same as edit but with restoration prompt)">🩹</button>';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit">🖌️</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore (same as edit but with restoration prompt)">🩹</button>';
         break;
       case 'upscale':
         bar.style.display = 'flex';
