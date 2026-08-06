@@ -79,7 +79,7 @@
     border-color: var(--accent);
   }
 
-  /* Params zone: same width as params pane (40%). Border-left matches params-pane. */
+  /* Params zone: matches .params-pane exactly */
   .tabs-params-zone {
     flex: 4;
     display: flex;
@@ -87,7 +87,8 @@
     justify-content: flex-end;
     padding-right: 8px;
     border-left: 1px solid var(--border);
-    min-width: 0;
+    min-width: 280px;
+    max-width: 420px;
   }
 
   .tab-btn {
@@ -761,6 +762,7 @@
       order: 2;
       overflow: visible;
     }
+    .tabs-params-zone { max-width: none; }
     /* Bottom bar comes after params naturally */
     .bottom-bar {
       flex-shrink: 0;
