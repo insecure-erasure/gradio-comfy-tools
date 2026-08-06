@@ -337,13 +337,6 @@
     font-family: var(--font);
     text-align: right;
   }
-  .field-inline input[type="number"]:disabled {
-    background: var(--bg);
-    border-color: var(--border);
-    color: var(--text-secondary);
-    opacity: .8;
-    cursor: default;
-  }
   .field-inline select {
     flex: 1;
     min-width: 0;
@@ -450,6 +443,7 @@
   .stepper input::-webkit-inner-spin-button,
   .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .stepper input:focus { outline: none; }
+  .stepper input:disabled { opacity: .4; cursor: default; }
   .stepper-btn {
     flex-shrink: 0;
     width: 28px;
@@ -1073,7 +1067,7 @@
               <label>Seed</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepGenSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="genSeed" value="0" min="0" step="1" oninput="onGenSeedInput()">
+                <input type="number" id="genSeed" value="0" min="0" step="1" disabled oninput="onGenSeedInput()">
                 <button class="stepper-btn" onclick="stepGenSeed(1)" title="Increase">+</button>
               </div>
               <label class="check-label" style="margin-left:4px">
@@ -1132,7 +1126,7 @@
               <label>Seed</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepEditSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="editSeed" value="0" min="0" step="1" oninput="onEditSeedInput()">
+                <input type="number" id="editSeed" value="0" min="0" step="1" disabled oninput="onEditSeedInput()">
                 <button class="stepper-btn" onclick="stepEditSeed(1)" title="Increase">+</button>
               </div>
               <label class="check-label" style="margin-left:4px">
@@ -1177,7 +1171,7 @@
               <label>Seed</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepUpscaleSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="upscaleSeed" value="0" min="0" step="1" oninput="onUpscaleSeedInput()">
+                <input type="number" id="upscaleSeed" value="0" min="0" step="1" disabled oninput="onUpscaleSeedInput()">
                 <button class="stepper-btn" onclick="stepUpscaleSeed(1)" title="Increase">+</button>
               </div>
               <label class="check-label" style="margin-left:4px">
@@ -1236,7 +1230,7 @@
               <label>Seed</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="videoSeed" value="0" min="0" step="1" oninput="onVideoSeedInput()">
+                <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
                 <button class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase">+</button>
               </div>
               <label class="check-label" style="margin-left:4px">
@@ -1447,32 +1441,26 @@
 
   // ── Seed + random toggle ──────────────────
   function stepGenSeed(d) { const input=document.getElementById('genSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
-  function onGenSeedInput() { const input=document.getElementById('genSeed'); if(isNaN(parseInt(input.value))) input.value=0; }
+  function onGenSeedInput() { const input=document.getElementById('genSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('genSeedRandom').checked=false; input.disabled=false; }
   function onSeedRandomToggle() {
     const checked = document.getElementById('genSeedRandom').checked;
-    const seedInput = document.getElementById('genSeed');
-    seedInput.disabled = checked;
-    if (checked) seedInput.value = '';
+    document.getElementById('genSeed').disabled = checked;
   }
   function onSeedInput() {
-    const input = document.getElementById('genSeed');
-    if (input.value !== '') {
-      document.getElementById('genSeedRandom').checked = false;
-      input.disabled = false;
-    }
+    document.getElementById('genSeedRandom').checked = false;
   }
 
   // ── Edit tab helpers ─────────────────────
   function stepEditSteps(d) { const input=document.getElementById('editSteps'); input.value=Math.min(15,Math.max(1,parseInt(input.value)+d)); }
   function onEditStepsInput() { const input=document.getElementById('editSteps'); const v=parseInt(input.value); if(isNaN(v)||v<1) input.value=1; if(v>15) input.value=15; }
   function stepEditSeed(d) { const input=document.getElementById('editSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
-  function onEditSeedInput() { const input=document.getElementById('editSeed'); if(isNaN(parseInt(input.value))) input.value=0; }
-  function onEditSeedRandomToggle() { const s=document.getElementById('editSeedRandom').checked; const inp=document.getElementById('editSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onEditSeedInput() { const input=document.getElementById('editSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('editSeedRandom').checked=false; input.disabled=false; }
+  function onEditSeedRandomToggle() { const s=document.getElementById('editSeedRandom').checked; const inp=document.getElementById('editSeed'); inp.disabled=s; }
 
   // ── Upscale tab helpers ──────────────────
   function stepUpscaleSeed(d) { const input=document.getElementById('upscaleSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
-  function onUpscaleSeedInput() { const input=document.getElementById('upscaleSeed'); if(isNaN(parseInt(input.value))) input.value=0; }
-  function onUpscaleSeedRandomToggle() { const s=document.getElementById('upscaleSeedRandom').checked; const inp=document.getElementById('upscaleSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onUpscaleSeedInput() { const input=document.getElementById('upscaleSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('upscaleSeedRandom').checked=false; input.disabled=false; }
+  function onUpscaleSeedRandomToggle() { const s=document.getElementById('upscaleSeedRandom').checked; const inp=document.getElementById('upscaleSeed'); inp.disabled=s; }
 
   // ── Video tab helpers ────────────────────
   function stepVideoFrames(d) { const input=document.getElementById('videoFrames'); let val=parseInt(input.value)+d; val=Math.round(val/4)*4+1; input.value=Math.min(161,Math.max(81,val)); }
@@ -1480,8 +1468,8 @@
   function stepVideoSteps(d) { const input=document.getElementById('videoSteps'); const val=Math.min(10,Math.max(4,parseInt(input.value)+d)); input.value=val; }
   function onVideoStepsInput() { const input=document.getElementById('videoSteps'); const v=parseInt(input.value); if(isNaN(v)||v<4) input.value=4; if(v>10) input.value=10; }
   function stepVideoSeed(d) { const input=document.getElementById('videoSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
-  function onVideoSeedInput() { const input=document.getElementById('videoSeed'); if(isNaN(parseInt(input.value))) input.value=0; }
-  function onVideoSeedRandomToggle() { const s=document.getElementById('videoSeedRandom').checked; const inp=document.getElementById('videoSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onVideoSeedInput() { const input=document.getElementById('videoSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('videoSeedRandom').checked=false; input.disabled=false; }
+  function onVideoSeedRandomToggle() { const s=document.getElementById('videoSeedRandom').checked; const inp=document.getElementById('videoSeed'); inp.disabled=s; }
 
   // Auto-set steps when model family changes (Generate Image tab)
   function onModelFamilyChange() {
