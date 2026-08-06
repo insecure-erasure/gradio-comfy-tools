@@ -1475,10 +1475,10 @@
 
     if (!prompt.trim()) return showToast('Please write a prompt first');
 
-    const btn = document.getElementById('btnGenerate');
+    const btn = document.getElementById('btnGenerate') || document.querySelector('#btnCol .btn-generate');
     const pane = document.getElementById('genOutputPane');
     const spinner = document.getElementById('genSpinner');
-    btn.disabled = true;
+    if (btn) btn.disabled = true;
     pane.classList.add('busy');
     spinner.classList.add('show');
     showToast('Workflow submitted to ComfyUI...');
@@ -1495,7 +1495,7 @@
     }).catch(err => {
       showToast('❌ ' + err.message);
     }).finally(() => {
-      btn.disabled = false;
+      if (btn) btn.disabled = false;
       pane.classList.remove('busy');
       spinner.classList.remove('show');
     });
@@ -1599,24 +1599,24 @@
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the image you want to generate in detail...';
-        btnCol.innerHTML = '<button class="btn-generate" onclick="generateImage()" title="Generate">✨</button>';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>';
         break;
       case 'edit':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-        btnCol.innerHTML = '<button class="btn-generate" onclick="generateEdit()" title="Edit">🖌️</button><button class="btn-generate btn-restore" onclick="generateEdit()" title="Restore (same as edit but with restoration prompt)">🩹</button>';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnEdit" onclick="generateEdit()" title="Edit">🖌️</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit()" title="Restore (same as edit but with restoration prompt)">🩹</button>';
         break;
       case 'upscale':
         bar.style.display = 'flex';
         input.style.display = 'none';
-        btnCol.innerHTML = '<button class="btn-generate" onclick="generateUpscale()" title="Upscale">🔍</button>';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnUpscale" onclick="generateUpscale()" title="Upscale">🔍</button>';
         break;
       case 'video':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
-        btnCol.innerHTML = '<button class="btn-generate" onclick="generateVideo()" title="Video">🎬</button>';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video">🎬</button>';
         break;
     }
   }
