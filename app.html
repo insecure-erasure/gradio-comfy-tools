@@ -235,6 +235,7 @@
   .result-img {
     max-width: 100%;
     max-height: 100%;
+    margin: auto;
     border-radius: var(--radius);
     object-fit: contain;
     box-shadow: var(--shadow);
@@ -766,24 +767,30 @@
     position: relative;
     width: 100%;
     max-width: 640px;
+    margin: auto;
     aspect-ratio: 3/4;
     overflow: hidden;
     border-radius: var(--radius);
     cursor: ew-resize;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    background: #000;
   }
-  .compare-slider .side {
+  .compare-slider img {
     position: absolute;
     inset: 0;
-    background-size: cover;
-    background-position: center;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    -webkit-user-drag: none;
   }
   .compare-slider .before {
-    clip-path: inset(0 50% 0 0);
-    background: linear-gradient(135deg, #2d2d44 0%, #1a1a3e 50%, #0d0d2b 100%);
+    clip-path: inset(0 calc(100% - var(--p, 50%)) 0 0);
   }
   .compare-slider .after {
-    clip-path: inset(0 0 0 50%);
-    background: linear-gradient(135deg, #1a1a3e 0%, #0d0d2b 50%, #2d2d44 100%);
+    clip-path: inset(0 0 0 var(--p, 50%));
   }
   .compare-slider .label {
     position: absolute;
@@ -803,10 +810,33 @@
   .compare-slider .divider {
     position: absolute;
     top: 0; bottom: 0;
-    left: 50%;
+    left: var(--p, 50%);
     width: 2px;
-    background: rgba(255,255,255,.7);
+    background: rgba(255,255,255,.75);
+    transform: translateX(-50%);
     mix-blend-mode: difference;
+    pointer-events: none;
+  }
+  .compare-slider .handle {
+    position: absolute;
+    top: 50%; left: var(--p, 50%);
+    transform: translate(-50%, -50%);
+    width: 13px; height: 38px;
+    background: rgba(255,255,255,.9);
+    border-radius: 3px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+  .compare-slider .handle span {
+    width: 3px; height: 3px;
+    border-left: 1px solid #444;
+    border-bottom: 1px solid #444;
+    transform: rotate(45deg);
+  }
+  .compare-slider .handle span:last-child { transform: rotate(-135deg); }
     pointer-events: none;
   }
   .compare-slider .handle {
@@ -1188,15 +1218,13 @@
             <input type="text" class="source-url-input" id="editSourceUrl" placeholder="Paste image URL…" />
           </div>
           <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
-          <div class="compare-slider">
-            <div class="side before">
-              <span class="label">Original</span>
-            </div>
-            <div class="side after">
-              <span class="label">Edited</span>
-            </div>
+          <div class="compare-slider" id="editCompare" style="display:none">
+            <img class="side before" id="editBefore" src="" draggable="false" alt="Original">
+            <img class="side after" id="editAfter" src="" draggable="false" alt="Edited">
+            <span class="label">Original</span>
+            <span class="label" style="right:12px;left:auto">Edited</span>
             <div class="divider"></div>
-            <div class="handle"></div>
+            <div class="handle"><span></span><span></span></div>
           </div>
           <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
         </div>
@@ -1572,7 +1600,21 @@
     api('/api/edit', {
       image: src, mode, prompt, steps, seed, lora_config: loraConfig,
     }).then(res => {
-      showResult('editOutputPane', res, false);
+      // Compare slider: source (before) vs edited (after) — this IS the result.
+      const beforeEl = document.getElementById('editBefore');
+      const afterEl = document.getElementById('editAfter');
+      const cmp = document.getElementById('editCompare');
+      if (beforeEl && afterEl) {
+        // Resolve the source through the media proxy (temp filename or external URL)
+        const srcIsUrl = /^https?:\/\//i.test(src);
+        beforeEl.src = srcIsUrl ? src : '/media/' + encodeURIComponent(src.split('/').pop()) + '?type=temp';
+        afterEl.src = res.display;
+        cmp.style.setProperty('--p', '50%');
+        cmp.style.display = '';
+      }
+      // Hide any plain result image; the compare slider is the display
+      const pane = document.getElementById('editOutputPane');
+      pane.querySelectorAll('.result-img, .output-placeholder').forEach(el => el.remove());
       lastGeneratedUrl = res.url;
       document.getElementById('resultUrl').textContent = res.url;
       document.getElementById('btnCopyUrl').disabled = false;
@@ -1851,31 +1893,27 @@
     toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
   }
 
-  // Compare slider drag simulation
+  // Compare slider drag — sets --p (like the reference compare_images embed)
   document.querySelectorAll('.compare-slider').forEach(slider => {
     let dragging = false;
-
-    function update(e) {
+    function setP(x) {
       const rect = slider.getBoundingClientRect();
-      let pct = (e.clientX - rect.left) / rect.width;
-      pct = Math.max(0.05, Math.min(0.95, pct));
-      const pctStr = (pct * 100) + '%';
-      const invPct = ((1 - pct) * 100) + '%';
-      slider.querySelector('.before').style.clipPath = `inset(0 ${invPct} 0 0)`;
-      slider.querySelector('.after').style.clipPath = `inset(0 0 0 ${pctStr})`;
-      slider.querySelector('.divider').style.left = pctStr;
-      slider.querySelector('.handle').style.left = pctStr;
+      const p = Math.min(100, Math.max(0, (x - rect.left) / rect.width * 100));
+      slider.style.setProperty('--p', p + '%');
     }
-
+    const onBtn = e => e.target.closest && e.target.closest('.btn');
     slider.addEventListener('pointerdown', e => {
+      if (onBtn(e)) return;
       dragging = true;
-      slider.setPointerCapture(e.pointerId);
-      update(e);
+      try { slider.setPointerCapture(e.pointerId); } catch (e) {}
+      setP(e.clientX);
+      e.preventDefault();
     });
     slider.addEventListener('pointermove', e => {
-      if (dragging) update(e);
+      if ((dragging || e.pointerType === 'mouse') && !onBtn(e)) setP(e.clientX);
     });
     slider.addEventListener('pointerup', () => { dragging = false; });
+    slider.addEventListener('pointercancel', () => { dragging = false; });
   });
 
   // Keyboard shortcut: Ctrl+1..4 to switch tabs
