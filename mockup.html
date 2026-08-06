@@ -499,9 +499,7 @@
   /* Action button next to prompt textarea */
   .btn-generate {
     flex-shrink: 0;
-    align-self: flex-end;
-    margin-left: 10px;
-    width: 40px; height: 40px;
+    width: 40px;
     min-width: 40px;
     padding: 0;
     display: flex;
@@ -517,11 +515,16 @@
     padding: 10px 20px;
     background: var(--surface);
     display: flex;
-    gap: 10px;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: 4px;
     flex-shrink: 0;
   }
-  .bottom-bar textarea {
+  .prompt-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .prompt-row textarea {
     flex: 1;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -535,7 +538,7 @@
     line-height: 1.5;
     transition: .15s;
   }
-  .bottom-bar textarea:focus {
+  .prompt-row textarea:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
@@ -814,7 +817,7 @@
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
-    .btn-generate { padding: 8px; font-size: .8rem; aspect-ratio: 1; }
+    .btn-generate { width: 36px; min-width: 36px; font-size: 1rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
@@ -1124,12 +1127,12 @@
 
   <!-- Bottom prompt bar -->
   <div class="bottom-bar" id="bottomBar">
-    <div style="flex:1;display:flex;flex-direction:column;">
+    <div class="prompt-row">
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
-      <div class="result-url-row" id="resultUrlRow"></div>
+      <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
     </div>
-    <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
+    <div class="result-url-row" id="resultUrlRow"></div>
   </div>
 
 </div>
