@@ -692,37 +692,48 @@
             <label>Model Family</label>
             <select id="genModelFamily" onchange="onModelFamilyChange()">
               <option data-steps="10">Z-Image Turbo</option>
-              <option data-steps="8">Krea 2</option>
-              <option data-steps="8">FLUX.2 Klein</option>
+              <option data-steps="10" data-vae="16">Z-Image Turbo</option>
+              <option data-steps="8" data-vae="8">Krea 2</option>
+              <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
             </select>
           </div>
           <div class="field">
             <label>Aspect Ratio</label>
-            <select>
-              <option>2:3 (Portrait)</option>
-              <option>1:1 (Square)</option>
-              <option>3:2 (Landscape)</option>
-              <option>3:4</option>
-              <option>4:3</option>
-              <option>9:16</option>
-              <option>16:9</option>
-              <option>Custom</option>
+            <select id="genAspectRatio" onchange="onModelFamilyChange()">
+              <option data-w="2" data-h="3">2:3 (Portrait)</option>
+              <option data-w="1" data-h="1">1:1 (Square)</option>
+              <option data-w="3" data-h="2">3:2 (Landscape)</option>
+              <option data-w="3" data-h="4">3:4</option>
+              <option data-w="4" data-h="3">4:3</option>
+              <option data-w="9" data-h="16">9:16</option>
+              <option data-w="16" data-h="9">16:9</option>
+              <option data-w="0" data-h="0">Custom</option>
             </select>
+          </div>
+          <div class="field-row" id="genCustomRatio" style="display:none">
+            <div class="field">
+              <label>Custom W</label>
+              <input type="number" value="16" min="1" class="gen-dim" oninput="recalcResolution()">
+            </div>
+            <div class="field">
+              <label>Custom H</label>
+              <input type="number" value="9" min="1" class="gen-dim" oninput="recalcResolution()">
+            </div>
           </div>
           <div class="field-row">
             <div class="field">
               <label>Width</label>
-              <input type="number" value="832" disabled style="opacity:.5">
+              <input type="number" id="genWidth" value="832" disabled style="opacity:.5">
             </div>
             <div class="field">
               <label>Height</label>
-              <input type="number" value="1248" disabled style="opacity:.5">
+              <input type="number" id="genHeight" value="1248" disabled style="opacity:.5">
             </div>
           </div>
           <div class="field">
-            <label>Megapixels <span style="font-weight:400">(1.0 MP)</span></label>
-            <input type="range" min="0.25" max="4" step="0.25" value="1" oninput="this.nextElementSibling.textContent=this.value+' MP'">
-            <span class="range-value">1 MP</span>
+            <label>Megapixels <span style="font-weight:400" id="genMpLabel">(1.0 MP)</span></label>
+            <input type="range" min="0.25" max="4" step="0.25" value="1" id="genMegapixel" oninput="onModelFamilyChange()">
+            <span class="range-value" id="genMpVal">1 MP</span>
           </div>
           <div class="field">
             <label>Steps <span style="font-weight:400" id="genStepsLabel">(10)</span></label>
@@ -987,6 +998,8 @@
   function onModelFamilyChange() {
     const sel = document.getElementById('genModelFamily');
     const opt = sel.options[sel.selectedIndex];
+
+    // Update steps slider
     const steps = parseInt(opt.getAttribute('data-steps')) || 8;
     const slider = document.getElementById('genSteps');
     const label = document.getElementById('genStepsLabel');
@@ -994,7 +1007,66 @@
     slider.value = steps;
     label.textContent = `(${steps})`;
     valEl.textContent = steps;
+
+    // Show/hide custom ratio fields
+    const arSel = document.getElementById('genAspectRatio');
+    const arOpt = arSel.options[arSel.selectedIndex];
+    const customRow = document.getElementById('genCustomRatio');
+    if (arOpt.getAttribute('data-w') === '0') {
+      customRow.style.display = 'flex';
+    } else {
+      customRow.style.display = 'none';
+    }
+
+    // Update megapixel label
+    const mpSlider = document.getElementById('genMegapixel');
+    const mpLabel = document.getElementById('genMpLabel');
+    const mpVal = document.getElementById('genMpVal');
+    const mp = parseFloat(mpSlider.value);
+    mpLabel.textContent = `(${mp.toFixed(2)} MP)`;
+    mpVal.textContent = mp + ' MP';
+
+    recalcResolution();
   }
+
+  function recalcResolution() {
+    const sel = document.getElementById('genModelFamily');
+    const opt = sel.options[sel.selectedIndex];
+    const vaeScale = parseInt(opt.getAttribute('data-vae')) || 16;
+
+    const arSel = document.getElementById('genAspectRatio');
+    const arOpt = arSel.options[arSel.selectedIndex];
+
+    let wRatio, hRatio;
+    if (arOpt.getAttribute('data-w') === '0') {
+      // Custom ratio — read from the custom inputs
+      const customInputs = document.querySelectorAll('#genCustomRatio input');
+      wRatio = parseInt(customInputs[0]?.value) || 16;
+      hRatio = parseInt(customInputs[1]?.value) || 9;
+    } else {
+      wRatio = parseInt(arOpt.getAttribute('data-w'));
+      hRatio = parseInt(arOpt.getAttribute('data-h'));
+    }
+
+    const mp = parseFloat(document.getElementById('genMegapixel').value);
+    const totalPixels = mp * 1_000_000;
+
+    // w = sqrt(totalPixels * wRatio / hRatio)
+    const rawW = Math.sqrt(totalPixels * wRatio / hRatio);
+    const rawH = rawW * hRatio / wRatio;
+
+    // Round to nearest multiple of vae_scale_factor
+    const w = Math.max(vaeScale, Math.round(rawW / vaeScale) * vaeScale);
+    const h = Math.max(vaeScale, Math.round(rawH / vaeScale) * vaeScale);
+
+    document.getElementById('genWidth').value = w;
+    document.getElementById('genHeight').value = h;
+  }
+
+  // Initial calculation on page load
+  window.addEventListener('DOMContentLoaded', () => {
+    recalcResolution();
+  });
 
   // Toast notification
   let toastTimer;

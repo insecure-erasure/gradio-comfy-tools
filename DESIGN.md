@@ -21,10 +21,11 @@ SamplerCustomAdvanced, VAEDecode, Power Lora Loader
 **Parameters (right panel)**:
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| Model family | Dropdown | Z-Image Turbo | zimage, krea2, flux2_klein. Changing the model **automatically sets the steps slider** to the default for that family. |
+| Model family | Dropdown | Z-Image Turbo | zimage, krea2, flux2_klein. Changing the model **automatically sets the steps slider** to the default for that family and **updates the width/height** because each model has a different VAE scale factor (divisible_by). |
 | Aspect ratio | Dropdown | 2:3 (Portrait) | 1:1, 2:3, 3:2, 3:4, 4:3, 9:16, 16:9, custom |
-| Custom ratio (W:H) | Text × 2 | — | Only when aspect_ratio = custom |
-| Megapixels | Slider | 1.0 | Resolution target (0.25 – 4.0) |
+| Custom ratio (W:H) | Text × 2 | — | Only shown when aspect_ratio = custom. Inline fields for width and height ratio. |
+| Megapixels | Slider | 1.0 | Resolution target (0.25 – 4.0). Together with aspect ratio and VAE scale factor, determines the final width and height. |
+| Width / Height | Read-only | Auto | Calculated from megapixels × aspect ratio, rounded to nearest multiple of the model's VAE scale factor. Updates live when any of the three inputs (model, aspect ratio, megapixels) change. |
 | Steps | Slider | 10 | Inference steps (1 – 15). Auto-updates when model family changes: Z-Image Turbo → 10, Krea 2 → 8, FLUX.2 Klein → 8. |
 | Seed | Number | -1 | -1 = random, ≥0 = fixed |
 | LoRAs | Dynamic list | none | Up to 4 LoRAs (name + strength) |
@@ -34,6 +35,26 @@ prompt.
 
 **Generation output (left)**: The generated image displayed in a container
 that fits the available area, with a lightbox/modal on click.
+
+**Resolution auto-calculation**: Width and height are derived from three
+inputs and update live whenever any of them changes:
+
+```
+total_pixels = megapixels × 1_000_000
+raw_w = √(total_pixels × ratio_w / ratio_h)
+raw_h = raw_w × ratio_h / ratio_w
+width  = round(raw_w / vae_scale) × vae_scale
+height = round(raw_h / vae_scale) × vae_scale
+```
+
+Each model family uses a different VAE with its own spatial compression
+factor, inherited from the workflow's `FluxResolutionNode.divisible_by`:
+
+| Model family | VAE scale factor |
+|--------------|:---:|
+| Z-Image Turbo | 16 |
+| Krea 2 | 8 |
+| FLUX.2 Klein | 64 |
 
 **Advanced parameters** (⚙️ modal):
 | Parameter | Type | Default | Description |
