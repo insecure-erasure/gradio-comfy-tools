@@ -496,22 +496,21 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  /* Right column: action button top + copy URL button bottom */
+  /* Right column: two buttons stacked at top */
   .btn-col {
-    align-self: stretch;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
     width: 44px;
   }
   .btn-generate, .btn-copy-url {
-    flex: 1;
-    width: 100%;
+    width: 44px;
+    height: 38px;
     padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 1.1rem;
     border-radius: var(--radius);
     cursor: pointer;
     transition: .15s;
@@ -523,12 +522,8 @@
     background: var(--accent);
     color: #fff;
     border-color: var(--accent);
-    font-size: 1.1rem;
   }
   .btn-generate:hover { background: var(--accent-hover); }
-  .btn-copy-url {
-    font-size: .75rem;
-  }
   .btn-copy-url:disabled {
     opacity: .3;
     cursor: default;
@@ -547,7 +542,7 @@
     background: var(--surface);
     display: flex;
     gap: 12px;
-    align-items: stretch;
+    align-items: flex-start;
     flex-shrink: 0;
   }
   .prompt-col {
@@ -838,8 +833,7 @@
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
     .btn-col { width: 40px; }
-    .btn-generate { font-size: 1rem; }
-    .btn-copy-url { font-size: .7rem; }
+    .btn-generate, .btn-copy-url { width: 40px; height: 34px; font-size: 1rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
