@@ -787,10 +787,11 @@
     -webkit-user-drag: none;
   }
   .compare-slider .before {
+    /* top layer (original): reveals the edited image below as --p shrinks */
     clip-path: inset(0 calc(100% - var(--p, 50%)) 0 0);
   }
   .compare-slider .after {
-    clip-path: inset(0 0 0 var(--p, 50%));
+    /* base layer (edited): fully visible below the original */
   }
   .compare-slider .label {
     position: absolute;
@@ -1219,8 +1220,8 @@
           </div>
           <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
           <div class="compare-slider" id="editCompare" style="display:none">
-            <img class="side before" id="editBefore" src="" draggable="false" alt="Original">
             <img class="side after" id="editAfter" src="" draggable="false" alt="Edited">
+            <img class="side before" id="editBefore" src="" draggable="false" alt="Original">
             <span class="label">Original</span>
             <span class="label" style="right:12px;left:auto">Edited</span>
             <div class="divider"></div>
