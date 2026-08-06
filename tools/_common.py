@@ -105,6 +105,18 @@ def is_external_url(value: str) -> bool:
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
 
 
+def normalize_source(image: str) -> tuple[str, str]:
+    """Centralized filename-vs-URL auto-detection.
+
+    Returns ``(value, kind)`` where ``kind`` is ``"url"`` for external URLs
+    and ``"filename"`` otherwise (ComfyUI-internal filename). Shared by the
+    Edit/Upscale/Video image-source flow.
+    """
+    if is_external_url(image):
+        return image, "url"
+    return image, "filename"
+
+
 def configure_image_node(node_inputs: dict[str, Any], image: str) -> None:
     """Write the source image into a LoadImageByUrlOrPath node's inputs.
 

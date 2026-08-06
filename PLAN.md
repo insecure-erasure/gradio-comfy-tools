@@ -203,6 +203,10 @@ Expose what the frontend needs for 🔗/📋 and 🎨 without UI logic.
 - `last_generated` per session: handled by the frontend (Gradio state); the
   backend only exposes `result_url` and the naming convention.
 
+Status: **implemented** — `result_url` (ComfyClient), `normalize_source`
+(tools/_common), runtime settings setters (config.py), and the full-chain
+script `scripts/run_chain.py`; manual validation passed (A→B→C→D filenames).
+
 ### Manual validation (A5)
 Script `scripts/run_chain.py`: generate → edit the result (filename) → upscale
 that result → video from that result. Expected: the whole chain works passing

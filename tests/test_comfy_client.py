@@ -188,6 +188,11 @@ def test_configure_image_node_filename():
     assert inputs["url"] == ""
 
 
+def test_normalize_source():
+    assert _common.normalize_source("ComfyUI_prev_00001_.png") == ("ComfyUI_prev_00001_.png", "filename")
+    assert _common.normalize_source("https://example.com/img.png") == ("https://example.com/img.png", "url")
+
+
 def test_snap_frames_matches_reference():
     # Values computed from _snap_to_valid_frames in generate_video/tool.py
     assert _common.snap_frames(80) == 81

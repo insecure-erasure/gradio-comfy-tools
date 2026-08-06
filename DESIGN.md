@@ -88,6 +88,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `scripts/run_edit.py` | A2 Edit CLI — `--image <filename|URL> --mode edit|restore [--prompt] [--steps] [--seed] [--loras]` |
 | `scripts/run_upscale.py` | A3 Upscale CLI — `--image <filename|URL> [--seed]` |
 | `scripts/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
+| `scripts/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
 
 ### workflows/ contents
 
