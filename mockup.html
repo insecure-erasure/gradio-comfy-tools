@@ -496,12 +496,11 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  /* Action button next to prompt textarea */
+  /* Action button in its own column */
   .btn-generate {
     flex-shrink: 0;
-    width: 40px;
-    min-width: 40px;
-    padding: 10px 0;
+    width: 44px; height: 44px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -516,16 +515,23 @@
     padding: 10px 20px;
     background: var(--surface);
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 12px;
+    align-items: center;
     flex-shrink: 0;
   }
-  .prompt-row {
+  .prompt-col {
+    flex: 1;
     display: flex;
-    gap: 8px;
-    align-items: stretch;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
   }
-  .prompt-row textarea {
+  .btn-col {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+  }
+  .prompt-col textarea {
     flex: 1;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -539,7 +545,7 @@
     line-height: 1.5;
     transition: .15s;
   }
-  .prompt-row textarea:focus {
+  .prompt-col textarea:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
@@ -818,7 +824,7 @@
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
-    .btn-generate { width: 36px; min-width: 36px; font-size: 1rem; }
+    .btn-generate { width: 40px; height: 40px; font-size: 1rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
@@ -1128,12 +1134,14 @@
 
   <!-- Bottom prompt bar -->
   <div class="bottom-bar" id="bottomBar">
-    <div class="prompt-row">
+    <div class="prompt-col">
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
+      <div class="result-url-row" id="resultUrlRow"></div>
+    </div>
+    <div class="btn-col">
       <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
     </div>
-    <div class="result-url-row" id="resultUrlRow"></div>
   </div>
 
 </div>
