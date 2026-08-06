@@ -326,12 +326,6 @@
     gap: 4px;
   }
   .field-inline input[type="number"] {
-    width: auto;
-    max-width: 60px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text);
     padding: 7px 4px;
     font-size: .85rem;
     font-family: var(--font);
@@ -381,6 +375,38 @@
   }
   .field-inline .stepper {
     flex: 1;
+  }
+  .seed-wrap {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    overflow: hidden;
+    flex: 1;
+  }
+  .seed-wrap input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    padding: 7px 4px;
+    font-size: .85rem;
+    font-family: var(--font);
+    text-align: right;
+    line-height: 1;
+    outline: none;
+    min-width: 0;
+    -moz-appearance: textfield;
+  }
+  .seed-wrap input::-webkit-inner-spin-button,
+  .seed-wrap input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .seed-wrap input:disabled {
+    opacity: .5;
+    cursor: default;
   }
   .field-inline input:focus,
   .field-inline select:focus {
@@ -1093,7 +1119,7 @@
             </div>
             <div class="field-inline" style="flex:1.6">
               <label>Seed</label>
-              <input type="number" id="genSeed" value="0" min="0" oninput="onSeedInput()">
+              <span class="seed-wrap"><input type="number" id="genSeed" value="0" min="0" oninput="onSeedInput()"></span>
               <label class="check-label" style="margin-left:4px">
                 <input type="checkbox" id="genSeedRandom" checked onchange="onSeedRandomToggle()">
                 Random
@@ -1148,7 +1174,7 @@
             </div>
             <div class="field-inline" style="flex:1.6">
               <label>Seed</label>
-              <input type="number" id="editSeed" value="0" min="0" oninput="onEditSeedInput()">
+              <span class="seed-wrap"><input type="number" id="editSeed" value="0" min="0" oninput="onEditSeedInput()"></span>
               <label class="check-label" style="margin-left:4px">
                 <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
                 Random
@@ -1189,7 +1215,7 @@
           <div class="field-row">
             <div class="field-inline" style="flex:1.6">
               <label>Seed</label>
-              <input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()">
+              <span class="seed-wrap"><input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()"></span>
               <label class="check-label" style="margin-left:4px">
                 <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
                 Random
@@ -1243,7 +1269,7 @@
             </div>
             <div class="field-inline" style="flex:1.6">
               <label>Seed</label>
-              <input type="number" id="videoSeed" value="0" min="0" oninput="onVideoSeedInput()">
+              <span class="seed-wrap"><input type="number" id="videoSeed" value="0" min="0" oninput="onVideoSeedInput()"></span>
               <label class="check-label" style="margin-left:4px">
                 <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
                 Random
