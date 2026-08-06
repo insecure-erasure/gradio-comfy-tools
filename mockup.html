@@ -500,11 +500,15 @@
   .btn-generate {
     flex-shrink: 0;
     align-self: flex-end;
-    margin-left: 12px;
-    padding: 10px 14px;
-    white-space: nowrap;
+    margin-left: 10px;
+    width: 40px; height: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
   }
-  .btn-generate .btn-label { margin-left: 4px; }
 
 
   /* ── Bottom prompt bar ─────────────────────── */
@@ -810,8 +814,7 @@
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
-    .btn-generate { padding: 8px 10px; font-size: .8rem; min-width: auto; }
-    .btn-generate .btn-label { display: none; }
+    .btn-generate { padding: 8px; font-size: .8rem; aspect-ratio: 1; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
@@ -1126,7 +1129,7 @@
         placeholder="Describe the image you want to generate in detail..."></textarea>
       <div class="result-url-row" id="resultUrlRow"></div>
     </div>
-    <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()">✨<span class="btn-label">Generate</span></button>
+    <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
   </div>
 
 </div>
@@ -1239,27 +1242,31 @@
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the image you want to generate in detail...';
-        btn.innerHTML = '✨<span class="btn-label">Generate</span>';
+        btn.textContent = '✨';
+        btn.title = 'Generate';
         btn.onclick = generateImage;
         break;
       case 'edit':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-        btn.innerHTML = '✏️<span class="btn-label">Edit</span>';
+        btn.textContent = '🖌️';
+        btn.title = 'Edit';
         btn.onclick = function() { showToast('Edit submitted to ComfyUI'); };
         break;
       case 'upscale':
         bar.style.display = 'flex';
         input.style.display = 'none';
-        btn.innerHTML = '🔍<span class="btn-label">Upscale</span>';
+        btn.textContent = '🔍';
+        btn.title = 'Upscale';
         btn.onclick = function() { showToast('Upscale submitted to ComfyUI'); };
         break;
       case 'video':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
-        btn.innerHTML = '🎬<span class="btn-label">Video</span>';
+        btn.textContent = '🎬';
+        btn.title = 'Video';
         btn.onclick = function() { showToast('Video generation submitted to ComfyUI'); };
         break;
     }
