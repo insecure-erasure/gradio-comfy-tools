@@ -51,6 +51,19 @@ def find_output_image(outputs: dict[str, Any]) -> dict[str, Any]:
     raise WorkflowError(f"No image found in outputs: {outputs}")
 
 
+def find_output_video(outputs: dict[str, Any]) -> dict[str, Any]:
+    """First video in the history outputs (VHS_VideoCombine).
+
+    Returns the video record ``{"filename", "subfolder", "type"}`` from
+    either the ``videos`` or ``gifs`` output key.
+    """
+    for node_out in outputs.values():
+        for key in ("videos", "gifs"):
+            for v in node_out.get(key, []):
+                return v
+    raise WorkflowError(f"No video found in outputs: {outputs}")
+
+
 # --------------------------------------------------------------------------- #
 # Node resolution
 # --------------------------------------------------------------------------- #
