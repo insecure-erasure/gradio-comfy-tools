@@ -237,6 +237,7 @@
     overflow: hidden;
     min-width: 0;
     min-height: 0;
+    position: relative;
   }
   .output-placeholder {
     text-align: center;
@@ -283,6 +284,30 @@
     z-index: 1;
   }
   .btn-reset:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border); }
+
+  /* ── Output pane overlay buttons ──────────── */
+  .output-overlay-btn {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px; height: 30px;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: var(--radius);
+    color: rgba(255,255,255,.7);
+    cursor: pointer;
+    font-size: .9rem;
+    transition: .15s;
+    z-index: 5;
+  }
+  .output-overlay-btn:hover {
+    background: rgba(0,0,0,.75);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .output-overlay-btn.top-right { top: 12px; right: 12px; }
+  .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
 
   /* ── Form elements ─────────────────────────── */
   .field { display: flex; flex-direction: column; gap: 5px; }
@@ -979,6 +1004,8 @@
     <div class="tab-panel" id="tab-edit">
       <div class="split">
         <div class="output-pane">
+          <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
+          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -991,16 +1018,6 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Source Image</label>
-            <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
-                 onmouseover="this.style.borderColor='var(--accent)'"
-                 onmouseout="this.style.borderColor='var(--border)'"
-                 onclick="showToast('File picker (WIP)')">
-              📁 Drop image here or click<br>
-              <span style="font-size:.7rem">or paste URL from previous generation</span>
-            </div>
-          </div>
           <div class="field">
             <label>Mode</label>
             <div class="radio-group">
@@ -1029,6 +1046,8 @@
     <div class="tab-panel" id="tab-upscale">
       <div class="split">
         <div class="output-pane">
+          <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
+          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -1041,15 +1060,6 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Source Image</label>
-            <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
-                 onmouseover="this.style.borderColor='var(--accent)'"
-                 onmouseout="this.style.borderColor='var(--border)'"
-                 onclick="showToast('File picker (WIP)')">
-              📁 Drop image here or click
-            </div>
-          </div>
           <div class="field">
             <label>Target Resolution <span style="font-weight:400">(2048px)</span></label>
             <input type="range" min="1024" max="4096" step="256" value="2048" oninput="this.nextElementSibling.textContent=this.value+'px'">
@@ -1084,21 +1094,14 @@
     <div class="tab-panel" id="tab-video">
       <div class="split">
         <div class="output-pane">
+          <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
+          <button class="output-overlay-btn bottom-right" onclick="showToast('Use previous generation (WIP)')" title="Use previous generation">🔗</button>
           <div class="video-mock" onclick="showToast('Video player (WIP)')">
             <div class="play-btn">▶</div>
             <div class="bar"><div class="progress"></div></div>
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Source Image</label>
-            <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
-                 onmouseover="this.style.borderColor='var(--accent)'"
-                 onmouseout="this.style.borderColor='var(--border)'"
-                 onclick="showToast('File picker (WIP)')">
-              📁 Drop image here or click
-            </div>
-          </div>
           <div class="field">
             <label>Model Version</label>
             <select>
