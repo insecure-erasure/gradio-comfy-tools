@@ -299,14 +299,13 @@
     border-color: var(--accent);
   }
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
-  .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
 
-  /* Source image URL field — transparent overlay, bottom-right of the
+  /* Source image URL field — transparent overlay, bottom-LEFT of the
      output pane (Edit/Upscale/Video). The 🔗 button fills it with the
      last generation; users can also paste an external URL. */
   .source-url-row {
     position: absolute;
-    bottom: 12px; right: 12px;
+    bottom: 12px; left: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -993,7 +992,7 @@
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; }
-    .source-url-row { bottom: 10px; right: 10px; }
+    .source-url-row { bottom: 10px; left: 10px; }
     .source-url-input { width: 130px; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 8px 8px; }
