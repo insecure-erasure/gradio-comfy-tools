@@ -22,14 +22,15 @@
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  html { height: 100%; }
   body {
+    height: 100dvh;
     background: var(--bg);
     color: var(--text);
     font-family: var(--font);
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    overflow: hidden;
   }
 
   /* ── Tabs (combined bar: gear + tabs + title dropdown) ── */
@@ -450,13 +451,12 @@
   /* ── Bottom prompt bar ─────────────────────── */
   .bottom-bar {
     border-top: 1px solid var(--border);
-    padding: 14px 20px;
+    padding: 10px 20px;
     background: var(--surface);
     display: flex;
     gap: 10px;
     align-items: flex-end;
     flex-shrink: 0;
-    min-height: var(--bottom-height);
   }
   .bottom-bar textarea {
     flex: 1;
@@ -736,52 +736,41 @@
 
   /* ── Responsive ────────────────────────────── */
   @media (max-width: 1023px) {
-    /* Portrait: the whole page scrolls, NOT internal panes */
-    body { overflow-y: auto; }
-    .main { overflow: visible; flex: none; }
-    .content { overflow: visible; }
-    .tab-panel.active { overflow: visible; }
+    /* Portrait: stacked layout fills viewport, params scroll if needed */
 
     /* Icons only — hide text labels to save horizontal space */
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
 
-    /* Stack: output on top, params below, prompt last */
+    /* Stack: output on top, params middle, prompt bottom. All fill viewport. */
     .split {
       flex-direction: column;
-      overflow: visible;
-      flex: none;
+      min-height: 0;
     }
     .output-pane {
-      flex: none;
-      min-height: 300px;
-      max-height: 50vh;
+      flex: 0 0 auto;
+      min-height: 0;
       order: 1;
     }
     .params-pane {
-      flex: none;
+      flex: 1 1 auto;
+      min-height: 0;
       max-width: none;
       border-left: none;
       border-top: 1px solid var(--border);
       order: 2;
-      overflow: visible;
     }
     .tabs-params-zone { max-width: none; }
-    /* Bottom bar comes after params naturally */
-    .bottom-bar {
-      flex-shrink: 0;
-      order: 3;
-    }
   }
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
     .tab-gear { width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
-    .output-pane { padding: 16px; max-height: 40vh; }
+    .output-pane { padding: 16px; }
     .params-pane { padding: 14px; gap: 10px; }
-    .bottom-bar { padding: 10px 14px; }
+    .bottom-bar { padding: 8px 14px; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }
 </style>
