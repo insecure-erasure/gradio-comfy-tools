@@ -15,8 +15,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-# uint64 max — ComfyUI KSampler seed range (see /object_info)
-COMFY_SEED_MAX = 18446744073709551615
+# Seed ranges: KSampler accepts uint64; some nodes (SeedVR2VideoUpscaler)
+# cap at uint32. resolve_seed uses a safe default of uint32 so it works
+# across all workflows.
+COMFY_SEED_MAX = 4294967295  # uint32 (safe across all workflow nodes)
 
 # WAN temporal VAE stride: valid frame counts are 4n+1
 VIDEO_MIN_FRAMES = 81
