@@ -496,17 +496,17 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  /* Right column: two buttons stacked at top */
+  /* Right column: two buttons fill vertical space */
   .btn-col {
-    align-self: flex-start;
+    align-self: stretch;
     display: flex;
     flex-direction: column;
     gap: 5px;
     width: 44px;
   }
   .btn-generate, .btn-copy-url {
+    flex: 1;
     width: 44px;
-    height: 38px;
     padding: 0;
     display: flex;
     align-items: center;
@@ -525,9 +525,6 @@
     border-color: var(--accent);
   }
   .btn-generate:hover { background: var(--accent-hover); }
-  .btn-copy-url {
-    font-size: 1.1rem;
-  }
   .btn-copy-url:disabled {
     opacity: .45;
     cursor: default;
@@ -838,7 +835,7 @@
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
     .btn-col { width: 40px; }
-    .btn-generate, .btn-copy-url { width: 40px; height: 34px; font-size: 1rem; }
+    .btn-generate, .btn-copy-url { width: 40px; font-size: 1rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
