@@ -51,7 +51,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | 📐 MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
 | 👣 Steps (auto per family) | `steps` | `Steps` (via `BasicScheduler`) |
 | 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `RandomNoise` |
-| LoRAs (modal + list) | `lora_config` | `Power Lora Loader (rgthree)` |
+| LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
 | Modal: Model name | `model_name` (.safetensors) | `Load Diffusion Model` |
 
@@ -92,10 +92,10 @@ Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Deco
 
 Other nodes: `SeedVR2 (Down)Load DiT Model`, `SeedVR2 (Down)Load VAE Model`; output: `Random Preview Image`.
 
-**⚠️ Gap vs the old design**:
-- `upscale_image/tool.py` now exposes `seed` since v1.4 (UserValve, -1 = random, ≥0 = fixed, injected into `SeedVR2 Video Upscaler`).
-- Resolution / blend / color correction **exist in the workflow** but were removed from the UI (deviation from the original design). If they are ever exposed, the contracts are in this table.
-- No advanced modal: there are no tool-level advanced fields (the base URL is a global setting, see §7).
+**⚠️ Note vs the old design** (resolved decisions):
+- `upscale_image/tool.py` exposes `seed` since v1.4 (UserValve, -1 = random, ≥0 = fixed, injected into `SeedVR2 Video Upscaler`).
+- Resolution / blend / color correction stay **fixed in the workflow** (2048, 0.15, "lab") — not exposed in the UI. Decision: keep them as workflow defaults.
+- No advanced modal: there are no tool-level advanced fields (the media base URL is a global setting, see §7).
 
 ### 5.4 Video 🎬 — `generate_video.json` / `generate_video_wan22.json`
 
@@ -149,8 +149,7 @@ fields (model, LoRA/diffusion config):
 - Reset (↺) restores defaults and clears the tab's output.
 - Each tab's result persists for the session (not lost on tab switch).
 
-## 9. Gaps and open decisions (summary)
+## 9. Implementation notes
 
-1. **Edit advanced modal unreachable** — the mockup defines a `LoRA config` field but Edit has no gear (Upscale has no advanced fields at all: resolution/blend/color stay as workflow defaults and the base URL is global). → Decide: add a gear to Edit, or move LoRAs to a dynamic list in the UI like Generate's planned `+ Add LoRA`.
-2. **Resolution / blend / color in Upscale** — live in the workflow but not in the UI; if exposed, use the §5.3 contracts.
-3. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.
+1. **LoRAs are managed exclusively via the advanced modal** (`LoRA config (JSON)` in Generate/Edit/Video); there is no dynamic list in the params pane. `override_system_loras` does not exist (no override layers).
+2. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.

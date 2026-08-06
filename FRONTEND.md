@@ -61,17 +61,17 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 **Row 2**: `👣 Steps` stepper (1–15, default 10, auto-updates on model change) · `🌱 Seed` stepper (≥ 0, disabled when random) + `🎲` checkbox (checked by default).
 
-**LoRAs**: `LoRAs` label + `+ Add LoRA` button (WIP placeholder in the mockup — implement as dynamic list in Gradio, see §6).
+**LoRAs**: none in the params pane — LoRA management lives in the advanced modal (`LoRA config (JSON)` field, see §4.6).
 
 ### 3.2 Edit ✏️
 
 **Output pane**: `📁` overlay (top-right, "Upload image") + `🔗` overlay (bottom-right, "Use previous generation") over the **compare slider** (Original | Edited).
 
-**model-row**: `Model` label + dropdown (only `flux-2-klein-9b-nvfp4`) + `↺` reset. **No ⚙️.**
+**model-row**: `Model` label + dropdown (only `flux-2-klein-9b-nvfp4`) + `⚙️` gear + `↺` reset.
 
 **Row**: `👣 Steps` stepper (1–15, default 6) · `🌱 Seed` stepper + `🎲` (checked).
 
-**No LoRAs section** (deviation from the original design; LoRAs exist only in the advanced modal).
+**LoRAs**: none in the params pane — managed via the advanced modal (`LoRA config (JSON)`, reachable through the ⚙️).
 
 ### 3.3 Upscale 🔍
 
@@ -134,14 +134,14 @@ Opens a menu with two sections:
 
 ### 4.6 Advanced modal (⚙️)
 
-Single modal, content rendered dynamically per active tab (`currentTab`). **Only reachable from Generate and Video** (the only gear locations); Edit has a config defined but no gear, and Upscale has no advanced fields at all.
+Single modal, content rendered dynamically per active tab (`currentTab`). Reachable from Generate, Edit and Video (⚙️ in their model-rows); Upscale has no gear and no advanced fields.
 
 No override layers and no per-tool base URL: the Gradio app is single-user (no admin/user LoRA hierarchy, no "Override system LoRAs"), and the ComfyUI server URL and media base URL (`COMFYUI_MEDIA_BASE_URL`) are global settings in the 🎨 dropdown.
 
 | Tab | Fields |
 |---|---|
 | Generate | `Model name` (text) · `LoRA config (JSON)` (textarea) |
-| Edit | `LoRA config (JSON)` — *unreachable (no gear)* |
+| Edit | `LoRA config (JSON)` |
 | Upscale | *(none — resolution/blend/color stay as workflow defaults; media base URL is global)* |
 | Video | `Diffusion model (JSON)` (textarea) · `LoRA config (JSON)` |
 
@@ -165,7 +165,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | W/H readonly | `gr.HTML`/`gr.Markdown` (readonly span) |
 | AR dropdown, MP | `gr.Dropdown`, `gr.Number` |
 | Seed + 🎲 | `gr.Number` (interactivity gated) + `gr.Checkbox`; JS for disable/invert |
-| LoRAs `+ Add LoRA` | Dynamic list (`gr.Dataframe` or generated rows) — to implement |
+| LoRAs (all tabs that use them) | `gr.TextArea` for the `LoRA config (JSON)` field in the advanced modal |
 | Compare slider | `gr.HTML` with the mockup's JS (drag) or custom `gr.Image` overlay |
 | Video player | `gr.Video` (autoplay muted loop) or `gr.HTML` |
 | 📁 / 🔗 overlays | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])` |
@@ -182,7 +182,6 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 |---|---|---|
 | 📁 Upload image | `showToast('File picker (WIP)')` | Real upload: `gr.Image` upload → `POST /upload/image` to ComfyUI (see BACKEND.md) |
 | 🔗 Use previous generation | `showToast('Use previous generation (WIP)')` | Consume session `last_result_url` (chaining) |
-| `+ Add LoRA` | `showToast('Add LoRA (WIP)')` | Dynamic list of up to 4 LoRAs (name + strength), or delegate to the modal JSON |
 | ↺ Reset | `showToast('Parameters reset')` | Real reset of parameters + tab output |
 | Action buttons | Generate a fake URL (`ComfyUI_<ts>.png`) | Real ComfyUI submission via `comfy_client` |
 | 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |

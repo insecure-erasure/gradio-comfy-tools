@@ -54,9 +54,9 @@ Generation flow:
 
 The mockup evolved beyond the original DESIGN.md. The docs are already aligned with the mockup; the summary is here so nobody reimplements the old spec:
 
-1. **⚙️ Advanced**: the gear lives in the **model-row** of Generate and Video (not in the tab bar). Edit/Upscale have **no gear** → their advanced fields are unreachable in the mockup (see BACKEND.md).
+1. **⚙️ Advanced**: the gear lives in the **model-row** of Generate, Edit and Video (not in the tab bar). Upscale has **no gear** and no advanced fields (resolution/blend/color stay fixed in the workflow; see BACKEND.md).
 2. **Edit has no mode radio** — the mode is chosen with the bottom bar buttons: 🖌️ Edit / 🩹 Restore.
-3. **Edit has no LoRAs section** in the mockup (only in the advanced modal).
+3. **LoRAs are managed exclusively via the advanced modal** — there is no dynamic list / `+ Add LoRA` button in the params pane; each tool configures LoRAs through the `LoRA config (JSON)` field of its modal (Generate, Edit, Video).
 4. **Upscale exposes only Seed** (+🎲); resolution/blend/color-correction were removed from the UI (they remain as workflow defaults).
 5. **Video Frames = 81–161** (4n+1), not 5–161.
 6. **No Custom AR option** in Generate (the hidden custom row is dead code and is not ported).

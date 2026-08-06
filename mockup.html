@@ -1100,10 +1100,6 @@
               </label>
             </div>
           </div>
-          <div class="field">
-            <label>LoRAs</label>
-            <button class="btn btn-secondary" style="font-size:.8rem;padding:6px" onclick="showToast('Add LoRA (WIP)')">+ Add LoRA</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1134,6 +1130,7 @@
                 <option>flux-2-klein-9b-nvfp4</option>
               </select>
             </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
             <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <!-- Row: Steps | Seed + Random -->
