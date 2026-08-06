@@ -35,6 +35,14 @@ prompt.
 **Generation output (left)**: The generated image displayed in a container
 that fits the available area, with a lightbox/modal on click.
 
+**Advanced parameters** (⚙️ modal):
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| Model name | Text | — | Override .safetensors file |
+| LoRA config | JSON textarea | — | JSON array of LoRAs: `[{"name":"...","strength":1.0}]` |
+| Override system LoRAs | Toggle | Off | Replace admin LoRAs entirely |
+| Image base URL | Text | — | Override ComfyUI image link base URL |
+
 ---
 
 ### 2. Edit Image (`edit_image`)
@@ -63,6 +71,13 @@ is optional.
 **Generation output (left)**: Before/after comparison slider showing original
 vs edited image.
 
+**Advanced parameters** (⚙️ modal):
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| LoRA config | JSON textarea | — | JSON array of LoRAs |
+| Override system LoRAs | Toggle | Off | Replace admin LoRAs entirely |
+| Image base URL | Text | — | Override ComfyUI image link base URL |
+
 ---
 
 ### 3. Upscale Image (`upscale_image`)
@@ -87,6 +102,11 @@ area can be collapsed or hidden for this tab.
 
 **Generation output (left)**: Before/after comparison slider showing original
 vs upscaled image.
+
+**Advanced parameters** (⚙️ modal):
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| Image base URL | Text | — | Override ComfyUI image link base URL |
 
 ---
 
@@ -122,6 +142,24 @@ UNETs, samplers, and model sampling shifts.
 **Generation output (left)**: Video player (`<video>` with controls, autoplay,
 loop, muted).
 
+**Advanced parameters** (⚙️ modal):
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| Diffusion model | JSON textarea | — | Override model file(s). Object for Wan 2.1, array for Wan 2.2 |
+| LoRA config | JSON textarea | — | JSON array, supports per-path LoRAs via `"path"` field |
+| Image base URL | Text | — | Override ComfyUI video link base URL |
+
+### Advanced parameters modal (all tabs)
+
+Each tab has a ⚙️ gear icon (top-right of the parameters pane) that opens a
+modal dialog. The modal shows **user-level valves only** — the ComfyUI admin
+valves are configured server-side and not exposed here. The modal contains:
+
+- Tool-specific advanced fields as listed above.
+- A "Save" button that applies the values and closes the modal.
+- A "Cancel" or X button that discards changes and closes.
+- Values persist across tab switches during the session.
+
 ---
 
 ## Layout
@@ -132,11 +170,12 @@ loop, muted).
 ┌─────────────────────────────────────────────────────────┐
 │  [Generate Image] [Edit Image] [Upscale] [Generate Video]│  ← Tabs
 ├───────────────────────────┬─────────────────────────────┤
-│                           │  Model family: [dropdown]   │
-│                           │  Aspect ratio: [dropdown]   │
-│     Generation Output     │  Megapixels:  [═══●════]   │
-│     (image / slider /     │  Steps:       [═══●════]   │
-│      video)               │  Seed:        [-1_______]  │
+│                           │  ⚙️ Advanced                │
+│     Generation Output     │  Model family: [dropdown]   │
+│     (image / slider /     │  Aspect ratio: [dropdown]   │
+│      video)               │  Megapixels:  [═══●════]   │
+│                           │  Steps:       [═══●════]   │
+│                           │  Seed:        [-1_______]  │
 │                           │  LoRAs:       [+ Add]      │
 │                           │                             │
 │                           │  [Generate] [Reset]         │
@@ -156,6 +195,7 @@ loop, muted).
 │        (image / slider / video)      │
 │                                      │
 ├──────────────────────────────────────┤
+│  ⚙️ Advanced                         │
 │  Model family: [dropdown]            │  ← Parameters below
 │  Aspect ratio: [dropdown]            │
 │  Megapixels:  [═══●════]            │

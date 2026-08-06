@@ -505,6 +505,7 @@
     .output-pane { padding: 16px; max-height: 40vh; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 10px 14px; }
+    .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }
 </style>
 </head>
@@ -555,6 +556,7 @@
           </div>
         </div>
         <div class="params-pane">
+          <button class="gear-btn" onclick="openModal('generate')">⚙️ Advanced</button>
           <div class="field">
             <label>Model Family</label>
             <select>
@@ -628,6 +630,7 @@
           </div>
         </div>
         <div class="params-pane">
+          <button class="gear-btn" onclick="openModal('edit')">⚙️ Advanced</button>
           <div class="field">
             <label>Source Image</label>
             <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
@@ -678,6 +681,7 @@
           </div>
         </div>
         <div class="params-pane">
+          <button class="gear-btn" onclick="openModal('upscale')">⚙️ Advanced</button>
           <div class="field">
             <label>Source Image</label>
             <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
@@ -727,6 +731,7 @@
           </div>
         </div>
         <div class="params-pane">
+          <button class="gear-btn" onclick="openModal('video')">⚙️ Advanced</button>
           <div class="field">
             <label>Source Image</label>
             <div style="border:2px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text-secondary);cursor:pointer;transition:.15s"
@@ -788,6 +793,23 @@
 
 <!-- Toast -->
 <div class="toast" id="toast"></div>
+
+<!-- Advanced params modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <h2 id="modalTitle">⚙️ Advanced Parameters</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Filled dynamically by openModal() -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAdvanced()">Save</button>
+    </div>
+  </div>
+</div>
 
 <script>
   // Tab switching
@@ -873,7 +895,85 @@
       const map = { '1': 'generate', '2': 'edit', '3': 'upscale', '4': 'video' };
       if (map[e.key]) { e.preventDefault(); switchTab(map[e.key]); }
     }
+    // Escape closes modal
+    if (e.key === 'Escape') closeModal();
   });
+
+  // ── Advanced params modal ──────────────────
+  let currentModalTab = null;
+
+  const modalConfigs = {
+    generate: {
+      title: 'Generate Image',
+      fields: [
+        { label: 'Model name', type: 'text', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
+        { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0}]' },
+        { label: 'Override system LoRAs', type: 'toggle' },
+        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
+      ]
+    },
+    edit: {
+      title: 'Edit Image',
+      fields: [
+        { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0}]' },
+        { label: 'Override system LoRAs', type: 'toggle' },
+        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
+      ]
+    },
+    upscale: {
+      title: 'Upscale',
+      fields: [
+        { label: 'Image base URL', type: 'text', placeholder: 'Leave empty for default' },
+      ]
+    },
+    video: {
+      title: 'Generate Video',
+      fields: [
+        { label: 'Diffusion model (JSON)', type: 'textarea', placeholder: 'Override model file(s). Object for Wan 2.1, array for Wan 2.2' },
+        { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0,"path":"high"}]' },
+        { label: 'Video base URL', type: 'text', placeholder: 'Leave empty for default' },
+      ]
+    }
+  };
+
+  function openModal(tab) {
+    currentModalTab = tab;
+    const cfg = modalConfigs[tab];
+    const backdrop = document.getElementById('modalBackdrop');
+
+    document.getElementById('modalTitle').innerHTML = `⚙️ Advanced — ${cfg.title}`;
+
+    let html = '';
+    cfg.fields.forEach(f => {
+      if (f.type === 'toggle') {
+        html += `<div class="toggle-row"><span>${f.label}</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>`;
+      } else if (f.type === 'textarea') {
+        html += `<div class="field"><label>${f.label}</label><textarea placeholder="${f.placeholder||''}"></textarea></div>`;
+      } else {
+        html += `<div class="field"><label>${f.label}</label><input type="text" placeholder="${f.placeholder||''}"></div>`;
+      }
+    });
+
+    document.getElementById('modalBody').innerHTML = html;
+    backdrop.classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('show');
+    currentModalTab = null;
+  }
+
+  function saveAdvanced() {
+    // Collect values (WIP — would store in session state in real app)
+    const fields = document.querySelectorAll('#modalBody .field input, #modalBody .field textarea');
+    const toggles = document.querySelectorAll('#modalBody .toggle-switch');
+    const values = {};
+    fields.forEach(f => { values[f.previousElementSibling?.textContent || 'field'] = f.value; });
+    toggles.forEach(t => { values[t.previousElementSibling?.textContent || 'toggle'] = t.classList.contains('on'); });
+    console.log('Advanced params saved for', currentModalTab, values);
+    showToast('Advanced parameters saved');
+    closeModal();
+  }
 </script>
 
 </body>
