@@ -189,7 +189,7 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ⚙️ [Generate Image] [Edit] [Upscale] [Video]  🎨 Comfy Tools ▾ │  ← Single bar
+│  [Generate] [Edit] [Upscale] [Video]     ⚙️ │  🎨 Comfy Tools ▾  │
 ├───────────────────────────┬─────────────────────────────┤
 │                           │  Model family: [dropdown]   │
 │     Generation Output     │  W:[832] H:[1248] [2:3▾] [1─+
@@ -206,7 +206,7 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌──────────────────────────────────────┐
-│ ⚙️ [Gen] [Edit] [Upscl]…  🎨 C… ▾  │  ← Single bar
+│  [Gen] [Edit] [Upscl] [Vid] ⚙️ │  🎨 C… ▾  │  ← Tabs + gear at split
 ├──────────────────────────────────────┤
 │                                      │
 │        Generation Output             │  ← Output on top
@@ -225,15 +225,15 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ### Layout details
 
-- **Single combined bar (tabs bar)**: sits at the very top. Contains:
-  - **⚙️ gear button** (left): aligned with the output area's left edge.
-    Opens the advanced parameters modal for the currently active tab.
-  - **Tab buttons** (center-left): switch the content area
-    (output + parameters + prompt). The active tab is highlighted with
-    a colored underline.
-  - **🎨 Comfy Tools ▾ dropdown** (right): clicking it opens a settings
-    menu with appearance (light/dark theme toggle) and ComfyUI
-    connection settings (server URL, image base URL).
+- **Single combined bar (tabs bar)**: The bar mirrors the 60/40 split of the
+  content area below it:
+  - **Left 60%** (`.tabs-group`): tab buttons + ⚙️ gear button at the
+    right edge. The gear is vertically aligned with the output/params
+    split line, so it sits exactly above the boundary between the
+    generation output and the parameter panel.
+  - **Right 40%** (`.tabs-right`): 🎨 Comfy Tools ▾ dropdown with
+    appearance (light/dark theme toggle) and ComfyUI connection settings
+    (server URL, image base URL).
 - **Landscape (≥1024px)**:
   - **Left panel (output)**: Takes ~60% of the width. Contains the generation
     result. For image tools: a centered image with lightbox on click. For edit

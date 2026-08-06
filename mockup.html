@@ -39,15 +39,23 @@
     align-items: center;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 8px 0 20px;
+    padding: 0;
     flex-shrink: 0;
     min-height: var(--tab-height);
-    overflow-x: auto;
-    position: relative;
   }
 
-  /* Gear on the left (aligned with output area's left edge) */
-  .tab-gear-left {
+  /* Left group: tabs + gear, mirrors output pane width (60%) */
+  .tabs-group {
+    flex: 6;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  /* Gear at the right edge of tabs-group = output/params split line */
+  .tab-gear {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -60,9 +68,10 @@
     cursor: pointer;
     transition: .15s;
     flex-shrink: 0;
-    margin-right: 10px;
+    margin-left: auto;
+    margin-right: 12px;
   }
-  .tab-gear-left:hover {
+  .tab-gear:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: var(--accent);
@@ -88,11 +97,13 @@
   }
   .tab-icon { margin-right: 5px; font-size: .85rem; }
 
-  /* Title dropdown on the right */
+  /* Right group: title dropdown, mirrors params pane width (40%) */
   .tabs-right {
-    margin-left: auto;
+    flex: 4;
     display: flex;
     align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
     position: relative;
   }
   .tabs-title {
@@ -755,7 +766,7 @@
   @media (max-width: 767px) {
     .tabs { padding: 0 4px; }
     .tab-btn { padding: 10px 8px; font-size: .75rem; }
-    .tab-gear-left { margin-right: 6px; width: 28px; height: 28px; }
+    .tab-gear { margin-right: 6px; width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; max-height: 40vh; }
     .params-pane { padding: 14px; gap: 10px; }
@@ -771,19 +782,21 @@
 
   <!-- Tabs + title bar -->
   <nav class="tabs" id="tabNav">
-    <button class="tab-gear-left" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
-    <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
-      <span class="tab-icon">🖼️</span>Generate
-    </button>
-    <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
-      <span class="tab-icon">✏️</span>Edit
-    </button>
-    <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
-      <span class="tab-icon">🔍</span>Upscale
-    </button>
-    <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
-      <span class="tab-icon">🎬</span>Video
-    </button>
+    <div class="tabs-group">
+      <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
+        <span class="tab-icon">🖼️</span>Generate
+      </button>
+      <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
+        <span class="tab-icon">✏️</span>Edit
+      </button>
+      <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
+        <span class="tab-icon">🔍</span>Upscale
+      </button>
+      <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
+        <span class="tab-icon">🎬</span>Video
+      </button>
+      <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
+    </div>
     <div class="tabs-right">
       <button class="tabs-title" onclick="toggleSettingsMenu(event)">
         🎨 Comfy Tools
