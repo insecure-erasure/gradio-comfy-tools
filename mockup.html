@@ -558,23 +558,6 @@
     flex-shrink: 0;
   }
   .btn-copy-url:hover { background: var(--surface-hover); color: var(--accent); border-color: var(--accent); }
-  .bottom-bar-right {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-  .btn-attach {
-    width: 38px; height: 38px;
-    display: flex; align-items: center; justify-content: center;
-    border: 1px dashed var(--border);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 1.1rem;
-    transition: .15s;
-  }
-  .btn-attach:hover { border-color: var(--accent); color: var(--accent); }
 
   /* ── Slider comparison mock ──────────────── */
   .compare-slider {
@@ -1143,10 +1126,6 @@
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
       <div class="result-url-row" id="resultUrlRow"></div>
-    </div>
-    <div class="bottom-bar-right">
-      <button class="btn-attach" title="Attach image" onclick="showToast('Image attachment (WIP)')">🖼️</button>
-      <button class="btn-attach" title="Use previous output" onclick="showToast('Chain from previous result (WIP)')">🔗</button>
     </div>
   </div>
 
