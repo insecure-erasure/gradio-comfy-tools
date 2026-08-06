@@ -4,17 +4,31 @@ Phase-based implementation of the project (spec in `FRONTEND.md` / `BACKEND.md`,
 UI in `mockup.html`, workflows in `workflows/`). The plan has **two parts**:
 
 - **Part A — Backend** (this document, §A0–A6): ComfyUI infrastructure + one
-  tool per tab. Each tab is **manually validated** against the server (default
-  `http://192.168.1.8`) before moving to the next one.
-- **Part B — Frontend** (pending): the Gradio app (`app.py`) that consumes the
-  tools. It will be written once Part A is done, reusing its contract.
+  tool per tab. **DONE + validated manually.**
+- **Part B — Frontend** (§B0–B4): the web UI. **Re-scoped**: FastAPI +
+  `app.html` (a working copy of the mockup) instead of Gradio — see §B below.
 
-Every Part A phase ends with a **Manual validation** block: concrete steps and
+Every phase ends with a **Manual validation** block: concrete steps and
 expected result. Do not move to the next phase until the user validates it.
 
 ---
 
-# Part A — Backend
+# Part A — Backend ✅ (validated)
+
+| Phase | What | Status |
+|---|---|---|
+| A0 | Foundations: `config.py`, `comfy_client.py`, `tools/_common.py`, tests (MockTransport), `scripts/smoke_client.py` | ✅ |
+| A1 | Generate: `tools/generate.py` + `scripts/run_generate.py` | ✅ |
+| A2 | Edit: `tools/edit.py` + `scripts/run_edit.py` | ✅ |
+| A3 | Upscale: `tools/upscale.py` + `scripts/run_upscale.py` (seed uint32 fix) | ✅ |
+| A4 | Video: `tools/video.py` + `scripts/run_video.py` | ✅ |
+| A5 | Chaining: `scripts/run_chain.py` + `normalize_source` | ✅ |
+| A6 | Acceptance: `check_env.py` OK, 55 tests green, chains validated | ✅ |
+
+Details of each A-phase remain below as reference (input contracts, per-node
+injections, manual validation steps).
+
+---
 
 ## A0. Foundations (shared infrastructure)
 
@@ -26,8 +40,8 @@ injection helpers. Delivered with tests and a real smoke test against the server
 | File | Contents |
 |---|---|
 | `config.py` | `Settings`: `comfyui_base_url` (default `http://192.168.1.8`), `comfyui_media_base_url` (derived from base), `api_key` (optional). Loaded from env + runtime override (for the 🎨 settings). |
-| `comfy_client.py` | **Sync** REST client (`httpx.Client`), no Gradio dependency. |
-| `tools/_common.py` | `resolve_node(workflow, title)` (by unique `_meta.title`), injection helpers (seed, steps, lora_config, frames snap), filename-vs-URL auto-detection. |
+| `comfy_client.py` | **Sync** REST client (`httpx.Client`), no web-framework dependency. |
+| `tools/_common.py` | `resolve_node(workflow, title)` (by unique `_meta.title`), injection helpers (seed, steps, lora_config, frames snap), filename-vs-URL auto-detection, `find_output_image/video`. |
 | `tests/test_comfy_client.py` | Tests with `httpx.MockTransport` (no server needed). |
 | `scripts/smoke_client.py` | Real smoke test: health → upload → queue a trivial workflow → poll → URL. |
 
@@ -40,17 +54,16 @@ injection helpers. Delivered with tests and a real smoke test against the server
 | `GET /history/{prompt_id}` | poll until `outputs` is non-empty (1s, configurable timeout, default 120s) | prompt outputs |
 | `GET {media_base}/view?filename=...&type=output` | public result URL | — |
 
-Decisions: **sync** (Gradio runs handlers in threads; the reference is async
-because Open WebUI requires it, not needed here) and **history polling** (same
+Decisions: **sync** (web handlers run in threads) and **history polling** (same
 as the reference, no websocket dependency).
 
-### Manual validation (A0)
+### Manual validation (A0) ✅
 ```
 python3 scripts/smoke_client.py            # uses COMFYUI_BASE_URL or the default
 ```
 Expected: `health OK (ComfyUI 0.29.1)` → uploads a test image → queues a minimal
 workflow → prints the `/view?...` URL. The user opens the URL in the browser and
-sees the result.
+sees the result. **Done — violet 64×64 square confirmed.**
 
 ---
 
@@ -58,9 +71,7 @@ sees the result.
 
 ### Goal
 `tools/generate.py`: runs the Generate workflow — model family (Z-Image Turbo,
-Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs. It
-is the first tab because it defines the patterns the others reuse (resolution,
-seed, LoRA).
+Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 
 ### Input contract
 | Parameter | Type / default | Rules |
@@ -86,12 +97,10 @@ seed, LoRA).
 | `RandomNoise` / `KSamplerSelect` | `noise_seed` / sampler per family |
 | `Power Lora Loader (rgthree)` | activates `lora_1..4` from `lora_config` |
 
-### Manual validation (A1)
-CLI `scripts/run_generate.py --family zimage|krea2|flux2 --prompt "..." [--ar 16:9] [--mp 1.0] [--steps 8] [--seed -1]`.
-Steps: generate with **each family**, with AR 2:3 and 16:9, with a fixed seed
-(repeat → same image) and with a real LoRA from the server (e.g.
-`flux2/Flux2-Klein-Image-RestoreV1.safetensors` on flux2).
-Expected: `/view?filename=ComfyUI_...png&type=output` URL with the correct image.
+### Manual validation (A1) ✅
+CLI `scripts/run_generate.py --family zimage|krea2|flux2 --prompt "..."`.
+Done: zimage 2:3 seed42 (816×1216), krea2 16:9 (1336×752), flux2 3:2 (1216×832),
+flux2+LoRA restore — all 200 image/png, apple confirmed in browser.
 
 ---
 
@@ -119,10 +128,9 @@ URL), with prompt, steps, seed and LoRAs.
 | `KSampler` | `steps`, `seed` |
 | `Power Lora Loader (rgthree)` | adds restore LoRA + `lora_config` |
 
-### Manual validation (A2)
-CLI `scripts/run_edit.py --image <filename|URL> --mode edit|restore [--prompt "..."] [--steps 6] [--seed -1]`.
-Steps: edit an uploaded image (temp filename), edit an image from an external
-URL, and restore mode. Expected: edited image with correct output URL.
+### Manual validation (A2) ✅
+Done: edit temp filename (green apple), edit via external URL (blue plate),
+restore mode — all 200 image/png, 832×1248.
 
 ---
 
@@ -130,8 +138,7 @@ URL, and restore mode. Expected: edited image with correct output URL.
 
 ### Goal
 `tools/upscale.py`: 2x upscale of a source image. **No** extra parameters
-(resolution 2048, `color_correction` lab, `blend_factor` 0.15 fixed in the
-workflow — decided).
+(resolution 2048, `color_correction` lab, `blend_factor` 0.15 fixed).
 
 ### Input contract
 | Parameter | Type / default | Rules |
@@ -145,10 +152,10 @@ workflow — decided).
 | `Load Image (URL/Path)` | `source` + `url` / `image` |
 | `SeedVR2 Video Upscaler` | `seed` |
 
-### Manual validation (A3)
-CLI `scripts/run_upscale.py --image <filename|URL> [--seed -1]`.
-Steps: upscale an uploaded image and an external URL (2x). Expected: upscaled
-image (2048 on the long side) with correct output URL.
+### Manual validation (A3) ✅
+Done: upscale filename (apple 1374×2048) and external URL (cat 2048×1152) —
+both 2048 on the long side. Note: **seed range uint32** (`COMFY_SEED_MAX`),
+SeedVR2 rejects larger seeds (fixed in `tools/_common.py`).
 
 ---
 
@@ -179,62 +186,92 @@ high/low path), 4n+1 frames, steps, seed, prompt and negative.
 | `CLIP Text Encode (Prompt)` / `(Negative)` | prompt / negative |
 | `Frame Interpolate` | model `rife_v4.26` (already in the workflow) |
 
-### Manual validation (A4)
-CLI `scripts/run_video.py --image <filename|URL> --model wan21|wan22 [--frames 81] [--steps 4] [--seed -1] [--prompt "..."]`.
-Steps: short wan21 and wan22 videos (81 frames), with frames 100 (verify snap →
-101) and odd steps on wan22 (verify → even). Expected: `.mp4` with output URL.
+### Manual validation (A4) ✅
+Done: wan21 81f/steps4 (apple rotate, 24MB mp4), wan22 frames100→101
+steps5→6 (26MB mp4) — both 200 video/mp4, both videos confirmed.
 
 ---
 
 ## A5. Chaining + global configuration (backend)
 
-### Goal
-Expose what the frontend needs for 🔗/📋 and 🎨 without UI logic.
-
 ### Contents
-- `result_url(filename, type="output")` → `{media_base}/view?filename=...&type=output`
-  (used by all 4 tools; the reference uses `/api/view`, we use `/view` unless
-  validation says otherwise).
-- `normalize_source(image)` → `(filename | url, kind)` — the centralized
-  filename-vs-URL auto-detection (shared by Edit/Upscale/Video).
+- `result_url(filename, type="output")` — used by all 4 tools.
+- `normalize_source(image)` → `(filename | url, kind)` — centralized
+  filename-vs-URL auto-detection.
 - `Settings` runtime: `set_base_url / set_media_base_url / set_api_key` for the
-  🎨; persisted in a user config file (`.gradio-comfy-tools.json`) or env,
-  decision at implementation time.
-- `last_generated` per session: handled by the frontend (Gradio state); the
-  backend only exposes `result_url` and the naming convention.
+  🎨; persisted in `~/.gradio-comfy-tools.json`.
+- `last_generated` per session: handled by the frontend.
 
-Status: **implemented** — `result_url` (ComfyClient), `normalize_source`
-(tools/_common), runtime settings setters (config.py), and the full-chain
-script `scripts/run_chain.py`; manual validation passed (A→B→C→D filenames).
-
-### Manual validation (A5)
-Script `scripts/run_chain.py`: generate → edit the result (filename) → upscale
-that result → video from that result. Expected: the whole chain works passing
-**filenames** (not URLs) between steps.
+### Manual validation (A5) ✅
+Done: `scripts/run_chain.py` — generate → edit → upscale → video passing
+filenames between steps; green apple rotating video confirmed.
 
 ---
 
-## A6. Acceptance criteria (complete backend)
+## A6. Acceptance criteria (complete backend) ✅
 
-1. `python3 scripts/check_env.py` → TODO OK (nodes + models against the server).
-2. `pytest` green (MockTransport tests for `comfy_client` and helpers).
-3. Smoke + CLI of the 4 tabs manually validated (A1–A4).
-4. Full chain A5 validated.
-5. All of BACKEND.md §5–§6 implemented and verified.
+1. `python3 scripts/check_env.py` → TODO OK ✅
+2. `pytest` green (55 tests, MockTransport) ✅
+3. Smoke + CLI of the 4 tabs manually validated (A1–A4) ✅
+4. Full chain A5 validated ✅
+5. All of BACKEND.md §5–§6 implemented ✅
 
 ---
 
-# Part B — Frontend (pending)
+# Part B — Frontend
 
-> Will be written once Part A is validated. Planned structure:
+## Decision: FastAPI + app.html (not Gradio) ✅ decided
 
-- B0. `app.py` Gradio `gr.Blocks` + `queue()` — per-tab layout per FRONTEND.md,
-  connecting components to the Part A tools.
-- B1. Generate in the UI (first real end-to-end wiring).
-- B2. Edit / Upscale / Video in the UI (compare slider, mock player, URL field,
-  🔗/📁).
-- B3. Results: result + 📋 copy, 🔗 chaining, cleared on tab switch.
-- B4. 🎨 settings + advanced modal (LoRA config JSON) + toasts + responsive.
+Gradio 6's theming could not reproduce the mockup design (the mockup is the
+source of truth per FRONTEND.md). Re-scoped:
 
-Each phase will include its **Manual validation** in the UI (the user tests the
-tab in the browser against the real backend).
+- **`mockup.html`** = the design template/spec — **never edited for functionality**.
+- **`app.html`** = a working copy of the mockup where the fake buttons call the
+  real backend. This is the page served at `/`.
+- **`server.py`** (FastAPI) = serves `app.html` at `/` and exposes the API that
+  reuses the validated Part A tools. Media (images/videos) is **proxied** via
+  `/media/{filename}?type=...` so the browser never talks to the ComfyUI host
+  directly (no CORS / safehttpx host-validation issues).
+
+### Server endpoints
+| Endpoint | Purpose | Status |
+|---|---|---|
+| `GET /` | serves `app.html` | ✅ |
+| `GET /health` | server + ComfyUI health | ✅ |
+| `POST /api/generate` | Generate tab | ✅ |
+| `POST /api/edit` | Edit tab (mode edit/restore) | ✅ |
+| `POST /api/upscale` | Upscale tab | ✅ |
+| `POST /api/video` | Video tab | ✅ |
+| `POST /api/upload` | 📁 upload → ComfyUI temp filename | ✅ |
+| `GET /media/{filename}?type=` | same-origin proxy of ComfyUI results | ✅ |
+| `GET /api/settings` | global settings (for 🎨) | ✅ |
+
+### app.html wiring progress
+| Tab | What works | Status |
+|---|---|---|
+| Generate 🖼️ | family (human-readable label ↔ internal key), AR/MP/steps/seed, LoRA via ⚙️ modal, submit → image + URL + 📋, spinner, button disabled state, reset | ✅ |
+| Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore), before/after compare slider (bar left = original, right = edited), spinner | ✅ |
+| Upscale 🔍 | — (compare slider ready, source field + 📁 + 🔗 exist) | ⏳ next |
+| Video 🎬 | — (mock player, source field + 📁 + 🔗 exist) | ⏳ after Upscale |
+
+### Shared UI behaviors (done in app.html)
+- Loading spinner (96px ring) over the output pane while a job runs + `.busy`
+  dim + `:disabled` visual on the action button.
+- `api()` with AbortController timeout (240s) so a hung request never leaves
+  the button stuck.
+- `showResult()` removes only previous result/placeholder, keeps overlays.
+- Compare slider ported from `../open-webui-comfy-tools/compare_images`
+  (two stacked `<img>`, `clip-path` via `--p`, pointer drag/hover).
+- Upload via hidden `<input type=file>` → `POST /api/upload`.
+
+## B4. Remaining (settings + polish)
+
+- 🎨 Comfy Tools dropdown → real server URL / media base URL (writes
+  `config.py` via a new `POST /api/settings`), theme toggle.
+- ⚙️ advanced modal: already stores values per tab in `app.html`
+  (`window.advancedValues`); wire Model name / Diffusion model (JSON) to the
+  backend calls (currently only LoRA config is used).
+- Video tab: real player (`<video>` from `/media`), frames/steps/seed/negative
+  controls wired to `/api/video`.
+- Upscale tab: compare slider with "Upscaled", wire to `/api/upscale`.
+- Responsive behavior (mockup already handles it via CSS).
