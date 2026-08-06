@@ -1,237 +1,236 @@
 # PLAN — gradio-comfy-tools
 
-Implementación por fases del proyecto (spec en `FRONTEND.md` / `BACKEND.md`, UI en
-`mockup.html`, workflows en `workflows/`). El plan tiene **dos partes**:
+Phase-based implementation of the project (spec in `FRONTEND.md` / `BACKEND.md`,
+UI in `mockup.html`, workflows in `workflows/`). The plan has **two parts**:
 
-- **Parte A — Backend** (este documento, §A0–A6): infraestructura ComfyUI + un
-  tool por pestaña. Cada pestaña se **valida manualmente** contra el servidor
-  (default `http://192.168.1.8`) antes de pasar a la siguiente.
-- **Parte B — Frontend** (pendiente): la app Gradio (`app.py`) que consume los
-  tools. Se escribirá a partir de la Parte A terminada, reutilizando su contrato.
+- **Part A — Backend** (this document, §A0–A6): ComfyUI infrastructure + one
+  tool per tab. Each tab is **manually validated** against the server (default
+  `http://192.168.1.8`) before moving to the next one.
+- **Part B — Frontend** (pending): the Gradio app (`app.py`) that consumes the
+  tools. It will be written once Part A is done, reusing its contract.
 
-Cada fase de la Parte A termina con un bloque **Validación manual**: pasos
-concretos y resultado esperado. No se avanza a la siguiente fase hasta que el
-usuario lo valida.
+Every Part A phase ends with a **Manual validation** block: concrete steps and
+expected result. Do not move to the next phase until the user validates it.
 
 ---
 
-# Parte A — Backend
+# Part A — Backend
 
-## A0. Fundaciones (infraestructura común)
+## A0. Foundations (shared infrastructure)
 
-### Objetivo
-Base reutilizable por las 4 pestañas: cliente REST de ComfyUI, configuración y
-helpers de inyección de workflows. Se entrega con tests y un smoke test real
-contra el servidor.
+### Goal
+Reusable base for all 4 tabs: ComfyUI REST client, configuration and workflow
+injection helpers. Delivered with tests and a real smoke test against the server.
 
-### Archivos
-| Archivo | Contenido |
+### Files
+| File | Contents |
 |---|---|
-| `config.py` | `Settings`: `comfyui_base_url` (default `http://192.168.1.8`), `comfyui_media_base_url` (derivada de la base), `api_key` (opcional). Carga de env + override en runtime (para el 🎨 de settings). |
-| `comfy_client.py` | Cliente REST **sync** (`httpx.Client`), sin dependencia de Gradio. |
-| `tools/_common.py` | `resolve_node(workflow, title)` (por `_meta.title` único), helpers de inyección (seed, steps, lora_config, snap frames), auto-detección filename-vs-URL. |
-| `tests/test_comfy_client.py` | Tests con `httpx.MockTransport` (sin servidor). |
-| `scripts/smoke_client.py` | Smoke test real: health → upload → queue de un workflow trivial → poll → URL. |
+| `config.py` | `Settings`: `comfyui_base_url` (default `http://192.168.1.8`), `comfyui_media_base_url` (derived from base), `api_key` (optional). Loaded from env + runtime override (for the 🎨 settings). |
+| `comfy_client.py` | **Sync** REST client (`httpx.Client`), no Gradio dependency. |
+| `tools/_common.py` | `resolve_node(workflow, title)` (by unique `_meta.title`), injection helpers (seed, steps, lora_config, frames snap), filename-vs-URL auto-detection. |
+| `tests/test_comfy_client.py` | Tests with `httpx.MockTransport` (no server needed). |
+| `scripts/smoke_client.py` | Real smoke test: health → upload → queue a trivial workflow → poll → URL. |
 
-### Contrato REST (validado contra ComfyUI 0.29.1 en 192.168.1.8)
-| Método/endpoint | Uso | Respuesta |
+### REST contract (validated against ComfyUI 0.29.1 on 192.168.1.8)
+| Method/endpoint | Use | Response |
 |---|---|---|
-| `GET /system_stats` | health | JSON con `system.comfyui_version` |
-| `POST /upload/image` | subir archivo local (multipart) → `type=temp` | `{"name": "<filename>", ...}` |
-| `POST /prompt` | encolar workflow `{"prompt": {...}, "client_id": "<uuid>"}` | `{"prompt_id": "<id>"}` |
-| `GET /history/{prompt_id}` | poll hasta que `outputs` no vacío (1s, timeout configurable, default 120s) | outputs del prompt |
-| `GET {media_base}/view?filename=...&type=output` | URL pública del resultado | — |
+| `GET /system_stats` | health | JSON with `system.comfyui_version` |
+| `POST /upload/image` | upload local file (multipart) → `type=temp` | `{"name": "<filename>", ...}` |
+| `POST /prompt` | queue workflow `{"prompt": {...}, "client_id": "<uuid>"}` | `{"prompt_id": "<id>"}` |
+| `GET /history/{prompt_id}` | poll until `outputs` is non-empty (1s, configurable timeout, default 120s) | prompt outputs |
+| `GET {media_base}/view?filename=...&type=output` | public result URL | — |
 
-Decisiones: **sync** (Gradio ejecuta handlers en threads; la ref es async porque
-Open WebUI lo exige, aquí no) y **polling por history** (igual que la ref, sin
-depender de websocket).
+Decisions: **sync** (Gradio runs handlers in threads; the reference is async
+because Open WebUI requires it, not needed here) and **history polling** (same
+as the reference, no websocket dependency).
 
-### Validación manual (A0)
+### Manual validation (A0)
 ```
-python3 scripts/smoke_client.py            # usa COMFYUI_BASE_URL o el default
+python3 scripts/smoke_client.py            # uses COMFYUI_BASE_URL or the default
 ```
-Esperado: `health OK (ComfyUI 0.29.1)` → sube una imagen de prueba → encola un
-workflow mínimo → imprime la URL `/view?...`. El usuario abre la URL en el
-navegador y ve el resultado.
+Expected: `health OK (ComfyUI 0.29.1)` → uploads a test image → queues a minimal
+workflow → prints the `/view?...` URL. The user opens the URL in the browser and
+sees the result.
 
 ---
 
-## A1. Pestaña Generate 🖼️ — `smart_generate_image.json`
+## A1. Generate tab 🖼️ — `smart_generate_image.json`
 
-### Objetivo
-Tool `tools/generate.py` que ejecuta el workflow de Generate: selección de
-familia (Z-Image Turbo, Krea 2, FLUX.2 Klein), prompt, resolución (AR + MP),
-steps, seed y LoRAs. Es la primera pestaña porque define los patrones que
-reutilizan las demás (resolución, seed, LoRA).
+### Goal
+`tools/generate.py`: runs the Generate workflow — model family (Z-Image Turbo,
+Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs. It
+is the first tab because it defines the patterns the others reuse (resolution,
+seed, LoRA).
 
-### Contrato de entrada
-| Parámetro | Tipo / default | Reglas |
+### Input contract
+| Parameter | Type / default | Rules |
 |---|---|---|
-| `family` | select: `zimage` / `krea2` / `flux2` (default `zimage`) | fija `MODEL_CONFIGS` (modelo, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
-| `prompt` | str, default "" | obligatorio en la práctica (se valida no vacío) |
-| `aspect_ratio` | str "W:H" | normalizada por GCD; default 2:3 |
-| `megapixel` | float, default 1.0 | controla resolución total (independiente del AR) |
-| `steps` | int, default: de la familia (0 = default) | 1–15 |
+| `family` | select: `zimage` / `krea2` / `flux2` (default `zimage`) | selects `MODEL_CONFIGS` (model, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
+| `prompt` | str, default "" | required in practice (validated non-empty) |
+| `aspect_ratio` | str "W:H" | normalized by GCD; default 2:3 |
+| `megapixel` | float, default 1.0 | controls total resolution (independent of AR) |
+| `steps` | int, default: from family (0 = default) | 1–15 |
 | `seed` | int, default -1 | -1 = random |
-| `lora_config` | JSON array (opcional) | slots `lora_1..lora_4` del Power Lora Loader |
+| `lora_config` | JSON array (optional) | slots `lora_1..lora_4` of the Power Lora Loader |
 
-### Inyecciones por nodo (títulos del workflow)
-| Nodo (`_meta.title`) | Se escribe |
+### Per-node injections (workflow titles)
+| Node (`_meta.title`) | What is written |
 |---|---|
-| `Load Diffusion Model` (UNETLoader) | `unet_name` según familia |
-| `Load CLIP` (CLIPLoader) | `clip_name` según familia |
-| `Load VAE` (VAELoader) | `vae_name` según familia |
+| `Load Diffusion Model` (UNETLoader) | `unet_name` per family |
+| `Load CLIP` (CLIPLoader) | `clip_name` per family |
+| `Load VAE` (VAELoader) | `vae_name` per family |
 | `Prompt` (PrimitiveStringMultiline) | `value` = prompt |
 | `Flux Resolution Calc` | `megapixel`, `divisible_by` = `vae_scale_factor` (16/8/64) |
-| `Aspect ratio` (StringConcatenate) | `string_a`/`string_b` = W:H reducidos (GCD + MP) |
+| `Aspect ratio` (StringConcatenate) | `string_a`/`string_b` = reduced W:H (GCD + MP) |
 | `Steps` (easy int) | `value` = steps |
-| `RandomNoise` / `KSamplerSelect` | `noise_seed` / sampler según familia |
-| `Power Lora Loader (rgthree)` | activa `lora_1..4` según `lora_config` |
+| `RandomNoise` / `KSamplerSelect` | `noise_seed` / sampler per family |
+| `Power Lora Loader (rgthree)` | activates `lora_1..4` from `lora_config` |
 
-### Validación manual (A1)
+### Manual validation (A1)
 CLI `scripts/run_generate.py --family zimage|krea2|flux2 --prompt "..." [--ar 16:9] [--mp 1.0] [--steps 8] [--seed -1]`.
-Pasos: generar con **cada familia**, con AR 2:3 y 16:9, con seed fijo (repetir →
-misma imagen) y con LoRA real del servidor (p. ej. `flux2/Flux2-Klein-Image-RestoreV1.safetensors` en flux2).
-Esperado: URL `/view?filename=ComfyUI_...png&type=output` con la imagen correcta.
+Steps: generate with **each family**, with AR 2:3 and 16:9, with a fixed seed
+(repeat → same image) and with a real LoRA from the server (e.g.
+`flux2/Flux2-Klein-Image-RestoreV1.safetensors` on flux2).
+Expected: `/view?filename=ComfyUI_...png&type=output` URL with the correct image.
 
 ---
 
-## A2. Pestaña Edit ✏️ — `edit_image.json`
+## A2. Edit tab ✏️ — `edit_image.json`
 
-### Objetivo
-`tools/edit.py`: editar/restaurar una imagen fuente (filename previo o URL
-externa), con prompt, steps, seed y LoRAs.
+### Goal
+`tools/edit.py`: edit/restore a source image (previous filename or external
+URL), with prompt, steps, seed and LoRAs.
 
-### Contrato de entrada
-| Parámetro | Tipo / default | Reglas |
+### Input contract
+| Parameter | Type / default | Rules |
 |---|---|---|
-| `image` | str (filename o URL) | auto-detección: `urlparse` con scheme+netloc → `source="url"`; si no → `source="temp"` (filename) |
-| `mode` | `"edit"` / `"restore"` | restore: añade LoRA `flux2/Flux2-Klein-Image-RestoreV1.safetensors` + prefijo de prompt de restauración |
-| `prompt` | str, default "" | opcional en restore |
+| `image` | str (filename or URL) | auto-detection: `urlparse` with scheme+netloc → `source="url"`; otherwise → `source="temp"` (filename) |
+| `mode` | `"edit"` / `"restore"` | restore: adds LoRA `flux2/Flux2-Klein-Image-RestoreV1.safetensors` + restoration prompt prefix |
+| `prompt` | str, default "" | optional in restore |
 | `steps` | int, default 6 | 1–15 |
 | `seed` | int, default -1 | -1 = random |
-| `lora_config` | JSON array (opcional) | slots del Power Lora Loader |
+| `lora_config` | JSON array (optional) | Power Lora Loader slots |
 
-### Inyecciones
-| Nodo | Se escribe |
+### Injections
+| Node | What is written |
 |---|---|
-| `Load Image (URL/Path)` | `source` + `url` / `image` (según detección); limpia `Choose file to upload` |
-| `Prompt` | `value` = prompt (en restore, prefijo + prompt) |
+| `Load Image (URL/Path)` | `source` + `url` / `image` (per detection); clears `Choose file to upload` |
+| `Prompt` | `value` = prompt (in restore, prefix + prompt) |
 | `KSampler` | `steps`, `seed` |
-| `Power Lora Loader (rgthree)` | añade LoRA de restore + `lora_config` |
+| `Power Lora Loader (rgthree)` | adds restore LoRA + `lora_config` |
 
-### Validación manual (A2)
+### Manual validation (A2)
 CLI `scripts/run_edit.py --image <filename|URL> --mode edit|restore [--prompt "..."] [--steps 6] [--seed -1]`.
-Pasos: editar una imagen subida (filename temp), editar una imagen por URL
-externa, y modo restore. Esperado: imagen editada con la URL de salida correcta.
+Steps: edit an uploaded image (temp filename), edit an image from an external
+URL, and restore mode. Expected: edited image with correct output URL.
 
 ---
 
-## A3. Pestaña Upscale 🔍 — `seedvr2_upscale.json`
+## A3. Upscale tab 🔍 — `seedvr2_upscale.json`
 
-### Objetivo
-`tools/upscale.py`: upscale 2x de una imagen fuente. **Sin** parámetros extra
-(resolución 2048, `color_correction` lab, `blend_factor` 0.15 fijos en el
-workflow — decisión tomada).
+### Goal
+`tools/upscale.py`: 2x upscale of a source image. **No** extra parameters
+(resolution 2048, `color_correction` lab, `blend_factor` 0.15 fixed in the
+workflow — decided).
 
-### Contrato de entrada
-| Parámetro | Tipo / default | Reglas |
+### Input contract
+| Parameter | Type / default | Rules |
 |---|---|---|
-| `image` | str (filename o URL) | auto-detección igual que Edit |
+| `image` | str (filename or URL) | auto-detection same as Edit |
 | `seed` | int, default -1 | -1 = random |
 
-### Inyecciones
-| Nodo | Se escribe |
+### Injections
+| Node | What is written |
 |---|---|
 | `Load Image (URL/Path)` | `source` + `url` / `image` |
 | `SeedVR2 Video Upscaler` | `seed` |
 
-### Validación manual (A3)
+### Manual validation (A3)
 CLI `scripts/run_upscale.py --image <filename|URL> [--seed -1]`.
-Pasos: upscale de una imagen subida y de una URL externa (2x). Esperado: imagen
-ampliada (2048 en el lado mayor) con URL de salida correcta.
+Steps: upscale an uploaded image and an external URL (2x). Expected: upscaled
+image (2048 on the long side) with correct output URL.
 
 ---
 
-## A4. Pestaña Video 🎬 — `generate_video.json` / `generate_video_wan22.json`
+## A4. Video tab 🎬 — `generate_video.json` / `generate_video_wan22.json`
 
-### Objetivo
-`tools/video.py`: imagen → vídeo con Wan 2.1 (ruta única) o Wan 2.2 (ruta dual
-high/low), frames 4n+1, steps, seed, prompt y negative.
+### Goal
+`tools/video.py`: image → video with Wan 2.1 (single path) or Wan 2.2 (dual
+high/low path), 4n+1 frames, steps, seed, prompt and negative.
 
-### Contrato de entrada
-| Parámetro | Tipo / default | Reglas |
+### Input contract
+| Parameter | Type / default | Rules |
 |---|---|---|
-| `image` | str (filename o URL) | auto-detección igual que Edit |
-| `model_version` | `"wan21"` / `"wan22"` | selecciona workflow + `MODEL_CONFIGS` de vídeo |
+| `image` | str (filename or URL) | auto-detection same as Edit |
+| `model_version` | `"wan21"` / `"wan22"` | selects workflow + video `MODEL_CONFIGS` |
 | `prompt` | str | — |
-| `negative_prompt` | str, default "" | vacío → default del workflow |
-| `frames` | int, default 81 | snap al 4n+1 más cercano: `snapped=((n-1)//4)*4+1; +=4 si n-snapped>2`; clamp [81,161] |
-| `steps` | int, default 4 | 4–10; wan22: impar → par (redondeo arriba) |
+| `negative_prompt` | str, default "" | empty → workflow default |
+| `frames` | int, default 81 | snap to nearest 4n+1: `snapped=((n-1)//4)*4+1; +=4 if n-snapped>2`; clamp [81,161] |
+| `steps` | int, default 4 | 4–10; wan22: odd → even (rounded up) |
 | `seed` | int, default -1 | -1 = random |
 
-### Inyecciones
-| Nodo | Se escribe |
+### Injections
+| Node | What is written |
 |---|---|
 | `Load Image (URL/Path)` | `source` + `url` / `image` |
-| `Load Diffusion Model` (×2 en wan22) | `unet_name` high/low según familia |
-| `WanImageToVideo` | `length` (frames), `start_image` (conectado a Load Image) |
-| `KSamplerAdvanced` / `KSampler` | `steps`, `seed` (wan22: dual path high/low) |
+| `Load Diffusion Model` (×2 in wan22) | `unet_name` high/low per family |
+| `WanImageToVideo` | `length` (frames), `start_image` (connected to Load Image) |
+| `KSamplerAdvanced` / `KSampler` | `steps`, `seed` (wan22: dual high/low path) |
 | `CLIP Text Encode (Prompt)` / `(Negative)` | prompt / negative |
-| `Frame Interpolate` | modelo `rife_v4.26` (ya en el workflow) |
+| `Frame Interpolate` | model `rife_v4.26` (already in the workflow) |
 
-### Validación manual (A4)
+### Manual validation (A4)
 CLI `scripts/run_video.py --image <filename|URL> --model wan21|wan22 [--frames 81] [--steps 4] [--seed -1] [--prompt "..."]`.
-Pasos: vídeo corto wan21 y wan22 (81 frames), con frames 100 (verificar snap →
-101) y steps impar en wan22 (verificar → par). Esperado: `.mp4` con URL de salida.
+Steps: short wan21 and wan22 videos (81 frames), with frames 100 (verify snap →
+101) and odd steps on wan22 (verify → even). Expected: `.mp4` with output URL.
 
 ---
 
-## A5. Chaining + configuración global (backend)
+## A5. Chaining + global configuration (backend)
 
-### Objetivo
-Exponer lo que el frontend necesita para 🔗/📋 y 🎨 sin lógica de UI.
+### Goal
+Expose what the frontend needs for 🔗/📋 and 🎨 without UI logic.
 
-### Contenido
+### Contents
 - `result_url(filename, type="output")` → `{media_base}/view?filename=...&type=output`
-  (usado por los 4 tools; la ref usa `/api/view`, se usa `/view` salvo que la
-  validación diga lo contrario).
-- `normalize_source(image)` → `(filename | url, kind)` — la auto-detección
-  filename-vs-URL centralizada (Edit/Upscale/Video la comparten).
-- `Settings` runtime: `set_base_url / set_media_base_url / set_api_key` para el
-  🎨; persistencia en archivo de config del usuario (`.gradio-comfy-tools.json`)
-  o env, según decisión al implementar.
-- `last_generated` por sesión: lo gestiona el frontend (estado Gradio); el
-  backend solo expone `result_url` y la convención de nombres.
+  (used by all 4 tools; the reference uses `/api/view`, we use `/view` unless
+  validation says otherwise).
+- `normalize_source(image)` → `(filename | url, kind)` — the centralized
+  filename-vs-URL auto-detection (shared by Edit/Upscale/Video).
+- `Settings` runtime: `set_base_url / set_media_base_url / set_api_key` for the
+  🎨; persisted in a user config file (`.gradio-comfy-tools.json`) or env,
+  decision at implementation time.
+- `last_generated` per session: handled by the frontend (Gradio state); the
+  backend only exposes `result_url` and the naming convention.
 
-### Validación manual (A5)
-Script `scripts/run_chain.py`: genera → edita el resultado (filename) → upscales
-ese resultado → vídeo desde ese resultado. Esperado: toda la cadena funciona
-pasando **filenames** (no URLs) entre pasos.
-
----
-
-## A6. Criterios de aceptación (backend completo)
-
-1. `python3 scripts/check_env.py` → TODO OK (nodos + modelos contra el servidor).
-2. `pytest` verde (tests con MockTransport para `comfy_client` y helpers).
-3. Smoke + CLI de las 4 pestañas validados manualmente (A1–A4).
-4. Cadena completa A5 validada.
-5. Toda la funcionalidad de BACKEND.md §5–§6 implementada y verificada.
+### Manual validation (A5)
+Script `scripts/run_chain.py`: generate → edit the result (filename) → upscale
+that result → video from that result. Expected: the whole chain works passing
+**filenames** (not URLs) between steps.
 
 ---
 
-# Parte B — Frontend (pendiente)
+## A6. Acceptance criteria (complete backend)
 
-> Se escribirá tras validar la Parte A. Estructura prevista:
+1. `python3 scripts/check_env.py` → TODO OK (nodes + models against the server).
+2. `pytest` green (MockTransport tests for `comfy_client` and helpers).
+3. Smoke + CLI of the 4 tabs manually validated (A1–A4).
+4. Full chain A5 validated.
+5. All of BACKEND.md §5–§6 implemented and verified.
 
-- B0. `app.py` Gradio `gr.Blocks` + `queue()` — layout por pestañas según
-  FRONTEND.md, conectando componentes a los tools de la Parte A.
-- B1. Generate en la UI (primer cableado real end-to-end).
-- B2. Edit / Upscale / Video en la UI (compare slider, player mock, URL field,
+---
+
+# Part B — Frontend (pending)
+
+> Will be written once Part A is validated. Planned structure:
+
+- B0. `app.py` Gradio `gr.Blocks` + `queue()` — per-tab layout per FRONTEND.md,
+  connecting components to the Part A tools.
+- B1. Generate in the UI (first real end-to-end wiring).
+- B2. Edit / Upscale / Video in the UI (compare slider, mock player, URL field,
   🔗/📁).
-- B3. Resultados: resultado + 📋 copiar, chaining 🔗, clear al cambiar de tab.
-- B4. 🎨 settings + modal avanzado (LoRA config JSON) + toasts + responsive.
+- B3. Results: result + 📋 copy, 🔗 chaining, cleared on tab switch.
+- B4. 🎨 settings + advanced modal (LoRA config JSON) + toasts + responsive.
 
-Cada fase incluirá su **Validación manual** en la UI (el usuario prueba la
-pestaña en el navegador contra el backend real).
+Each phase will include its **Manual validation** in the UI (the user tests the
+tab in the browser against the real backend).
