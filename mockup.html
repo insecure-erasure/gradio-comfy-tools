@@ -42,6 +42,7 @@
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
     min-height: var(--tab-height);
+    overflow-x: auto;
   }
 
   /* Output zone: same width as output pane (60%), gear at right edge */
@@ -266,12 +267,19 @@
     min-width: 280px;
     max-width: 420px;
     min-height: 0;
-    position: relative;
+  }
+  .model-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .model-row .field-inline {
+    flex: 1;
+  }
+  .model-row .field-inline select {
+    flex: 1;
   }
   .btn-reset {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     width: 26px; height: 26px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border);
@@ -281,7 +289,7 @@
     cursor: pointer;
     font-size: .85rem;
     transition: .15s;
-    z-index: 1;
+    flex-shrink: 0;
   }
   .btn-reset:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border); }
 
@@ -328,6 +336,7 @@
     font-size: .85rem;
     font-family: var(--font);
     text-align: right;
+    padding-right: 6px;
   }
   .field-inline label {
     font-size: .8rem;
@@ -1025,13 +1034,17 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Model</label>
-            <select id="genModelFamily" onchange="onModelFamilyChange()">
-              <option data-steps="10" data-vae="16">Z-Image Turbo</option>
-              <option data-steps="8" data-vae="8">Krea 2</option>
-              <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
-            </select>
+          <!-- Model row: label + dropdown + reset button -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select id="genModelFamily" onchange="onModelFamilyChange()">
+                <option data-steps="10" data-vae="16">Z-Image Turbo</option>
+                <option data-steps="8" data-vae="8">Krea 2</option>
+                <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
+              </select>
+            </div>
+            <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <div class="field-row" id="genCustomRatio" style="display:none">
             <div class="field">
@@ -1091,7 +1104,6 @@
             <label>LoRAs</label>
             <button class="btn btn-secondary" style="font-size:.8rem;padding:6px" onclick="showToast('Add LoRA (WIP)')">+ Add LoRA</button>
           </div>
-          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
       </div>
     </div>
@@ -1114,6 +1126,16 @@
           </div>
         </div>
         <div class="params-pane">
+          <!-- Model row -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select>
+                <option>flux-2-klein-9b-nvfp4</option>
+              </select>
+            </div>
+            <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
+          </div>
           <!-- Row: Steps | Seed + Random -->
           <div class="field-row">
             <div class="field-inline">
@@ -1133,7 +1155,6 @@
               </label>
             </div>
           </div>
-          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
       </div>
     </div>
@@ -1156,6 +1177,14 @@
           </div>
         </div>
         <div class="params-pane">
+          <!-- Model row (seedvr2) -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <span class="readonly-field" style="width:auto">SeedVR2</span>
+            </div>
+            <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
+          </div>
           <!-- Row: Seed + Random -->
           <div class="field-row">
             <div class="field-inline" style="flex:1.6">
@@ -1167,7 +1196,6 @@
               </label>
             </div>
           </div>
-          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
       </div>
     </div>
@@ -1184,12 +1212,16 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Model</label>
-            <select>
-              <option>Wan 2.1</option>
-              <option>Wan 2.2</option>
-            </select>
+          <!-- Model row -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select>
+                <option>Wan 2.1</option>
+                <option>Wan 2.2</option>
+              </select>
+            </div>
+            <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <!-- Row: Frames | Steps | Seed + Random -->
           <div class="field-row">
@@ -1222,7 +1254,6 @@
             <label>Negative Prompt</label>
             <textarea rows="2" placeholder="Optional — overrides default"></textarea>
           </div>
-          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
       </div>
     </div>
