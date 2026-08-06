@@ -1101,15 +1101,19 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label>Seed</label>
-            <input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()">
-          </div>
-          <div class="field" style="flex-direction:row;align-items:center;justify-content:flex-end">
-            <label class="check-label">
-              <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
-              Random
-            </label>
+          <!-- Row: Seed + Random check -->
+          <div class="field-row">
+            <div class="field">
+              <label>Seed</label>
+              <input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="visibility:hidden">Random</label>
+              <label class="check-label" style="margin-top:4px">
+                <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
+                Random
+              </label>
+            </div>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
