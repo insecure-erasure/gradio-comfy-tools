@@ -1083,9 +1083,9 @@
             <div class="field-inline" style="flex:1">
               <label>Model</label>
               <select id="genModelFamily" onchange="onModelFamilyChange()">
-                <option data-steps="10" data-vae="16">Z-Image Turbo</option>
-                <option data-steps="8" data-vae="8">Krea 2</option>
-                <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
+                <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
+                <option value="krea2" data-key="krea2" data-steps="8" data-vae="8">Krea 2</option>
+                <option value="flux2" data-key="flux2" data-steps="8" data-vae="64">FLUX.2 Klein</option>
               </select>
             </div>
             <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
@@ -1439,7 +1439,7 @@
 
   function generateImage() {
     const familyEl = document.getElementById('genModelFamily');
-    const family = familyEl ? familyEl.value : 'zimage';
+    const family = (familyEl && familyEl.options[familyEl.selectedIndex]?.getAttribute('data-key')) || 'zimage';
     const ar = document.getElementById('genAspectRatio')?.value || '2:3';
     const mp = document.getElementById('genMegapixel')?.value || 1;
     const steps = document.getElementById('genSteps')?.value || 10;
