@@ -80,11 +80,12 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `mockup.html` | Interactive HTML mockup (source of truth for the UI) |
 | `app.py` | Main Gradio application (to be implemented) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see PLAN.md A0) |
-| `tools/` | Per-tool modules — `_common.py`, `generate.py` done (A0/A1) |
+| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py` done (A0/A1/A2) |
 | `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
 | `scripts/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 scripts/check_env.py [BASE_URL]` |
 | `scripts/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
 | `scripts/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
+| `scripts/run_edit.py` | A2 Edit CLI — `--image <filename|URL> --mode edit|restore [--prompt] [--steps] [--seed] [--loras]` |
 
 ### workflows/ contents
 
