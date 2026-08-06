@@ -313,12 +313,47 @@ mockup directly.
 > `clientId`**. A fresh `clientId` (e.g. just listening) only sees the global
 > `status`, not another session's progress.
 
+### Live previews (verified 2026-08-07) — KSamplers do NOT send images
+
+Investigated whether the KSampler's live previews (the ones the ComfyUI
+frontend shows while sampling) can be reused. Verified with a real 6/10-step
+generation:
+
+- `progress` events carry **only numbers** — `{value, max, prompt_id, node}` —
+  **no image, no latent, no base64** (searched the whole ws stream for
+  `latent`/`preview`/`base64`: none present).
+- The only `executed` with an image was the final `RandomPreviewImage` node
+  (1 image at the end, not during sampling).
+- KSampler/KSamplerAdvanced/SamplerCustomAdvanced have **no preview option** in
+  their inputs (`/object_info`).
+
+**Why the ComfyUI frontend shows live previews then**: it is a **frontend
+feature** — the browser decodes the intermediate latent itself with a tiny
+approx VAE (e.g. `taesd_decoder`, `taef1_decoder` from `models/vae_approx`)
+when it sees the `progress`. The ws does **not** send the latent, so we cannot
+reproduce that from `app.html` without a node.
+
+**To get real live previews** (option for B5): add a preview node to the
+workflow that decodes the intermediate latent on each step, e.g.:
+
+- `WanVideoTinyVAELoader` (loads `taef1_decoder`/`taesd_decoder` from
+  `models/vae_approx` — verified these are installed) as the VAE, plus
+- `ImagePreviewFromLatent+` (input `latent` + `vae`, emits `IMAGE`) connected
+  to the sampler's intermediate latent, plus optionally `FastPreview` to
+  re-compress (JPEG/PNG/WEBP).
+
+That node would emit `executed` with an image **per step**, which the ws
+relays — giving real in-progress previews in `app.html`. (Not yet executed in
+this repo's workflows; the per-step emission is inferred from the node design.)
+
 ### What B5 would add
 - `comfy_client` (or a new `events.py`) connects to `/ws?clientId=<same uuid
   used for POST /prompt>` and re-emits events to the browser via SSE or a
   server WebSocket (`/api/events`).
 - `app.html` shows live: "loading model…", "sampling 2/4 (50%)", queue
-  position, and optionally partial previews from `executed`.
+  position, and live previews — the latter **require** adding the preview node
+  (tiny-decoder + `ImagePreviewFromLatent+`) to the workflows (see above; the
+  ws alone only gives numeric `progress`).
 - Multiple concurrent tabs generate without blocking each other (each has its
   own `clientId`/event stream).
 - Keep the current polling `wait_for_output` as fallback (no websocket).
