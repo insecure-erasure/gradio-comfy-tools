@@ -32,101 +32,48 @@
     min-height: 100vh;
   }
 
-  /* ── Header ─────────────────────────────── */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-  .header h1 {
-    font-size: 1.15rem;
-    font-weight: 600;
-    letter-spacing: .01em;
-  }
-  .header .badge {
-    font-size: .7rem;
-    background: var(--accent);
-    color: #fff;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-weight: 600;
-    text-transform: uppercase;
-  }
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .btn-icon {
-    width: 32px; height: 32px;
-    display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-size: 1rem;
-    transition: .15s;
-  }
-  .btn-icon:hover { background: var(--surface-hover); color: var(--text); }
-
-  /* ── Main layout ─────────────────────────── */
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-  }
-
-  /* ── Tabs ─────────────────────────────────── */
+  /* ── Tabs (combined bar: gear + tabs + title dropdown) ── */
   .tabs {
     display: flex;
     gap: 0;
     align-items: center;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 16px;
+    padding: 0 8px 0 20px;
     flex-shrink: 0;
+    min-height: var(--tab-height);
     overflow-x: auto;
+    position: relative;
   }
-  .tabs-actions {
-    margin-left: auto;
+
+  /* Gear on the left (aligned with output area's left edge) */
+  .tab-gear-left {
     display: flex;
     align-items: center;
-  }
-  .tab-gear-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
+    justify-content: center;
+    width: 32px; height: 32px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     color: var(--text-secondary);
-    padding: 5px 10px;
-    font-size: .78rem;
-    font-weight: 500;
+    font-size: 1.05rem;
     cursor: pointer;
     transition: .15s;
-    font-family: var(--font);
-    white-space: nowrap;
     flex-shrink: 0;
+    margin-right: 10px;
   }
-  .tab-gear-btn:hover {
+  .tab-gear-left:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: var(--accent);
   }
+
   .tab-btn {
-    padding: 12px 20px;
+    padding: 12px 16px;
     border: none;
     background: transparent;
     color: var(--text-secondary);
-    font-size: .9rem;
+    font-size: .82rem;
     font-weight: 500;
     cursor: pointer;
     border-bottom: 2px solid transparent;
@@ -139,7 +86,93 @@
     color: var(--accent);
     border-bottom-color: var(--accent);
   }
-  .tab-icon { margin-right: 6px; }
+  .tab-icon { margin-right: 5px; font-size: .85rem; }
+
+  /* Title dropdown on the right */
+  .tabs-right {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .tabs-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 5px 10px;
+    font-size: .84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    font-family: var(--font);
+    white-space: nowrap;
+  }
+  .tabs-title:hover {
+    background: var(--surface-hover);
+    border-color: var(--border);
+  }
+  .tabs-arrow {
+    font-size: .7rem;
+    color: var(--text-secondary);
+    transition: transform .2s;
+  }
+  .tabs-title.open .tabs-arrow { transform: rotate(180deg); }
+
+  /* Dropdown menu */
+  .settings-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    z-index: 150;
+    min-width: 220px;
+    padding: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: .15s;
+  }
+  .settings-dropdown.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+  .settings-dropdown .menu-section {
+    padding: 6px 8px 2px;
+    font-size: .62rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .settings-dropdown .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-size: .82rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: .1s;
+    border: none;
+    background: transparent;
+    font-family: var(--font);
+    width: 100%;
+    text-align: left;
+  }
+  .settings-dropdown .menu-item:hover { background: var(--surface-hover); }
+  .settings-dropdown .menu-item .item-icon { font-size: 1rem; width: 20px; text-align: center; }
+  .settings-dropdown .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+
 
   /* ── Content area ─────────────────────────── */
   .content {
@@ -720,10 +753,10 @@
     }
   }
   @media (max-width: 767px) {
-    .header { padding: 10px 14px; }
-    .header h1 { font-size: 1rem; }
-    .tabs { padding: 0 8px; }
-    .tab-btn { padding: 10px 12px; font-size: .8rem; }
+    .tabs { padding: 0 4px; }
+    .tab-btn { padding: 10px 8px; font-size: .75rem; }
+    .tab-gear-left { margin-right: 6px; width: 28px; height: 28px; }
+    .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; max-height: 40vh; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 10px 14px; }
@@ -733,39 +766,49 @@
 </head>
 <body>
 
-<!-- Header -->
-<header class="header">
-  <div style="display:flex;align-items:center;gap:12px;">
-    <h1>🎨 Comfy Tools</h1>
-    <span class="badge">v1.0</span>
-  </div>
-  <div class="header-actions">
-    <button class="btn-icon" title="Settings" onclick="showToast('Settings panel (WIP)')">⚙️</button>
-    <button class="btn-icon" title="Toggle theme" onclick="showToast('Theme toggle (WIP)')">🌓</button>
-  </div>
-</header>
-
 <!-- Main -->
 <div class="main">
 
-  <!-- Tabs -->
+  <!-- Tabs + title bar -->
   <nav class="tabs" id="tabNav">
+    <button class="tab-gear-left" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
     <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
-      <span class="tab-icon">🖼️</span>Generate Image
+      <span class="tab-icon">🖼️</span>Generate
     </button>
     <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
-      <span class="tab-icon">✏️</span>Edit Image
+      <span class="tab-icon">✏️</span>Edit
     </button>
     <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
       <span class="tab-icon">🔍</span>Upscale
     </button>
     <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
-      <span class="tab-icon">🎬</span>Generate Video
+      <span class="tab-icon">🎬</span>Video
     </button>
-    <div class="tabs-actions">
-      <button class="tab-gear-btn" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️ Advanced</button>
+    <div class="tabs-right">
+      <button class="tabs-title" onclick="toggleSettingsMenu(event)">
+        🎨 Comfy Tools
+        <span class="tabs-arrow">▾</span>
+      </button>
     </div>
   </nav>
+
+  <!-- Settings dropdown menu -->
+  <div class="settings-dropdown" id="settingsMenu">
+    <div class="menu-section">Appearance</div>
+    <button class="menu-item" onclick="toggleTheme(); hideSettingsMenu();">
+      <span class="item-icon">🌓</span> Toggle light / dark theme
+    </button>
+    <div class="menu-sep"></div>
+    <div class="menu-section">ComfyUI Connection</div>
+    <button class="menu-item" onclick="showToast('Configure ComfyUI server (WIP)'); hideSettingsMenu();">
+      <span class="item-icon">🔌</span> Server URL
+      <span style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">localhost:8188</span>
+    </button>
+    <button class="menu-item" onclick="showToast('Configure image base URL (WIP)'); hideSettingsMenu();">
+      <span class="item-icon">🖼️</span> Image base URL
+      <span style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">default</span>
+    </button>
+  </div>
 
   <!-- Content -->
   <div class="content" id="tabContent">
@@ -1062,6 +1105,48 @@
 <script>
   // Tab switching
   let currentTab = 'generate';
+
+  // ── Settings dropdown ─────────────────────
+  let settingsOpen = false;
+  function toggleSettingsMenu(e) {
+    e.stopPropagation();
+    settingsOpen = !settingsOpen;
+    const btn = document.querySelector('.tabs-title');
+    const menu = document.getElementById('settingsMenu');
+    btn.classList.toggle('open', settingsOpen);
+    menu.classList.toggle('show', settingsOpen);
+  }
+  function hideSettingsMenu() {
+    settingsOpen = false;
+    document.querySelector('.tabs-title').classList.remove('open');
+    document.getElementById('settingsMenu').classList.remove('show');
+  }
+  document.addEventListener('click', (e) => {
+    if (settingsOpen && !e.target.closest('.tabs-right')) hideSettingsMenu();
+  });
+
+  function toggleTheme() {
+    const root = document.documentElement;
+    const isDark = getComputedStyle(root).getPropertyValue('--bg').trim() === '#1a1a2e';
+    if (isDark) {
+      root.style.setProperty('--bg', '#f0f0f5');
+      root.style.setProperty('--surface', '#ffffff');
+      root.style.setProperty('--surface-hover', '#f5f5fa');
+      root.style.setProperty('--text', '#1a1a2e');
+      root.style.setProperty('--text-secondary', '#6a6a7a');
+      root.style.setProperty('--border', '#d0d0dd');
+      document.querySelector('.output-pane').style.background = '#eaeaef';
+    } else {
+      root.style.setProperty('--bg', '#1a1a2e');
+      root.style.setProperty('--surface', '#16213e');
+      root.style.setProperty('--surface-hover', '#1c2a4a');
+      root.style.setProperty('--text', '#eaeaea');
+      root.style.setProperty('--text-secondary', '#a0a0b0');
+      root.style.setProperty('--border', '#2a2a4a');
+      document.querySelector('.output-pane').style.background = '#111122';
+    }
+  }
+
   function switchTab(name) {
     currentTab = name;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));

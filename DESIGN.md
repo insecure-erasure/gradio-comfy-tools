@@ -172,9 +172,9 @@ loop, muted).
 
 ### Advanced parameters modal (all tabs)
 
-A single ⚙️ **Advanced** button sits in the tab bar to the right of the tab
-labels, always visible. Clicking it opens a modal with the advanced parameters
-for whichever tab is currently active. The modal shows **user-level valves only** — the ComfyUI admin
+A single ⚙️ gear button sits on the **left** side of the tab bar (aligned
+with the output area's left edge). Clicking it opens a modal with the advanced
+parameters for whichever tab is currently active. The modal shows **user-level valves only** — the ComfyUI admin
 valves are configured server-side and not exposed here. The modal contains:
 
 - Tool-specific advanced fields as listed above.
@@ -190,7 +190,7 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  [Generate Image] [Edit Image] [Upscale] [Generate Video]│  ⚙️ Advanced  ← Tabs
+│ ⚙️ [Generate Image] [Edit] [Upscale] [Video]  🎨 Comfy Tools ▾ │  ← Single bar
 ├───────────────────────────┬─────────────────────────────┤
 │                           │  Model family: [dropdown]   │
 │     Generation Output     │  Aspect ratio: [dropdown]   │
@@ -208,7 +208,7 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ```
 ┌──────────────────────────────────────┐
-│  [Generate Image] [Edit] [Upscale]…       ⚙️ Advanced  │  ← Tabs
+│ ⚙️ [Gen] [Edit] [Upscl]…  🎨 C… ▾  │  ← Single bar
 ├──────────────────────────────────────┤
 │                                      │
 │        Generation Output             │  ← Output on top
@@ -227,11 +227,15 @@ valves are configured server-side and not exposed here. The modal contains:
 
 ### Layout details
 
-- **Tabs**: Horizontal tab bar at the very top. Tab buttons on the left switch
-  the content area (output + parameters + prompt). A single ⚙️ **Advanced**
-  button sits on the right side of the tab bar and opens the advanced
-  parameters modal for the currently active tab. The active tab is visually
-  highlighted.
+- **Single combined bar (tabs bar)**: sits at the very top. Contains:
+  - **⚙️ gear button** (left): aligned with the output area's left edge.
+    Opens the advanced parameters modal for the currently active tab.
+  - **Tab buttons** (center-left): switch the content area
+    (output + parameters + prompt). The active tab is highlighted with
+    a colored underline.
+  - **🎨 Comfy Tools ▾ dropdown** (right): clicking it opens a settings
+    menu with appearance (light/dark theme toggle) and ComfyUI
+    connection settings (server URL, image base URL).
 - **Landscape (≥1024px)**:
   - **Left panel (output)**: Takes ~60% of the width. Contains the generation
     result. For image tools: a centered image with lightbox on click. For edit
@@ -281,12 +285,12 @@ The Gradio app communicates with a ComfyUI backend via its REST API:
 3. **Result retrieval**: Images/videos served from ComfyUI's output directory
    via the configured base URL.
 
-### Configuration
+### Settings dropdown (🎨 Comfy Tools ▾)
 
-A settings panel (gear icon, top-right) allows configuring:
-- ComfyUI server URL (default: `http://localhost:8188`)
-- Image base URL override
-- Default model families / versions
+Clicking the title on the right of the tab bar opens a dropdown menu with:
+- **Theme toggle**: switch between dark (default) and light mode
+- **ComfyUI server URL**: configure the backend endpoint
+- **Image base URL**: override the base URL for generated images/videos
 
 ---
 
