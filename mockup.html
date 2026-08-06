@@ -444,6 +444,10 @@
   .stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   .stepper input:focus { outline: none; }
   .stepper input:disabled { opacity: .4; cursor: default; }
+  .stepper:has(input:disabled) .stepper-btn {
+    opacity: .4;
+    pointer-events: none;
+  }
   .stepper-btn {
     flex-shrink: 0;
     width: 28px;
@@ -1443,8 +1447,7 @@
   function stepGenSeed(d) { const input=document.getElementById('genSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
   function onGenSeedInput() { const input=document.getElementById('genSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('genSeedRandom').checked=false; input.disabled=false; }
   function onSeedRandomToggle() {
-    const checked = document.getElementById('genSeedRandom').checked;
-    document.getElementById('genSeed').disabled = checked;
+    document.getElementById('genSeed').disabled = document.getElementById('genSeedRandom').checked;
   }
   function onSeedInput() {
     document.getElementById('genSeedRandom').checked = false;
@@ -1455,12 +1458,12 @@
   function onEditStepsInput() { const input=document.getElementById('editSteps'); const v=parseInt(input.value); if(isNaN(v)||v<1) input.value=1; if(v>15) input.value=15; }
   function stepEditSeed(d) { const input=document.getElementById('editSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
   function onEditSeedInput() { const input=document.getElementById('editSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('editSeedRandom').checked=false; input.disabled=false; }
-  function onEditSeedRandomToggle() { const s=document.getElementById('editSeedRandom').checked; const inp=document.getElementById('editSeed'); inp.disabled=s; }
+  function onEditSeedRandomToggle() { document.getElementById('editSeed').disabled=document.getElementById('editSeedRandom').checked; }
 
   // ── Upscale tab helpers ──────────────────
   function stepUpscaleSeed(d) { const input=document.getElementById('upscaleSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
   function onUpscaleSeedInput() { const input=document.getElementById('upscaleSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('upscaleSeedRandom').checked=false; input.disabled=false; }
-  function onUpscaleSeedRandomToggle() { const s=document.getElementById('upscaleSeedRandom').checked; const inp=document.getElementById('upscaleSeed'); inp.disabled=s; }
+  function onUpscaleSeedRandomToggle() { document.getElementById('upscaleSeed').disabled=document.getElementById('upscaleSeedRandom').checked; }
 
   // ── Video tab helpers ────────────────────
   function stepVideoFrames(d) { const input=document.getElementById('videoFrames'); let val=parseInt(input.value)+d; val=Math.round(val/4)*4+1; input.value=Math.min(161,Math.max(81,val)); }
@@ -1469,7 +1472,7 @@
   function onVideoStepsInput() { const input=document.getElementById('videoSteps'); const v=parseInt(input.value); if(isNaN(v)||v<4) input.value=4; if(v>10) input.value=10; }
   function stepVideoSeed(d) { const input=document.getElementById('videoSeed'); input.value=Math.max(0,parseInt(input.value)+d); }
   function onVideoSeedInput() { const input=document.getElementById('videoSeed'); if(isNaN(parseInt(input.value))) input.value=0; document.getElementById('videoSeedRandom').checked=false; input.disabled=false; }
-  function onVideoSeedRandomToggle() { const s=document.getElementById('videoSeedRandom').checked; const inp=document.getElementById('videoSeed'); inp.disabled=s; }
+  function onVideoSeedRandomToggle() { document.getElementById('videoSeed').disabled=document.getElementById('videoSeedRandom').checked; }
 
   // Auto-set steps when model family changes (Generate Image tab)
   function onModelFamilyChange() {
