@@ -1,8 +1,8 @@
-# Frontend Design — Gradio Comfy Tools
+# Frontend Design — Comfy Tools
 
 > **Source of truth: `mockup.html`.** This document describes the mockup as implemented today. If this document conflicts with the mockup, the mockup wins; if this document conflicts with the old `DESIGN.md`, this document wins (the deviations are summarized in `DESIGN.md`).
 >
-> The Gradio implementation must reproduce this behavior. Every mockup control has its Gradio equivalent (see "Mapping to Gradio components").
+> The implementation must reproduce this behavior (see §5 for how the mockup maps to the real app).
 
 ## 1. Layout
 
@@ -56,7 +56,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 **Row 1** (inline, no field labels — just letters): `W` readonly · `H` readonly · `AR` dropdown · `📐 MP` stepper.
 
 - W/H: read-only fields showing the live calculation (initial static HTML values are 832×1248, **recalculated on load** — see §4.1).
-- AR: dropdown `2:3` (default), `1:1`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`. **No Custom option** (the old Custom W/H is dead code in the mockup — `genCustomRatio` never shows — and is not ported to Gradio).
+- AR: dropdown `2:3` (default), `1:1`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`. **No Custom option** (the old Custom W/H is dead code in the mockup — `genCustomRatio` never shows — and is not implemented).
 - MP: stepper, range 0.1–2.0, step 0.1, default 1.0.
 
 **Row 2**: `👣 Steps` stepper (1–15, default 10, auto-updates on model change) · `🌱 Seed` stepper (≥ 0, disabled when random) + `🎲` checkbox (checked by default).
@@ -107,7 +107,7 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 
 - `vae_scale` per family: Z-Image Turbo 16 · Krea 2 8 · FLUX.2 Klein 64.
 - Changing the model family **sets steps automatically** (10/8/8) and recalculates W/H.
-- Note: the static initial HTML values (832×1248) do not match the formula (2:3 @ 1.0 MP @ vae16 → **816×1232**); the mockup recalculates them on load. Gradio must **calculate on init**, not hardcode.
+- Note: the static initial HTML values (832×1248) do not match the formula (2:3 @ 1.0 MP @ vae16 → **816×1232**); the mockup recalculates them on load. The real app must **calculate on init**, not hardcode.
 - Clamps: MP 0.1–2.0; steps 1–15.
 
 ### 4.2 Seed + 🎲 (all tabs)
@@ -123,7 +123,7 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 
 ### 4.4 Compare slider (Edit and Upscale)
 
-Draggable divider (pointer events), Original/Edited (or Upscaled) labels, handle + divider line. Interactive in the mockup; in Gradio, port as HTML+JS component or stacked `gr.Image` with slider.
+Draggable divider (pointer events), Original/Edited (or Upscaled) labels, handle + divider line. Interactive in the mockup; implemented as two stacked `<img>` with `clip-path` via `--p` (ported from the reference compare_images).
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
@@ -146,7 +146,7 @@ Opens a menu with two sections:
 
 Single modal, content rendered dynamically per active tab (`currentTab`). Reachable from Generate, Edit and Video (⚙️ in their model-rows); Upscale has no gear and no advanced fields.
 
-No override layers and no per-tool base URL: the Gradio app is single-user (no admin/user LoRA hierarchy, no "Override system LoRAs"), and the ComfyUI server URL and media base URL (`COMFYUI_MEDIA_BASE_URL`) are global settings in the 🎨 dropdown.
+No override layers and no per-tool base URL: the app is single-user (no admin/user LoRA hierarchy, no "Override system LoRAs"), and the ComfyUI server URL and media base URL (`COMFYUI_MEDIA_BASE_URL`) are global settings in the 🎨 dropdown.
 
 | Tab | Fields |
 |---|---|
@@ -159,43 +159,50 @@ Footer: `Cancel` + `Save`. Esc or ✕ closes without saving; Save applies and cl
 
 ### 4.8 Toast
 
-Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow submitted to ComfyUI", etc.). In Gradio: `gr.Info`/`gr.Warning`.
+Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow submitted to ComfyUI", etc.). In the real app this is the mockup's toast element (already implemented in `app.html`).
 
 ### 4.9 Result URL
 
 `setResultUrl(filename)` → `{baseUrl}/view?filename=...&type=output`, shown in the row under the textarea with a 📋 copy button (disabled until a result exists).
 
-## 5. Mapping to Gradio components
+## 5. How the mockup maps to the implementation
 
-| Mockup | Gradio |
+The UI is `app.html` — a working copy of the mockup where the WIP buttons call
+the real backend. Each mockup element has its counterpart in the implementation:
+
+| Mockup element | In `app.html` / `server.py` |
 |---|---|
-| Tabs bar + tabs | `gr.Tabs` / `gr.Tab` (or styled `gr.Radio`); keep all components mounted to preserve state |
-| model-row (Model dropdown + ⚙️ + ↺) | `gr.Row` with `gr.Dropdown` + `gr.Button` (gear/reset) |
-| Steppers ± | `gr.Number` with ± buttons (JS) or `gr.Number` + `gr.Button` in a row |
-| W/H readonly | `gr.HTML`/`gr.Markdown` (readonly span) |
-| AR dropdown, MP | `gr.Dropdown`, `gr.Number` |
-| Seed + 🎲 | `gr.Number` (interactivity gated) + `gr.Checkbox`; JS for disable/invert |
-| LoRAs (all tabs that use them) | `gr.TextArea` for the `LoRA config (JSON)` field in the advanced modal |
-| Compare slider | `gr.HTML` with the mockup's JS (drag) or custom `gr.Image` overlay |
-| Video player | `gr.Video` (autoplay muted loop) or `gr.HTML` |
-| 📁 / 🔗 overlays + source URL field | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])`; the URL field is a `gr.Textbox` styled transparent (bottom-left); 🔗 is a `gr.Button` at bottom-right (or placed in the layout with the same look) |
-| Prompt textarea | `gr.Textbox(lines=…, placeholder=…)` |
-| ✨🖌️🩹🔍🎬 buttons | `gr.Button` (primary/secondary variants) |
-| Advanced modal | Gradio modal (`gr.Modal` in Gradio 5) or HTML overlay |
-| 🎨 dropdown (theme, server URL, media base URL) | `gr.Dropdown`/`gr.Button` + settings modal |
-| Toast | `gr.Info` / `gr.Warning` |
-| Result URL + 📋 | `gr.Markdown`/`gr.Textbox` + copy `gr.Button` (JS clipboard) |
+| Tabs bar + tabs | Manual tab switching (state + visibility), params persist |
+| model-row (Model dropdown + ⚙️ + ↺) | `<select>`/dropdown + ⚙️ (advanced modal) + ↺ (reset) |
+| Steppers ± | `<div class=stepper>` with −/+ buttons + `<input type=number>` |
+| W/H readonly | read-only spans (live calc) |
+| AR dropdown, MP | `<select>` + stepper |
+| Seed + 🎲 | stepper + checkbox (disables input) |
+| LoRAs (all tabs that use them) | `LoRA config (JSON)` textarea in the advanced modal → sent to the API |
+| Compare slider | two stacked `<img>` with `clip-path` via `--p` (ported from compare_images) |
+| Video player | `<video>` from `/media` proxy |
+| 📁 / 🔗 overlays + source URL field | 📁 opens file picker → `POST /api/upload`; 🔗 fills the field with `lastGeneratedUrl`; the field value is the tool's `image` |
+| Prompt textarea | `#promptInput` textarea (bottom bar) |
+| ✨🖌️🩹🔍🎬 buttons | bottom-bar action buttons → `fetch` to `/api/{tool}` |
+| Advanced modal | HTML overlay, values stored per tab (`window.advancedValues`) |
+| 🎨 dropdown (theme, server URL, media base URL) | settings menu → `GET/POST /api/settings` |
+| Toast | `#toast` element |
+| Result URL + 📋 | `#resultUrl` + copy button |
 
-## 6. Mockup WIP placeholders → implement in Gradio
+## 6. Mockup WIP placeholders → real behavior
 
-| Element | In the mockup | In Gradio |
+| Element | In the mockup (WIP) | Real behavior (`app.html` + `server.py`) |
 |---|---|---|
-| 📁 Upload image | `showToast('File picker (WIP)')` | Real upload: `gr.Image` upload → `POST /upload/image` to ComfyUI (see BACKEND.md) |
-| 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl`; the field value feeds the tool's `image` input (empty field on generate → warning toast) | Real: `gr.Textbox` (paste external URL) + `gr.Button` (🔗 fills it from `lastGeneratedUrl`); value passed as the tool's `image` with filename-vs-URL auto-detection (see BACKEND.md §6) |
-| ↺ Reset | `showToast('Parameters reset')` | Real reset of parameters + tab output |
-| Action buttons | Generate a fake URL (`ComfyUI_<ts>.png`) | Real ComfyUI submission via `comfy_client` |
-| 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |
-| Advanced modal Save | `console.log` | Persist values per tab and pass to the backend |
+| 📁 Upload image | `showToast('File picker (WIP)')` | file picker → `POST /api/upload` → ComfyUI temp filename → fills the source field |
+| 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl` | same (works); the field value feeds the tool's `image` input (filename-vs-URL auto-detection, BACKEND.md §6); empty on generate → warning toast |
+| ↺ Reset | `showToast('Parameters reset')` | real reset of that tab's parameters |
+| Action buttons | fake URL (`ComfyUI_<ts>.png`) | real submission via `server.py` → `tools/*` → `comfy_client` |
+| 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | `GET /api/settings` (currently read-only; B4 will persist) |
+| Advanced modal Save | `console.log` | stores per-tab values in `window.advancedValues` (LoRA config feeds the API) |
+
+> Implementation note: the frontend is **not** Gradio — Gradio 6 could not
+> reproduce the mockup's artisanal design (its shell fought the custom CSS).
+> The mockup's HTML/CSS/JS is served directly via FastAPI (`server.py`).
 
 ## 7. Session state
 

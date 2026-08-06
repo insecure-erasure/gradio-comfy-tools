@@ -1,13 +1,13 @@
-# Design Document — Gradio Comfy Tools
+# Design Document — Comfy Tools
 
 > **This document is the architecture overview.** The detailed specifications live in:
 >
-> - **`FRONTEND.md`** — UI specification. **Source of truth: `mockup.html`.** Describes exactly what to build in Gradio, control by control.
+> - **`FRONTEND.md`** — UI specification. **Source of truth: `mockup.html`.** Describes exactly what to build, control by control.
 > - **`BACKEND.md`** — Service layer specification. **Implementation reference: the tools in `../open-webui-comfy-tools`** (workflows, injection pattern, parameter semantics).
 
 ## Overview
 
-Unified Gradio interface that consolidates four ComfyUI-powered tools into a
+Unified web interface that consolidates four ComfyUI-powered tools into a
 single multi-tab web application. Each tool occupies its own tab, sharing a
 consistent layout: generation output on the left, parameters on the right,
 and a full-width prompt bar at the bottom.
@@ -22,16 +22,17 @@ and a full-width prompt bar at the bottom.
 ## Sources of truth
 
 - **UI**: `mockup.html` is the source of truth for the frontend. `FRONTEND.md` describes it and captures every control and interaction; any UI change must first be applied to the mockup.
-- **Backend**: the Open WebUI tools in `../open-webui-comfy-tools` are the reference for workflow injection, parameter semantics (seed, steps, frames, LoRAs) and ComfyUI REST API interaction. The Gradio backend reimplements the same behavior without Open WebUI-specific plumbing (valves, embeds, HTMLResponse).
+- **Backend**: the Open WebUI tools in `../open-webui-comfy-tools` are the reference for workflow injection, parameter semantics (seed, steps, frames, LoRAs) and ComfyUI REST API interaction. Our backend reimplements the same behavior without Open WebUI-specific plumbing (valves, embeds, HTMLResponse).
 
 ## Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ app.py  (Gradio Blocks — layout & state per FRONTEND.md)       │
-│   ├── per-tab state (parameters, results)                      │
-│   ├── settings: server URL (COMFYUI_BASE_URL), media base URL   │
-│   │   (COMFYUI_MEDIA_BASE_URL), theme, default LoRAs / models    │
+│ server.py  (FastAPI — serves the UI + API)                     │
+│   GET /                        app.html (the UI)               │
+│   POST /api/{generate,edit,upscale,video,upload}               │
+│   GET /media/{filename}?type=  same-origin proxy of results    │
+│   GET /health · /api/settings                                  │
 │   └── tools/  (per tool: workflow loading + injector)          │
 ├───────────────────────────────────────────────────────────────┤
 │ comfy_client.py  (ComfyUI REST client)                         │
@@ -40,18 +41,18 @@ and a full-width prompt bar at the bottom.
 └───────────────────────────────────────────────────────────────┘
 ```
 
+- **`mockup.html`** = the design template/spec (source of truth for the UI,
+  never edited for functionality).
+- **`app.html`** = a working copy of the mockup where the fake buttons call the
+  real backend via `server.py`. This is the page served at `/`.
+
 Generation flow:
 
 1. The user fills in parameters and prompt, then clicks the action button (✨/🖌️/🩹/🔍/🎬) in the bottom bar.
-2. `app.py` asks `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
-3. `comfy_client.py` does `POST /prompt`, then polls `GET /history/{prompt_id}` until completion.
-4. The result (image or video) is served from ComfyUI's output via the
-   media base URL: `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`,
-   and displayed in the active tab's output pane.
-5. The result URL is available for copying (📋) and chaining: Edit/Upscale/Video
-   accept a source image via a **transparent URL text field** overlaid at the
-   bottom-left of their output pane (paste an external URL); the 🔗 button
-   sits bottom-right and fills the field with the last generation.
+2. `app.html` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
+3. `server.py` calls `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
+4. `comfy_client.py` does `POST /prompt`, then polls `GET /history/{prompt_id}` until completion.
+5. The result (image or video) is proxied by `server.py` at `/media/{filename}?type=...` (same-origin, avoids CORS/host validation) and displayed in the output pane; the direct ComfyUI URL is shown for copy (📋) and chaining (🔗).
 
 ## Deviations from the original design (already reflected in the docs)
 
@@ -74,11 +75,12 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | File | Purpose |
 |------|---------|
 | `DESIGN.md` | This overview |
-| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) pending |
+| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) in progress |
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
-| `mockup.html` | Interactive HTML mockup (source of truth for the UI) |
-| `app.py` | Gradio app — B0 skeleton + B1 Generate wired (Edit/Upscale/Video are WIP stubs) |
+| `mockup.html` | Design template/spec — never edited for functionality |
+| `app.html` | Working copy of the mockup wired to the real backend (served at `/`) |
+| `server.py` | FastAPI app — serves app.html + the API (reuses tools/) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see PLAN.md A0) |
 | `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
 | `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |

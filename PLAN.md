@@ -223,7 +223,10 @@ filenames between steps; green apple rotating video confirmed.
 ## Decision: FastAPI + app.html (not Gradio) ✅ decided
 
 Gradio 6's theming could not reproduce the mockup design (the mockup is the
-source of truth per FRONTEND.md). Re-scoped:
+source of truth per FRONTEND.md). A Gradio experiment lived on branch
+`feat/gradio-ui` (kept for reference) — even with deep custom CSS measured via
+puppeteer it still felt crude, so it was abandoned in favor of serving the
+mockup directly.
 
 - **`mockup.html`** = the design template/spec — **never edited for functionality**.
 - **`app.html`** = a working copy of the mockup where the fake buttons call the

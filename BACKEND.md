@@ -1,6 +1,6 @@
-# Backend Design — Gradio Comfy Tools
+# Backend Design — Comfy Tools
 
-> **Implementation reference: the tools in `../open-webui-comfy-tools`** (`smart_generate_image/`, `edit_image/`, `upscale_image/`, `generate_video/`). The Gradio backend reimplements their behavior (workflow injection, parameter semantics, ComfyUI REST) without Open WebUI plumbing.
+> **Implementation reference: the tools in `../open-webui-comfy-tools`** (`smart_generate_image/`, `edit_image/`, `upscale_image/`, `generate_video/`). Our backend reimplements their behavior (workflow injection, parameter semantics, ComfyUI REST) without Open WebUI plumbing.
 >
 > The contract with the UI is `FRONTEND.md`; here every UI control maps to a backend parameter and a workflow node.
 
@@ -8,7 +8,7 @@
 
 | Module | Responsibility |
 |---|---|
-| `app.py` | Gradio Blocks app: layout and state per FRONTEND.md, event wiring, global config |
+| `server.py` | FastAPI app: serves `app.html` (the UI) + the REST API that calls `tools/`; proxies results via `/media` |
 | `comfy_client.py` | ComfyUI REST client: queue, polling, upload, output URLs |
 | `tools/` | One module per tool: workflow JSON loading + parameter injection by node title |
 | `workflows/` | The workflow JSONs imported from `../open-webui-comfy-tools` |
@@ -29,7 +29,7 @@ Workflow JSONs are copied from `../open-webui-comfy-tools/<tool>/` into `workflo
 
 ## 4. Configuration model
 
-No override layers: the Gradio app is single-user, so there is no admin/user
+No override layers: the app is single-user, so there is no admin/user
 hierarchy and no "override system LoRAs" concept. Every value is direct
 configuration:
 
@@ -144,7 +144,7 @@ fields (model, LoRA/diffusion config):
 
 ## 8. State and session
 
-- Per-tab parameter state, independent; persists across tab switches (Gradio: keep components mounted in hidden tabs or state in `gr.State`).
+- Per-tab parameter state, independent; persists across tab switches (kept in `app.html`'s DOM — tabs are never rebuilt).
 - The advanced modal persists its values per tab for the session.
 - Reset (↺) restores defaults and clears the tab's output.
 - Each tab's result persists for the session (not lost on tab switch).
