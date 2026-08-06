@@ -547,7 +547,7 @@
     background: var(--surface);
     display: flex;
     gap: 12px;
-    align-items: center;
+    align-items: stretch;
     flex-shrink: 0;
   }
   .prompt-col {
@@ -837,7 +837,9 @@
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
-    .btn-generate { width: 40px; font-size: 1rem; }
+    .btn-col { width: 40px; }
+    .btn-generate { font-size: 1rem; }
+    .btn-copy-url { font-size: .7rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
