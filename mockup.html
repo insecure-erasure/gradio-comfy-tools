@@ -192,17 +192,26 @@
 
 
   /* ── Content area ─────────────────────────── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+  }
   .content {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
   }
   .tab-panel {
     display: none;
     flex: 1;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
   }
   .tab-panel.active {
     display: flex;
@@ -225,10 +234,9 @@
     justify-content: center;
     padding: 24px;
     background: #111122;
-    position: relative;
     overflow: hidden;
     min-width: 0;
-    order: 1;
+    min-height: 0;
   }
   .output-placeholder {
     text-align: center;
@@ -256,7 +264,7 @@
     gap: 14px;
     min-width: 280px;
     max-width: 420px;
-    order: 2;
+    min-height: 0;
   }
 
   /* ── Form elements ─────────────────────────── */
@@ -743,15 +751,16 @@
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
 
-    /* Stack: output on top, params middle, prompt bottom. All fill viewport. */
+    /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
       flex-direction: column;
+      flex: 1 1 auto;
       min-height: 0;
     }
     .output-pane {
       flex: 0 0 auto;
       min-height: 0;
-      order: 1;
+      max-height: 50vh;
     }
     .params-pane {
       flex: 1 1 auto;
@@ -759,7 +768,7 @@
       max-width: none;
       border-left: none;
       border-top: 1px solid var(--border);
-      order: 2;
+      overflow-y: auto;
     }
     .tabs-params-zone { max-width: none; }
   }
