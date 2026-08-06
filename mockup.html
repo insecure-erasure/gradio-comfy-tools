@@ -39,23 +39,30 @@
     align-items: center;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0;
     flex-shrink: 0;
     min-height: var(--tab-height);
   }
 
-  /* Left group: tabs + gear, mirrors output pane width (60%) */
-  .tabs-group {
+  /* Output zone: same width as output pane (60%), gear at right edge */
+  .tabs-output-zone {
     flex: 6;
     display: flex;
     align-items: center;
-    padding-left: 20px;
     min-width: 0;
-    overflow: hidden;
+    position: relative;
   }
-
-  /* Gear at the right edge of tabs-group = output/params split line */
+  .tabs-inner {
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    flex: 1;
+    min-width: 0;
+  }
   .tab-gear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -67,14 +74,23 @@
     font-size: 1.05rem;
     cursor: pointer;
     transition: .15s;
-    flex-shrink: 0;
-    margin-left: auto;
-    margin-right: 12px;
+    z-index: 2;
   }
   .tab-gear:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: var(--accent);
+  }
+
+  /* Params zone: same width as params pane (40%) */
+  .tabs-params-zone {
+    flex: 4;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 8px;
+    position: relative;
+    min-width: 0;
   }
 
   .tab-btn {
@@ -97,15 +113,6 @@
   }
   .tab-icon { margin-right: 5px; font-size: .85rem; }
 
-  /* Right group: title dropdown, mirrors params pane width (40%) */
-  .tabs-right {
-    flex: 4;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 8px;
-    position: relative;
-  }
   .tabs-title {
     display: inline-flex;
     align-items: center;
@@ -764,9 +771,10 @@
     }
   }
   @media (max-width: 767px) {
-    .tabs { padding: 0 4px; }
+    .tabs-output-zone { padding-left: 4px; }
+    .tabs-inner { padding-left: 8px; }
     .tab-btn { padding: 10px 8px; font-size: .75rem; }
-    .tab-gear { margin-right: 6px; width: 28px; height: 28px; }
+    .tab-gear { right: 4px; width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; max-height: 40vh; }
     .params-pane { padding: 14px; gap: 10px; }
@@ -782,22 +790,24 @@
 
   <!-- Tabs + title bar -->
   <nav class="tabs" id="tabNav">
-    <div class="tabs-group">
-      <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
-        <span class="tab-icon">🖼️</span>Generate
-      </button>
-      <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
-        <span class="tab-icon">✏️</span>Edit
-      </button>
-      <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
-        <span class="tab-icon">🔍</span>Upscale
-      </button>
-      <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
-        <span class="tab-icon">🎬</span>Video
-      </button>
+    <div class="tabs-output-zone">
+      <div class="tabs-inner">
+        <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
+          <span class="tab-icon">🖼️</span>Generate
+        </button>
+        <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
+          <span class="tab-icon">✏️</span>Edit
+        </button>
+        <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
+          <span class="tab-icon">🔍</span>Upscale
+        </button>
+        <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
+          <span class="tab-icon">🎬</span>Video
+        </button>
+      </div>
       <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
     </div>
-    <div class="tabs-right">
+    <div class="tabs-params-zone">
       <button class="tabs-title" onclick="toggleSettingsMenu(event)">
         🎨 Comfy Tools
         <span class="tabs-arrow">▾</span>
@@ -1135,7 +1145,7 @@
     document.getElementById('settingsMenu').classList.remove('show');
   }
   document.addEventListener('click', (e) => {
-    if (settingsOpen && !e.target.closest('.tabs-right')) hideSettingsMenu();
+    if (settingsOpen && !e.target.closest('.tabs-params-zone')) hideSettingsMenu();
   });
 
   function toggleTheme() {
