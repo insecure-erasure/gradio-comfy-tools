@@ -299,16 +299,15 @@
     border-color: var(--accent);
   }
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
+  .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
 
   /* Source image URL field — transparent overlay, bottom-LEFT of the
-     output pane (Edit/Upscale/Video). The 🔗 button fills it with the
-     last generation; users can also paste an external URL. */
-  .source-url-row {
+     output pane (Edit/Upscale/Video); paste an external URL here. The
+     🔗 button sits bottom-RIGHT and fills the field with the last
+     generation. */
+  .source-url-field {
     position: absolute;
     bottom: 12px; left: 12px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
     z-index: 5;
   }
   .source-url-input {
@@ -992,7 +991,7 @@
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; }
-    .source-url-row { bottom: 10px; left: 10px; }
+    .source-url-field { bottom: 10px; left: 10px; }
     .source-url-input { width: 130px; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 8px 8px; }
@@ -1143,10 +1142,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <div class="source-url-row">
-            <button class="output-overlay-btn" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
+          <div class="source-url-field">
             <input type="text" class="source-url-input" id="editSourceUrl" placeholder="Paste image URL…" />
           </div>
+          <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -1202,10 +1201,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <div class="source-url-row">
-            <button class="output-overlay-btn" onclick="usePreviousSource('upscale')" title="Use previous generation">🔗</button>
+          <div class="source-url-field">
             <input type="text" class="source-url-input" id="upscaleSourceUrl" placeholder="Paste image URL…" />
           </div>
+          <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('upscale')" title="Use previous generation">🔗</button>
           <div class="compare-slider">
             <div class="side before">
               <span class="label">Original</span>
@@ -1250,10 +1249,10 @@
       <div class="split">
         <div class="output-pane">
           <button class="output-overlay-btn top-right" onclick="showToast('File picker (WIP)')" title="Upload image">📁</button>
-          <div class="source-url-row">
-            <button class="output-overlay-btn" onclick="usePreviousSource('video')" title="Use previous generation">🔗</button>
+          <div class="source-url-field">
             <input type="text" class="source-url-input" id="videoSourceUrl" placeholder="Paste image URL…" />
           </div>
+          <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('video')" title="Use previous generation">🔗</button>
           <div class="video-mock" onclick="showToast('Video player (WIP)')">
             <div class="play-btn">▶</div>
             <div class="bar"><div class="progress"></div></div>
@@ -1389,20 +1388,36 @@
     const ts = Date.now();
     setResultUrl(`ComfyUI_${ts.toString(36)}_.png`);
   }
+  // Mirror the backend tools' output naming: the fake result chains from the
+  // source (source filename with an action prefix + timestamp), proving the
+  // URL field → action button wiring.
+  function baseNameFromUrl(url) {
+    try {
+      const u = new URL(url);
+      const filename = u.searchParams.get('filename');
+      if (filename) return filename.replace(/\.[a-z0-9]+$/i, '');
+      const seg = u.pathname.split('/').pop();
+      if (seg) return seg.replace(/\.[a-z0-9]+$/i, '');
+    } catch (e) { /* not a URL */ }
+    return 'source';
+  }
   function generateEdit() {
+    const src = getSourceUrl('edit');
+    if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
     showToast('Edit submitted to ComfyUI');
-    const ts = Date.now();
-    setResultUrl(`ComfyUI_edit_${ts.toString(36)}_.png`);
+    setResultUrl(`ComfyUI_edit_${baseNameFromUrl(src)}_${Date.now().toString(36)}_.png`);
   }
   function generateUpscale() {
+    const src = getSourceUrl('upscale');
+    if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
     showToast('Upscale submitted to ComfyUI');
-    const ts = Date.now();
-    setResultUrl(`ComfyUI_upscale_${ts.toString(36)}_.png`);
+    setResultUrl(`ComfyUI_upscale_${baseNameFromUrl(src)}_${Date.now().toString(36)}_.png`);
   }
   function generateVideo() {
+    const src = getSourceUrl('video');
+    if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
     showToast('Video submitted to ComfyUI');
-    const ts = Date.now();
-    setResultUrl(`ComfyUI_video_${ts.toString(36)}_.mp4`);
+    setResultUrl(`ComfyUI_video_${baseNameFromUrl(src)}_${Date.now().toString(36)}_.mp4`);
   }
 
   // Tab switching
@@ -1544,8 +1559,16 @@
   function onUpscaleSeedRandomToggle() { document.getElementById('upscaleSeed').disabled=document.getElementById('upscaleSeedRandom').checked; }
 
   // ── Video tab helpers ────────────────────
-  function stepVideoFrames(d) { const input=document.getElementById('videoFrames'); let val=parseInt(input.value)+d; val=Math.round(val/4)*4+1; input.value=Math.min(161,Math.max(81,val)); }
-  function onVideoFramesInput() { const input=document.getElementById('videoFrames'); const v=parseInt(input.value); let r=Math.round(v/4)*4+1; r=Math.max(81,Math.min(161,r)); input.value=r; }
+  // Snap to the nearest 4n+1 (WAN temporal VAE stride), clamped to [81,161] —
+  // same logic as _snap_to_valid_frames in generate_video/tool.py.
+  function snapVideoFrames(v) {
+    v = Math.min(161, Math.max(81, v));
+    let snapped = Math.floor((v - 1) / 4) * 4 + 1;
+    if (v - snapped > 2) snapped += 4;
+    return Math.min(snapped, 161);
+  }
+  function stepVideoFrames(d) { const input=document.getElementById('videoFrames'); input.value=snapVideoFrames(parseInt(input.value)+d); }
+  function onVideoFramesInput() { const input=document.getElementById('videoFrames'); input.value=snapVideoFrames(parseInt(input.value)); }
   function stepVideoSteps(d) { const input=document.getElementById('videoSteps'); const val=Math.min(10,Math.max(4,parseInt(input.value)+d)); input.value=val; }
   function onVideoStepsInput() { const input=document.getElementById('videoSteps'); const v=parseInt(input.value); if(isNaN(v)||v<4) input.value=4; if(v>10) input.value=10; }
   function stepVideoSeed(d) { const input=document.getElementById('videoSeed'); input.value=Math.max(0,parseInt(input.value)+d); }

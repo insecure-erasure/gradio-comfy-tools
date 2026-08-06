@@ -65,7 +65,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.2 Edit ✏️
 
-**Output pane**: `📁` overlay (top-right, "Upload image") + source URL row (bottom-left: `🔗` button + transparent URL field) over the **compare slider** (Original | Edited).
+**Output pane**: `📁` overlay (top-right, "Upload image") + transparent URL field (bottom-left) + `🔗` button (bottom-right) over the **compare slider** (Original | Edited).
 
 **model-row**: `Model` label + dropdown (only `flux-2-klein-9b-nvfp4`) + `⚙️` gear + `↺` reset.
 
@@ -75,7 +75,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.3 Upscale 🔍
 
-**Output pane**: `📁` overlay (top-right) + source URL row (bottom-left: `🔗` + transparent URL field) over the **compare slider** (Original | Upscaled).
+**Output pane**: `📁` overlay (top-right) + transparent URL field (bottom-left) + `🔗` button (bottom-right) over the **compare slider** (Original | Upscaled).
 
 **model-row**: `Model` label + read-only field `SeedVR2` + `↺` reset. **No ⚙️.**
 
@@ -83,7 +83,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ### 3.4 Video 🎬
 
-**Output pane**: `📁` overlay (top-right) + source URL row (bottom-left: `🔗` + transparent URL field) over a mock video player (▶ button + progress bar).
+**Output pane**: `📁` overlay (top-right) + transparent URL field (bottom-left) + `🔗` button (bottom-right) over a mock video player (▶ button + progress bar).
 
 **model-row**: `Model` label + dropdown (`Wan 2.1` default, `Wan 2.2`) + `⚙️` gear + `↺` reset.
 
@@ -127,7 +127,7 @@ Draggable divider (pointer events), Original/Edited (or Upscaled) labels, handle
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
-Transparent text field overlaid at the **bottom-left** of the output pane, next to a `🔗` button. It provides the **input image** for the tool:
+Transparent text field overlaid at the **bottom-left** of the output pane; the `🔗` button is at the **bottom-right**. The field provides the **input image** for the tool:
 
 - The user can paste an external image URL directly into the field.
 - `🔗` fills the field with the last generated URL (`lastGeneratedUrl`); if none exists yet, a toast says so. `lastGeneratedUrl` persists across tab switches so the field can be filled after generating in another tab.
@@ -178,7 +178,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | LoRAs (all tabs that use them) | `gr.TextArea` for the `LoRA config (JSON)` field in the advanced modal |
 | Compare slider | `gr.HTML` with the mockup's JS (drag) or custom `gr.Image` overlay |
 | Video player | `gr.Video` (autoplay muted loop) or `gr.HTML` |
-| 📁 / 🔗 overlays + source URL field | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])`; the URL field is a `gr.Textbox` styled transparent and overlaid (or placed in the layout with the same look) |
+| 📁 / 🔗 overlays + source URL field | `gr.Button` positioned over the output; 📁 opens `gr.Image(type=filepath, sources=['upload'])`; the URL field is a `gr.Textbox` styled transparent (bottom-left); 🔗 is a `gr.Button` at bottom-right (or placed in the layout with the same look) |
 | Prompt textarea | `gr.Textbox(lines=…, placeholder=…)` |
 | ✨🖌️🩹🔍🎬 buttons | `gr.Button` (primary/secondary variants) |
 | Advanced modal | Gradio modal (`gr.Modal` in Gradio 5) or HTML overlay |
@@ -191,7 +191,7 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 | Element | In the mockup | In Gradio |
 |---|---|---|
 | 📁 Upload image | `showToast('File picker (WIP)')` | Real upload: `gr.Image` upload → `POST /upload/image` to ComfyUI (see BACKEND.md) |
-| 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl`; the field value feeds the tool's `image` input |
+| 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl`; the field value feeds the tool's `image` input (empty field on generate → warning toast) | Real: `gr.Textbox` (paste external URL) + `gr.Button` (🔗 fills it from `lastGeneratedUrl`); value passed as the tool's `image` with filename-vs-URL auto-detection (see BACKEND.md §6) |
 | ↺ Reset | `showToast('Parameters reset')` | Real reset of parameters + tab output |
 | Action buttons | Generate a fake URL (`ComfyUI_<ts>.png`) | Real ComfyUI submission via `comfy_client` |
 | 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | Real persistent config (see BACKEND.md §7) |

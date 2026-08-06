@@ -117,7 +117,7 @@ Other nodes (wan21 and wan22): `CLIPLoader (GGUF)`, `WanImageToVideo`, `KSampler
 - **Wan 2.1**: single path — `Wan2.1-I2V-14B-480P-StepDistill-CfgDistill-Lightx2v-nvfp4.safetensors`, sampler euler, scheduler simple, steps 4, cfg 1.0, shift 5.
 - **Wan 2.2**: dual high/low path — `Wan2.2-I2V-A14B-Moe-Distill-Lightx2v-{high,low}-nvfp4.safetensors`; high: heun, start 0 / end 2, add noise; low: euler, start 2 / end 10000, no noise.
 
-**Frames guardrail**: `_MIN_FRAMES=81`, `_MAX_FRAMES=161`, only 4n+1 valid; snap with `((n-1)//4)*4+1` (clamped). **Steps guardrail**: 4–10; wan22 rounds odd→even.
+**Frames guardrail**: `_MIN_FRAMES=81`, `_MAX_FRAMES=161`, only 4n+1 valid; snap to the **nearest** 4n+1: `snapped = ((n-1)//4)*4+1`, then `snapped += 4` when `n - snapped > 2` (clamped) — exact mirror of `_snap_to_valid_frames` in `generate_video/tool.py`; the mockup implements the same logic (`snapVideoFrames`). **Steps guardrail**: 4–10; wan22 rounds odd→even.
 
 ## 6. Chaining (context between tools)
 
