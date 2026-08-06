@@ -278,3 +278,51 @@ mockup directly.
   controls wired to `/api/video`.
 - Upscale tab: compare slider with "Upscaled", wire to `/api/upscale`.
 - Responsive behavior (mockup already handles it via CSS).
+
+## B5. Live events + queue (future phase — verified against ComfyUI)
+
+> **Why now**: currently each tab `fetch()`es and blocks until the job finishes
+> (spinner + disabled button). For real progress ("sampling 2/4", "loading
+> model…"), queue position, and multiple concurrent tabs, we need a live
+> channel. Verified today against the live server — no redesign needed, this
+> is additive.
+
+### ComfyUI state API (verified 2026-08-07, ComfyUI 0.29.1)
+
+**REST**:
+| Endpoint | Gives | Notes |
+|---|---|---|
+| `GET /queue` | `{queue_running: [...], queue_pending: [...]}` | what is running/pending, with prompt ids |
+| `GET /prompt` | `exec_info.queue_remaining` | how many jobs remain |
+| `GET /history/{prompt_id}` | status + outputs when done | already used by `comfy_client.wait_for_output` |
+
+> REST gives **counts, not percentages** — it says "1 running" but not how far.
+
+**WebSocket `GET /ws?clientId=<uuid>`** (verified):
+| Event | Meaning |
+|---|---|
+| `status` | `exec_info.queue_remaining` on connect (queue position) |
+| `executing` (`data.node`) | each workflow node as it runs (model load, CLIP, KSampler, VAE decode, …) |
+| `progress` (`data.value/max`) | **numeric progress** (e.g. 2/4 = 50%) — the real percentage |
+| `executed` (`data.output.images[...]`) | node output (the result image/video, and previews) |
+| `execution_success` / `execution_error` | prompt finished / failed |
+| (extras if installed) | `crystools.monitor`, `progress_state` |
+
+> **Key detail**: WS events are **filtered by `clientId`** — you only receive
+> `executing`/`progress`/`executed` for the prompt you launched **with that same
+> `clientId`**. A fresh `clientId` (e.g. just listening) only sees the global
+> `status`, not another session's progress.
+
+### What B5 would add
+- `comfy_client` (or a new `events.py`) connects to `/ws?clientId=<same uuid
+  used for POST /prompt>` and re-emits events to the browser via SSE or a
+  server WebSocket (`/api/events`).
+- `app.html` shows live: "loading model…", "sampling 2/4 (50%)", queue
+  position, and optionally partial previews from `executed`.
+- Multiple concurrent tabs generate without blocking each other (each has its
+  own `clientId`/event stream).
+- Keep the current polling `wait_for_output` as fallback (no websocket).
+
+### Manual validation (B5)
+Launch a generation in the UI; verify the pane shows live progress (%, node
+stage) updating in real time, and a second concurrent generation works.
