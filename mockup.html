@@ -311,6 +311,21 @@
 
   /* ── Form elements ─────────────────────────── */
   .field { display: flex; flex-direction: column; gap: 5px; }
+  .field-inline {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .field-inline label {
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
   .field label {
     font-size: .8rem;
     font-weight: 600;
@@ -958,7 +973,7 @@
         </div>
         <div class="params-pane">
           <div class="field">
-            <label>Model Family</label>
+            <label>Model</label>
             <select id="genModelFamily" onchange="onModelFamilyChange()">
               <option data-steps="10" data-vae="16">Z-Image Turbo</option>
               <option data-steps="8" data-vae="8">Krea 2</option>
@@ -975,18 +990,12 @@
               <input type="number" value="9" min="1" class="gen-dim" oninput="recalcResolution()">
             </div>
           </div>
-          <!-- Row 1: Width | Height | AR | MP -->
+          <!-- Row 1: W | H | AR | MP -->
           <div class="field-row">
-            <div class="field">
-              <label>Width</label>
-              <input type="number" id="genWidth" value="832" disabled style="opacity:.5">
-            </div>
-            <div class="field">
-              <label>Height</label>
-              <input type="number" id="genHeight" value="1248" disabled style="opacity:.5">
-            </div>
-            <div class="field">
-              <label style="visibility:hidden">W/H</label>
+            <div class="field-inline"><label>W</label><input type="number" id="genWidth" value="832" disabled style="opacity:.5"></div>
+            <div class="field-inline"><label>H</label><input type="number" id="genHeight" value="1248" disabled style="opacity:.5"></div>
+            <div class="field-inline">
+              <label>AR</label>
               <select id="genAspectRatio" onchange="onModelFamilyChange()">
                 <option data-w="2" data-h="3">2:3</option>
                 <option data-w="1" data-h="1">1:1</option>
@@ -998,8 +1007,8 @@
                 <option data-w="0" data-h="0">Custom</option>
               </select>
             </div>
-            <div class="field">
-              <label style="visibility:hidden">MP</label>
+            <div class="field-inline">
+              <label>MP</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepMp(-0.1)" title="Decrease">−</button>
                 <input type="number" id="genMegapixel" value="1" min="0.1" max="2" step="0.1" oninput="onModelFamilyChange()">
@@ -1007,9 +1016,9 @@
               </div>
             </div>
           </div>
-          <!-- Row 2: Steps | Seed + Random check -->
+          <!-- Row 2: Steps | Seed + Random -->
           <div class="field-row">
-            <div class="field">
+            <div class="field-inline">
               <label>Steps</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepSteps(-1)" title="Decrease">−</button>
@@ -1017,14 +1026,14 @@
                 <button class="stepper-btn" onclick="stepSteps(1)" title="Increase">+</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field-inline">
               <label>Seed</label>
               <input type="number" id="genSeed" value="0" min="0" oninput="onSeedInput()">
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="genSeedRandom" checked onchange="onSeedRandomToggle()">
+                Random
+              </label>
             </div>
-            <label class="check-label">
-              <input type="checkbox" id="genSeedRandom" checked onchange="onSeedRandomToggle()">
-              Random
-            </label>
           </div>
           <div class="field">
             <label>LoRAs</label>
@@ -1053,9 +1062,9 @@
           </div>
         </div>
         <div class="params-pane">
-          <!-- Row: Steps | Seed + Random check -->
+          <!-- Row: Steps | Seed + Random -->
           <div class="field-row">
-            <div class="field">
+            <div class="field-inline">
               <label>Steps</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepEditSteps(-1)" title="Decrease">−</button>
@@ -1063,14 +1072,14 @@
                 <button class="stepper-btn" onclick="stepEditSteps(1)" title="Increase">+</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field-inline">
               <label>Seed</label>
               <input type="number" id="editSeed" value="0" min="0" oninput="onEditSeedInput()">
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
+                Random
+              </label>
             </div>
-            <label class="check-label">
-              <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
-              Random
-            </label>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
@@ -1095,16 +1104,16 @@
           </div>
         </div>
         <div class="params-pane">
-          <!-- Row: Seed + Random check -->
+          <!-- Row: Seed + Random -->
           <div class="field-row">
-            <div class="field">
+            <div class="field-inline">
               <label>Seed</label>
               <input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()">
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
+                Random
+              </label>
             </div>
-            <label class="check-label">
-              <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
-              Random
-            </label>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
@@ -1124,15 +1133,15 @@
         </div>
         <div class="params-pane">
           <div class="field">
-            <label>Model Version</label>
+            <label>Model</label>
             <select>
               <option>Wan 2.1</option>
               <option>Wan 2.2</option>
             </select>
           </div>
-          <!-- Row: Frames | Steps | Seed + Random check -->
+          <!-- Row: Frames | Steps | Seed + Random -->
           <div class="field-row">
-            <div class="field">
+            <div class="field-inline">
               <label>Frames</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
@@ -1140,7 +1149,7 @@
                 <button class="stepper-btn" onclick="stepVideoFrames(4)" title="Increase">+</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field-inline">
               <label>Steps</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
@@ -1148,14 +1157,14 @@
                 <button class="stepper-btn" onclick="stepVideoSteps(1)" title="Increase">+</button>
               </div>
             </div>
-            <div class="field">
+            <div class="field-inline">
               <label>Seed</label>
               <input type="number" id="videoSeed" value="0" min="0" oninput="onVideoSeedInput()">
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
+                Random
+              </label>
             </div>
-            <label class="check-label">
-              <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
-              Random
-            </label>
           </div>
           <div class="field">
             <label>Negative Prompt</label>
