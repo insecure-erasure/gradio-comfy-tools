@@ -56,29 +56,8 @@
     display: flex;
     align-items: center;
     padding-left: 20px;
-    padding-right: 8px;
     flex: 1;
     min-width: 0;
-  }
-  .tab-gear {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px; height: 32px;
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--text-secondary);
-    font-size: 1.05rem;
-    cursor: pointer;
-    transition: .15s;
-    flex-shrink: 0;
-    margin-left: auto;
-  }
-  .tab-gear:hover {
-    background: var(--surface-hover);
-    color: var(--text);
-    border-color: var(--accent);
   }
 
   /* Params zone: matches .params-pane exactly */
@@ -279,8 +258,8 @@
   .model-row .field-inline select {
     flex: 1;
   }
-  .btn-reset {
-    width: 26px; height: 26px;
+  .btn-reset, .btn-gear-inline {
+    width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -291,7 +270,12 @@
     transition: .15s;
     flex-shrink: 0;
   }
-  .btn-reset:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border); }
+  .btn-reset:hover,
+  .btn-gear-inline:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--border);
+  }
 
   /* ── Output pane overlay buttons ──────────── */
   .output-overlay-btn {
@@ -956,7 +940,6 @@
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
-    .tab-gear { width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; }
     .params-pane { padding: 14px; gap: 10px; }
@@ -986,7 +969,6 @@
         <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
           <span class="tab-icon">🎬</span><span class="tab-label">Video</span>
         </button>
-        <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
       </div>
     </div>
     <div class="tabs-params-zone">
@@ -1039,6 +1021,7 @@
                 <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
               </select>
             </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
             <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <div class="field-row" id="genCustomRatio" style="display:none">
@@ -1228,6 +1211,7 @@
                 <option>Wan 2.2</option>
               </select>
             </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
             <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           </div>
           <!-- Row: Frames | Steps | Seed + Random -->
