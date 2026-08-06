@@ -1034,20 +1034,32 @@
         </div>
         <div class="params-pane">
           <div class="field">
-            <label>Mode</label>
-            <div class="radio-group">
-              <button class="radio-btn active" onclick="selectRadio(this)">✏️ Edit</button>
-              <button class="radio-btn" onclick="selectRadio(this)">🩹 Restore</button>
+            <label class="check-label">
+              <input type="checkbox" id="editRestore" onchange="this.checked ? this.parentElement.style.color='var(--accent)' : this.parentElement.style.color=''">
+              Restore
+            </label>
+          </div>
+          <!-- Row: Steps | Seed + Random check -->
+          <div class="field-row">
+            <div class="field">
+              <label>Steps</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepEditSteps(-1)" title="Decrease">−</button>
+                <input type="number" id="editSteps" value="6" min="1" max="15" step="1" oninput="onEditStepsInput()">
+                <button class="stepper-btn" onclick="stepEditSteps(1)" title="Increase">+</button>
+              </div>
             </div>
-          </div>
-          <div class="field">
-            <label>Steps <span style="font-weight:400">(6)</span></label>
-            <input type="range" min="1" max="15" value="6" oninput="this.nextElementSibling.textContent=this.value">
-            <span class="range-value">6</span>
-          </div>
-          <div class="field">
-            <label>Seed</label>
-            <input type="number" value="963880637461774" disabled style="opacity:.5">
+            <div class="field">
+              <label>Seed</label>
+              <input type="number" id="editSeed" value="0" min="0" oninput="onEditSeedInput()">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="visibility:hidden">Random</label>
+              <label class="check-label" style="margin-top:4px">
+                <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
+                Random
+              </label>
+            </div>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
@@ -1092,7 +1104,13 @@
           </div>
           <div class="field">
             <label>Seed</label>
-            <input type="number" value="0">
+            <input type="number" id="upscaleSeed" value="0" min="0" oninput="onUpscaleSeedInput()">
+          </div>
+          <div class="field" style="flex-direction:row;align-items:center;justify-content:flex-end">
+            <label class="check-label">
+              <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
+              Random
+            </label>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
         </div>
@@ -1118,19 +1136,35 @@
               <option>Wan 2.2</option>
             </select>
           </div>
-          <div class="field">
-            <label>Frames / Length <span style="font-weight:400">(81)</span></label>
-            <input type="range" min="5" max="161" step="4" value="81" oninput="this.nextElementSibling.textContent=this.value">
-            <span class="range-value">81</span>
-          </div>
-          <div class="field">
-            <label>Steps <span style="font-weight:400">(4)</span></label>
-            <input type="range" min="4" max="10" value="4" oninput="this.nextElementSibling.textContent=this.value">
-            <span class="range-value">4</span>
-          </div>
-          <div class="field">
-            <label>Seed</label>
-            <input type="number" value="-1" placeholder="-1 = random">
+          <!-- Row: Frames | Steps | Seed + Random check -->
+          <div class="field-row">
+            <div class="field">
+              <label>Frames</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
+                <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
+                <button class="stepper-btn" onclick="stepVideoFrames(4)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Steps</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
+                <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
+                <button class="stepper-btn" onclick="stepVideoSteps(1)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>Seed</label>
+              <input type="number" id="videoSeed" value="0" min="0" oninput="onVideoSeedInput()">
+            </div>
+            <div class="field" style="justify-content:flex-end">
+              <label style="visibility:hidden">Random</label>
+              <label class="check-label" style="margin-top:4px">
+                <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
+                Random
+              </label>
+            </div>
           </div>
           <div class="field">
             <label>Negative Prompt</label>
@@ -1349,13 +1383,30 @@
     if (checked) seedInput.value = '';
   }
   function onSeedInput() {
-    // If user types a seed, uncheck random
     const input = document.getElementById('genSeed');
     if (input.value !== '') {
       document.getElementById('genSeedRandom').checked = false;
       input.disabled = false;
     }
   }
+
+  // ── Edit tab helpers ─────────────────────
+  function stepEditSteps(d) { const input = document.getElementById('editSteps'); const val = Math.min(15, Math.max(1, parseInt(input.value) + d)); input.value = val; }
+  function onEditStepsInput() { const input = document.getElementById('editSteps'); const v = parseInt(input.value); if (isNaN(v)||v<1) input.value=1; if (v>15) input.value=15; }
+  function onEditSeedRandomToggle() { const s=document.getElementById('editSeedRandom').checked; const inp=document.getElementById('editSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onEditSeedInput() { const inp=document.getElementById('editSeed'); if(inp.value!==''){ document.getElementById('editSeedRandom').checked=false; inp.disabled=false; } }
+
+  // ── Upscale tab helpers ──────────────────
+  function onUpscaleSeedRandomToggle() { const s=document.getElementById('upscaleSeedRandom').checked; const inp=document.getElementById('upscaleSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onUpscaleSeedInput() { const inp=document.getElementById('upscaleSeed'); if(inp.value!==''){ document.getElementById('upscaleSeedRandom').checked=false; inp.disabled=false; } }
+
+  // ── Video tab helpers ────────────────────
+  function stepVideoFrames(d) { const input=document.getElementById('videoFrames'); let val=parseInt(input.value)+d; val=Math.round(val/4)*4+1; input.value=Math.min(161,Math.max(81,val)); }
+  function onVideoFramesInput() { const input=document.getElementById('videoFrames'); const v=parseInt(input.value); let r=Math.round(v/4)*4+1; r=Math.max(81,Math.min(161,r)); input.value=r; }
+  function stepVideoSteps(d) { const input=document.getElementById('videoSteps'); const val=Math.min(10,Math.max(4,parseInt(input.value)+d)); input.value=val; }
+  function onVideoStepsInput() { const input=document.getElementById('videoSteps'); const v=parseInt(input.value); if(isNaN(v)||v<4) input.value=4; if(v>10) input.value=10; }
+  function onVideoSeedRandomToggle() { const s=document.getElementById('videoSeedRandom').checked; const inp=document.getElementById('videoSeed'); inp.disabled=s; if(s) inp.value=''; }
+  function onVideoSeedInput() { const inp=document.getElementById('videoSeed'); if(inp.value!==''){ document.getElementById('videoSeedRandom').checked=false; inp.disabled=false; } }
 
   // Auto-set steps when model family changes (Generate Image tab)
   function onModelFamilyChange() {
