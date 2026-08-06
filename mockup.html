@@ -265,7 +265,24 @@
     min-width: 280px;
     max-width: 420px;
     min-height: 0;
+    position: relative;
   }
+  .btn-reset {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .7rem;
+    transition: .15s;
+    z-index: 1;
+  }
+  .btn-reset:hover { background: var(--surface-hover); color: var(--text); border-color: var(--border); }
 
   /* ── Form elements ─────────────────────────── */
   .field { display: flex; flex-direction: column; gap: 5px; }
@@ -950,9 +967,9 @@
             <label>LoRAs</label>
             <button class="btn btn-secondary" style="font-size:.8rem;padding:6px" onclick="showToast('Add LoRA (WIP)')">+ Add LoRA</button>
           </div>
+          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="generateImage()">✨ Generate</button>
-            <button class="btn btn-secondary" onclick="showToast('Parameters reset')">↺ Reset</button>
           </div>
         </div>
       </div>
@@ -1000,9 +1017,9 @@
             <label>Seed</label>
             <input type="number" value="963880637461774" disabled style="opacity:.5">
           </div>
+          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="showToast('Edit submitted to ComfyUI')">✨ Edit Image</button>
-            <button class="btn btn-secondary" onclick="showToast('Parameters reset')">↺ Reset</button>
           </div>
         </div>
       </div>
@@ -1055,9 +1072,9 @@
             <label>Seed</label>
             <input type="number" value="0">
           </div>
+          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="showToast('Upscale submitted to ComfyUI')">🔍 Upscale</button>
-            <button class="btn btn-secondary" onclick="showToast('Parameters reset')">↺ Reset</button>
           </div>
         </div>
       </div>
@@ -1107,9 +1124,9 @@
             <label>Negative Prompt</label>
             <textarea rows="2" placeholder="Optional — overrides default"></textarea>
           </div>
+          <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="showToast('Video generation submitted to ComfyUI')">🎬 Generate Video</button>
-            <button class="btn btn-secondary" onclick="showToast('Parameters reset')">↺ Reset</button>
           </div>
         </div>
       </div>
