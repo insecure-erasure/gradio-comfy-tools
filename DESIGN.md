@@ -74,6 +74,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | File | Purpose |
 |------|---------|
 | `DESIGN.md` | This overview |
+| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) pending |
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Interactive HTML mockup (source of truth for the UI) |
