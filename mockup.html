@@ -463,6 +463,137 @@
   }
   .toast.show { opacity: 1; pointer-events: auto; }
 
+  /* ── Advanced params modal ─────────────────── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+  .modal-backdrop.show { opacity: 1; pointer-events: auto; }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 90vw;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0,0,0,.6);
+    transform: translateY(12px);
+    transition: transform .2s;
+  }
+  .modal-backdrop.show .modal-box { transform: translateY(0); }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-close {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: .15s;
+  }
+  .modal-close:hover { background: var(--surface-hover); color: var(--text); }
+  .modal-body {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal-body .field label { font-size: .78rem; }
+  .modal-body .field textarea,
+  .modal-body .field input[type="text"] {
+    font-size: .82rem;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  }
+  .modal-body .field textarea {
+    min-height: 80px;
+    resize: vertical;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+  .toggle-row span {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .toggle-switch {
+    position: relative;
+    width: 40px; height: 22px;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .toggle-switch.on { background: var(--accent); }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 18px; height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+  }
+  .toggle-switch.on::after { transform: translateX(18px); }
+  .modal-footer {
+    padding: 12px 20px 18px;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .modal-footer .btn { width: auto; }
+
+  /* ── Gear button in params pane ────────────── */
+  .gear-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: .8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: .15s;
+    font-family: var(--font);
+    align-self: flex-end;
+  }
+  .gear-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--accent);
+  }
+
   /* ── Responsive ────────────────────────────── */
   @media (max-width: 1023px) {
     /* Portrait: the whole page scrolls, NOT internal panes */
