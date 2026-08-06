@@ -304,14 +304,15 @@
   /* Source image URL field — transparent overlay, bottom-LEFT of the
      output pane (Edit/Upscale/Video); paste an external URL here. The
      🔗 button sits bottom-RIGHT and fills the field with the last
-     generation. */
+     generation. Width is relative to the output pane (50%). */
   .source-url-field {
     position: absolute;
     bottom: 12px; left: 12px;
+    width: 50%;
     z-index: 5;
   }
   .source-url-input {
-    width: 400px;
+    width: 100%;
     padding: 7px 10px;
     background: rgba(0,0,0,.35);
     border: 1px solid rgba(255,255,255,.15);
@@ -991,8 +992,8 @@
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; }
-    .source-url-field { bottom: 10px; left: 10px; }
-    .source-url-input { width: 260px; }
+    .source-url-field { bottom: 10px; left: 10px; width: 70%; }
+    .source-url-input { width: 100%; }
     .params-pane { padding: 14px; gap: 10px; }
     .bottom-bar { padding: 8px 8px; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
