@@ -496,7 +496,17 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  .btn-row { display: flex; gap: 8px; margin-top: auto; padding-top: 8px; }
+  /* Action button next to prompt textarea */
+  .btn-generate {
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-left: 12px;
+    width: auto;
+    min-width: 110px;
+    padding: 10px 16px;
+    white-space: nowrap;
+  }
+
 
   /* ── Bottom prompt bar ─────────────────────── */
   .bottom-bar {
@@ -976,9 +986,6 @@
             <button class="btn btn-secondary" style="font-size:.8rem;padding:6px" onclick="showToast('Add LoRA (WIP)')">+ Add LoRA</button>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="generateImage()">✨ Generate</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1018,9 +1025,6 @@
             <input type="number" value="963880637461774" disabled style="opacity:.5">
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="showToast('Edit submitted to ComfyUI')">✨ Edit Image</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1066,9 +1070,6 @@
             <input type="number" value="0">
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="showToast('Upscale submitted to ComfyUI')">🔍 Upscale</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1111,9 +1112,6 @@
             <textarea rows="2" placeholder="Optional — overrides default"></textarea>
           </div>
           <button class="btn-reset" onclick="showToast('Parameters reset')" title="Reset">↺</button>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="showToast('Video generation submitted to ComfyUI')">🎬 Generate Video</button>
-          </div>
         </div>
       </div>
     </div>
@@ -1127,6 +1125,7 @@
         placeholder="Describe the image you want to generate in detail..."></textarea>
       <div class="result-url-row" id="resultUrlRow"></div>
     </div>
+    <button class="btn btn-primary btn-generate" id="btnGenerate" onclick="generateImage()">✨ Generate</button>
   </div>
 
 </div>
@@ -1232,23 +1231,35 @@
     // Update prompt bar
     const bar = document.getElementById('bottomBar');
     const input = document.getElementById('promptInput');
+    const btn = document.getElementById('btnGenerate');
 
     switch(name) {
       case 'generate':
         bar.style.display = 'flex';
+        input.style.display = 'block';
         input.placeholder = 'Describe the image you want to generate in detail...';
+        btn.textContent = '✨ Generate';
+        btn.onclick = generateImage;
         break;
       case 'edit':
         bar.style.display = 'flex';
+        input.style.display = 'block';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
+        btn.textContent = '✨ Edit Image';
+        btn.onclick = function() { showToast('Edit submitted to ComfyUI'); };
         break;
       case 'upscale':
-        bar.style.display = 'none';
+        bar.style.display = 'flex';
+        input.style.display = 'none';
+        btn.textContent = '🔍 Upscale';
+        btn.onclick = function() { showToast('Upscale submitted to ComfyUI'); };
         break;
       case 'video':
         bar.style.display = 'flex';
+        input.style.display = 'block';
         input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
-        hint.textContent = 'Describe the motion. Be specific about action, camera movement, and timing.';
+        btn.textContent = '🎬 Generate Video';
+        btn.onclick = function() { showToast('Video generation submitted to ComfyUI'); };
         break;
     }
   }
