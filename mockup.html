@@ -496,7 +496,7 @@
   }
   .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
 
-  /* Right column: two buttons fill vertical space */
+  /* Right column: action button(s) */
   .btn-col {
     align-self: stretch;
     display: flex;
@@ -504,7 +504,7 @@
     gap: 5px;
     width: 44px;
   }
-  .btn-generate, .btn-copy-url {
+  .btn-generate {
     flex: 1;
     width: 44px;
     padding: 0;
@@ -515,22 +515,44 @@
     border-radius: var(--radius);
     cursor: pointer;
     transition: .15s;
-    border: 1px solid var(--border);
-    background: var(--bg);
-    color: var(--text-secondary);
-  }
-  .btn-generate {
+    border: 1px solid var(--accent);
     background: var(--accent);
     color: #fff;
-    border-color: var(--accent);
   }
   .btn-generate:hover { background: var(--accent-hover); }
-  .btn-copy-url:disabled {
-    opacity: .45;
+  .btn-generate.btn-restore {
+    flex: 1;
+    background: var(--bg);
     color: var(--text-secondary);
+    border-color: var(--border);
+  }
+  .btn-generate.btn-restore:hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Inline copy button next to URL */
+  .btn-copy-inline {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .6rem;
+    transition: .15s;
+    padding: 0;
+  }
+  .btn-copy-inline:disabled {
+    opacity: .45;
     cursor: default;
   }
-  .btn-copy-url:not(:disabled):hover {
+  .btn-copy-inline:not(:disabled):hover {
     background: var(--surface-hover);
     color: var(--accent);
     border-color: var(--accent);
@@ -587,6 +609,7 @@
   .result-url-row {
     display: flex;
     align-items: center;
+    gap: 6px;
     min-height: 12px;
     line-height: 12px;
   }
@@ -835,7 +858,7 @@
     .tab-label { display: none; }
     .tab-icon { margin-right: 0; font-size: 1rem; }
     .btn-col { width: 40px; }
-    .btn-generate, .btn-copy-url { width: 40px; font-size: 1rem; }
+    .btn-generate { font-size: 1rem; }
 
     /* Stack: output on top, params fill remaining, prompt at bottom */
     .split {
@@ -1033,12 +1056,6 @@
           </div>
         </div>
         <div class="params-pane">
-          <div class="field">
-            <label class="check-label">
-              <input type="checkbox" id="editRestore" onchange="this.checked ? this.parentElement.style.color='var(--accent)' : this.parentElement.style.color=''">
-              Restore
-            </label>
-          </div>
           <!-- Row: Steps | Seed + Random check -->
           <div class="field-row">
             <div class="field">
@@ -1184,11 +1201,11 @@
         placeholder="Describe the image you want to generate in detail..."></textarea>
       <div class="result-url-row" id="resultUrlRow">
         <span class="result-url" id="resultUrl"></span>
+        <button class="btn-copy-inline" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
       </div>
     </div>
-    <div class="btn-col">
+    <div class="btn-col" id="btnCol">
       <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
-      <button class="btn-copy-url" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
     </div>
   </div>
 
@@ -1306,7 +1323,7 @@
     // Update prompt bar
     const bar = document.getElementById('bottomBar');
     const input = document.getElementById('promptInput');
-    const btn = document.getElementById('btnGenerate');
+    const btnCol = document.getElementById('btnCol');
 
     // Reset copy URL state when switching tools
     lastGeneratedUrl = null;
@@ -1318,32 +1335,24 @@
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the image you want to generate in detail...';
-        btn.textContent = '✨';
-        btn.title = 'Generate';
-        btn.onclick = generateImage;
+        btnCol.innerHTML = '<button class="btn-generate" onclick="generateImage()" title="Generate">✨</button>';
         break;
       case 'edit':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-        btn.textContent = '🖌️';
-        btn.title = 'Edit';
-        btn.onclick = generateEdit;
+        btnCol.innerHTML = '<button class="btn-generate" onclick="generateEdit()" title="Edit">🖌️</button><button class="btn-generate btn-restore" onclick="generateEdit()" title="Restore (same as edit but with restoration prompt)">🩹</button>';
         break;
       case 'upscale':
         bar.style.display = 'flex';
         input.style.display = 'none';
-        btn.textContent = '🔍';
-        btn.title = 'Upscale';
-        btn.onclick = generateUpscale;
+        btnCol.innerHTML = '<button class="btn-generate" onclick="generateUpscale()" title="Upscale">🔍</button>';
         break;
       case 'video':
         bar.style.display = 'flex';
         input.style.display = 'block';
         input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
-        btn.textContent = '🎬';
-        btn.title = 'Video';
-        btn.onclick = generateVideo;
+        btnCol.innerHTML = '<button class="btn-generate" onclick="generateVideo()" title="Video">🎬</button>';
         break;
     }
   }
