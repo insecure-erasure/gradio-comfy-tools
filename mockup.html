@@ -490,6 +490,35 @@
     color: var(--text-secondary);
     margin-top: 4px;
   }
+  .bottom-bar .result-url {
+    font-size: .72rem;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+  .result-url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .btn-copy-url {
+    width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .8rem;
+    transition: .15s;
+    flex-shrink: 0;
+  }
+  .btn-copy-url:hover { background: var(--surface-hover); color: var(--accent); border-color: var(--accent); }
   .bottom-bar-right {
     display: flex;
     flex-direction: column;
@@ -925,7 +954,7 @@
             <button class="btn btn-secondary" style="font-size:.8rem;padding:6px" onclick="showToast('Add LoRA (WIP)')">+ Add LoRA</button>
           </div>
           <div class="btn-row">
-            <button class="btn btn-primary" onclick="showToast('Workflow submitted to ComfyUI')">✨ Generate</button>
+            <button class="btn btn-primary" onclick="generateImage()">✨ Generate</button>
             <button class="btn btn-secondary" onclick="showToast('Parameters reset')">↺ Reset</button>
           </div>
         </div>
@@ -1097,6 +1126,10 @@
       <textarea id="promptInput"
         placeholder="Describe the image you want to generate in detail..."></textarea>
       <span class="hint" id="promptHint">Describe what you want to generate. Be specific about subject, style, lighting, and composition.</span>
+      <div class="result-url-row" id="resultUrlRow" style="display:none">
+        <span class="result-url" id="resultUrl"></span>
+        <button class="btn-copy-url" onclick="copyResultUrl()" title="Copy URL">📋</button>
+      </div>
     </div>
     <div class="bottom-bar-right">
       <button class="btn-attach" title="Attach image" onclick="showToast('Image attachment (WIP)')">🖼️</button>
@@ -1127,6 +1160,34 @@
 </div>
 
 <script>
+  // ── Global state ──────────────────────────
+  let baseUrl = 'http://localhost:8188';
+  let lastGeneratedUrl = null;
+
+  function setResultUrl(filename) {
+    lastGeneratedUrl = `${baseUrl}/view?filename=${encodeURIComponent(filename)}&type=output`;
+    const hint = document.getElementById('promptHint');
+    const row = document.getElementById('resultUrlRow');
+    document.getElementById('resultUrl').textContent = lastGeneratedUrl;
+    hint.style.display = 'none';
+    row.style.display = 'flex';
+  }
+
+  function copyResultUrl() {
+    navigator.clipboard.writeText(lastGeneratedUrl).then(() => {
+      showToast('URL copied');
+    }).catch(() => showToast('Copy failed'));
+  }
+
+  function generateImage() {
+    showToast('Workflow submitted to ComfyUI');
+    // Simulate result — in real app this comes from ComfyUI response
+    const w = document.getElementById('genWidth').value;
+    const h = document.getElementById('genHeight').value;
+    const ts = Date.now();
+    setResultUrl(`ComfyUI_${ts.toString(36)}_.png`);
+  }
+
   // Tab switching
   let currentTab = 'generate';
 
@@ -1187,7 +1248,10 @@
       case 'generate':
         bar.style.display = 'flex';
         input.placeholder = 'Describe the image you want to generate in detail...';
-        hint.textContent = 'Describe what you want to generate. Be specific about subject, style, lighting, and composition.';
+        if (!lastGeneratedUrl) {
+          hint.style.display = 'block';
+          document.getElementById('resultUrlRow').style.display = 'none';
+        }
         break;
       case 'edit':
         bar.style.display = 'flex';
