@@ -49,20 +49,16 @@
     display: flex;
     align-items: center;
     min-width: 0;
-    position: relative;
   }
   .tabs-inner {
     display: flex;
     align-items: center;
     padding-left: 20px;
+    padding-right: 8px;
     flex: 1;
     min-width: 0;
   }
   .tab-gear {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -74,7 +70,8 @@
     font-size: 1.05rem;
     cursor: pointer;
     transition: .15s;
-    z-index: 2;
+    flex-shrink: 0;
+    margin-left: auto;
   }
   .tab-gear:hover {
     background: var(--surface-hover);
@@ -82,14 +79,14 @@
     border-color: var(--accent);
   }
 
-  /* Params zone: same width as params pane (40%) */
+  /* Params zone: same width as params pane (40%). Border-left matches params-pane. */
   .tabs-params-zone {
     flex: 4;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding-right: 8px;
-    position: relative;
+    border-left: 1px solid var(--border);
     min-width: 0;
   }
 
@@ -774,7 +771,7 @@
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
     .tab-btn { padding: 10px 8px; font-size: .75rem; }
-    .tab-gear { right: 4px; width: 28px; height: 28px; }
+    .tab-gear { width: 28px; height: 28px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 16px; max-height: 40vh; }
     .params-pane { padding: 14px; gap: 10px; }
@@ -804,8 +801,8 @@
         <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
           <span class="tab-icon">🎬</span>Video
         </button>
+        <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
       </div>
-      <button class="tab-gear" onclick="openAdvancedModal()" title="Advanced parameters for current tab">⚙️</button>
     </div>
     <div class="tabs-params-zone">
       <button class="tabs-title" onclick="toggleSettingsMenu(event)">
