@@ -133,7 +133,7 @@ Transparent text field overlaid at the **bottom-left** of the output pane; the `
 - `🔗` fills the field with the last generated URL (`lastGeneratedUrl`); if none exists yet, a toast says so. `lastGeneratedUrl` persists across tab switches so the field can be filled after generating in another tab.
 - Each tab keeps its own field value (persists on tab switch).
 - On generate, the field value is the tool's `image` input (auto-detected as URL vs filename by the backend — see BACKEND.md §6). If empty, the app should prompt for a source (or use 📁 upload / 🔗).
-- Styling: translucent background (`rgba(0,0,0,.35)`), subtle border, white text, placeholder "Paste image URL…", accent border when filled. On <768px the field narrows to 130px.
+- Styling: translucent background (`rgba(0,0,0,.35)`), subtle border, white text, placeholder "Paste image URL…", accent border when filled. ~400px wide (≈ half the output pane) to fit longer URLs; on <768px it narrows to 260px.
 
 ### 4.6 🎨 Comfy Tools ▾ dropdown
 
