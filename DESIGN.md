@@ -24,7 +24,7 @@ SamplerCustomAdvanced, VAEDecode, Power Lora Loader
 | Model family | Dropdown | Z-Image Turbo | zimage, krea2, flux2_klein. Changing the model **automatically sets the steps slider** to the default for that family and **updates the width/height** because each model has a different VAE scale factor (divisible_by). |
 | Aspect ratio | Dropdown | 2:3 (Portrait) | 1:1, 2:3, 3:2, 3:4, 4:3, 9:16, 16:9, custom |
 | Custom ratio (W:H) | Text × 2 | — | Only shown when aspect_ratio = custom. Inline fields for width and height ratio. |
-| Megapixels | Slider | 1.0 | Resolution target (0.25 – 4.0). Together with aspect ratio and VAE scale factor, determines the final width and height. |
+| Megapixels | Slider | 1.0 | Resolution target (0.1 – 2.0, step 0.1). Together with aspect ratio and VAE scale factor, determines the final width and height. |
 | Width / Height | Read-only | Auto | Calculated from megapixels × aspect ratio, rounded to nearest multiple of the model's VAE scale factor. Updates live when any of the three inputs (model, aspect ratio, megapixels) change. |
 | Steps | Slider | 10 | Inference steps (1 – 15). Auto-updates when model family changes: Z-Image Turbo → 10, Krea 2 → 8, FLUX.2 Klein → 8. |
 | Seed | Number | -1 | -1 = random, ≥0 = fixed |
