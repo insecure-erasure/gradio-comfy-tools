@@ -1199,11 +1199,23 @@
 
   function generateImage() {
     showToast('Workflow submitted to ComfyUI');
-    // Simulate result — in real app this comes from ComfyUI response
-    const w = document.getElementById('genWidth').value;
-    const h = document.getElementById('genHeight').value;
     const ts = Date.now();
     setResultUrl(`ComfyUI_${ts.toString(36)}_.png`);
+  }
+  function generateEdit() {
+    showToast('Edit submitted to ComfyUI');
+    const ts = Date.now();
+    setResultUrl(`ComfyUI_edit_${ts.toString(36)}_.png`);
+  }
+  function generateUpscale() {
+    showToast('Upscale submitted to ComfyUI');
+    const ts = Date.now();
+    setResultUrl(`ComfyUI_upscale_${ts.toString(36)}_.png`);
+  }
+  function generateVideo() {
+    showToast('Video submitted to ComfyUI');
+    const ts = Date.now();
+    setResultUrl(`ComfyUI_video_${ts.toString(36)}_.mp4`);
   }
 
   // Tab switching
@@ -1262,12 +1274,10 @@
     const input = document.getElementById('promptInput');
     const btn = document.getElementById('btnGenerate');
 
-    // Reset copy URL state when switching away from generate
-    if (name !== 'generate') {
-      lastGeneratedUrl = null;
-      document.getElementById('resultUrl').textContent = '';
-      document.getElementById('btnCopyUrl').disabled = true;
-    }
+    // Reset copy URL state when switching tools
+    lastGeneratedUrl = null;
+    document.getElementById('resultUrl').textContent = '';
+    document.getElementById('btnCopyUrl').disabled = true;
 
     switch(name) {
       case 'generate':
@@ -1284,14 +1294,14 @@
         input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
         btn.textContent = '🖌️';
         btn.title = 'Edit';
-        btn.onclick = function() { showToast('Edit submitted to ComfyUI'); };
+        btn.onclick = generateEdit;
         break;
       case 'upscale':
         bar.style.display = 'flex';
         input.style.display = 'none';
         btn.textContent = '🔍';
         btn.title = 'Upscale';
-        btn.onclick = function() { showToast('Upscale submitted to ComfyUI'); };
+        btn.onclick = generateUpscale;
         break;
       case 'video':
         bar.style.display = 'flex';
@@ -1299,7 +1309,7 @@
         input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
         btn.textContent = '🎬';
         btn.title = 'Video';
-        btn.onclick = function() { showToast('Video generation submitted to ComfyUI'); };
+        btn.onclick = generateVideo;
         break;
     }
   }
