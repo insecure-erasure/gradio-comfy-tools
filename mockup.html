@@ -832,19 +832,6 @@
               <option data-steps="8" data-vae="64">FLUX.2 Klein</option>
             </select>
           </div>
-          <div class="field">
-            <label>Aspect Ratio</label>
-            <select id="genAspectRatio" onchange="onModelFamilyChange()">
-              <option data-w="2" data-h="3">2:3 (Portrait)</option>
-              <option data-w="1" data-h="1">1:1 (Square)</option>
-              <option data-w="3" data-h="2">3:2 (Landscape)</option>
-              <option data-w="3" data-h="4">3:4</option>
-              <option data-w="4" data-h="3">4:3</option>
-              <option data-w="9" data-h="16">9:16</option>
-              <option data-w="16" data-h="9">16:9</option>
-              <option data-w="0" data-h="0">Custom</option>
-            </select>
-          </div>
           <div class="field-row" id="genCustomRatio" style="display:none">
             <div class="field">
               <label>Custom W</label>
@@ -855,7 +842,7 @@
               <input type="number" value="9" min="1" class="gen-dim" oninput="recalcResolution()">
             </div>
           </div>
-          <!-- Row 1: Width | Height | MP -->
+          <!-- Row 1: Width | Height | AR | MP -->
           <div class="field-row">
             <div class="field">
               <label>Width</label>
@@ -866,7 +853,20 @@
               <input type="number" id="genHeight" value="1248" disabled style="opacity:.5">
             </div>
             <div class="field">
-              <label>MP</label>
+              <label style="visibility:hidden">W/H</label>
+              <select id="genAspectRatio" onchange="onModelFamilyChange()">
+                <option data-w="2" data-h="3">2:3</option>
+                <option data-w="1" data-h="1">1:1</option>
+                <option data-w="3" data-h="2">3:2</option>
+                <option data-w="3" data-h="4">3:4</option>
+                <option data-w="4" data-h="3">4:3</option>
+                <option data-w="9" data-h="16">9:16</option>
+                <option data-w="16" data-h="9">16:9</option>
+                <option data-w="0" data-h="0">Custom</option>
+              </select>
+            </div>
+            <div class="field">
+              <label style="visibility:hidden">MP</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepMp(-0.1)" title="Decrease">−</button>
                 <input type="number" id="genMegapixel" value="1" min="0.1" max="2" step="0.1" oninput="onModelFamilyChange()">
