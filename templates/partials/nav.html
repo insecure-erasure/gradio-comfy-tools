@@ -1,6 +1,7 @@
 <nav class="tabs" id="tabNav">
     <div class="tabs-output-zone">
       <div class="tabs-inner">
+        <button class="tabs-title" onclick="toggleSettingsMenu(event)" title="Settings">☰</button>
         <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
           <span class="tab-icon">🖼️</span><span class="tab-label">Generate</span>
         </button>
@@ -15,10 +16,6 @@
         </button>
       </div>
     </div>
-    <div class="tabs-params-zone">
-      <button class="tabs-title" onclick="toggleSettingsMenu(event)">
-        🎨 Comfy Tools
-        <span class="tabs-arrow">▾</span>
-      </button>
-    </div>
+    <!-- Per-tab toolbar (model dropdown + ⚙️ + ↺), filled by switchTab() -->
+    <div class="tabs-toolbar" id="tabsToolbar"></div>
 </nav>

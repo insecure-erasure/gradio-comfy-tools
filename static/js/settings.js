@@ -20,7 +20,7 @@ function hideSettingsMenu() {
 }
 
 document.addEventListener('click', (e) => {
-  if (settingsOpen && !e.target.closest('.tabs-params-zone')) hideSettingsMenu();
+  if (settingsOpen && !e.target.closest('#tabNav')) hideSettingsMenu();
 });
 
 // ── Theme ─────────────────────────────────

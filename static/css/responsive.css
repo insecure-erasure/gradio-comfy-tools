@@ -36,7 +36,6 @@
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     .bottom-bar .prompt-input-wrap textarea { min-height: 44px; }
-    .tabs-params-zone { max-width: none; }
   }
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }

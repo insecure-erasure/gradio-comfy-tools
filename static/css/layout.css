@@ -15,9 +15,9 @@
     overflow-x: auto;
   }
 
-  /* Output zone: same width as output pane (60%), gear at right edge */
+  /* Output zone: full width, hamburger settings at the left edge */
   .tabs-output-zone {
-    flex: 6;
+    flex: 1;
     display: flex;
     align-items: center;
     min-width: 0;
@@ -25,21 +25,10 @@
   .tabs-inner {
     display: flex;
     align-items: center;
-    padding-left: 20px;
+    padding-left: 8px;
     flex: 1;
     min-width: 0;
-  }
-
-  /* Params zone: matches .params-pane exactly */
-  .tabs-params-zone {
-    flex: 4;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding-right: 8px;
-    border-left: 1px solid var(--border);
-    min-width: 280px;
-    max-width: 480px;
+    gap: 2px;
   }
 
   .tab-btn {
@@ -65,35 +54,75 @@
   .tabs-title {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    width: 36px;
+    height: 34px;
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--radius);
     color: var(--text);
-    padding: 5px 10px;
-    font-size: .84rem;
-    font-weight: 600;
+    font-size: 1.15rem;
+    line-height: 1;
     cursor: pointer;
     transition: .15s;
-    font-family: var(--font);
-    white-space: nowrap;
+    flex-shrink: 0;
   }
   .tabs-title:hover {
     background: var(--surface-hover);
     border-color: var(--border);
   }
-  .tabs-arrow {
-    font-size: .7rem;
-    color: var(--text-secondary);
-    transition: transform .2s;
+  .tabs-title.open {
+    background: var(--surface-hover);
+    border-color: var(--border);
   }
-  .tabs-title.open .tabs-arrow { transform: rotate(180deg); }
 
-  /* Dropdown menu */
+  /* Per-tab toolbar (model dropdown + ⚙️ + ↺) — right side of the nav */
+  .tabs-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding-right: 8px;
+    flex-shrink: 0;
+  }
+  .tabs-toolbar .toolbar-model {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tabs-toolbar .toolbar-model label {
+    font-size: .72rem;
+    color: var(--text-secondary);
+  }
+  .tabs-toolbar select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: .8rem;
+    font-family: var(--font);
+    padding: 4px 8px;
+    max-width: 170px;
+  }
+  .tabs-toolbar select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .tabs-toolbar .readonly-field {
+    font-size: .8rem;
+  }
+  .tabs-toolbar .btn-gear-inline,
+  .tabs-toolbar .btn-reset {
+    width: 30px;
+    height: 30px;
+  }
+
+  /* Dropdown menu — anchored under the hamburger (left edge of the nav) */
   .settings-dropdown {
     position: absolute;
     top: 100%;
-    right: 0;
+    left: 8px;
+    right: auto;
     margin-top: 4px;
     background: var(--surface);
     border: 1px solid var(--border);
