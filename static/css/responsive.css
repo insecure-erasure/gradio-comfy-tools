@@ -33,6 +33,14 @@
       padding: 12px 14px;
       gap: 8px;
     }
+    /* Generate: condense W/H/AR/MP/Steps/Seed into a single wrapping line */
+    #tab-generate .params-pane .field-row {
+      flex-wrap: wrap;
+      row-gap: 4px;
+    }
+    #tab-generate .params-pane .field-inline { flex: 1 1 auto !important; }
+    #tab-generate .params-pane .field-inline:first-child,
+    #tab-generate .params-pane .field-inline:nth-child(2) { flex: 0 0 auto !important; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     .bottom-bar .prompt-input-wrap textarea { min-height: 44px; }

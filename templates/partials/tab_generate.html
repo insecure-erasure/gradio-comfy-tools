@@ -20,7 +20,7 @@
               <input type="number" value="9" min="1" class="gen-dim" oninput="recalcResolution()">
             </div>
           </div>
-          <!-- Row 1: W | H | AR | MP -->
+          <!-- Row 1+2: W | H | AR | MP | Steps | Seed (wraps on small widths) -->
           <div class="field-row">
             <div class="field-inline" style="flex:0.4"><label title="Width (read-only)">↔️</label><span class="readonly-field" id="genWidth">832</span></div>
             <div class="field-inline" style="flex:0.4"><label title="Height (read-only)">↕️</label><span class="readonly-field" id="genHeight">1248</span></div>
@@ -44,9 +44,6 @@
                 <button class="stepper-btn" onclick="stepMp(0.1)" title="Increase">+</button>
               </div>
             </div>
-          </div>
-          <!-- Row 2: Steps | Seed + Random -->
-          <div class="field-row">
             <div class="field-inline" style="flex:1.4">
               <label title="Steps">👣</label>
               <div class="stepper">
