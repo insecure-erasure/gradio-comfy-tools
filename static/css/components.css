@@ -408,6 +408,17 @@
     display: block;
   }
 
+  /* Upscale (landscape): 🔍 button at the bottom-right of the params pane,
+     just above the result URL row (which relayoutPrompt places there) */
+  #tab-upscale .params-pane .btn-upscale-landscape {
+    align-self: flex-end;
+    margin-top: auto;      /* pushed to the bottom of the pane */
+    width: 44px;
+    height: 34px;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
   /* Inline copy button next to URL */
   .btn-copy-inline {
     flex-shrink: 0;

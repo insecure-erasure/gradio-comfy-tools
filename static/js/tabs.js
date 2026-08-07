@@ -5,6 +5,13 @@
 
 function switchTab(name) {
   currentTab = name;
+
+  // Remove the upscale-specific buttons (portrait pane btn / landscape overlay)
+  const prevPaneBtn = document.getElementById('btnUpscalePane');
+  if (prevPaneBtn) prevPaneBtn.remove();
+  const prevOverlay = document.getElementById('btnUpscaleLandscape');
+  if (prevOverlay) prevOverlay.remove();
+
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
@@ -38,11 +45,28 @@ function switchTab(name) {
       btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button>';
       break;
     case 'upscale':
-      bar.style.display = 'flex';
-      input.style.display = 'none';
-      // Upscale has no prompt: hide the textarea wrap (and its ✕ overlay)
+      // Upscale has no prompt. In portrait, the bottom bar (prompt + action)
+      // is hidden entirely and the 🔍 button moves into the params pane,
+      // which only holds the seed — a compact special layout.
       input.closest('.prompt-input-wrap').style.display = 'none';
-      btnCol.innerHTML = '<button class="btn-generate" id="btnUpscale" onclick="generateUpscale()" title="Upscale">🔍</button>';
+      if (window.matchMedia('(max-width: 1023px)').matches) {
+        bar.style.display = 'none';
+        btnCol.innerHTML = '';
+        const pane = document.querySelector('#tab-upscale .params-pane');
+        let btn = document.getElementById('btnUpscalePane');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.id = 'btnUpscalePane';
+          btn.className = 'btn-generate btn-upscale-pane';
+          btn.textContent = '🔍';
+          btn.title = 'Upscale';
+          btn.onclick = generateUpscale;
+          pane.appendChild(btn);
+        }
+      } else {
+        bar.style.display = 'flex';
+        btnCol.innerHTML = '<button class="btn-generate" id="btnUpscale" onclick="generateUpscale()" title="Upscale">🔍</button>';
+      }
       break;
     case 'video':
       bar.style.display = 'flex';
@@ -117,14 +141,57 @@ function relayoutPrompt() {
   if (landscape) {
     const pane = document.querySelector(`#tab-${currentTab} .params-pane`);
     if (pane) {
-      if (block.parentElement !== pane) pane.appendChild(block);
       if (urlRow && urlRow.parentElement !== pane) pane.appendChild(urlRow);
+    }
+    if (currentTab === 'upscale') {
+      // Upscale (landscape): no prompt bar and no prompt — the 🔍 button
+      // sits at the bottom-right of the params pane, just above the result
+      // URL row. The prompt block stays out (no textarea).
+      ensureUpscaleButton();
+      if (block && block.parentElement !== bar) bar.appendChild(block);
+    } else {
+      if (block && block.parentElement !== pane) pane.appendChild(block);
     }
     bar.style.display = 'none';
   } else {
+    if (currentTab === 'upscale') {
+      // Upscale (portrait): no prompt bar — the 🔍 lives in the params pane
+      // with the seed; the result URL row goes there too (below them).
+      const pane = document.querySelector('#tab-upscale .params-pane');
+      if (pane && urlRow && urlRow.parentElement !== pane) pane.appendChild(urlRow);
+      bar.style.display = 'none';
+      return;
+    }
     if (block.parentElement !== bar) bar.insertBefore(block, bar.firstChild);
     if (urlRow && urlRow.parentElement !== bar) bar.appendChild(urlRow);
     bar.style.display = 'flex';
+  }
+}
+
+// Creates/keeps the 🔍 button at the bottom-right of the upscale params pane
+// (landscape layout), just above the result URL row. Removes the portrait
+// params-pane button first.
+function ensureUpscaleButton() {
+  const paneBtn = document.getElementById('btnUpscalePane');
+  if (paneBtn) paneBtn.remove();
+  const pane = document.querySelector('#tab-upscale .params-pane');
+  if (!pane) return;
+  let btn = document.getElementById('btnUpscaleLandscape');
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'btnUpscaleLandscape';
+    btn.className = 'btn-generate btn-upscale-landscape';
+    btn.textContent = '🔍';
+    btn.title = 'Upscale';
+    btn.onclick = generateUpscale;
+    // Insert just above the result URL row (which relayoutPrompt places in
+    // the params pane), so the button sits at the pane's bottom-right.
+    const urlRow = document.getElementById('resultUrlRow');
+    if (urlRow && urlRow.parentElement === pane) {
+      pane.insertBefore(btn, urlRow);
+    } else {
+      pane.appendChild(btn);
+    }
   }
 }
 
