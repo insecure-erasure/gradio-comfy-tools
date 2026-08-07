@@ -311,13 +311,16 @@ mockup directly.
   Smoke-tested in jsdom + headless chromium. **Pending: manual validation
   against the live ComfyUI server** (see below).
 
-## B5. Live events + queue (future phase — verified against ComfyUI)
+## B5. Live events + queue (partially implemented — progress painted in the URL row)
 
-> **Why now**: currently each tab `fetch()`es and blocks until the job finishes
-> (spinner + disabled button). For real progress ("sampling 2/4", "loading
-> model…"), queue position, and multiple concurrent tabs, we need a live
-> channel. Verified today against the live server — no redesign needed, this
-> is additive.
+> **Status 2026-08-08**: the **numeric stage progress is DONE** — `comfy_client`
+> materializes the client_id + fires prompt hooks; `server.py` spawns a per-job
+> WebSocket listener (same clientId) and exposes `GET /api/progress`; the
+> frontend polls it and paints the stage in the result URL row (`⏳ Queued…` →
+> `⚙️ SamplerCustomAdvanced 4/8` → URL). Verified live against the server
+> (ComfyUI 0.27.0). **Remaining from B5**: queue position, live *previews*,
+> and true concurrent tabs (each tab still blocks on its own `fetch()`; the
+> polling endpoint is single-user "most recent job").
 
 ### ComfyUI state API (verified 2026-08-07, ComfyUI 0.29.1)
 
@@ -378,18 +381,17 @@ That node would emit `executed` with an image **per step**, which the ws
 relays — giving real in-progress previews in the frontend. (Not yet executed in
 this repo's workflows; the per-step emission is inferred from the node design.)
 
-### What B5 would add
-- `comfy_client` (or a new `events.py`) connects to `/ws?clientId=<same uuid
-  used for POST /prompt>` and re-emits events to the browser via SSE or a
-  server WebSocket (`/api/events`).
-- The frontend (`static/js`) shows live: "loading model…", "sampling 2/4 (50%)", queue
-  position, and live previews — the latter **require** adding the preview node
-  (tiny-decoder + `ImagePreviewFromLatent+`) to the workflows (see above; the
-  ws alone only gives numeric `progress`).
-- Multiple concurrent tabs generate without blocking each other (each has its
-  own `clientId`/event stream).
-- Keep the current polling `wait_for_output` as fallback (no websocket).
+### What remains from B5
+- **DONE**: per-job WS listener (daemon thread, same clientId) + `GET
+  /api/progress` + the UI paints the stage/% in the result URL row
+  (polling; the blocking `wait_for_output` stays as the completion fallback).
+- **Remaining**: queue position, live previews (require adding the preview
+  node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
+  alone only gives numeric `progress`), and true concurrent tabs (each tab
+  still blocks on its own `fetch()`; `/api/progress` is single-user
+  "most recent job").
 
 ### Manual validation (B5)
-Launch a generation in the UI; verify the pane shows live progress (%, node
-stage) updating in real time, and a second concurrent generation works.
+Launch a generation in the UI; verify the result URL row shows live progress
+(%, node stage) updating in real time (`⏳ Queued…` → `⚙️ SamplerCustomAdvanced
+4/8` → the result URL on completion).

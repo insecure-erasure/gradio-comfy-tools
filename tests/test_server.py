@@ -333,3 +333,44 @@ def test_check_image_empty_url(client, tmp_config, monkeypatch):
     resp = client.post("/api/check-image", json={"url": "  "})
     assert resp.status_code == 200
     assert resp.json() == {"ok": False, "error": "No URL provided"}
+
+
+# --------------------------------------------------------------------------- #
+# GET /api/progress
+# --------------------------------------------------------------------------- #
+def test_api_progress_empty(client, tmp_config):
+    resp = client.get("/api/progress")
+    assert resp.status_code == 200
+    assert resp.json() == {"active": None}
+
+
+def test_api_progress_active_then_done(client, tmp_config, monkeypatch):
+    # do not open a real WebSocket — the listener is a no-op
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    server._start_job_listener(
+        "cid",
+        "pid123",
+        {"1": {"class_type": "LoadImageByUrlOrPath", "_meta": {"title": "Load Image"}}},
+    )
+    try:
+        resp = client.get("/api/progress").json()
+        assert resp["active"] is not None
+        assert resp["active"]["prompt_id"] == "pid123"
+        assert resp["active"]["stage"] == "queued"
+        # simulate the WS listener updating state
+        with server._jobs_lock:
+            server._jobs["pid123"].update(stage="running", node="1", node_title="Load Image", value=2, max=8)
+        resp = client.get("/api/progress").json()
+        assert resp["active"]["stage"] == "running"
+        assert resp["active"]["node_title"] == "Load Image"
+        assert resp["active"]["value"] == 2
+        assert resp["active"]["max"] == 8
+        # job finishes -> no longer active
+        server._mark_job_result("pid123", "http://x/view?filename=a.png&type=output")
+        resp = client.get("/api/progress").json()
+        assert resp["active"] is None
+        with server._jobs_lock:
+            assert server._jobs["pid123"]["url"] == "http://x/view?filename=a.png&type=output"
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()

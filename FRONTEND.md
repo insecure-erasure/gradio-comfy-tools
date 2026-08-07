@@ -233,10 +233,17 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 `showToast()` (api.js) — floating bottom notifications.
 
-### 4.9 Result URL
+### 4.9 Result URL + live progress
 
 Shown in the URL row below the prompt (params pane in landscape, bottom bar
 in portrait) with a 📋 copy button (disabled until a result exists).
+
+**While a generation runs**, the same row shows **live progress** instead of
+the URL (`startProgressPolling` in `api.js`): it polls `GET /api/progress`
+every second and paints the current stage — `⏳ Queued…`, then `⚙️ <node
+_title> <value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI
+moves node to node. On success the URL replaces the progress text; on error
+the row is cleared (the error toast appears as before).
 
 ## 5. How the code is organized
 
@@ -258,6 +265,7 @@ in portrait) with a 📋 copy button (disabled until a result exists).
 |---|---|
 | `GET /` | renders the UI |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
+| `GET /api/progress` | live progress of the most recent job (`{active: {stage, node_title, value, max} | null}`) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |

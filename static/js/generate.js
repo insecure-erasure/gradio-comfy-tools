@@ -32,6 +32,7 @@ function generateImage() {
   pane.classList.add('busy');
   spinner.classList.add('show');
   showToast('Workflow submitted to ComfyUI...');
+  startProgressPolling();
 
   api('/api/generate', {
     family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
@@ -43,8 +44,10 @@ function generateImage() {
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('✨ Generated');
   }).catch(err => {
+    document.getElementById('resultUrl').textContent = '';
     showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
   }).finally(() => {
+    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

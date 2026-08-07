@@ -29,6 +29,23 @@ class ComfyError(RuntimeError):
     """Semantic failure from the ComfyUI API (not an HTTP transport error)."""
 
 
+# Module-level hooks fired after every successful queue_prompt:
+# fn(client_id, prompt_id, workflow). server.py uses one to attach a
+# per-job WebSocket listener for live progress (see /api/progress).
+_prompt_hooks: list[Callable[[str, str, dict[str, Any]], None]] = []
+
+
+def register_prompt_hook(fn: Callable[[str, str, dict[str, Any]], None]) -> None:
+    """Register a callback invoked after each queue_prompt."""
+    _prompt_hooks.append(fn)
+
+
+def unregister_prompt_hook(fn: Callable[[str, str, dict[str, Any]], None]) -> None:
+    """Remove a previously registered hook (used by tests)."""
+    if fn in _prompt_hooks:
+        _prompt_hooks.remove(fn)
+
+
 class ComfyClient:
     def __init__(
         self,
@@ -134,9 +151,13 @@ class ComfyClient:
 
     def queue_prompt(self, workflow: dict[str, Any], client_id: str | None = None) -> str:
         """POST /prompt — queue a workflow; returns the prompt_id."""
+        # Materialize the client_id (default random) so the payload and the
+        # prompt hooks use the SAME id — the WS listener must connect with it
+        # to receive this prompt's per-node events.
+        client_id = client_id or str(uuid.uuid4())
         payload = {
             "prompt": workflow,
-            "client_id": client_id or str(uuid.uuid4()),
+            "client_id": client_id,
         }
         resp = self._client.post(self._url("/prompt"), json=payload, headers=self._headers())
         resp.raise_for_status()
@@ -144,6 +165,11 @@ class ComfyClient:
         prompt_id = data.get("prompt_id")
         if not prompt_id:
             raise ComfyError(f"ComfyUI did not return a prompt_id: {data}")
+        for hook in _prompt_hooks:
+            try:
+                hook(client_id, prompt_id, workflow)
+            except Exception:
+                pass
         return prompt_id
 
     def wait_for_output(

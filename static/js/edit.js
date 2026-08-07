@@ -29,6 +29,7 @@ function generateEdit(forceMode) {
   spinner.classList.add('show');
   setGenerating(pane, true);
   showToast('Edit submitted to ComfyUI...');
+  startProgressPolling();
 
   api('/api/edit', {
     image: src, mode, prompt, steps, seed, lora_config: loraConfig,
@@ -52,8 +53,10 @@ function generateEdit(forceMode) {
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('✨ Edited');
   }).catch(err => {
+    document.getElementById('resultUrl').textContent = '';
     showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
   }).finally(() => {
+    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

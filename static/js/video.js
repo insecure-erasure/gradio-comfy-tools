@@ -48,6 +48,7 @@ function generateVideo() {
   spinner.classList.add('show');
   setGenerating(pane, true);
   showToast('Video submitted to ComfyUI...');
+  startProgressPolling();
 
   api('/api/video', {
     image: src, model_version: mv, prompt, negative_prompt: negative,
@@ -61,8 +62,10 @@ function generateVideo() {
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('🎬 Video ready');
   }).catch(err => {
+    document.getElementById('resultUrl').textContent = '';
     showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
   }).finally(() => {
+    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

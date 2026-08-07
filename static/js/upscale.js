@@ -24,6 +24,7 @@ function generateUpscale() {
   spinner.classList.add('show');
   setGenerating(pane, true);
   showToast('Upscale submitted to ComfyUI...');
+  startProgressPolling();
 
   api('/api/upscale', { image: src, seed }).then(res => {
     // Compare slider: original vs upscaled — this IS the result.
@@ -45,8 +46,10 @@ function generateUpscale() {
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('🔍 Upscaled');
   }).catch(err => {
+    document.getElementById('resultUrl').textContent = '';
     showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
   }).finally(() => {
+    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

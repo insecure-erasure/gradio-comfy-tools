@@ -9,7 +9,12 @@ import json
 import httpx
 import pytest
 
-from comfy_client import ComfyClient, ComfyError
+from comfy_client import (
+    ComfyClient,
+    ComfyError,
+    register_prompt_hook,
+    unregister_prompt_hook,
+)
 from config import Settings
 from tools import _common
 
@@ -135,6 +140,59 @@ def test_queue_prompt_missing_prompt_id_raises():
     client = make_client(handler)
     with pytest.raises(ComfyError):
         client.queue_prompt({})
+
+
+def test_prompt_hook_fired_after_queue():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"prompt_id": "abc123"})
+
+    calls = []
+
+    def hook(client_id, prompt_id, workflow):
+        calls.append((client_id, prompt_id, workflow))
+
+    register_prompt_hook(hook)
+    try:
+        client = make_client(handler)
+        wf = {"1": {"class_type": "SaveImage", "inputs": {}}}
+        pid = client.queue_prompt(wf, "cid-xyz")
+        assert pid == "abc123"
+        assert calls == [("cid-xyz", "abc123", wf)]
+    finally:
+        unregister_prompt_hook(hook)
+
+
+def test_prompt_hook_receives_real_client_id_when_auto_generated():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"prompt_id": "abc123"})
+
+    sent = {}
+
+    def hook(client_id, prompt_id, workflow):
+        sent["client_id"] = client_id
+
+    register_prompt_hook(hook)
+    try:
+        client = make_client(handler)
+        client.queue_prompt({"1": {}})  # no explicit client_id
+        assert sent.get("client_id")  # a uuid was generated and used
+    finally:
+        unregister_prompt_hook(hook)
+
+
+def test_prompt_hook_error_does_not_break_queue():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"prompt_id": "abc123"})
+
+    def hook(client_id, prompt_id, workflow):
+        raise RuntimeError("hook boom")
+
+    register_prompt_hook(hook)
+    try:
+        client = make_client(handler)
+        assert client.queue_prompt({"1": {}}, "cid") == "abc123"
+    finally:
+        unregister_prompt_hook(hook)
 
 
 def test_wait_for_output_polls_until_done():

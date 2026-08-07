@@ -41,6 +41,21 @@
   or `{ok: false, error}` (always HTTP 200 so the UI distinguishes
   "not an image" from a transport failure).
 
+### Live progress (B5-lite)
+- `comfy_client.queue_prompt` **materializes the client_id** (random when not
+  given) and fires module-level **prompt hooks** (`register_prompt_hook`,
+  called with `(client_id, prompt_id, workflow)`).
+- `server.py` registers a hook that spawns a **daemon thread per job**: it
+  opens a WebSocket to ComfyUI with the **same clientId** used for
+  `POST /prompt`, follows that prompt's events (`executing`/`progress`/
+  `execution_success`) and updates an in-memory `_jobs` store (stage, node,
+  node_title, value/max, done, error). The WS is best-effort: if it fails,
+  the existing `wait_for_output` polling still completes the job.
+- `GET /api/progress` exposes the most recent active job — the frontend
+  polls it and paints the stage in the result URL row.
+- Verified live: `queued` → `SamplerCustomAdvanced 1/8..8/8` → `VAE Decode`
+  → `Random Preview Image` → done.
+
 ## 3. Workflow injection pattern (tools/)
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../open-webui-comfy-tools` (listed in the contract tables of §5).

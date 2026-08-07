@@ -121,3 +121,40 @@ function setGenerating(pane, on) {
 function randomSeed() {
   return Math.floor(Math.random() * 4294967296);
 }
+
+// ── Live progress (B5-lite) ────────────────
+// While a generation runs, poll GET /api/progress and paint the current
+// stage into the result URL row (the same area that shows the generation
+// URL on completion). The URL replaces the progress text on success; on
+// error the row is cleared. Polling stops when the request settles.
+let progressTimer = null;
+
+function startProgressPolling() {
+  stopProgressPolling();
+  const paint = async () => {
+    try {
+      const resp = await fetch('/api/progress');
+      const j = await resp.json();
+      const el = document.getElementById('resultUrl');
+      if (!el) return;
+      const a = j.active;
+      if (!a) return; // no active job — leave the last painted text until the request settles
+      let txt;
+      if (a.stage === 'queued') {
+        txt = '⏳ Queued…';
+      } else if (a.stage === 'running') {
+        txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
+        if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
+      } else {
+        txt = '⚙️ ' + (a.node_title || '');
+      }
+      el.textContent = txt;
+    } catch (e) { /* server busy — ignore */ }
+  };
+  paint();
+  progressTimer = setInterval(paint, 1000);
+}
+
+function stopProgressPolling() {
+  if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+}

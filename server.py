@@ -23,6 +23,9 @@ Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 
 from __future__ import annotations
 
+import json
+import threading
+import time
 from pathlib import Path
 
 import httpx
@@ -32,6 +35,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
 
+import comfy_client
 from config import Settings
 from tools.edit import edit_image, MODES
 from tools.generate import FAMILY_OPTIONS, generate_image
@@ -61,6 +65,131 @@ def _filename_from_url(url: str) -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------- #
+# Live progress (B5-lite)
+#
+# Every queue_prompt fires a hook (see comfy_client.register_prompt_hook) that
+# spawns a daemon thread: it opens a WebSocket to ComfyUI with the SAME
+# clientId used for POST /prompt, follows that prompt's events (executing /
+# progress / executed / execution_success) and updates an in-memory job store.
+# GET /api/progress exposes the most recent active job; the frontend polls it
+# while a generation runs and paints the stage into the result URL row.
+# --------------------------------------------------------------------------- #
+_jobs: dict[str, dict] = {}
+_jobs_lock = threading.Lock()
+_MAX_JOBS = 20
+
+
+def _node_titles(workflow: dict) -> dict[str, str]:
+    """node_id -> _meta.title (or class_type) for readable progress labels."""
+    out: dict[str, str] = {}
+    for nid, node in workflow.items():
+        if isinstance(node, dict):
+            out[str(nid)] = node.get("_meta", {}).get("title") or node.get("class_type", str(nid))
+    return out
+
+
+def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[str, str]) -> None:
+    """Daemon thread: follow one job's events on the ComfyUI WebSocket."""
+    try:
+        from websockets.sync.client import connect
+
+        ws_url = (
+            base_url.replace("http://", "ws://").replace("https://", "wss://")
+            + f"/ws?clientId={client_id}"
+        )
+        with connect(ws_url, open_timeout=10, close_timeout=3) as ws:
+            for raw in ws:
+                try:
+                    msg = json.loads(raw)
+                except Exception:
+                    continue
+                data = msg.get("data") or {}
+                if str(data.get("prompt_id", "")) != prompt_id:
+                    continue
+                t = msg.get("type")
+                with _jobs_lock:
+                    job = _jobs.get(prompt_id)
+                    if job is None:
+                        continue
+                    if t == "executing":
+                        node = data.get("node")
+                        job["stage"] = "running" if node is not None else "finishing"
+                        job["node"] = node
+                        job["node_title"] = (
+                            titles.get(str(node), str(node)) if node is not None else None
+                        )
+                    elif t == "progress":
+                        job["value"] = data.get("value")
+                        job["max"] = data.get("max")
+                    elif t == "execution_success":
+                        job["done"] = True
+                        break
+                    elif t == "execution_error":
+                        job["done"] = True
+                        job["error"] = str(data.get("exception_message", "execution error"))[:300]
+                        break
+    except Exception as e:  # WS is best-effort — polling still finishes the job
+        with _jobs_lock:
+            job = _jobs.get(prompt_id)
+            if job is not None:
+                job["ws_error"] = str(e)[:200]
+
+
+def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
+    """Register the job and spawn its WS listener thread."""
+    base = _settings().comfyui_base_url.rstrip("/")
+    with _jobs_lock:
+        if len(_jobs) >= _MAX_JOBS:  # prune oldest jobs
+            for k in sorted(_jobs, key=lambda k: _jobs[k].get("started", 0))[: len(_jobs) - _MAX_JOBS + 1]:
+                _jobs.pop(k, None)
+        _jobs[prompt_id] = {
+            "prompt_id": prompt_id,
+            "started": time.time(),
+            "stage": "queued",
+            "node": None,
+            "node_title": None,
+            "value": None,
+            "max": None,
+            "done": False,
+            "error": None,
+        }
+    threading.Thread(
+        target=_listen_job_ws,
+        args=(base, client_id, prompt_id, _node_titles(workflow)),
+        daemon=True,
+    ).start()
+
+
+def _mark_job_result(prompt_id: str, url: str) -> None:
+    with _jobs_lock:
+        job = _jobs.get(prompt_id)
+        if job is not None:
+            job["done"] = True
+            job["url"] = url
+
+
+def _latest_job() -> dict | None:
+    with _jobs_lock:
+        if not _jobs:
+            return None
+        return max(_jobs.values(), key=lambda j: j.get("started", 0))
+
+
+def _mark_latest_done(url: str) -> None:
+    """Attach the result URL to the most recent job (single-user app)."""
+    job = _latest_job()
+    if job is not None:
+        _mark_job_result(job["prompt_id"], url)
+
+
+def _on_prompt_queued(client_id: str, prompt_id: str, workflow: dict) -> None:
+    _start_job_listener(client_id, prompt_id, workflow)
+
+
+comfy_client.register_prompt_hook(_on_prompt_queued)
+
+
+# --------------------------------------------------------------------------- #
 # UI + health
 # --------------------------------------------------------------------------- #
 @app.get("/")
@@ -85,6 +214,25 @@ def health() -> dict:
         }
     except Exception as e:
         return {"ok": False, "error": str(e), "comfyui_base_url": s.comfyui_base_url}
+
+
+@app.get("/api/progress")
+def api_progress() -> dict:
+    """Live progress of the most recent job (single-user app).
+
+    Returns ``{"active": {...}}`` while a job runs, ``{"active": null}``
+    otherwise. The frontend polls this and paints the stage into the
+    result URL row.
+    """
+    job = _latest_job()
+    if job is None or job.get("done"):
+        return {"active": None}
+    return {
+        "active": {
+            k: job.get(k)
+            for k in ("prompt_id", "stage", "node", "node_title", "value", "max")
+        }
+    }
 
 
 @app.get("/api/loras")
@@ -143,6 +291,7 @@ def api_generate(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
             model=str(body.get("model", "")),
         )
+        _mark_latest_done(url)
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -161,6 +310,7 @@ def api_edit(body: dict) -> dict:
             seed=int(body.get("seed", -1)),
             lora_config=str(body.get("lora_config", "[]")),
         )
+        _mark_latest_done(url)
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -175,6 +325,7 @@ def api_upscale(body: dict) -> dict:
             image=str(body.get("image", "")),
             seed=int(body.get("seed", -1)),
         )
+        _mark_latest_done(url)
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -196,6 +347,7 @@ def api_video(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
             diffusion=str(body.get("diffusion", "")),
         )
+        _mark_latest_done(url)
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
