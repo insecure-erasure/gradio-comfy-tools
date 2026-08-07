@@ -50,8 +50,10 @@
     text-overflow: ellipsis;
   }
   .source-url-input::placeholder { color: rgba(255,255,255,.45); }
-  .source-url-field:focus-within,
-  .source-url-input:not(:placeholder-shown) {
+  /* Expand the whole field (container) on focus — same width whether empty
+     or with text; the input always fills it. No expansion from having
+     content alone (keeps the idle overlay minimal). */
+  .source-url-field:focus-within {
     width: 50%;
   }
   .source-url-input:focus {
