@@ -9,6 +9,7 @@ window.addEventListener('DOMContentLoaded', () => {
   switchTab('generate');     // mount the action button (with catcher) for the active tab
   onModelFamilyChange();     // auto-steps + recalc for the family
   applyPersistedParams();    // re-apply persisted field values (they win over auto-steps)
+  initSourceFields();        // select-all on click for the source URL fields
   loadSettings();
   relayoutPrompt();
   updateActionButtons();

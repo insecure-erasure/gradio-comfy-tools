@@ -28,6 +28,28 @@ function getSourceUrl(tab) {
   return input ? input.value.trim() : '';
 }
 
+// Clicking a source URL field selects all its text when it already has
+// content, so it can be deleted or replaced easily (paste over). The
+// select-all only applies on the first focus; subsequent clicks behave
+// normally so the user can still place the cursor in the middle of the URL.
+function selectAllOnFocus(input) {
+  if (!input) return;
+  input.addEventListener('focus', () => {
+    if (!input.value) return;
+    input.select();
+    // the browser would collapse the select-all when the mouse is released;
+    // swallow that mouseup once so the whole value stays selected
+    input.addEventListener('mouseup', (e) => e.preventDefault(), { once: true });
+  });
+}
+
+// Wire select-all-on-focus for every tab's source URL field.
+function initSourceFields() {
+  ['edit', 'upscale', 'video'].forEach(tab => {
+    selectAllOnFocus(document.getElementById(`${tab}SourceUrl`));
+  });
+}
+
 // The source URL field wrapper for a tab (Edit/Upscale/Video).
 function sourceUrlField(tab) {
   const input = document.getElementById(`${tab}SourceUrl`);
