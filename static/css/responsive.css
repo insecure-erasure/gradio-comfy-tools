@@ -36,11 +36,13 @@
     }
     /* Generate: condense W/H/AR/MP + Steps/Seed into one line in portrait
        (landscape keeps the two rows as in the mockup). The two .field-row
-       wrappers become display:contents; the pane becomes a 6-column grid so
-       all controls sit on a single row. */
+       wrappers become display:contents; the pane becomes a 6-column grid.
+       The seed column is the widest (long random value + 🎲) and absorbs the
+       squeeze first; AR has a min width (its select is only ~4 chars) so it
+       does not shrink at the same rate as the seed. */
     #tab-generate .params-pane {
       display: grid;
-      grid-template-columns: repeat(6, auto);
+      grid-template-columns: minmax(48px, .5fr) minmax(48px, .5fr) minmax(60px, .9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
       align-items: center;
       column-gap: 8px;
       row-gap: 4px;
@@ -51,7 +53,12 @@
     #tab-generate .params-pane .field-inline {
       min-width: 0;
     }
-    #tab-generate .params-pane .field-inline .stepper input { width: 52px; }
+    #tab-generate .params-pane .field-inline .stepper { min-width: 0; }
+    #tab-generate .params-pane .field-inline .stepper input {
+      width: 100%;
+      min-width: 0;
+      padding: 7px 2px;
+    }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     .bottom-bar .prompt-input-wrap textarea { min-height: 44px; }
