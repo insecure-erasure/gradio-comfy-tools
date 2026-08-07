@@ -133,6 +133,71 @@ def test_api_upscale_seed(client, tmp_config, monkeypatch):
     assert received["seed"] == 42
 
 
+def test_api_loras(client, tmp_config, monkeypatch):
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            return ["foo.safetensors", "bar.safetensors"]
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    resp = client.get("/api/loras")
+    assert resp.status_code == 200
+    assert resp.json() == {"loras": ["foo.safetensors", "bar.safetensors"]}
+
+
+def test_api_loras_error(client, tmp_config, monkeypatch):
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    resp = client.get("/api/loras")
+    assert resp.status_code == 502
+
+
+def test_api_diffusion_models(client, tmp_config, monkeypatch):
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_diffusion_models(self):
+            return ["a.safetensors", "b.safetensors"]
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    resp = client.get("/api/diffusion-models")
+    assert resp.status_code == 200
+    assert resp.json() == {"models": ["a.safetensors", "b.safetensors"]}
+
+
 def test_api_generate_tool_error_becomes_400(client, tmp_config, monkeypatch):
     def boom(settings, **kwargs):
         raise ValueError("prompt must not be empty")

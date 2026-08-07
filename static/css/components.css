@@ -853,3 +853,71 @@
     justify-content: flex-end;
   }
   .modal-footer .btn { width: auto; }
+
+  /* ── Embedded LoRA config editor ──────────── */
+  .lora-editor {
+    margin-bottom: 4px;
+  }
+  .lora-empty {
+    font-size: .78rem;
+    color: var(--text-secondary);
+    padding: 6px 0;
+  }
+  .lora-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .lora-row:last-child { border-bottom: none; }
+  .lora-select {
+    flex: 3;              /* the LoRA name is the widest field (long names) */
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: .8rem;
+    font-family: var(--font);
+    padding: 6px 8px;
+    min-width: 0;
+  }
+  .lora-strength {
+    flex: 1;
+    min-width: 0;
+  }
+  .lora-strength .stepper-btn {
+    width: 24px;
+    height: 28px;
+  }
+  .lora-strength-input {
+    width: 54px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: .8rem;
+    font-family: var(--font);
+    text-align: center;
+    padding: 4px 2px;
+  }
+  .lora-strength-input:focus { outline: none; }
+  .btn-remove-lora {
+    width: 26px;
+    height: 28px;
+    border: none;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .75rem;
+    flex-shrink: 0;
+  }
+  .btn-remove-lora:hover {
+    background: var(--surface-hover);
+    color: var(--accent);
+  }
+  .btn-add-lora {
+    margin-top: 8px;
+    width: 100%;
+  }
+  .btn-add-lora:disabled { opacity: .4; cursor: not-allowed; }

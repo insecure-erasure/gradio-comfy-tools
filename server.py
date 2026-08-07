@@ -86,6 +86,34 @@ def health() -> dict:
         return {"ok": False, "error": str(e), "comfyui_base_url": s.comfyui_base_url}
 
 
+@app.get("/api/loras")
+def api_loras() -> dict:
+    """List LoRA models from ComfyUI (GET {COMFYUI_BASE_URL}/models/loras)."""
+    s = _settings()
+    try:
+        from comfy_client import ComfyClient
+
+        with ComfyClient(settings=s) as c:
+            loras = c.list_loras()
+        return {"loras": loras}
+    except Exception as e:
+        raise HTTPException(502, f"Could not fetch LoRAs from ComfyUI: {e}") from e
+
+
+@app.get("/api/diffusion-models")
+def api_diffusion_models() -> dict:
+    """List diffusion models from ComfyUI (GET {COMFYUI_BASE_URL}/models/diffusion_models)."""
+    s = _settings()
+    try:
+        from comfy_client import ComfyClient
+
+        with ComfyClient(settings=s) as c:
+            models = c.list_diffusion_models()
+        return {"models": models}
+    except Exception as e:
+        raise HTTPException(502, f"Could not fetch diffusion models from ComfyUI: {e}") from e
+
+
 # --------------------------------------------------------------------------- #
 # Tool endpoints
 # --------------------------------------------------------------------------- #

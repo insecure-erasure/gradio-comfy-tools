@@ -76,6 +76,41 @@ class ComfyClient:
         """GET /system_stats — returns the parsed JSON."""
         return self._get("/system_stats")
 
+    def list_loras(self) -> list[str]:
+        """GET /models/loras — returns the available LoRA model filenames.
+
+        The endpoint may return a list of strings or a list of objects with a
+        ``name`` key depending on the ComfyUI version; both are handled.
+        """
+        data = self._get("/models/loras")
+        if not isinstance(data, list):
+            raise ComfyError(f"/models/loras returned an unexpected payload: {data!r}")
+        names: list[str] = []
+        for item in data:
+            if isinstance(item, str):
+                names.append(item)
+            elif isinstance(item, dict) and item.get("name"):
+                names.append(str(item["name"]))
+        return names
+
+    def list_diffusion_models(self) -> list[str]:
+        """GET /models/diffusion_models — available diffusion/unet filenames.
+
+        Same string-or-object handling as list_loras.
+        """
+        data = self._get("/models/diffusion_models")
+        if not isinstance(data, list):
+            raise ComfyError(
+                f"/models/diffusion_models returned an unexpected payload: {data!r}"
+            )
+        names: list[str] = []
+        for item in data:
+            if isinstance(item, str):
+                names.append(item)
+            elif isinstance(item, dict) and item.get("name"):
+                names.append(str(item["name"]))
+        return names
+
     def upload_image(self, file_path: str | Path) -> str:
         """Upload a local image; returns the ComfyUI temp filename.
 

@@ -39,6 +39,53 @@ def test_health():
     assert client.health()["system"]["comfyui_version"] == "0.29.1"
 
 
+def test_list_loras_strings():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/models/loras"
+        return httpx.Response(200, json=["foo.safetensors", "bar.safetensors"])
+
+    client = make_client(handler)
+    assert client.list_loras() == ["foo.safetensors", "bar.safetensors"]
+
+
+def test_list_loras_objects():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/models/loras"
+        return httpx.Response(
+            200, json=[{"name": "foo.safetensors"}, {"name": "bar.safetensors"}]
+        )
+
+    client = make_client(handler)
+    assert client.list_loras() == ["foo.safetensors", "bar.safetensors"]
+
+
+def test_list_loras_unexpected_payload():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"data": []})
+
+    client = make_client(handler)
+    with pytest.raises(ComfyError):
+        client.list_loras()
+
+
+def test_list_diffusion_models_strings():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/models/diffusion_models"
+        return httpx.Response(200, json=["a.safetensors", "b.safetensors"])
+
+    client = make_client(handler)
+    assert client.list_diffusion_models() == ["a.safetensors", "b.safetensors"]
+
+
+def test_list_diffusion_models_unexpected():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"nope": 1})
+
+    client = make_client(handler)
+    with pytest.raises(ComfyError):
+        client.list_diffusion_models()
+
+
 def test_upload_image_returns_name():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/upload/image"
