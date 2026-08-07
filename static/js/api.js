@@ -81,3 +81,10 @@ function copyResultUrl() {
     showToast('URL copied');
   }).catch(() => showToast('Copy failed'));
 }
+
+// ✕ clears the prompt textarea (shared, single instance).
+function clearPrompt() {
+  const input = document.getElementById('promptInput');
+  if (input) input.value = '';
+  input.focus();
+}

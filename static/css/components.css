@@ -430,6 +430,34 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
   }
+
+  /* Small ✕ clear button, overlaid top-right of the prompt (both modes) */
+  .prompt-clear {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.4);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .75rem;
+    line-height: 1;
+    padding: 0;
+    z-index: 5;
+    transition: .15s;
+  }
+  .prompt-clear:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+  /* In the bottom bar the block is not positioned — anchor to the textarea */
+  .bottom-bar .prompt-block { position: relative; }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);
@@ -451,23 +479,33 @@
   /* Landscape: prompt inside the params pane, URL row alone at the bottom */
   @media (min-width: 1024px) {
     .params-pane .prompt-block {
+      position: relative;          /* anchor for the overlaid buttons */
       margin-top: auto;            /* pinned to the bottom of the params pane */
-      flex-direction: column;      /* textarea full width, buttons below */
-      gap: 8px;
+      flex: 1;                     /* fills the params pane height */
+      min-height: 0;
+      display: flex;
     }
     .params-pane .prompt-block textarea {
-      flex: none;
+      flex: 1;                     /* textarea fills the whole block */
+      width: 100%;
       min-height: 64px;
+      padding: 8px 14px 44px;      /* room for the overlaid buttons */
     }
     .params-pane .btn-col {
-      flex-direction: row;         /* action buttons in a row, right-aligned */
+      position: absolute;          /* overlay: bottom-right of the textarea */
+      bottom: 8px;
+      right: 8px;
+      flex-direction: row;
       width: auto;
-      align-self: flex-end;
+      height: auto;
+      gap: 6px;
     }
     .params-pane .btn-generate {
       flex: none;
-      width: 44px;
-      height: 34px;
+      width: 34px;
+      height: 30px;
+      font-size: .95rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
     }
     .bottom-bar { padding: 6px 8px; }  /* slimmer — URL row only */
   }
