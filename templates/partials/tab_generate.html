@@ -35,10 +35,10 @@
           </div>
           <!-- Row 1: W | H | AR | MP -->
           <div class="field-row">
-            <div class="field-inline" style="flex:0.4"><label title="Width (read-only)">W</label><span class="readonly-field" id="genWidth">832</span></div>
-            <div class="field-inline" style="flex:0.4"><label title="Height (read-only)">H</label><span class="readonly-field" id="genHeight">1248</span></div>
+            <div class="field-inline" style="flex:0.4"><label title="Width (read-only)">↔️</label><span class="readonly-field" id="genWidth">832</span></div>
+            <div class="field-inline" style="flex:0.4"><label title="Height (read-only)">↕️</label><span class="readonly-field" id="genHeight">1248</span></div>
             <div class="field-inline" style="flex:1.3">
-              <label title="Aspect Ratio">AR</label>
+              <label title="Aspect Ratio">📐</label>
               <select id="genAspectRatio" onchange="onModelFamilyChange()">
                 <option data-w="2" data-h="3">2:3</option>
                 <option data-w="1" data-h="1">1:1</option>
@@ -50,7 +50,7 @@
               </select>
             </div>
             <div class="field-inline" style="flex:1.5">
-              <label title="Megapixels (0.1–2.0)">📐</label>
+              <label title="Megapixels (0.1–2.0)">🔲</label>
               <div class="stepper">
                 <button class="stepper-btn" onclick="stepMp(-0.1)" title="Decrease">−</button>
                 <input type="number" id="genMegapixel" value="1" min="0.1" max="2" step="0.1" oninput="onModelFamilyChange()">
