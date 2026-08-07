@@ -22,16 +22,17 @@
       max-height: none;
     }
     .params-pane {
-      flex: 0 1 auto;   /* can shrink if space is tight */
+      flex: 0 0 auto;   /* never shrink below content (buttons get clipped) */
       min-height: 0;
       max-height: 45vh;
       max-width: none;
       border-left: none;
       border-top: 1px solid var(--border);
       overflow-y: auto;
-      /* tighter spacing in portrait → more height for the output */
-      padding: 12px 14px;
-      gap: 8px;
+      /* portrait: minimal vertical padding, no gap between param elements
+         → more height for the output */
+      padding: 6px 14px;
+      gap: 0;
     }
     /* Generate: condense W/H/AR/MP + Steps/Seed into one line in portrait
        (landscape keeps the two rows as in the mockup). The two .field-row
@@ -62,6 +63,6 @@
     .output-pane { padding: 16px; }
     .source-url-field { bottom: 10px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
-    .params-pane { padding: 10px 12px; gap: 7px; }
+    .params-pane { padding: 6px 12px; gap: 0; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }
