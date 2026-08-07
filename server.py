@@ -15,6 +15,7 @@ Endpoints:
     POST /api/video               Video tab
     POST /api/upload              upload an image to ComfyUI (temp)
     GET  /media/{filename}?type=  proxy a result file from ComfyUI
+    POST /api/check-image         validate that a URL/filename is an image
     GET/POST /api/settings        global settings (for the 🎨 menu)
 
 Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
@@ -198,6 +199,74 @@ def api_video(body: dict) -> dict:
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
+
+
+# --------------------------------------------------------------------------- #
+# Upload + media proxy + image validation
+# --------------------------------------------------------------------------- #
+@app.post("/api/check-image")
+async def api_check_image(body: dict) -> dict:
+    """Validate that a source value (external URL or ComfyUI temp filename)
+    resolves to an image, by checking its Content-Type.
+
+    The browser cannot read cross-origin headers, so the check runs here
+    (server-side, no CORS). Returns ``{"ok": true, "content_type": ...}``
+    or ``{"ok": false, "error": ...}`` — always 200 so the UI can
+    distinguish "not an image" from a transport failure.
+    """
+    from urllib.parse import urlencode
+
+    from tools._common import normalize_source
+
+    s = _settings()
+    value = str(body.get("url", "")).strip()
+    if not value:
+        return {"ok": False, "error": "No URL provided"}
+    # Same filename-vs-URL auto-detection the tools use (configure_image_node):
+    # external URL -> source="url" (use as-is); anything else -> a ComfyUI
+    # temp filename (uploaded via 📁) -> media base /view?type=temp.
+    value, kind = normalize_source(value)
+    if kind == "url":
+        url = value
+    else:
+        url = f"{s.media_base_url}/view?{urlencode({'filename': value, 'type': 'temp'})}"
+    try:
+        # GET with a stream: read only the headers + first bytes, never the body
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+            async with client.stream("GET", url) as resp:
+                if resp.status_code >= 400:
+                    return {"ok": False, "error": f"HTTP {resp.status_code}"}
+                ctype = (resp.headers.get("content-type") or "").lower()
+                # Magic-byte sniffing as a fallback: some servers serve images as
+                # application/octet-stream with no useful Content-Type.
+                head = b""
+                async for chunk in resp.aiter_bytes(1024):
+                    head += chunk
+                    break
+                is_image = ctype.startswith("image/") or _looks_like_image(head)
+                if not is_image:
+                    return {
+                        "ok": False,
+                        "error": f"Not an image (Content-Type: {ctype or 'unknown'})",
+                    }
+                return {"ok": True, "content_type": ctype}
+    except Exception as e:
+        return {"ok": False, "error": f"Could not reach the URL: {e}"}
+
+
+def _looks_like_image(head: bytes) -> bool:
+    """Sniff the file signature of the first bytes (PNG/JPEG/GIF/WebP/BMP/TIFF)."""
+    if not head:
+        return False
+    if head.startswith((b"\x89PNG\r\n\x1a\n", b"\xff\xd8\xff", b"GIF87a", b"GIF89a")):
+        return True
+    if head.startswith(b"RIFF") and head[8:12] == b"WEBP":
+        return True
+    if head.startswith(b"BM"):
+        return True
+    if head.startswith((b"II*\x00", b"MM\x00*")):
+        return True
+    return False
 
 
 # --------------------------------------------------------------------------- #

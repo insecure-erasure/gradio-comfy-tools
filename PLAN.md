@@ -253,6 +253,7 @@ mockup directly.
 | `POST /api/settings` | persist server / media base URL (🎨) | ✅ |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) | ✅ |
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) | ✅ |
+| `POST /api/check-image` | validate a source URL/temp filename is an image (server-side, magic-bytes fallback) | ✅ |
 
 ### Frontend wiring progress (templates/ + static/)
 | Tab | What works | Status |
@@ -296,6 +297,11 @@ mockup directly.
   frames/steps/seed wired to `/api/video`; negative prompt in the modal.
 - Upscale tab: special compact layouts (portrait seed+🔍 in pane; landscape
   🔍 above URL row).
+- Source URL field: **✓ confirm button** validates the value server-side
+  (`POST /api/check-image` — same filename-vs-URL convention as the tools)
+  and shows a **preview filling the output pane**; 🔗 and 📁 also preview the
+  source. Non-image values toast a clear error (verified live: temp URL
+  `image/png`, `/` rejected as `text/html`, missing file → `404`).
 - Action buttons disabled when the prompt is empty (click-catcher feedback);
   🩹 Restore and 🔍 Upscale always active.
 - ↺ resets per tab restore defaults + clear the tab's output.

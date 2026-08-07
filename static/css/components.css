@@ -34,9 +34,13 @@
     width: 10%;
     z-index: 5;
     transition: width .2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .source-url-input {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
     padding: 7px 10px;
     background: rgba(0,0,0,.35);
     border: 1px solid rgba(255,255,255,.15);
@@ -50,11 +54,48 @@
     text-overflow: ellipsis;
   }
   .source-url-input::placeholder { color: rgba(255,255,255,.45); }
-  /* Expand the whole field (container) on focus — same width whether empty
-     or with text; the input always fills it. No expansion from having
-     content alone (keeps the idle overlay minimal). */
-  .source-url-field:focus-within {
+  /* ✓ confirm button: only shown once the field is expanded (focus or has
+     content) so the idle overlay stays minimal. Disabled (spinner-ish) while
+     the server-side image check runs. */
+  .source-url-confirm {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: var(--radius);
+    color: rgba(255,255,255,.7);
+    cursor: pointer;
+    font-size: .8rem;
+    transition: .15s;
+  }
+  .source-url-confirm:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .source-url-confirm.busy { opacity: .5; }
+  .source-url-field:focus-within .source-url-confirm,
+  .source-url-field:has(.source-url-input:not(:placeholder-shown)) .source-url-confirm {
+    display: flex;
+  }
+  /* Expand the whole field (container) on focus OR when it has content —
+     with the confirm button the expanded state is the actionable one. */
+  .source-url-field:focus-within,
+  .source-url-field:has(.source-url-input:not(:placeholder-shown)) {
     width: 50%;
+  }
+  /* Forced collapse: after ✓ confirm (or the 🔗 flash) the field goes back
+     to 10% even though it still has content, which would normally keep it
+     expanded. Guarded with :not(:focus-within) so clicking back into the
+     input expands it again. */
+  .source-url-field.collapsed:not(:focus-within) {
+    width: 10%;
+  }
+  .source-url-field.collapsed:not(:focus-within) .source-url-confirm {
+    display: none;
   }
   .source-url-input:focus {
     outline: none;

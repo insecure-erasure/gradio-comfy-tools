@@ -157,10 +157,28 @@ Original/Edited (or Upscaled) — ported from the reference compare_images.
 
 Overlay at the bottom-left of the output pane; `🔗` at bottom-right fills it
 with `lastGeneratedUrl`. Collapsible: **10% width when idle, expands to 50%
-on focus** (with or without text — `:focus-within` on the field); while a
+on focus or with content** (and shows a **✓ confirm button**); while a
 generation runs it fades (opacity .25, `pointer-events:none`) via
 `setGenerating()`. The value feeds the tool's `image` input (filename-vs-URL
 auto-detection, BACKEND.md §6); empty on generate → warning toast.
+
+**✓ Confirm** (`confirmSourceUrl` in `source.js`): validates the field value
+server-side via `POST /api/check-image` (the browser cannot read
+cross-origin headers — CORS is why this cannot be done client-side) and, if
+it is really an image, shows it as a **preview filling the output pane**
+(`source-preview`, dashed border + slightly dimmed to distinguish input
+from output) and **collapses the field back to 10%** (`.collapsed`;
+re-focusing the input expands it again). On failure it toasts the error
+(HTTP status, content-type mismatch, unreachable URL…). The preview is
+**also shown by 🔗** (`usePreviousSource` — which **flashes the field open
+~1.5s then auto-collapses**, unless the user is editing the value) and by
+**📁 upload** — any confirmed source becomes visible in the pane before
+generating.
+
+Filename-vs-URL follows the backend convention (`normalize_source`,
+BACKEND.md §6): external URL → checked directly; anything else → treated as
+a ComfyUI temp filename, checked against `{media_base}/view?type=temp`
+(the same `source="temp"` decision `configure_image_node` makes).
 
 ### 4.6 🎨 settings menu (hamburger ☰)
 
@@ -231,6 +249,7 @@ in portrait) with a 📋 copy button (disabled until a result exists).
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |
 | `POST /api/generate` / `edit` / `upscale` / `video` | run the tools |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
+| `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
 | `GET /media/{filename}` | same-origin proxy of results |
 
 ## 7. Session state
@@ -266,3 +285,6 @@ These are intentional, user-driven changes over the original `mockup.html`:
 10. **Random seed shown** in the field (client-generated, sent explicitly).
 11. **localStorage persistence** of all user config.
 12. Default image model is **Krea 2** (was Z-Image Turbo).
+13. **Source preview**: the ✓ button next to the source URL field validates
+the value and shows the image in the output pane; 🔗/📁 also preview the
+source (dashed-border `.source-preview`). Added over the mockup.

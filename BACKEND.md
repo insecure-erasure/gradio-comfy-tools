@@ -25,6 +25,22 @@
 - `list_loras()` → `GET /models/loras`; `list_diffusion_models()` → `GET /models/diffusion_models`. Both handle a list of strings or a list of `{name}` objects.
 - Exposed to the UI via `GET /api/loras` and `GET /api/diffusion-models` (same-origin proxies).
 
+### Image validation (source preview ✓)
+- `POST /api/check-image` (`server.py`) validates that a source value is a
+  reachable image **server-side** — the browser cannot read cross-origin
+  headers (verified: ComfyUI serves `Access-Control-Allow-Origin` only for
+  its allowed origin).
+- Uses the **same filename-vs-URL auto-detection as the tools**
+  (`tools._common.normalize_source`): external URL → checked directly;
+  otherwise → treated as a ComfyUI temp filename and checked against
+  `{media_base}/view?filename=...&type=temp` (the exact `source="temp"`
+  decision `configure_image_node` makes).
+- Accepts when the Content-Type starts with `image/` **or** the first bytes
+  match an image magic signature (PNG/JPEG/GIF/WebP/BMP/TIFF) — some servers
+  serve images as `application/octet-stream`. Returns `{ok, content_type}`
+  or `{ok: false, error}` (always HTTP 200 so the UI distinguishes
+  "not an image" from a transport failure).
+
 ## 3. Workflow injection pattern (tools/)
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../open-webui-comfy-tools` (listed in the contract tables of §5).

@@ -4,7 +4,8 @@
         <div class="output-pane" id="upscaleOutputPane">
           <button class="output-overlay-btn top-right" onclick="uploadForTab('upscale')" title="Upload image">📁</button>
           <div class="source-url-field">
-            <input type="text" class="source-url-input" id="upscaleSourceUrl" placeholder="Paste image URL…" />
+            <input type="text" class="source-url-input" id="upscaleSourceUrl" placeholder="Paste image URL…" oninput="clearSourcePreview('upscale')" />
+            <button class="source-url-confirm" onclick="confirmSourceUrl('upscale')" title="Load this image">✓</button>
           </div>
           <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('upscale')" title="Use previous generation">🔗</button>
           <div class="compare-slider" id="upscaleCompare" style="display:none">

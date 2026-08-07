@@ -46,7 +46,7 @@ function generateEdit(forceMode) {
       cmp.style.display = '';
     }
     // Hide any plain result image; the compare slider is the display
-    pane.querySelectorAll('.result-img, .output-placeholder').forEach(el => el.remove());
+    pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;

@@ -34,12 +34,12 @@ function showToast(msg) {
 }
 
 // Render a result (image or video) into an output pane.
-// Removes only the previous result/placeholder — keeps overlays like the
-// loading spinner (which lives inside the pane).
+// Removes only the previous result/placeholder/preview — keeps overlays like
+// the loading spinner (which lives inside the pane).
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
   if (isVideo) {
     const v = document.createElement('video');
     v.className = 'result-video';
@@ -62,7 +62,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');
   const mock = pane.querySelector('.video-mock');
   if (mock) mock.style.display = '';

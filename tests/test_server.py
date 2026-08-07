@@ -237,3 +237,99 @@ def test_media_proxy(client, tmp_config, monkeypatch):
     assert resp.status_code == 200
     assert resp.content == b"\x89PNG"
     assert resp.headers["content-type"] == "image/png"
+
+
+# --------------------------------------------------------------------------- #
+# POST /api/check-image
+# --------------------------------------------------------------------------- #
+def _mock_streaming_client(monkeypatch, status_code=200, content_type="image/png", head=b"\x89PNG\r\n\x1a\n", seen_urls=None):
+    """Fake httpx.AsyncClient with a stream() that yields one chunk."""
+    class FakeStreamResp:
+        def __init__(self, status_code, content_type):
+            self.status_code = status_code
+            self.headers = {"content-type": content_type}
+
+        async def aiter_bytes(self, n):
+            yield head[:n]
+
+    class FakeStreamCtx:
+        def __init__(self, url):
+            self.url = url
+
+        async def __aenter__(self):
+            if seen_urls is not None:
+                seen_urls.append(self.url)
+            return FakeStreamResp(status_code, content_type)
+
+        async def __aexit__(self, *a):
+            return None
+
+    class FakeAsyncClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return None
+
+        def stream(self, method, url):
+            return FakeStreamCtx(url)
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", FakeAsyncClient)
+    return FakeAsyncClient
+
+
+def test_check_image_temp_filename_uses_media_view(client, tmp_config, monkeypatch):
+    # a bare filename -> the tools' filename-vs-URL convention: source=temp,
+    # so the check builds {media_base}/view?filename=..&type=temp
+    seen = []
+    _mock_streaming_client(monkeypatch, seen_urls=seen)
+    resp = client.post("/api/check-image", json={"url": "ComfyUI_temp_abc.png"})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "content_type": "image/png"}
+    assert len(seen) == 1
+    assert "filename=ComfyUI_temp_abc.png&type=temp" in seen[0]
+
+
+def test_check_image_external_url_checked_directly(client, tmp_config, monkeypatch):
+    seen = []
+    _mock_streaming_client(monkeypatch, seen_urls=seen)
+    resp = client.post("/api/check-image", json={"url": "http://example.com/pic.jpg"})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "content_type": "image/png"}
+    assert seen == ["http://example.com/pic.jpg"]
+
+
+def test_check_image_not_an_image(client, tmp_config, monkeypatch):
+    _mock_streaming_client(monkeypatch, content_type="text/html", head=b"<!doctype html>")
+    resp = client.post("/api/check-image", json={"url": "http://example.com/"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is False
+    assert "Not an image" in body["error"]
+
+
+def test_check_image_http_error(client, tmp_config, monkeypatch):
+    _mock_streaming_client(monkeypatch, status_code=404, content_type="")
+    resp = client.post("/api/check-image", json={"url": "http://example.com/nope.png"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is False
+    assert "404" in body["error"]
+
+
+def test_check_image_magic_bytes_fallback(client, tmp_config, monkeypatch):
+    # some servers serve images as application/octet-stream; the magic-byte
+    # sniff must still accept a real PNG header
+    _mock_streaming_client(monkeypatch, content_type="application/octet-stream", head=b"\x89PNG\r\n\x1a\n")
+    resp = client.post("/api/check-image", json={"url": "http://example.com/pic"})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "content_type": "application/octet-stream"}
+
+
+def test_check_image_empty_url(client, tmp_config, monkeypatch):
+    resp = client.post("/api/check-image", json={"url": "  "})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": False, "error": "No URL provided"}
