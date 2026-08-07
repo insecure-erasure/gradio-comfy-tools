@@ -390,21 +390,30 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   (`/interrupt` + `/queue delete`) and aborts the in-flight fetch.
 - **TODO (before queueing)**: **fullscreen preview for images** — the video
   tab already has native fullscreen (via the `<video>` player controls);
-  image results have no way to view them large. The reference implementation
-  (`../open-webui-comfy-tools/compare_images`) opens a **gallery/lightbox
-  mode**: a floating **maximize button at the bottom-right** of the
-  result/compare slider opens a **fullscreen overlay with its own
-  interactive slider** (same drag/tap/hover/divider behavior), fullscreened
-  via the **browser Fullscreen API on the overlay element** (not
-  `documentElement`), with `webkit` fallback; the overlay is sized to the
-  real viewport (`clientWidth/Height` — in fullscreen the viewport IS the
-  screen) waiting for real image dimensions; exit via **Escape**, the
-  restore/minimize button, or clicking the dark backdrop; the embed's
-  `fit()` skips sizing while fullscreen and re-fits on `fullscreenchange`
-  (reference DESIGN.md §10.7/§10.8, `compare_images/compare_images.html`).
-  The Generate result (`result-img`) and the Edit/Upscale compare sliders
-  are the candidates; a gallery (navigate between multiple results) may be
-  a later extension.
+  image results have no way to view them large. The reference
+  implementation uses the SAME pattern across ALL the image tools (not just
+  compare_images — confirmed in `smart_generate_image`, `edit_image`,
+  `upscale_image`, `virtual_try_on`):
+  - **Click the image** opens a **lightbox that fills the browser window**
+    via the **Fullscreen API** (X top-left closes, download button
+    top-right forces a download via fetch blob → object URL → anchor;
+    theme follows `prefers-color-scheme`).
+  - **Gallery mode** (`smart_generate_image`, `edit_image`, `virtual_try_on`
+    — `gallery=True`): the viewer carries a `data-gallery="1"` marker;
+    opening the lightbox walks the parent DOM and collects every image with
+    the marker, showing **‹ › buttons**, a **"n/N" counter** (bottom-right)
+    and **ArrowLeft/ArrowRight** keyboard navigation with wrap-around
+    (reference DESIGN.md §11). The download button always uses the
+    currently-shown image.
+  - **compare_images** adds its own twist: a floating **maximize button at
+    the bottom-right** opens a fullscreen overlay with its **own interactive
+    slider** (same drag/tap/hover/divider), fullscreened on the **overlay
+    element** (not `documentElement`), exit via Escape / restore button /
+    backdrop (reference DESIGN.md §10.7/§10.8).
+  In our app the candidates are the Generate result (`result-img` — a
+  lightbox + gallery would fit, as we only show the last result) and the
+  Edit/Upscale compare sliders (compare-style fullscreen like the
+  reference).
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
