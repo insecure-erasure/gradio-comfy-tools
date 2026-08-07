@@ -14,9 +14,16 @@
 <!-- Main -->
 <div class="main">
 
-  {% include "partials/nav.html" %}
+  <!-- Tabs wrap: the 🎨 dropdown is position:absolute; top:100% and needs a
+       positioned ancestor, otherwise it anchors to the page bottom (outside
+       the viewport, body has overflow:hidden) and the menu never shows. -->
+  <div class="tabs-wrap">
 
-  {% include "partials/settings_menu.html" %}
+    {% include "partials/nav.html" %}
+
+    {% include "partials/settings_menu.html" %}
+
+  </div>
 
   <!-- Content -->
   <div class="content" id="tabContent">

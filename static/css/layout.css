@@ -1,4 +1,9 @@
-/* ── Tabs (combined bar: gear + tabs + title dropdown) ── */
+  /* Positioned ancestor for the 🎨 dropdown (absolute, top:100%) */
+  .tabs-wrap {
+    position: relative;
+  }
+
+  /* Tabs (combined bar: gear + tabs + title dropdown) */
   .tabs {
     display: flex;
     gap: 0;
