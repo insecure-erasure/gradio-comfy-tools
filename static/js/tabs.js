@@ -26,13 +26,14 @@ function switchTab(name) {
       bar.style.display = 'flex';
       input.style.display = 'block';
       input.placeholder = 'Describe the image you want to generate in detail...';
-      btnCol.innerHTML = '<button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>';
+      btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate" data-requires-prompt>✨</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'edit':
       bar.style.display = 'flex';
       input.style.display = 'block';
       input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-      btnCol.innerHTML = '<button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit">🖌️</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore (same as edit but with restoration prompt)">🩹</button>';
+      // 🖌️ needs a prompt (has catcher); 🩹 restore does not (always active)
+      btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button>';
       break;
     case 'upscale':
       bar.style.display = 'flex';
@@ -43,7 +44,7 @@ function switchTab(name) {
       bar.style.display = 'flex';
       input.style.display = 'block';
       input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
-      btnCol.innerHTML = '<button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video">🎬</button>';
+      btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video" data-requires-prompt>🎬</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
   }
 
@@ -52,6 +53,9 @@ function switchTab(name) {
 
   // Per-tab toolbar in the nav (model dropdown + ⚙️ + ↺)
   renderToolbar(name);
+
+  // Enable/disable the action button(s) based on the prompt state
+  updateActionButtons();
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the

@@ -380,6 +380,34 @@
     border-color: var(--accent);
   }
 
+  /* Prompt-required action buttons: an invisible catcher sits on top while
+     the real button is disabled, so a click shows *why* (instead of doing
+     nothing). Clickjacking-style overlay — purely for feedback. */
+  .btn-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+  .btn-wrap .btn-generate {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+  }
+  .btn-catcher {
+    position: absolute;
+    inset: 0;
+    display: none;
+    border: none;
+    background: transparent;
+    opacity: 0;
+    cursor: not-allowed;
+    z-index: 2;
+  }
+  .btn-wrap:has(.btn-generate:disabled) .btn-catcher {
+    display: block;
+  }
+
   /* Inline copy button next to URL */
   .btn-copy-inline {
     flex-shrink: 0;

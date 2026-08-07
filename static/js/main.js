@@ -4,10 +4,18 @@
 // Initial calculations on page load
 window.addEventListener('DOMContentLoaded', () => {
   renderToolbar('generate'); // paint the nav toolbar FIRST (recalc needs it)
+  switchTab('generate');     // mount the action button (with catcher) for the active tab
   recalcResolution();
   loadSettings();
   relayoutPrompt();
+  updateActionButtons();
 });
+
+// Disable/enable action buttons as the shared prompt changes
+const promptInput = document.getElementById('promptInput');
+if (promptInput) {
+  promptInput.addEventListener('input', updateActionButtons);
+}
 
 // Relocate the prompt block when crossing the landscape/portrait breakpoint
 const layoutQuery = window.matchMedia('(min-width: 1024px)');
