@@ -398,3 +398,46 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 Launch a generation in the UI; verify the result URL row shows live progress
 (%, node stage) updating in real time (`⏳ Queued…` → `⚙️ SamplerCustomAdvanced
 4/8` → the result URL on completion).
+
+---
+
+## C1. Cleanup: dead CSS pruning (todo)
+
+The CSS (~1.4k lines across base/layout/components/responsive) carries rules
+inherited from the mockup that the working UI no longer uses — e.g. the
+`video-mock` block, `radio-btn` segmented controls, and the custom-ratio
+fields (`#genCustomRatio`) which are dead code in the mockup too. This is a
+low-risk cleanup; it does not change behaviour.
+
+### How to identify dead CSS
+
+1. **Grep each selector in the working code** (`templates/` + `static/js/`):
+   a rule is dead if no element matches it in the DOM. E.g.
+   `grep -rn "video-mock" templates/ static/` → the `.video-mock` CSS only
+   exists in CSS; the HTML has the class but it is a leftover (the real
+   player is a `<video>`).
+2. **Check the mockup** (`mockup.html`): many rules were ported verbatim for
+   parity but are unreachable (e.g. `.radio-btn`, the custom-ratio row).
+   Search the mockup's dead sections and confirm the working copy does not
+   use them.
+3. **Look for orphaned/duplicated rules**: components.css once had a stray
+   `pointer-events: none; }` + a duplicated `.compare-slider .handle` — these
+   are typo-orphans that silently no-op or override. `grep` for repeated
+   selectors and unmatched braces.
+4. **Use a DOM/coverage check (jsdom or the browser devtools)**: load the
+   page, exercise every tab/layout (portrait + landscape, the advanced modal,
+   compare sliders, the URL field states) and query which selectors actually
+   match. A quick heuristic: `document.querySelectorAll` for the candidates
+   returning 0 across all states ⇒ dead.
+
+Known candidates (from the last audit):
+- `.video-mock` block + its `.play-btn` / `.bar` / `.progress` (the video
+  tab shows a real `<video>`; the mock is only shown briefly as placeholder
+  — verify before removing, it is still referenced in the HTML/JS reset).
+- `.radio-btn` / `selectRadio` (segmented control kept only for the mockup;
+  the working UI uses plain buttons).
+- `#genCustomRatio` row (dead in the mockup; kept "for parity").
+
+### Validation
+- `pytest` stays green (no behaviour change).
+- No visual regression: click through all 4 tabs in portrait and landscape.
