@@ -76,7 +76,7 @@ Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 ### Input contract
 | Parameter | Type / default | Rules |
 |---|---|---|
-| `family` | select: `zimage` / `krea2` / `flux2` (default `zimage`) | selects `MODEL_CONFIGS` (model, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
+| `family` | select: `zimage` / `krea2` / `flux2` (backend default `zimage`; the UI sends `krea2` by default) | selects `MODEL_CONFIGS` (model, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
 | `prompt` | str, default "" | required in practice (validated non-empty) |
 | `aspect_ratio` | str "W:H" | normalized by GCD; default 2:3 |
 | `megapixel` | float, default 1.0 | controls total resolution (independent of AR) |
@@ -251,14 +251,16 @@ mockup directly.
 | `GET /media/{filename}?type=` | same-origin proxy of ComfyUI results | ✅ |
 | `GET /api/settings` | global settings (for 🎨) | ✅ |
 | `POST /api/settings` | persist server / media base URL (🎨) | ✅ |
+| `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) | ✅ |
+| `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) | ✅ |
 
 ### Frontend wiring progress (templates/ + static/)
 | Tab | What works | Status |
 |---|---|---|
-| Generate 🖼️ | family (human-readable label ↔ internal key), AR/MP/steps/seed, LoRA + model override via ⚙️ modal, submit → image + URL + 📋, spinner, button disabled state, reset | ✅ |
-| Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore), before/after compare slider (bar left = original, right = edited), spinner | ✅ |
-| Upscale 🔍 | compare slider Original \| Upscaled, wired to `/api/upscale`, 📁/🔗, reset | ✅ |
-| Video 🎬 | real `<video>` player from `/media`, Wan 2.1/2.2, frames/steps/seed/negative wired to `/api/video`, diffusion + LoRA via ⚙️, reset | ✅ |
+| Generate 🖼️ | model dropdown (Krea 2 default) + ⚙️ + ↺ in nav toolbar; AR/MP/steps/seed (portrait condensed to one row); LoRA row editor + model dropdown in ⚙️ modal; submit → image + URL + 📋; spinner; button disabled with empty prompt; reset | ✅ |
+| Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore; 🩹 always active), before/after compare slider, spinner | ✅ |
+| Upscale 🔍 | special layouts (portrait: seed + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, reset | ✅ |
+| Video 🎬 | real `<video>` player, Wan 2.1/2.2, frames/steps/seed; ⚙️ modal varies by version (wan22 dual high/low models + LoRAs, per-version config store); negative prompt in modal | ✅ |
 
 ### Shared UI behaviors (in static/js)
 - Loading spinner (96px ring) over the output pane while a job runs + `.busy`
@@ -279,22 +281,29 @@ mockup directly.
 
 ## B4. Settings + polish ✅ (done — pending manual validation)
 
-- 🎨 Comfy Tools dropdown → real server URL / media base URL: `POST
-  /api/settings` persists to `~/.gradio-comfy-tools.json` (via `config.py`
-  setters); menu shows the current values; theme toggle. `static/js/settings.js`.
-- ⚙️ advanced modal: values stored per tab (`window.advancedValues`); Model
-  name (Generate) and Diffusion model JSON (Video) are wired to the backend
-  calls (`model` / `diffusion` params, validated in `tools/generate.py` and
-  `tools/video.py`).
+- 🎨 settings menu → ☰ hamburger top-left; real server URL / media base URL:
+  `POST /api/settings` persists to `~/.gradio-comfy-tools.json`; theme toggle
+  persisted to localStorage. `static/js/settings.js`.
+- ⚙️ advanced modal: values stored per tab (`window.advancedValues`);
+  model/diffusion are **dropdowns from `/models/diffusion_models`**; LoRAs use
+  an **inline row editor** (dropdown + strength stepper ±0.05, up to 4),
+  filtered by model directory (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/`).
+  Video modal varies by Wan version (wan22 dual high/low) with a **per-version
+  config store** (`advancedValues.video.wan21|wan22`) and a wider modal.
+- **localStorage persistence** (`storage.js`): per-tab params, advanced
+  values, toolbar selections and theme survive page reloads.
 - Video tab: real player (`<video>` from `/media`), Wan 2.1/2.2 selector,
-  frames/steps/seed/negative wired to `/api/video`.
-- Upscale tab: compare slider with "Upscaled", wired to `/api/upscale`.
+  frames/steps/seed wired to `/api/video`; negative prompt in the modal.
+- Upscale tab: special compact layouts (portrait seed+🔍 in pane; landscape
+  🔍 above URL row).
+- Action buttons disabled when the prompt is empty (click-catcher feedback);
+  🩹 Restore and 🔍 Upscale always active.
 - ↺ resets per tab restore defaults + clear the tab's output.
-- Responsive behavior (mockup already handles it via CSS).
+- Generated image fills the output pane (100% + object-fit contain).
 - Refactor: `app.html` split into `templates/` (Jinja2 partials) + `static/`
   (CSS by role, JS one module per concern); `server.py` renders the template.
-  Smoke-tested in jsdom (24 checks). **Pending: manual validation against the
-  live ComfyUI server** (see below).
+  Smoke-tested in jsdom + headless chromium. **Pending: manual validation
+  against the live ComfyUI server** (see below).
 
 ## B5. Live events + queue (future phase — verified against ComfyUI)
 

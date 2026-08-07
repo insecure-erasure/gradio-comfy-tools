@@ -21,6 +21,10 @@
 4. **Results**: the public URL is `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. Images from `SaveImage`/`Random Preview Image`; videos from `VHS_VideoCombine` (`Output MP4`).
 5. **Config**: server URL (`COMFYUI_BASE_URL`, default `http://localhost:8188`), media base URL (`COMFYUI_MEDIA_BASE_URL`, default: derived from the server URL), optional API key.
 
+### Model listings (for the UI dropdowns)
+- `list_loras()` → `GET /models/loras`; `list_diffusion_models()` → `GET /models/diffusion_models`. Both handle a list of strings or a list of `{name}` objects.
+- Exposed to the UI via `GET /api/loras` and `GET /api/diffusion-models` (same-origin proxies).
+
 ## 3. Workflow injection pattern (tools/)
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../open-webui-comfy-tools` (listed in the contract tables of §5).

@@ -2,7 +2,7 @@
 
 > **This document is the architecture overview.** The detailed specifications live in:
 >
-> - **`FRONTEND.md`** — UI specification. **Source of truth: `mockup.html`.** Describes exactly what to build, control by control.
+> - **`FRONTEND.md`** — UI specification. **Source of truth: the code** (`templates/` + `static/`); the mockup is the historical design template.
 > - **`BACKEND.md`** — Service layer specification. **Implementation reference: the tools in `../open-webui-comfy-tools`** (workflows, injection pattern, parameter semantics).
 
 ## Overview
@@ -21,7 +21,10 @@ and a full-width prompt bar at the bottom.
 
 ## Sources of truth
 
-- **UI**: `mockup.html` is the source of truth for the frontend. `FRONTEND.md` describes it and captures every control and interaction; any UI change must first be applied to the mockup.
+- **UI**: the **code** (`templates/` + `static/`) is the source of truth for
+  the frontend. `mockup.html` is the historical design template/spec (never
+  edited for functionality); `FRONTEND.md` documents the current behavior and
+  the deviations from the mockup.
 - **Backend**: the Open WebUI tools in `../open-webui-comfy-tools` are the reference for workflow injection, parameter semantics (seed, steps, frames, LoRAs) and ComfyUI REST API interaction. Our backend reimplements the same behavior without Open WebUI-specific plumbing (valves, embeds, HTMLResponse).
 
 ## Architecture
@@ -32,12 +35,14 @@ and a full-width prompt bar at the bottom.
 │   GET /                        templates/index.html (the UI)   │
 │   POST /api/{generate,edit,upscale,video,upload}               │
 │   GET /media/{filename}?type=  same-origin proxy of results    │
-│   GET /health · /api/settings                                  │
+│   GET /health · /api/settings (GET/POST)                       │
+│   GET /api/loras · /api/diffusion-models                       │
 │   └── tools/  (per tool: workflow loading + injector)          │
 ├───────────────────────────────────────────────────────────────┤
 │ comfy_client.py  (ComfyUI REST client)                         │
 │   POST /prompt · GET /history/{id} · POST /upload/image        │
 │   GET /view?filename=&type=output                              │
+│   GET /models/loras · /models/diffusion_models                 │
 └───────────────────────────────────────────────────────────────┘
 ```
 
