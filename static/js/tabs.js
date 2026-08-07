@@ -49,6 +49,48 @@ function switchTab(name) {
 
   // Landscape: relocate the prompt block into this tab's params pane
   relayoutPrompt();
+
+  // Per-tab toolbar in the nav (model dropdown + ⚙️ + ↺)
+  renderToolbar(name);
+}
+
+// Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the
+// nav bar, right-aligned. Upscale has no model dropdown (SeedVR2 is fixed).
+function renderToolbar(tab) {
+  const tb = document.getElementById('tabsToolbar');
+  if (!tb) return;
+  let html = '';
+  if (tab === 'generate') {
+    html += `<div class="toolbar-model"><label>Model</label>
+      <select id="genModelFamily" onchange="onModelFamilyChange()">
+        <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
+        <option value="krea2" data-key="krea2" data-steps="8" data-vae="8">Krea 2</option>
+        <option value="flux2" data-key="flux2" data-steps="8" data-vae="64">FLUX.2 Klein</option>
+      </select></div>
+      <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+      <button class="btn-reset" onclick="resetGenerate()" title="Reset">↺</button>`;
+  } else if (tab === 'edit') {
+    html += `<button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+      <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>`;
+  } else if (tab === 'upscale') {
+    html += `<button class="btn-reset" onclick="resetUpscale()" title="Reset">↺</button>`;
+  } else if (tab === 'video') {
+    html += `<div class="toolbar-model"><label>Model</label>
+      <select id="videoModelVersion" onchange="toolbarValues.vidVersion = this.value">
+        <option value="wan21" data-key="wan21">Wan 2.1</option>
+        <option value="wan22" data-key="wan22">Wan 2.2</option>
+      </select></div>
+      <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+      <button class="btn-reset" onclick="resetVideo()" title="Reset">↺</button>`;
+  }
+  tb.innerHTML = html;
+  // restore persisted selections
+  if (tab === 'generate' && document.getElementById('genModelFamily')) {
+    document.getElementById('genModelFamily').value = toolbarValues.genFamily;
+  }
+  if (tab === 'video' && document.getElementById('videoModelVersion')) {
+    document.getElementById('videoModelVersion').value = toolbarValues.vidVersion;
+  }
 }
 
 // In landscape (≥1024px) the prompt block (textarea + action buttons) AND the

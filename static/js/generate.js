@@ -84,6 +84,7 @@ function onSeedInput() {
 function onModelFamilyChange() {
   const sel = document.getElementById('genModelFamily');
   const opt = sel.options[sel.selectedIndex];
+  toolbarValues.genFamily = sel.value;  // persist across tab switches
 
   // Update steps input
   const steps = parseInt(opt.getAttribute('data-steps')) || 8;

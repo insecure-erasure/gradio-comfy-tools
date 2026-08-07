@@ -12,3 +12,10 @@ let lastGeneratedUrl = null;
 
 // Active tab id ('generate' | 'edit' | 'upscale' | 'video').
 let currentTab = 'generate';
+
+// Toolbar selections persist across tab switches (the toolbar is rebuilt
+// on every switch, so we keep the values here, outside the DOM).
+let toolbarValues = {
+  genFamily: 'zimage',
+  vidVersion: 'wan21',
+};

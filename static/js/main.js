@@ -3,6 +3,7 @@
 
 // Initial calculations on page load
 window.addEventListener('DOMContentLoaded', () => {
+  renderToolbar('generate'); // paint the nav toolbar FIRST (recalc needs it)
   recalcResolution();
   loadSettings();
   relayoutPrompt();
