@@ -35,6 +35,7 @@ and a full-width prompt bar at the bottom.
 │   GET /                        templates/index.html (the UI)   │
 │   POST /api/{generate,edit,upscale,video,upload}               │
 │   POST /api/check-image         (validate a source URL/filename)│
+│   GET /api/progress · POST /api/cancel  (live progress + stop) │
 │   GET /media/{filename}?type=  same-origin proxy of results    │
 │   GET /health · /api/settings (GET/POST)                       │
 │   GET /api/loras · /api/diffusion-models                       │
