@@ -413,7 +413,9 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   In our app the candidates are the Generate result (`result-img` — a
   lightbox + gallery would fit, as we only show the last result) and the
   Edit/Upscale compare sliders (compare-style fullscreen like the
-  reference).
+  reference). **Note**: the top-right corner of the output panes is free
+  (the 📁 button moved to the bottom-right cluster) — natural spot for a
+  maximize/fullscreen button.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
