@@ -18,11 +18,24 @@ function generateVideo() {
     seed = parseInt(seedEl?.value) || 0;
   }
   const prompt = document.getElementById('promptInput')?.value || '';
-  // Advanced modal (⚙️): negative prompt, diffusion model override + LoRA config
+  // Advanced modal (⚙️): negative prompt, diffusion model override + LoRA config.
+  // Video stores per-version config (wan21/wan22) — read the active one.
   const adv = (window.advancedValues && window.advancedValues.video) || {};
-  const negative = adv.negative || '';
-  const loraConfig = adv.lora || '[]';
-  const diffusion = adv.diffusion || '';
+  const vstore = adv[mv] || adv; // per-version store, fallback to flat
+  const negative = vstore.negative || '';
+  const diffusion = vstore.diffusion || '';
+  // LoRAs: wan21 -> loraSets.main (no path); wan22 -> loraSets.high/low (with
+  // path, the backend filters them per path). Fall back to adv.lora for older
+  // sessions.
+  const loraSets = vstore.loraSets || {};
+  let loraConfig = adv.lora || '[]';
+  if (loraSets.main) loraConfig = loraSets.main;
+  else if (loraSets.high || loraSets.low) {
+    loraConfig = JSON.stringify([
+      ...(JSON.parse(loraSets.high || '[]')).map(r => ({ ...r, path: 'high' })),
+      ...(JSON.parse(loraSets.low || '[]')).map(r => ({ ...r, path: 'low' })),
+    ]);
+  }
 
   if (!prompt.trim()) return showToast('Please write a prompt first');
 
@@ -95,9 +108,14 @@ function resetVideo() {
   document.getElementById('videoSeed').value = '0';
   document.getElementById('videoSeedRandom').checked = true;
   document.getElementById('videoSeed').disabled = true;
-  // Clear the advanced-modal negative prompt too
+  // Clear the active version's advanced-modal config (negative, loras, model)
   if (window.advancedValues && window.advancedValues.video) {
-    window.advancedValues.video.negative = '';
+    const version = mv ? mv.value : 'wan21';
+    if (window.advancedValues.video[version]) {
+      delete window.advancedValues.video[version];
+    } else {
+      window.advancedValues.video.negative = '';
+    }
   }
   clearPane('videoOutputPane');
   showToast('Video parameters reset');
