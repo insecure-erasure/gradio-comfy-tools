@@ -32,6 +32,7 @@ const modalConfigs = {
     title: 'Generate Video',
     fields: [
       { label: 'Diffusion model (JSON)', type: 'textarea', placeholder: 'Model file(s). Object for Wan 2.1, array for Wan 2.2' },
+      { label: 'Negative prompt', type: 'textarea', placeholder: 'Optional — overrides the workflow default negative' },
       { label: 'LoRA config (JSON)', type: 'textarea', placeholder: '[{"name":"my-lora.safetensors","strength":1.0,"path":"high"}]' },
     ]
   }
@@ -60,6 +61,19 @@ function openModal(tab) {
   });
 
   document.getElementById('modalBody').innerHTML = html;
+
+  // Pre-fill with values saved for this tab in this session
+  const saved = (window.advancedValues && window.advancedValues[tab]) || {};
+  document.querySelectorAll('#modalBody .field input, #modalBody .field textarea').forEach(f => {
+    const label = f.previousElementSibling?.textContent;
+    const key = label === 'LoRA config (JSON)' ? 'lora'
+      : label === 'Model name' ? 'model'
+      : label === 'Diffusion model (JSON)' ? 'diffusion'
+      : label === 'Negative prompt' ? 'negative'
+      : null;
+    if (key && saved[key] !== undefined) f.value = saved[key];
+  });
+
   backdrop.classList.add('show');
 }
 
@@ -84,6 +98,7 @@ function saveAdvanced() {
     if (label === 'LoRA config (JSON)') mapped.lora = values[label] || '[]';
     if (label === 'Model name') mapped.model = values[label] || '';
     if (label === 'Diffusion model (JSON)') mapped.diffusion = values[label] || '';
+    if (label === 'Negative prompt') mapped.negative = values[label] || '';
   });
   window.advancedValues[currentModalTab] = mapped;
   showToast('Advanced parameters saved');

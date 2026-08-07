@@ -18,9 +18,9 @@ function generateVideo() {
     seed = parseInt(seedEl?.value) || 0;
   }
   const prompt = document.getElementById('promptInput')?.value || '';
-  const negative = document.getElementById('videoNegative')?.value || '';
-  // Advanced modal (⚙️): diffusion model override + LoRA config
+  // Advanced modal (⚙️): negative prompt, diffusion model override + LoRA config
   const adv = (window.advancedValues && window.advancedValues.video) || {};
+  const negative = adv.negative || '';
   const loraConfig = adv.lora || '[]';
   const diffusion = adv.diffusion || '';
 
@@ -95,8 +95,10 @@ function resetVideo() {
   document.getElementById('videoSeed').value = '0';
   document.getElementById('videoSeedRandom').checked = true;
   document.getElementById('videoSeed').disabled = true;
-  const neg = document.getElementById('videoNegative');
-  if (neg) neg.value = '';
+  // Clear the advanced-modal negative prompt too
+  if (window.advancedValues && window.advancedValues.video) {
+    window.advancedValues.video.negative = '';
+  }
   clearPane('videoOutputPane');
   showToast('Video parameters reset');
 }
