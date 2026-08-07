@@ -152,6 +152,9 @@ step 4 with 4n+1 snap and 81–161 clamp.
 
 Two stacked `<img>` with `clip-path` via `--p`, draggable divider, labels
 Original/Edited (or Upscaled) — ported from the reference compare_images.
+The slider **fills the output pane** (width/height 100%) and the images use
+`object-fit: contain` (like the Generate result) so both sides are fully
+visible without cropping; the divider/handle follow `--p`.
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
