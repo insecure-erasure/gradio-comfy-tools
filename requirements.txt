@@ -1,0 +1,12 @@
+# Comfy Tools — Python dependencies
+#
+# FastAPI app (server.py) + sync ComfyUI REST/WS client (comfy_client.py).
+# The app is served with:  uvicorn server:app --host 0.0.0.0 --port 8000
+
+fastapi==0.141.1
+uvicorn==0.52.1
+httpx==0.28.1          # REST client + TestClient for the API tests
+websockets==17.0.1     # live progress: per-job ComfyUI WebSocket listener
+
+# Development / tests
+pytest==9.1.1
