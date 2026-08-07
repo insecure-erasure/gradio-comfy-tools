@@ -33,14 +33,24 @@
       padding: 12px 14px;
       gap: 8px;
     }
-    /* Generate: condense W/H/AR/MP/Steps/Seed into a single wrapping line */
-    #tab-generate .params-pane .field-row {
-      flex-wrap: wrap;
+    /* Generate: condense W/H/AR/MP + Steps/Seed into one line in portrait
+       (landscape keeps the two rows as in the mockup). The two .field-row
+       wrappers become display:contents; the pane becomes a 6-column grid so
+       all controls sit on a single row. */
+    #tab-generate .params-pane {
+      display: grid;
+      grid-template-columns: repeat(6, auto);
+      align-items: center;
+      column-gap: 8px;
       row-gap: 4px;
     }
-    #tab-generate .params-pane .field-inline { flex: 1 1 auto !important; }
-    #tab-generate .params-pane .field-inline:first-child,
-    #tab-generate .params-pane .field-inline:nth-child(2) { flex: 0 0 auto !important; }
+    #tab-generate .params-pane .field-row {
+      display: contents;
+    }
+    #tab-generate .params-pane .field-inline {
+      min-width: 0;
+    }
+    #tab-generate .params-pane .field-inline .stepper input { width: 52px; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     .bottom-bar .prompt-input-wrap textarea { min-height: 44px; }
