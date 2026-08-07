@@ -1,0 +1,17 @@
+<!-- Settings dropdown menu -->
+  <div class="settings-dropdown" id="settingsMenu">
+    <div class="menu-section">Appearance</div>
+    <button class="menu-item" onclick="toggleTheme(); hideSettingsMenu();">
+      <span class="item-icon">🌓</span> Toggle light / dark theme
+    </button>
+    <div class="menu-sep"></div>
+    <div class="menu-section">ComfyUI Connection</div>
+    <button class="menu-item" onclick="configureServerUrl(); hideSettingsMenu();">
+      <span class="item-icon">🔌</span> Server URL
+      <span id="serverUrlValue" style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">…</span>
+    </button>
+    <button class="menu-item" onclick="configureMediaBaseUrl(); hideSettingsMenu();">
+      <span class="item-icon">🖼️</span> Media base URL
+      <span id="mediaBaseUrlValue" style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">…</span>
+    </button>
+  </div>

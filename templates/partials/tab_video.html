@@ -1,0 +1,66 @@
+<!-- ═══ TAB 4: Generate Video ═══ -->
+    <div class="tab-panel" id="tab-video">
+      <div class="split">
+        <div class="output-pane" id="videoOutputPane">
+          <button class="output-overlay-btn top-right" onclick="uploadForTab('video')" title="Upload image">📁</button>
+          <div class="source-url-field">
+            <input type="text" class="source-url-input" id="videoSourceUrl" placeholder="Paste image URL…" />
+          </div>
+          <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('video')" title="Use previous generation">🔗</button>
+          <div class="video-mock" onclick="showToast('Video player (WIP)')">
+            <div class="play-btn">▶</div>
+            <div class="bar"><div class="progress"></div></div>
+          </div>
+          <div class="gen-spinner" id="videoSpinner"><div class="ring"></div></div>
+        </div>
+        <div class="params-pane">
+          <!-- Model row -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select id="videoModelVersion">
+                <option value="wan21" data-key="wan21">Wan 2.1</option>
+                <option value="wan22" data-key="wan22">Wan 2.2</option>
+              </select>
+            </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+            <button class="btn-reset" onclick="resetVideo()" title="Reset">↺</button>
+          </div>
+          <!-- Row: Frames | Steps | Seed + Random -->
+          <div class="field-row">
+            <div class="field-inline" style="flex:0.7">
+              <label title="Frames (4n+1, 81–161)">🎞️</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
+                <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
+                <button class="stepper-btn" onclick="stepVideoFrames(4)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field-inline" style="flex:0.9">
+              <label title="Steps (4–10)">👣</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
+                <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
+                <button class="stepper-btn" onclick="stepVideoSteps(1)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field-inline" style="flex:1.8">
+              <label title="Seed">🌱</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
+                <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
+                <button class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase">+</button>
+              </div>
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
+                🎲
+              </label>
+            </div>
+          </div>
+          <div class="field">
+            <label>Negative Prompt</label>
+            <textarea rows="2" id="videoNegative" placeholder="Optional — overrides default"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>

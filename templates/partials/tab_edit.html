@@ -1,0 +1,57 @@
+<!-- ═══ TAB 2: Edit Image ═══ -->
+    <div class="tab-panel" id="tab-edit">
+      <div class="split">
+        <div class="output-pane" id="editOutputPane">
+          <button class="output-overlay-btn top-right" onclick="uploadForTab('edit')" title="Upload image">📁</button>
+          <div class="source-url-field">
+            <input type="text" class="source-url-input" id="editSourceUrl" placeholder="Paste image URL…" />
+          </div>
+          <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('edit')" title="Use previous generation">🔗</button>
+          <div class="compare-slider" id="editCompare" style="display:none">
+            <img class="side before" id="editBefore" src="" draggable="false" alt="Original">
+            <img class="side after" id="editAfter" src="" draggable="false" alt="Edited">
+            <span class="label">Original</span>
+            <span class="label" style="right:12px;left:auto">Edited</span>
+            <div class="divider"></div>
+            <div class="handle"><span></span><span></span></div>
+          </div>
+          <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
+        </div>
+        <div class="params-pane">
+          <!-- Model row -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select>
+                <option>flux-2-klein-9b-nvfp4</option>
+              </select>
+            </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+            <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>
+          </div>
+          <!-- Row: Steps | Seed + Random -->
+          <div class="field-row">
+            <div class="field-inline">
+              <label title="Steps">👣</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepEditSteps(-1)" title="Decrease">−</button>
+                <input type="number" id="editSteps" value="6" min="1" max="15" step="1" oninput="onEditStepsInput()">
+                <button class="stepper-btn" onclick="stepEditSteps(1)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field-inline" style="flex:1.6">
+              <label title="Seed">🌱</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepEditSeed(-1)" title="Decrease">−</button>
+                <input type="number" id="editSeed" value="0" min="0" step="1" disabled oninput="onEditSeedInput()">
+                <button class="stepper-btn" onclick="stepEditSeed(1)" title="Increase">+</button>
+              </div>
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
+                🎲
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

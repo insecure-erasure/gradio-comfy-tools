@@ -1,0 +1,24 @@
+<nav class="tabs" id="tabNav">
+    <div class="tabs-output-zone">
+      <div class="tabs-inner">
+        <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
+          <span class="tab-icon">🖼️</span><span class="tab-label">Generate</span>
+        </button>
+        <button class="tab-btn" data-tab="edit" onclick="switchTab('edit')">
+          <span class="tab-icon">✏️</span><span class="tab-label">Edit</span>
+        </button>
+        <button class="tab-btn" data-tab="upscale" onclick="switchTab('upscale')">
+          <span class="tab-icon">🔍</span><span class="tab-label">Upscale</span>
+        </button>
+        <button class="tab-btn" data-tab="video" onclick="switchTab('video')">
+          <span class="tab-icon">🎬</span><span class="tab-label">Video</span>
+        </button>
+      </div>
+    </div>
+    <div class="tabs-params-zone">
+      <button class="tabs-title" onclick="toggleSettingsMenu(event)">
+        🎨 Comfy Tools
+        <span class="tabs-arrow">▾</span>
+      </button>
+    </div>
+</nav>

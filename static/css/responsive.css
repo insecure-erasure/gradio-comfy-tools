@@ -1,0 +1,43 @@
+/* ── Responsive ────────────────────────────── */
+  @media (max-width: 1023px) {
+    /* Portrait: stacked layout fills viewport, params scroll if needed */
+
+    /* Icons only — hide text labels to save horizontal space */
+    .tab-btn { padding: 10px 10px; }
+    .tab-label { display: none; }
+    .tab-icon { margin-right: 0; font-size: 1rem; }
+    .btn-col { width: 40px; }
+    .btn-generate { font-size: 1rem; }
+
+    /* Stack: output on top, params fill remaining, prompt at bottom */
+    .split {
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    .output-pane {
+      flex: 0 0 auto;
+      min-height: 0;
+      max-height: 50vh;
+    }
+    .params-pane {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-width: none;
+      border-left: none;
+      border-top: 1px solid var(--border);
+      overflow-y: auto;
+    }
+    .tabs-params-zone { max-width: none; }
+  }
+  @media (max-width: 767px) {
+    .tabs-output-zone { padding-left: 4px; }
+    .tabs-inner { padding-left: 8px; }
+    .tabs-title { font-size: .78rem; padding: 4px 8px; }
+    .output-pane { padding: 16px; }
+    .source-url-field { bottom: 10px; left: 10px; width: 70%; }
+    .source-url-input { width: 100%; }
+    .params-pane { padding: 14px; gap: 10px; }
+    .bottom-bar { padding: 8px 8px; }
+    .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
+  }

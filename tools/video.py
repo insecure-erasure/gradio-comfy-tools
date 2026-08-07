@@ -127,6 +127,44 @@ def resolve_workflow(workflow: dict[str, dict], is_dual: bool) -> dict[str, dict
     return resolved
 
 
+def _parse_diffusion_config(model_version: str, diffusion: str) -> dict[str, str]:
+    """Parse the ⚙️ advanced "Diffusion model (JSON)" override.
+
+    Returns a {path_key: model_filename} map (``"main"`` for wan21,
+    ``"high"/"low"`` for wan22). Empty string means "keep defaults".
+    Accepts either a plain filename or a JSON object:
+
+        wan21: "Wan2.1-x.safetensors" | {"model": "Wan2.1-x.safetensors"}
+        wan22: {"high": "...-high.safetensors", "low": "...-low.safetensors"}
+    """
+    diffusion = (diffusion or "").strip()
+    if not diffusion:
+        return {}
+    try:
+        parsed = json.loads(diffusion)
+    except json.JSONDecodeError:
+        parsed = diffusion  # treat as a plain filename
+    if isinstance(parsed, str):
+        if model_version == "wan22":
+            raise VideoError('wan22 diffusion override must be JSON: {"high": ..., "low": ...}')
+        return {"main": parsed.strip()}
+    if not isinstance(parsed, dict):
+        raise VideoError("diffusion must be a filename or a JSON object")
+    out: dict[str, str] = {}
+    if model_version == "wan22":
+        for key in ("high", "low"):
+            if parsed.get(key):
+                out[key] = str(parsed[key]).strip()
+    else:
+        val = parsed.get("model") or parsed.get("main")
+        if val:
+            out["main"] = str(val).strip()
+    for name in out.values():
+        if not name or name.endswith((".json", ".yaml", ".yml")):
+            raise VideoError(f"invalid diffusion model filename: {name!r}")
+    return out
+
+
 def _filter_loras_for_path(parsed_loras: list[Any], path: str) -> list[dict]:
     """Filter a parsed lora_config to those applicable to the given path."""
     out: list[dict] = []
@@ -153,6 +191,7 @@ def build_workflow(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    diffusion: str = "",
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta)."""
     if model_version not in VIDEO_MODEL_CONFIGS:
@@ -172,6 +211,7 @@ def build_workflow(
     resolved_frames = _common.snap_frames(frames)
     seed_arg = _common.resolve_seed(seed)
     loras = _common.parse_lora_config(lora_config)
+    diffusion_override = _parse_diffusion_config(model_version, diffusion)
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf, is_dual)
@@ -214,6 +254,9 @@ def build_workflow(
             nodes[f"nag {path_name}"]["inputs"]["nag_alpha"] = pc["nag_alpha"]
             nodes[f"nag {path_name}"]["inputs"]["nag_tau"] = pc["nag_tau"]
             _common.apply_loras(nodes[f"lora {path_name}"]["inputs"], _filter_loras_for_path(loras, path_name))
+        # Diffusion model override from the ⚙️ advanced modal
+        for path_name, model_name in diffusion_override.items():
+            nodes[f"unet {path_name}"]["inputs"]["unet_name"] = model_name
     else:
         pc = cfg
         k = nodes["ksampler main"]
@@ -227,6 +270,9 @@ def build_workflow(
         nodes["nag main"]["inputs"]["nag_alpha"] = pc["nag_alpha"]
         nodes["nag main"]["inputs"]["nag_tau"] = pc["nag_tau"]
         _common.apply_loras(nodes["lora main"]["inputs"], _filter_loras_for_path(loras, "main"))
+        # Diffusion model override from the ⚙️ advanced modal
+        for path_name, model_name in diffusion_override.items():
+            nodes[f"unet {path_name}"]["inputs"]["unet_name"] = model_name
 
     meta = {
         "model_version": model_version,
@@ -249,6 +295,7 @@ def generate_video(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    diffusion: str = "",
     timeout: float = 300.0,
 ) -> str:
     """Run the Video workflow and return the output MP4 URL."""
@@ -263,6 +310,7 @@ def generate_video(
         steps=steps,
         seed=seed,
         lora_config=lora_config,
+        diffusion=diffusion,
     )
     with ComfyClient(settings=settings) as client:
         prompt_id = client.queue_prompt(wf)

@@ -6,7 +6,7 @@ UI in `mockup.html`, workflows in `workflows/`). The plan has **two parts**:
 - **Part A — Backend** (this document, §A0–A6): ComfyUI infrastructure + one
   tool per tab. **DONE + validated manually.**
 - **Part B — Frontend** (§B0–B4): the web UI. **Re-scoped**: FastAPI +
-  `app.html` (a working copy of the mockup) instead of Gradio — see §B below.
+  a modular working copy of the mockup (templates/ + static/) instead of Gradio — see §B below.
 
 Every phase ends with a **Manual validation** block: concrete steps and
 expected result. Do not move to the next phase until the user validates it.
@@ -220,7 +220,7 @@ filenames between steps; green apple rotating video confirmed.
 
 # Part B — Frontend
 
-## Decision: FastAPI + app.html (not Gradio) ✅ decided
+## Decision: FastAPI + modular frontend (not Gradio) ✅ decided
 
 Gradio 6's theming could not reproduce the mockup design (the mockup is the
 source of truth per FRONTEND.md). A Gradio experiment lived on branch
@@ -229,17 +229,19 @@ puppeteer it still felt crude, so it was abandoned in favor of serving the
 mockup directly.
 
 - **`mockup.html`** = the design template/spec — **never edited for functionality**.
-- **`app.html`** = a working copy of the mockup where the fake buttons call the
-  real backend. This is the page served at `/`.
-- **`server.py`** (FastAPI) = serves `app.html` at `/` and exposes the API that
-  reuses the validated Part A tools. Media (images/videos) is **proxied** via
-  `/media/{filename}?type=...` so the browser never talks to the ComfyUI host
-  directly (no CORS / safehttpx host-validation issues).
+- **`templates/` + `static/`** = a modular working copy of the mockup (Jinja2
+  partials per tab + one JS module per concern + CSS split by role). The fake
+  buttons call the real backend. This is the page served at `/`.
+- **`server.py`** (FastAPI) = renders `templates/index.html` at `/` (Jinja2),
+  serves `static/`, and exposes the API that reuses the validated Part A
+  tools. Media (images/videos) is **proxied** via `/media/{filename}?type=...`
+  so the browser never talks to the ComfyUI host directly (no CORS /
+  safehttpx host-validation issues).
 
 ### Server endpoints
 | Endpoint | Purpose | Status |
 |---|---|---|
-| `GET /` | serves `app.html` | ✅ |
+| `GET /` | renders `templates/index.html` (+ `static/`) | ✅ |
 | `GET /health` | server + ComfyUI health | ✅ |
 | `POST /api/generate` | Generate tab | ✅ |
 | `POST /api/edit` | Edit tab (mode edit/restore) | ✅ |
@@ -248,16 +250,17 @@ mockup directly.
 | `POST /api/upload` | 📁 upload → ComfyUI temp filename | ✅ |
 | `GET /media/{filename}?type=` | same-origin proxy of ComfyUI results | ✅ |
 | `GET /api/settings` | global settings (for 🎨) | ✅ |
+| `POST /api/settings` | persist server / media base URL (🎨) | ✅ |
 
-### app.html wiring progress
+### Frontend wiring progress (templates/ + static/)
 | Tab | What works | Status |
 |---|---|---|
-| Generate 🖼️ | family (human-readable label ↔ internal key), AR/MP/steps/seed, LoRA via ⚙️ modal, submit → image + URL + 📋, spinner, button disabled state, reset | ✅ |
+| Generate 🖼️ | family (human-readable label ↔ internal key), AR/MP/steps/seed, LoRA + model override via ⚙️ modal, submit → image + URL + 📋, spinner, button disabled state, reset | ✅ |
 | Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore), before/after compare slider (bar left = original, right = edited), spinner | ✅ |
-| Upscale 🔍 | — (compare slider ready, source field + 📁 + 🔗 exist) | ⏳ next |
-| Video 🎬 | — (mock player, source field + 📁 + 🔗 exist) | ⏳ after Upscale |
+| Upscale 🔍 | compare slider Original \| Upscaled, wired to `/api/upscale`, 📁/🔗, reset | ✅ |
+| Video 🎬 | real `<video>` player from `/media`, Wan 2.1/2.2, frames/steps/seed/negative wired to `/api/video`, diffusion + LoRA via ⚙️, reset | ✅ |
 
-### Shared UI behaviors (done in app.html)
+### Shared UI behaviors (in static/js)
 - Loading spinner (96px ring) over the output pane while a job runs + `.busy`
   dim + `:disabled` visual on the action button.
 - `api()` with AbortController timeout (240s) so a hung request never leaves
@@ -266,18 +269,32 @@ mockup directly.
 - Compare slider ported from `../open-webui-comfy-tools/compare_images`
   (two stacked `<img>`, `clip-path` via `--p`, pointer drag/hover).
 - Upload via hidden `<input type=file>` → `POST /api/upload`.
+- 🎨 settings menu (theme + server/media base URL) → `GET/POST /api/settings`
+  persisted to `~/.gradio-comfy-tools.json`; values shown in the menu.
+- Modular structure: `templates/index.html` + `templates/partials/*.html`
+  (Jinja2 includes), `static/js/{state,api,source,tabs,generate,edit,upscale,
+  video,settings,modal,main}.js`, `static/css/{base,layout,components,
+  responsive}.css`. Smoke-tested in a DOM (jsdom): all tab flows, resets,
+  settings and modal wiring verified — 24/24 checks, no JS errors.
 
-## B4. Remaining (settings + polish)
+## B4. Settings + polish ✅ (done — pending manual validation)
 
-- 🎨 Comfy Tools dropdown → real server URL / media base URL (writes
-  `config.py` via a new `POST /api/settings`), theme toggle.
-- ⚙️ advanced modal: already stores values per tab in `app.html`
-  (`window.advancedValues`); wire Model name / Diffusion model (JSON) to the
-  backend calls (currently only LoRA config is used).
-- Video tab: real player (`<video>` from `/media`), frames/steps/seed/negative
-  controls wired to `/api/video`.
-- Upscale tab: compare slider with "Upscaled", wire to `/api/upscale`.
+- 🎨 Comfy Tools dropdown → real server URL / media base URL: `POST
+  /api/settings` persists to `~/.gradio-comfy-tools.json` (via `config.py`
+  setters); menu shows the current values; theme toggle. `static/js/settings.js`.
+- ⚙️ advanced modal: values stored per tab (`window.advancedValues`); Model
+  name (Generate) and Diffusion model JSON (Video) are wired to the backend
+  calls (`model` / `diffusion` params, validated in `tools/generate.py` and
+  `tools/video.py`).
+- Video tab: real player (`<video>` from `/media`), Wan 2.1/2.2 selector,
+  frames/steps/seed/negative wired to `/api/video`.
+- Upscale tab: compare slider with "Upscaled", wired to `/api/upscale`.
+- ↺ resets per tab restore defaults + clear the tab's output.
 - Responsive behavior (mockup already handles it via CSS).
+- Refactor: `app.html` split into `templates/` (Jinja2 partials) + `static/`
+  (CSS by role, JS one module per concern); `server.py` renders the template.
+  Smoke-tested in jsdom (24 checks). **Pending: manual validation against the
+  live ComfyUI server** (see below).
 
 ## B5. Live events + queue (future phase — verified against ComfyUI)
 
@@ -331,7 +348,7 @@ generation:
 feature** — the browser decodes the intermediate latent itself with a tiny
 approx VAE (e.g. `taesd_decoder`, `taef1_decoder` from `models/vae_approx`)
 when it sees the `progress`. The ws does **not** send the latent, so we cannot
-reproduce that from `app.html` without a node.
+reproduce that from the frontend without a node.
 
 **To get real live previews** (option for B5): add a preview node to the
 workflow that decodes the intermediate latent on each step, e.g.:
@@ -343,14 +360,14 @@ workflow that decodes the intermediate latent on each step, e.g.:
   re-compress (JPEG/PNG/WEBP).
 
 That node would emit `executed` with an image **per step**, which the ws
-relays — giving real in-progress previews in `app.html`. (Not yet executed in
+relays — giving real in-progress previews in the frontend. (Not yet executed in
 this repo's workflows; the per-step emission is inferred from the node design.)
 
 ### What B5 would add
 - `comfy_client` (or a new `events.py`) connects to `/ws?clientId=<same uuid
   used for POST /prompt>` and re-emits events to the browser via SSE or a
   server WebSocket (`/api/events`).
-- `app.html` shows live: "loading model…", "sampling 2/4 (50%)", queue
+- The frontend (`static/js`) shows live: "loading model…", "sampling 2/4 (50%)", queue
   position, and live previews — the latter **require** adding the preview node
   (tiny-decoder + `ImagePreviewFromLatent+`) to the workflows (see above; the
   ws alone only gives numeric `progress`).

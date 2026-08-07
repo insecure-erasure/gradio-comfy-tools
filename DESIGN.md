@@ -29,7 +29,7 @@ and a full-width prompt bar at the bottom.
 ```
 ┌───────────────────────────────────────────────────────────────┐
 │ server.py  (FastAPI — serves the UI + API)                     │
-│   GET /                        app.html (the UI)               │
+│   GET /                        templates/index.html (the UI)   │
 │   POST /api/{generate,edit,upscale,video,upload}               │
 │   GET /media/{filename}?type=  same-origin proxy of results    │
 │   GET /health · /api/settings                                  │
@@ -43,13 +43,14 @@ and a full-width prompt bar at the bottom.
 
 - **`mockup.html`** = the design template/spec (source of truth for the UI,
   never edited for functionality).
-- **`app.html`** = a working copy of the mockup where the fake buttons call the
-  real backend via `server.py`. This is the page served at `/`.
+- **`templates/` + `static/`** = a modular working copy of the mockup (Jinja2
+  partials per tab, JS module per concern, CSS by role) where the fake buttons
+  call the real backend via `server.py`. This is the page served at `/`.
 
 Generation flow:
 
 1. The user fills in parameters and prompt, then clicks the action button (✨/🖌️/🩹/🔍/🎬) in the bottom bar.
-2. `app.html` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
+2. `static/js/*` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
 3. `server.py` calls `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
 4. `comfy_client.py` does `POST /prompt`, then polls `GET /history/{prompt_id}` until completion.
 5. The result (image or video) is proxied by `server.py` at `/media/{filename}?type=...` (same-origin, avoids CORS/host validation) and displayed in the output pane; the direct ComfyUI URL is shown for copy (📋) and chaining (🔗).
@@ -79,8 +80,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Design template/spec — never edited for functionality |
-| `app.html` | Working copy of the mockup wired to the real backend (served at `/`) |
-| `server.py` | FastAPI app — serves app.html + the API (reuses tools/) |
+| `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |
+| `server.py` | FastAPI app — renders templates/ + serves static/ + the API (reuses tools/) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see PLAN.md A0) |
 | `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
 | `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |

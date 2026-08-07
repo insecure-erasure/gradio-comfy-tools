@@ -159,7 +159,7 @@ Footer: `Cancel` + `Save`. Esc or ✕ closes without saving; Save applies and cl
 
 ### 4.8 Toast
 
-Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow submitted to ComfyUI", etc.). In the real app this is the mockup's toast element (already implemented in `app.html`).
+Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow submitted to ComfyUI", etc.). In the real app this is the mockup's toast element (implemented in `static/js/api.js`).
 
 ### 4.9 Result URL
 
@@ -167,10 +167,12 @@ Floating bottom notifications (`showToast`) for WIP and statuses ("Workflow subm
 
 ## 5. How the mockup maps to the implementation
 
-The UI is `app.html` — a working copy of the mockup where the WIP buttons call
-the real backend. Each mockup element has its counterpart in the implementation:
+The UI is a **modular working copy** of the mockup where the WIP buttons call
+the real backend: `templates/` (Jinja2 partials, one per tab + shell) +
+`static/css/` (base/layout/components/responsive) + `static/js/` (one module
+per concern). `mockup.html` stays untouched as the design template/spec.
 
-| Mockup element | In `app.html` / `server.py` |
+| Mockup element | In the modular frontend / `server.py` |
 |---|---|
 | Tabs bar + tabs | Manual tab switching (state + visibility), params persist |
 | model-row (Model dropdown + ⚙️ + ↺) | `<select>`/dropdown + ⚙️ (advanced modal) + ↺ (reset) |
@@ -184,25 +186,29 @@ the real backend. Each mockup element has its counterpart in the implementation:
 | 📁 / 🔗 overlays + source URL field | 📁 opens file picker → `POST /api/upload`; 🔗 fills the field with `lastGeneratedUrl`; the field value is the tool's `image` |
 | Prompt textarea | `#promptInput` textarea (bottom bar) |
 | ✨🖌️🩹🔍🎬 buttons | bottom-bar action buttons → `fetch` to `/api/{tool}` |
-| Advanced modal | HTML overlay, values stored per tab (`window.advancedValues`) |
+| Advanced modal | HTML overlay, values stored per tab (`window.advancedValues`) → sent to the API (`model` / `diffusion` overrides + LoRA config) |
 | 🎨 dropdown (theme, server URL, media base URL) | settings menu → `GET/POST /api/settings` |
 | Toast | `#toast` element |
 | Result URL + 📋 | `#resultUrl` + copy button |
 
 ## 6. Mockup WIP placeholders → real behavior
 
-| Element | In the mockup (WIP) | Real behavior (`app.html` + `server.py`) |
+| Element | In the mockup (WIP) | Real behavior (frontend modules + `server.py`) |
 |---|---|---|
 | 📁 Upload image | `showToast('File picker (WIP)')` | file picker → `POST /api/upload` → ComfyUI temp filename → fills the source field |
 | 🔗 Use previous generation + URL field | `usePreviousSource()` fills the field with `lastGeneratedUrl` | same (works); the field value feeds the tool's `image` input (filename-vs-URL auto-detection, BACKEND.md §6); empty on generate → warning toast |
-| ↺ Reset | `showToast('Parameters reset')` | real reset of that tab's parameters |
 | Action buttons | fake URL (`ComfyUI_<ts>.png`) | real submission via `server.py` → `tools/*` → `comfy_client` |
-| 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | `GET /api/settings` (currently read-only; B4 will persist) |
-| Advanced modal Save | `console.log` | stores per-tab values in `window.advancedValues` (LoRA config feeds the API) |
+| 🎨 dropdown (Server URL / Media base URL) | `showToast('... (WIP)')` | `GET/POST /api/settings` — global settings, persisted to `~/.gradio-comfy-tools.json` (`static/js/settings.js`) |
+| Advanced modal Save | `console.log` | stores per-tab values in `window.advancedValues` (LoRA config + `model`/`diffusion` overrides feed the API calls) |
+| ↺ Reset | `showToast('Parameters reset')` | real reset of that tab's parameters + clears its output (`resetGenerate/resetEdit/resetUpscale/resetVideo`) |
+| Video tab | mock player | real `<video>` from `/media` proxy (`generateVideo` → `POST /api/video`) |
+| Upscale tab | fake result URL | real compare slider Original|Upscaled (`generateUpscale` → `POST /api/upscale`) |
 
 > Implementation note: the frontend is **not** Gradio — Gradio 6 could not
 > reproduce the mockup's artisanal design (its shell fought the custom CSS).
-> The mockup's HTML/CSS/JS is served directly via FastAPI (`server.py`).
+> The mockup's HTML/CSS/JS is served via FastAPI (`server.py`) as modular
+> Jinja2 partials (`templates/partials/*.html`) + static assets
+> (`static/css/*.css`, `static/js/*.js`).
 
 ## 7. Session state
 

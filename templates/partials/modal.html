@@ -1,0 +1,16 @@
+<!-- Advanced params modal -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <h2 id="modalTitle">⚙️ Advanced Parameters</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Filled dynamically by openModal() -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAdvanced()">Save</button>
+    </div>
+  </div>
+</div>

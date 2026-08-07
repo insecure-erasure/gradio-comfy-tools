@@ -1,0 +1,27 @@
+:root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --surface-hover: #1c2a4a;
+    --accent: #e94560;
+    --accent-hover: #ff6b81;
+    --text: #eaeaea;
+    --text-secondary: #a0a0b0;
+    --border: #2a2a4a;
+    --radius: 8px;
+    --shadow: 0 4px 24px rgba(0,0,0,.4);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --tab-height: 44px;
+    --bottom-height: 120px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { height: 100%; }
+  body {
+    height: 100dvh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }

@@ -104,6 +104,21 @@ def test_build_workflow_explicit_params(wf):
     assert nodes["RandomNoise"]["inputs"]["noise_seed"] == 7
 
 
+def test_build_workflow_model_override(wf):
+    """⚙️ advanced: ``model`` overrides the family default unet_name."""
+    built, meta = build_workflow(
+        wf, family="zimage", prompt="hi", model="my-custom-model.safetensors"
+    )
+    nodes = resolve_workflow(built)
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "my-custom-model.safetensors"
+    # empty model keeps the family default
+    built2, _ = build_workflow(wf, family="flux2", prompt="hi")
+    nodes2 = resolve_workflow(built2)
+    assert nodes2["Load Diffusion Model"]["inputs"]["unet_name"] == "flux-2-klein-9b-nvfp4.safetensors"
+    with pytest.raises(GenerateError):
+        build_workflow(wf, family="zimage", prompt="hi", model="../evil.json")
+
+
 def test_build_workflow_loras(wf):
     built, meta = build_workflow(
         wf,

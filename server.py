@@ -1,12 +1,13 @@
-"""Backend API server — serves mockup.html as the real frontend.
+"""Backend API server — serves the modular frontend (templates/ + static/).
 
-The mockup (source of truth for the UI) is served at `/`; its JS actions call
-these endpoints, which run the validated tools in `tools/`. Images/videos are
-proxied through `/media/...` so the browser never talks to the ComfyUI host
-directly (no CORS/host validation issues).
+The UI (a working copy of the mockup, split into Jinja2 partials + static
+CSS/JS) is rendered at `/`; its JS actions call these endpoints, which run
+the validated tools in `tools/`. Images/videos are proxied through
+`/media/...` so the browser never talks to the ComfyUI host directly (no
+CORS/host validation issues).
 
 Endpoints:
-    GET  /                        mockup.html (the UI)
+    GET  /                        the UI (templates/index.html)
     GET  /health                  server + ComfyUI health
     POST /api/generate            Generate tab
     POST /api/edit                Edit tab
@@ -14,7 +15,7 @@ Endpoints:
     POST /api/video               Video tab
     POST /api/upload              upload an image to ComfyUI (temp)
     GET  /media/{filename}?type=  proxy a result file from ComfyUI
-    GET  /api/settings            current global settings (for the 🎨 menu)
+    GET/POST /api/settings        global settings (for the 🎨 menu)
 
 Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 """
@@ -25,7 +26,10 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from starlette.requests import Request
 
 from config import Settings
 from tools.edit import edit_image, MODES
@@ -35,11 +39,13 @@ from tools.video import MODEL_VERSIONS, generate_video
 
 REPO = Path(__file__).resolve().parent
 
-# The real page is app.html — a working copy of the mockup (which stays as
-# the design template/spec and is never edited for functionality).
-PAGE_FILE = REPO / "app.html"
+# Modular frontend: mockup.html stays as the design template/spec, the
+# working copy is split into Jinja2 partials (templates/) + static assets.
+TEMPLATES = Jinja2Templates(directory=REPO / "templates")
+STATIC_DIR = REPO / "static"
 
 app = FastAPI(title="Comfy Tools")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 def _settings() -> Settings:
@@ -57,8 +63,8 @@ def _filename_from_url(url: str) -> tuple[str, str]:
 # UI + health
 # --------------------------------------------------------------------------- #
 @app.get("/")
-def index() -> FileResponse:
-    return FileResponse(PAGE_FILE)
+def index(request: Request) -> Response:
+    return TEMPLATES.TemplateResponse(request, "index.html")
 
 
 @app.get("/health")
@@ -106,6 +112,7 @@ def api_generate(body: dict) -> dict:
             steps=int(body.get("steps", 0)),
             seed=int(body.get("seed", -1)),
             lora_config=str(body.get("lora_config", "[]")),
+            model=str(body.get("model", "")),
         )
     except Exception as e:
         raise HTTPException(400, str(e)) from e
@@ -158,6 +165,7 @@ def api_video(body: dict) -> dict:
             steps=int(body.get("steps", 0)),
             seed=int(body.get("seed", -1)),
             lora_config=str(body.get("lora_config", "[]")),
+            diffusion=str(body.get("diffusion", "")),
         )
     except Exception as e:
         raise HTTPException(400, str(e)) from e
@@ -208,6 +216,28 @@ async def media(filename: str, type: str = "output") -> Response:
 @app.get("/api/settings")
 def api_settings() -> dict:
     s = _settings()
+    return {
+        "comfyui_base_url": s.comfyui_base_url,
+        "media_base_url": s.media_base_url,
+        "has_api_key": bool(s.api_key),
+    }
+
+
+@app.post("/api/settings")
+def api_settings_update(body: dict) -> dict:
+    """Persist global settings from the 🎨 dropdown (B4).
+
+    Accepts any subset of {comfyui_base_url, comfyui_media_base_url}; empty
+    strings clear the override (media falls back to the server URL).
+    """
+    s = _settings()
+    if "comfyui_base_url" in body:
+        value = str(body["comfyui_base_url"]).strip()
+        if not value:
+            raise HTTPException(400, "comfyui_base_url must not be empty")
+        s.set_base_url(value)
+    if "comfyui_media_base_url" in body:
+        s.set_media_base_url(str(body["comfyui_media_base_url"]).strip())
     return {
         "comfyui_base_url": s.comfyui_base_url,
         "media_base_url": s.media_base_url,

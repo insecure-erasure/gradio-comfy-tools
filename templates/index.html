@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comfy Tools</title>
+<link rel="stylesheet" href="/static/css/base.css">
+<link rel="stylesheet" href="/static/css/layout.css">
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/responsive.css">
+</head>
+<body>
+
+<!-- Main -->
+<div class="main">
+
+  {% include "partials/nav.html" %}
+
+  {% include "partials/settings_menu.html" %}
+
+  <!-- Content -->
+  <div class="content" id="tabContent">
+
+    {% include "partials/tab_generate.html" %}
+    {% include "partials/tab_edit.html" %}
+    {% include "partials/tab_upscale.html" %}
+    {% include "partials/tab_video.html" %}
+
+  </div>
+
+  {% include "partials/bottom_bar.html" %}
+
+</div>
+
+{% include "partials/toast.html" %}
+
+{% include "partials/modal.html" %}
+
+{% include "partials/tooltip.html" %}
+
+<!-- Scripts (plain scripts share the global scope; load order matters) -->
+<script src="/static/js/state.js"></script>
+<script src="/static/js/api.js"></script>
+<script src="/static/js/source.js"></script>
+<script src="/static/js/tabs.js"></script>
+<script src="/static/js/generate.js"></script>
+<script src="/static/js/edit.js"></script>
+<script src="/static/js/upscale.js"></script>
+<script src="/static/js/video.js"></script>
+<script src="/static/js/settings.js"></script>
+<script src="/static/js/modal.js"></script>
+<script src="/static/js/main.js"></script>
+
+</body>
+</html>

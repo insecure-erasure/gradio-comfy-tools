@@ -134,12 +134,16 @@ def build_workflow(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    model: str = "",
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow.
 
     Returns ``(workflow, meta)`` where ``meta`` carries resolved info for
     logging/tests: reduced W:H, resolved steps, resolved seed, family config.
     """
+    model = model.strip()
+    if model.endswith((".json", ".yaml", ".yml")):
+        raise GenerateError("model must be a model filename, not a workflow file")
     if family not in MODEL_CONFIGS:
         raise GenerateError(f"Unknown family {family!r}; options: {FAMILY_OPTIONS}")
     prompt = prompt.strip()
@@ -159,8 +163,9 @@ def build_workflow(
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)
 
-    # Model config
-    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = cfg["model"]
+    # Model config — ``model`` (from the ⚙️ advanced modal) overrides the
+    # family default when provided.
+    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = model or cfg["model"]
     nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
     nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
     nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
@@ -213,6 +218,7 @@ def generate_image(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    model: str = "",
     timeout: float = 120.0,
 ) -> str:
     """Run the Generate workflow and return the output image URL."""
@@ -226,6 +232,7 @@ def generate_image(
         steps=steps,
         seed=seed,
         lora_config=lora_config,
+        model=model,
     )
     with ComfyClient(settings=settings) as client:
         prompt_id = client.queue_prompt(wf)

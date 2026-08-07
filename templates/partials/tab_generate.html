@@ -1,0 +1,86 @@
+<!-- ═══ TAB 1: Generate Image ═══ -->
+    <div class="tab-panel active" id="tab-generate">
+      <div class="split">
+        <div class="output-pane" id="genOutputPane">
+          <div class="output-placeholder" id="genPlaceholder">
+            <div class="icon">🖼️</div>
+            <p>Your generated image<br>will appear here</p>
+            <p style="font-size:.75rem;margin-top:6px;">Click to open lightbox</p>
+          </div>
+          <div class="gen-spinner" id="genSpinner"><div class="ring"></div></div>
+        </div>
+        <div class="params-pane">
+          <!-- Model row: label + dropdown + reset button -->
+          <div class="model-row">
+            <div class="field-inline" style="flex:1">
+              <label>Model</label>
+              <select id="genModelFamily" onchange="onModelFamilyChange()">
+                <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
+                <option value="krea2" data-key="krea2" data-steps="8" data-vae="8">Krea 2</option>
+                <option value="flux2" data-key="flux2" data-steps="8" data-vae="64">FLUX.2 Klein</option>
+              </select>
+            </div>
+            <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+            <button class="btn-reset" onclick="resetGenerate()" title="Reset">↺</button>
+          </div>
+          <div class="field-row" id="genCustomRatio" style="display:none">
+            <div class="field">
+              <label>Custom W</label>
+              <input type="number" value="16" min="1" class="gen-dim" oninput="recalcResolution()">
+            </div>
+            <div class="field">
+              <label>Custom H</label>
+              <input type="number" value="9" min="1" class="gen-dim" oninput="recalcResolution()">
+            </div>
+          </div>
+          <!-- Row 1: W | H | AR | MP -->
+          <div class="field-row">
+            <div class="field-inline" style="flex:0.4"><label title="Width (read-only)">W</label><span class="readonly-field" id="genWidth">832</span></div>
+            <div class="field-inline" style="flex:0.4"><label title="Height (read-only)">H</label><span class="readonly-field" id="genHeight">1248</span></div>
+            <div class="field-inline" style="flex:1.3">
+              <label title="Aspect Ratio">AR</label>
+              <select id="genAspectRatio" onchange="onModelFamilyChange()">
+                <option data-w="2" data-h="3">2:3</option>
+                <option data-w="1" data-h="1">1:1</option>
+                <option data-w="3" data-h="2">3:2</option>
+                <option data-w="3" data-h="4">3:4</option>
+                <option data-w="4" data-h="3">4:3</option>
+                <option data-w="9" data-h="16">9:16</option>
+                <option data-w="16" data-h="9">16:9</option>
+              </select>
+            </div>
+            <div class="field-inline" style="flex:1.5">
+              <label title="Megapixels (0.1–2.0)">📐</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepMp(-0.1)" title="Decrease">−</button>
+                <input type="number" id="genMegapixel" value="1" min="0.1" max="2" step="0.1" oninput="onModelFamilyChange()">
+                <button class="stepper-btn" onclick="stepMp(0.1)" title="Increase">+</button>
+              </div>
+            </div>
+          </div>
+          <!-- Row 2: Steps | Seed + Random -->
+          <div class="field-row">
+            <div class="field-inline" style="flex:1.4">
+              <label title="Steps">👣</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepSteps(-1)" title="Decrease">−</button>
+                <input type="number" id="genSteps" value="10" min="1" max="15" step="1" oninput="onStepsInput()">
+                <button class="stepper-btn" onclick="stepSteps(1)" title="Increase">+</button>
+              </div>
+            </div>
+            <div class="field-inline" style="flex:1.6">
+              <label title="Seed">🌱</label>
+              <div class="stepper">
+                <button class="stepper-btn" onclick="stepGenSeed(-1)" title="Decrease">−</button>
+                <input type="number" id="genSeed" value="0" min="0" step="1" disabled oninput="onGenSeedInput()">
+                <button class="stepper-btn" onclick="stepGenSeed(1)" title="Increase">+</button>
+              </div>
+              <label class="check-label" style="margin-left:4px">
+                <input type="checkbox" id="genSeedRandom" checked onchange="onSeedRandomToggle()">
+                🎲
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>

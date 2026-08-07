@@ -8,7 +8,7 @@
 
 | Module | Responsibility |
 |---|---|
-| `server.py` | FastAPI app: serves `app.html` (the UI) + the REST API that calls `tools/`; proxies results via `/media` |
+| `server.py` | FastAPI app: renders the modular UI (`templates/` + `static/`) + the REST API that calls `tools/`; proxies results via `/media` |
 | `comfy_client.py` | ComfyUI REST client: queue, polling, upload, output URLs |
 | `tools/` | One module per tool: workflow JSON loading + parameter injection by node title |
 | `workflows/` | The workflow JSONs imported from `../open-webui-comfy-tools` |
@@ -144,7 +144,7 @@ fields (model, LoRA/diffusion config):
 
 ## 8. State and session
 
-- Per-tab parameter state, independent; persists across tab switches (kept in `app.html`'s DOM — tabs are never rebuilt).
+- Per-tab parameter state, independent; persists across tab switches (kept in the frontend's DOM — tabs are never rebuilt).
 - The advanced modal persists its values per tab for the session.
 - Reset (↺) restores defaults and clears the tab's output.
 - Each tab's result persists for the session (not lost on tab switch).

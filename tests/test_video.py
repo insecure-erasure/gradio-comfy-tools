@@ -104,6 +104,39 @@ def test_build_workflow_wan22_even_steps_unchanged(wf22):
     assert meta["steps"] == 4
 
 
+def test_build_workflow_diffusion_override_wan21(wf21):
+    """⚙️ advanced: plain filename or {"model": ...} overrides the wan21 unet."""
+    built, _ = build_workflow(
+        wf21, "wan21", image="a.png", prompt="x", diffusion="Wan2.1-custom.safetensors"
+    )
+    nodes = resolve_workflow(built, is_dual=False)
+    assert nodes["unet main"]["inputs"]["unet_name"] == "Wan2.1-custom.safetensors"
+    built2, _ = build_workflow(
+        wf21, "wan21", image="a.png", prompt="x", diffusion='{"model": "Wan2.1-other.safetensors"}'
+    )
+    nodes2 = resolve_workflow(built2, is_dual=False)
+    assert nodes2["unet main"]["inputs"]["unet_name"] == "Wan2.1-other.safetensors"
+
+
+def test_build_workflow_diffusion_override_wan22(wf22):
+    """⚙️ advanced: per-path override for the dual high/low pipeline."""
+    built, _ = build_workflow(
+        wf22, "wan22", image="a.png", prompt="x",
+        diffusion='{"high": "Wan2.2-custom-high.safetensors", "low": "Wan2.2-custom-low.safetensors"}',
+    )
+    nodes = resolve_workflow(built, is_dual=True)
+    assert nodes["unet high"]["inputs"]["unet_name"] == "Wan2.2-custom-high.safetensors"
+    assert nodes["unet low"]["inputs"]["unet_name"] == "Wan2.2-custom-low.safetensors"
+    # partial override keeps the default for the other path
+    built2, _ = build_workflow(wf22, "wan22", image="a.png", prompt="x", diffusion='{"low": "Wan2.2-only-low.safetensors"}')
+    nodes2 = resolve_workflow(built2, is_dual=True)
+    assert nodes2["unet high"]["inputs"]["unet_name"] == VIDEO_MODEL_CONFIGS["wan22"]["high"]["diffusion_model"]
+    assert nodes2["unet low"]["inputs"]["unet_name"] == "Wan2.2-only-low.safetensors"
+    # wan22 does not accept a plain filename
+    with pytest.raises(VideoError):
+        build_workflow(wf22, "wan22", image="a.png", prompt="x", diffusion="Wan2.2-single.safetensors")
+
+
 def test_build_workflow_wan22_loras_per_path(wf22):
     built, _ = build_workflow(
         wf22, "wan22", image="a.png", prompt="x",
