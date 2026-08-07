@@ -25,12 +25,14 @@ function switchTab(name) {
     case 'generate':
       bar.style.display = 'flex';
       input.style.display = 'block';
+      input.closest('.prompt-input-wrap').style.display = '';
       input.placeholder = 'Describe the image you want to generate in detail...';
       btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate" data-requires-prompt>✨</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'edit':
       bar.style.display = 'flex';
       input.style.display = 'block';
+      input.closest('.prompt-input-wrap').style.display = '';
       input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
       // 🖌️ needs a prompt (has catcher); 🩹 restore does not (always active)
       btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button>';
@@ -38,11 +40,14 @@ function switchTab(name) {
     case 'upscale':
       bar.style.display = 'flex';
       input.style.display = 'none';
+      // Upscale has no prompt: hide the textarea wrap (and its ✕ overlay)
+      input.closest('.prompt-input-wrap').style.display = 'none';
       btnCol.innerHTML = '<button class="btn-generate" id="btnUpscale" onclick="generateUpscale()" title="Upscale">🔍</button>';
       break;
     case 'video':
       bar.style.display = 'flex';
       input.style.display = 'block';
+      input.closest('.prompt-input-wrap').style.display = '';
       input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
       btnCol.innerHTML = '<div class="btn-wrap"><button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video" data-requires-prompt>🎬</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
