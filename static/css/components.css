@@ -394,19 +394,24 @@
     padding: 8px 8px;
     background: var(--surface);
     display: flex;
-    gap: 12px;
+    flex-direction: column;
+    gap: 6px;
     align-items: stretch;
     flex-shrink: 0;
   }
-  .prompt-col {
-    flex: 1;
+
+  /* Movable prompt block: textarea + action buttons. Portrait: stays in the
+     bottom bar (textarea + buttons side by side). Landscape (≥1024px): JS
+     relocates it into the active tab's params pane; only the result URL row
+     remains in the bottom bar, full-width. */
+  .prompt-block {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    gap: 10px;
+    align-items: stretch;
     min-width: 0;
   }
 
-  .prompt-col textarea {
+  .prompt-block textarea {
     flex: 1;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -420,7 +425,7 @@
     line-height: 1.5;
     transition: .15s;
   }
-  .prompt-col textarea:focus {
+  .prompt-block textarea:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
@@ -441,6 +446,30 @@
     gap: 6px;
     min-height: 12px;
     line-height: 12px;
+  }
+
+  /* Landscape: prompt inside the params pane, URL row alone at the bottom */
+  @media (min-width: 1024px) {
+    .params-pane .prompt-block {
+      margin-top: auto;            /* pinned to the bottom of the params pane */
+      flex-direction: column;      /* textarea full width, buttons below */
+      gap: 8px;
+    }
+    .params-pane .prompt-block textarea {
+      flex: none;
+      min-height: 64px;
+    }
+    .params-pane .btn-col {
+      flex-direction: row;         /* action buttons in a row, right-aligned */
+      width: auto;
+      align-self: flex-end;
+    }
+    .params-pane .btn-generate {
+      flex: none;
+      width: 44px;
+      height: 34px;
+    }
+    .bottom-bar { padding: 6px 8px; }  /* slimmer — URL row only */
   }
 
 

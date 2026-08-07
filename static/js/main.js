@@ -5,7 +5,16 @@
 window.addEventListener('DOMContentLoaded', () => {
   recalcResolution();
   loadSettings();
+  relayoutPrompt();
 });
+
+// Relocate the prompt block when crossing the landscape/portrait breakpoint
+const layoutQuery = window.matchMedia('(min-width: 1024px)');
+if (layoutQuery.addEventListener) {
+  layoutQuery.addEventListener('change', relayoutPrompt);
+} else if (layoutQuery.addListener) {
+  layoutQuery.addListener(relayoutPrompt); // legacy Safari
+}
 
 // ── Label tooltip ────────────────────────
 const tooltip = document.getElementById('labelTooltip');

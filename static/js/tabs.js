@@ -46,6 +46,27 @@ function switchTab(name) {
       btnCol.innerHTML = '<button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video">🎬</button>';
       break;
   }
+
+  // Landscape: relocate the prompt block into this tab's params pane
+  relayoutPrompt();
+}
+
+// In landscape (≥1024px) the prompt block (textarea + action buttons) lives
+// inside the active tab's params pane, pinned to its bottom; the result URL
+// row stays in the bottom bar, full-width. Portrait: everything stays in the
+// bottom bar as before. The block is a single shared element (same textarea,
+// same value) — only its parent changes.
+function relayoutPrompt() {
+  const block = document.getElementById('promptBlock');
+  const bar = document.getElementById('bottomBar');
+  if (!block || !bar) return;
+  const landscape = window.matchMedia('(min-width: 1024px)').matches;
+  if (landscape) {
+    const pane = document.querySelector(`#tab-${currentTab} .params-pane`);
+    if (pane && block.parentElement !== pane) pane.appendChild(block);
+  } else {
+    if (block.parentElement !== bar) bar.insertBefore(block, bar.firstChild);
+  }
 }
 
 // Radio group toggle (kept for the mockup's segmented controls)

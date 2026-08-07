@@ -1,16 +1,17 @@
-<!-- Bottom prompt bar -->
-  <div class="bottom-bar" id="bottomBar">
-    <div class="prompt-col">
-      <textarea id="promptInput"
-        placeholder="Describe the image you want to generate in detail..."></textarea>
-      <div class="result-url-row" id="resultUrlRow">
-        <span class="result-url" id="resultUrl"></span>
-        <button class="btn-copy-inline" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
-      </div>
-    </div>
+<!-- Bottom prompt bar.
+     Landscape (≥1024px): JS relocates #promptBlock into the active tab's
+     params pane; only the result URL row stays here, full-width.
+     Portrait (<1024px): everything stays here, side by side as before. -->
+<div class="bottom-bar" id="bottomBar">
+  <div class="prompt-block" id="promptBlock">
+    <textarea id="promptInput"
+      placeholder="Describe the image you want to generate in detail..."></textarea>
     <div class="btn-col" id="btnCol">
       <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
     </div>
   </div>
-
+  <div class="result-url-row" id="resultUrlRow">
+    <span class="result-url" id="resultUrl"></span>
+    <button class="btn-copy-inline" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
+  </div>
 </div>
