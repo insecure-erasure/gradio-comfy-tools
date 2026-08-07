@@ -374,3 +374,77 @@ def test_api_progress_active_then_done(client, tmp_config, monkeypatch):
     finally:
         with server._jobs_lock:
             server._jobs.clear()
+
+
+def test_api_cancel(client, tmp_config, monkeypatch):
+    import comfy_client as cc
+
+    calls = []
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def interrupt(self):
+            calls.append("interrupt")
+
+        def cancel_prompt(self, pid):
+            calls.append(("delete", pid))
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    # register a job so there is something to cancel
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    server._start_job_listener("cid", "pid123", {"1": {"class_type": "X"}})
+    try:
+        resp = client.post("/api/cancel")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["ok"] is True
+        assert body["prompt_id"] == "pid123"
+        assert body["interrupt"] is True
+        assert body["delete"] is True
+        assert "interrupt" in calls and ("delete", "pid123") in calls
+        # the job is now done -> /api/progress idle
+        with server._jobs_lock:
+            assert server._jobs["pid123"]["done"] is True
+        assert client.get("/api/progress").json() == {"active": None}
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
+def test_api_cancel_no_job(client, tmp_config, monkeypatch):
+    import comfy_client as cc
+
+    calls = []
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def interrupt(self):
+            calls.append("interrupt")
+
+        def cancel_prompt(self, pid):
+            calls.append(("delete", pid))
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    resp = client.post("/api/cancel")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert body["prompt_id"] is None
+    assert "interrupt" in calls  # interrupt is always attempted
+    assert not [c for c in calls if isinstance(c, tuple)]

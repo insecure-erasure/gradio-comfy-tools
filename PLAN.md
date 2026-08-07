@@ -385,6 +385,9 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 - **DONE**: per-job WS listener (daemon thread, same clientId) + `GET
   /api/progress` + the UI paints the stage/% in the result URL row
   (polling; the blocking `wait_for_output` stays as the completion fallback).
+- **DONE**: **⏹ Cancel** — while a generation runs the disabled 📋 copy
+  button is replaced by a stop button; it calls `POST /api/cancel`
+  (`/interrupt` + `/queue delete`) and aborts the in-flight fetch.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
   alone only gives numeric `progress`), and true concurrent tabs (each tab

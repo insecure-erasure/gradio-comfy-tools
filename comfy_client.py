@@ -203,3 +203,24 @@ class ComfyClient:
         from urllib.parse import urlencode
 
         return f"{self.settings.media_base_url}/view?{urlencode({'filename': filename, 'type': type_})}"
+
+    # ------------------------------------------------------------------ #
+    # Cancel
+    # ------------------------------------------------------------------ #
+    def interrupt(self) -> None:
+        """POST /interrupt — stop the currently running prompt.
+
+        Needs an empty body so the server sees Content-Length: 0 (ComfyUI
+        rejects the request with 411 otherwise).
+        """
+        resp = self._client.post(self._url("/interrupt"), headers=self._headers(), content=b"")
+        resp.raise_for_status()
+
+    def cancel_prompt(self, prompt_id: str) -> None:
+        """POST /queue with delete=[prompt_id] — remove a pending prompt."""
+        resp = self._client.post(
+            self._url("/queue"),
+            json={"delete": [prompt_id]},
+            headers=self._headers(),
+        )
+        resp.raise_for_status()

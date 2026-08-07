@@ -1,9 +1,14 @@
 // ── API helper + shared UI (toast, result rendering) ──
 
+// The AbortController of the in-flight generation request, so ⏹ can abort
+// it (the backend job is cancelled separately via POST /api/cancel).
+let currentAbort = null;
+
 // POST JSON to a backend endpoint. Aborts after 240s so a hung request
 // never leaves the action button stuck.
 async function api(path, body, timeoutMs) {
   const ctrl = new AbortController();
+  currentAbort = ctrl;
   const timer = setTimeout(() => ctrl.abort(), timeoutMs || 240000);
   try {
     const resp = await fetch(path, {
@@ -20,7 +25,12 @@ async function api(path, body, timeoutMs) {
     return resp.json();
   } finally {
     clearTimeout(timer);
+    if (currentAbort === ctrl) currentAbort = null;
   }
+}
+
+function abortCurrentRequest() {
+  if (currentAbort) currentAbort.abort();
 }
 
 // Floating bottom notification.
@@ -127,10 +137,32 @@ function randomSeed() {
 // stage into the result URL row (the same area that shows the generation
 // URL on completion). The URL replaces the progress text on success; on
 // error the row is cleared. Polling stops when the request settles.
+//
+// During the generation the 📋 copy button (disabled) is REPLACED by the ⏹
+// stop button; when the generation settles the copy button comes back
+// (enabled once a result URL is shown).
 let progressTimer = null;
+let userCancelled = false;
+
+function setCancelVisible(on) {
+  const cancel = document.getElementById('btnCancel');
+  const copy = document.getElementById('btnCopyUrl');
+  if (cancel) cancel.style.display = on ? 'inline-flex' : 'none';
+  if (copy) copy.style.display = on ? 'none' : '';
+}
+
+// ⏹ Cancel: stop the backend job (POST /api/cancel — interrupt running +
+// delete pending) and abort the in-flight fetch so the UI settles now.
+function cancelGeneration() {
+  userCancelled = true;
+  stopProgressPolling();
+  fetch('/api/cancel', { method: 'POST' }).catch(() => {});
+  abortCurrentRequest();
+}
 
 function startProgressPolling() {
   stopProgressPolling();
+  setCancelVisible(true);
   const paint = async () => {
     try {
       const resp = await fetch('/api/progress');
@@ -157,4 +189,5 @@ function startProgressPolling() {
 
 function stopProgressPolling() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+  setCancelVisible(false);
 }

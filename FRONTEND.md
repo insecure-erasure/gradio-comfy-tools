@@ -245,6 +245,14 @@ _title> <value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI
 moves node to node. On success the URL replaces the progress text; on error
 the row is cleared (the error toast appears as before).
 
+**⏹ Cancel**: while a generation runs, the (disabled) 📋 copy button is
+**replaced by a ⏹ stop button** (`cancelGeneration` in `api.js`). Clicking it
+calls `POST /api/cancel` (backend: `POST /interrupt` to stop the running
+prompt + `POST /queue` `delete` for the pending one, and marks the job done)
+and aborts the in-flight fetch, so the UI settles immediately (toast
+`Cancelled`). When the generation settles — success or cancel — the copy
+button comes back (enabled once a result URL is shown, disabled otherwise).
+
 ## 5. How the code is organized
 
 - **`templates/index.html`**: shell + Jinja2 includes + script/css links.
@@ -266,6 +274,7 @@ the row is cleared (the error toast appears as before).
 | `GET /` | renders the UI |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
 | `GET /api/progress` | live progress of the most recent job (`{active: {stage, node_title, value, max} | null}`) |
+| `POST /api/cancel` | cancel the most recent job (interrupt running + delete pending) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |

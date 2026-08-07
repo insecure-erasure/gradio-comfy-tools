@@ -195,6 +195,27 @@ def test_prompt_hook_error_does_not_break_queue():
         unregister_prompt_hook(hook)
 
 
+def test_interrupt_posts_empty_body():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/interrupt"
+        assert request.method == "POST"
+        assert request.content == b""
+        return httpx.Response(200, json={})
+
+    client = make_client(handler)
+    client.interrupt()
+
+
+def test_cancel_prompt_deletes_from_queue():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/queue"
+        assert json.loads(request.content) == {"delete": ["abc123"]}
+        return httpx.Response(200, json={"delete": ["abc123"]})
+
+    client = make_client(handler)
+    client.cancel_prompt("abc123")
+
+
 def test_wait_for_output_polls_until_done():
     calls = {"n": 0}
 

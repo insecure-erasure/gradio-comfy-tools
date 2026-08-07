@@ -487,6 +487,17 @@
     color: var(--accent);
     border-color: var(--accent);
   }
+  /* ⏹ Cancel — replaces the (disabled) copy button while a generation runs */
+  .btn-copy-inline.btn-cancel {
+    color: #ff6b6b;
+    border-color: rgba(255, 90, 90, .4);
+    font-size: .62rem;
+  }
+  .btn-copy-inline.btn-cancel:hover {
+    background: rgba(255, 90, 90, .15);
+    border-color: #ff6b6b;
+    color: #ff8a8a;
+  }
 
 
   /* ── Bottom prompt bar ─────────────────────── */

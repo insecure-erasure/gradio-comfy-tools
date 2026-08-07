@@ -235,6 +235,35 @@ def api_progress() -> dict:
     }
 
 
+@app.post("/api/cancel")
+def api_cancel() -> dict:
+    """Cancel the most recent job: interrupt what is running and remove it
+    from the pending queue. Marks the job done so /api/progress goes idle
+    and the frontend restores the copy button.
+    """
+    from comfy_client import ComfyClient
+
+    s = _settings()
+    job = _latest_job()
+    pid = job["prompt_id"] if job else None
+    result = {"ok": True, "prompt_id": pid, "interrupt": False, "delete": False}
+    with ComfyClient(settings=s) as c:
+        try:
+            c.interrupt()
+            result["interrupt"] = True
+        except Exception:
+            pass  # nothing running — fine
+        if pid:
+            try:
+                c.cancel_prompt(pid)
+                result["delete"] = True
+            except Exception:
+                pass  # already finished — fine
+    if job is not None:
+        _mark_job_result(pid, None)  # done, no result URL
+    return result
+
+
 @app.get("/api/loras")
 def api_loras() -> dict:
     """List LoRA models from ComfyUI (GET {COMFYUI_BASE_URL}/models/loras)."""

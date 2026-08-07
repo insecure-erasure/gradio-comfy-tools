@@ -53,8 +53,13 @@
   the existing `wait_for_output` polling still completes the job.
 - `GET /api/progress` exposes the most recent active job — the frontend
   polls it and paints the stage in the result URL row.
+- **Cancel** (`POST /api/cancel`): `ComfyClient.interrupt()` (`POST
+  /interrupt`, empty body / Content-Length 0) stops the running prompt;
+  `ComfyClient.cancel_prompt(pid)` (`POST /queue` `delete`) removes the
+  pending one; the job is marked done so progress goes idle.
 - Verified live: `queued` → `SamplerCustomAdvanced 1/8..8/8` → `VAE Decode`
-  → `Random Preview Image` → done.
+  → `Random Preview Image` → done; `/interrupt` and `/queue delete` both
+  return 200 on the live server.
 
 ## 3. Workflow injection pattern (tools/)
 

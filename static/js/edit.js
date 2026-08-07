@@ -54,8 +54,9 @@ function generateEdit(forceMode) {
     showToast('✨ Edited');
   }).catch(err => {
     document.getElementById('resultUrl').textContent = '';
-    showToast('❌ ' + (err && err.name === 'AbortError' ? 'Timed out — try again' : (err.message || err)));
+    showToast('❌ ' + (err && err.name === 'AbortError' ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {
+    userCancelled = false;
     stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
