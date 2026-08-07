@@ -1,4 +1,4 @@
-// ── Edit tab ✏️ ───────────────────────────
+// ── Edit tab 🖍️ ───────────────────────────
 // POST /api/edit (mode: edit | restore) -> before/after compare slider.
 
 function generateEdit(forceMode) {
