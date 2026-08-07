@@ -16,6 +16,6 @@ let currentTab = 'generate';
 // Toolbar selections persist across tab switches (the toolbar is rebuilt
 // on every switch, so we keep the values here, outside the DOM).
 let toolbarValues = {
-  genFamily: 'zimage',
+  genFamily: 'krea2',
   vidVersion: 'wan21',
 };

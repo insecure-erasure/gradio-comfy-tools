@@ -5,7 +5,7 @@
 window.addEventListener('DOMContentLoaded', () => {
   renderToolbar('generate'); // paint the nav toolbar FIRST (recalc needs it)
   switchTab('generate');     // mount the action button (with catcher) for the active tab
-  recalcResolution();
+  onModelFamilyChange();     // auto-steps + recalc for the default family (Krea 2)
   loadSettings();
   relayoutPrompt();
   updateActionButtons();
