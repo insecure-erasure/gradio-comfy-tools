@@ -3,12 +3,16 @@
 
 // Initial calculations on page load
 window.addEventListener('DOMContentLoaded', () => {
-  renderToolbar('generate'); // paint the nav toolbar FIRST (recalc needs it)
+  restorePersistedState(); // set toolbarValues + advanced + theme (before toolbar paint)
+  applyTheme();            // paint the persisted theme (if any)
+  renderToolbar('generate'); // paint the nav toolbar (restores persisted family)
   switchTab('generate');     // mount the action button (with catcher) for the active tab
-  onModelFamilyChange();     // auto-steps + recalc for the default family (Krea 2)
+  onModelFamilyChange();     // auto-steps + recalc for the family
+  applyPersistedParams();    // re-apply persisted field values (they win over auto-steps)
   loadSettings();
   relayoutPrompt();
   updateActionButtons();
+  savePersistedState();      // normalize the stored shape after applying
 });
 
 // Disable/enable action buttons as the shared prompt changes
@@ -16,6 +20,12 @@ const promptInput = document.getElementById('promptInput');
 if (promptInput) {
   promptInput.addEventListener('input', updateActionButtons);
 }
+
+// Persist per-tab parameter fields whenever they change
+Object.values(PERSIST_FIELDS).flat().forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', savePersistedState);
+});
 
 // Relocate the prompt block when crossing the landscape/portrait breakpoint
 const layoutQuery = window.matchMedia('(min-width: 1024px)');

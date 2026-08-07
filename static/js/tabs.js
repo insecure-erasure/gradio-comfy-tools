@@ -95,7 +95,7 @@ function renderToolbar(tab) {
   let html = '';
   if (tab === 'generate') {
     html += `<div class="toolbar-model"><label>Model</label>
-      <select id="genModelFamily" onchange="onModelFamilyChange()">
+      <select id="genModelFamily" onchange="onModelFamilyChange(); savePersistedState()">
         <option value="krea2" data-key="krea2" data-steps="8" data-vae="8">Krea 2</option>
         <option value="flux2" data-key="flux2" data-steps="8" data-vae="64">FLUX.2 Klein</option>
         <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
@@ -109,7 +109,7 @@ function renderToolbar(tab) {
     html += `<button class="btn-reset" onclick="resetUpscale()" title="Reset">↺</button>`;
   } else if (tab === 'video') {
     html += `<div class="toolbar-model"><label>Model</label>
-      <select id="videoModelVersion" onchange="toolbarValues.vidVersion = this.value">
+      <select id="videoModelVersion" onchange="toolbarValues.vidVersion = this.value; savePersistedState()">
         <option value="wan21" data-key="wan21">Wan 2.1</option>
         <option value="wan22" data-key="wan22">Wan 2.2</option>
       </select></div>

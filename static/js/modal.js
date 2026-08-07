@@ -226,6 +226,7 @@ function saveAdvanced() {
   }
 
   window.advancedValues[currentModalTab] = mapped;
+  savePersistedState();
   showToast('Advanced parameters saved');
   closeModal();
 }

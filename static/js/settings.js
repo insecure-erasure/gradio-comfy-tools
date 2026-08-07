@@ -26,25 +26,23 @@ document.addEventListener('click', (e) => {
 // ── Theme ─────────────────────────────────
 // Manual toggle swapping CSS custom properties (no prefers-color-scheme).
 function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme();
+  savePersistedState();
+}
+
+// Apply the current theme (dark default) to the CSS variables.
+function applyTheme() {
   const root = document.documentElement;
-  const isDark = getComputedStyle(root).getPropertyValue('--bg').trim() === '#1a1a2e';
-  if (isDark) {
-    root.style.setProperty('--bg', '#f0f0f5');
-    root.style.setProperty('--surface', '#ffffff');
-    root.style.setProperty('--surface-hover', '#f5f5fa');
-    root.style.setProperty('--text', '#1a1a2e');
-    root.style.setProperty('--text-secondary', '#6a6a7a');
-    root.style.setProperty('--border', '#d0d0dd');
-    document.querySelector('.output-pane').style.background = '#eaeaef';
-  } else {
-    root.style.setProperty('--bg', '#1a1a2e');
-    root.style.setProperty('--surface', '#16213e');
-    root.style.setProperty('--surface-hover', '#1c2a4a');
-    root.style.setProperty('--text', '#eaeaea');
-    root.style.setProperty('--text-secondary', '#a0a0b0');
-    root.style.setProperty('--border', '#2a2a4a');
-    document.querySelector('.output-pane').style.background = '#111122';
-  }
+  const light = currentTheme === 'light';
+  root.style.setProperty('--bg', light ? '#f0f0f5' : '#1a1a2e');
+  root.style.setProperty('--surface', light ? '#ffffff' : '#16213e');
+  root.style.setProperty('--surface-hover', light ? '#f5f5fa' : '#1c2a4a');
+  root.style.setProperty('--text', light ? '#1a1a2e' : '#eaeaea');
+  root.style.setProperty('--text-secondary', light ? '#6a6a7a' : '#a0a0b0');
+  root.style.setProperty('--border', light ? '#d0d0dd' : '#2a2a4a');
+  const panes = document.querySelectorAll('.output-pane');
+  panes.forEach(p => { p.style.background = light ? '#eaeaef' : '#111122'; });
 }
 
 // ── ComfyUI connection ────────────────────
