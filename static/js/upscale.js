@@ -7,7 +7,14 @@ function generateUpscale() {
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
   const seedEl = document.getElementById('upscaleSeed');
   const randomEl = document.getElementById('upscaleSeedRandom');
-  const seed = (randomEl && randomEl.checked) ? -1 : (parseInt(seedEl?.value) || 0);
+  let seed;
+  if (randomEl && randomEl.checked) {
+    // 🎲 enabled → generate now and show the value that will be sent
+    seed = randomSeed();
+    if (seedEl) seedEl.value = seed;
+  } else {
+    seed = parseInt(seedEl?.value) || 0;
+  }
 
   const pane = document.getElementById('upscaleOutputPane');
   const spinner = document.getElementById('upscaleSpinner');

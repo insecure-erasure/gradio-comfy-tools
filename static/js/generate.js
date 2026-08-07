@@ -9,7 +9,14 @@ function generateImage() {
   const steps = document.getElementById('genSteps')?.value || 10;
   const seedEl = document.getElementById('genSeed');
   const randomEl = document.getElementById('genSeedRandom');
-  const seed = (randomEl && randomEl.checked) ? -1 : (parseInt(seedEl?.value) || 0);
+  let seed;
+  if (randomEl && randomEl.checked) {
+    // 🎲 enabled → generate now and show the value that will be sent
+    seed = randomSeed();
+    if (seedEl) seedEl.value = seed;
+  } else {
+    seed = parseInt(seedEl?.value) || 0;
+  }
   const prompt = document.getElementById('promptInput')?.value || '';
   // Advanced modal (⚙️): LoRA config + optional model override
   const adv = (window.advancedValues && window.advancedValues.generate) || {};

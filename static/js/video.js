@@ -9,7 +9,14 @@ function generateVideo() {
   const steps = parseInt(document.getElementById('videoSteps')?.value) || 4;
   const seedEl = document.getElementById('videoSeed');
   const randomEl = document.getElementById('videoSeedRandom');
-  const seed = (randomEl && randomEl.checked) ? -1 : (parseInt(seedEl?.value) || 0);
+  let seed;
+  if (randomEl && randomEl.checked) {
+    // 🎲 enabled → generate now and show the value that will be sent
+    seed = randomSeed();
+    if (seedEl) seedEl.value = seed;
+  } else {
+    seed = parseInt(seedEl?.value) || 0;
+  }
   const prompt = document.getElementById('promptInput')?.value || '';
   const negative = document.getElementById('videoNegative')?.value || '';
   // Advanced modal (⚙️): diffusion model override + LoRA config

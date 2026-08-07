@@ -86,7 +86,21 @@ function copyResultUrl() {
 function clearPrompt() {
   const input = document.getElementById('promptInput');
   if (input) input.value = '';
+  updateActionButtons();
   input.focus();
+}
+
+// Disable/enable the action buttons that require a prompt. Tabs/buttons
+// without a prompt (Upscale, and the 🩹 Restore button) stay enabled.
+function updateActionButtons() {
+  const prompt = (document.getElementById('promptInput')?.value || '').trim();
+  const btnCol = document.getElementById('btnCol');
+  if (!btnCol) return;
+  if (currentTab === 'upscale') return; // no prompt needed
+  const hasText = prompt.length > 0;
+  btnCol.querySelectorAll('.btn-generate[data-requires-prompt]').forEach(btn => {
+    btn.disabled = !hasText;
+  });
 }
 
 // Marks an output pane as "generating": the source URL overlay fades out and
@@ -99,4 +113,11 @@ function setGenerating(pane, on) {
     const field = pane.querySelector('.source-url-input');
     if (field && document.activeElement === field) field.blur();
   }
+}
+
+// Random uint32 seed (same range the backend uses for -1, COMFY_SEED_MAX).
+// Used client-side so the value that will be sent to the workflow is visible
+// in the seed field while 🎲 is enabled.
+function randomSeed() {
+  return Math.floor(Math.random() * 4294967296);
 }

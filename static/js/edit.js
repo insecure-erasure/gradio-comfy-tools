@@ -8,7 +8,14 @@ function generateEdit(forceMode) {
   const steps = parseInt(document.getElementById('editSteps')?.value) || 6;
   const seedEl = document.getElementById('editSeed');
   const randomEl = document.getElementById('editSeedRandom');
-  const seed = (randomEl && randomEl.checked) ? -1 : (parseInt(seedEl?.value) || 0);
+  let seed;
+  if (randomEl && randomEl.checked) {
+    // 🎲 enabled → generate now and show the value that will be sent
+    seed = randomSeed();
+    if (seedEl) seedEl.value = seed;
+  } else {
+    seed = parseInt(seedEl?.value) || 0;
+  }
   const prompt = document.getElementById('promptInput')?.value || '';
   // Advanced modal (⚙️): LoRA config
   const adv = (window.advancedValues && window.advancedValues.edit) || {};
