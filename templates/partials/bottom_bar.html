@@ -1,12 +1,15 @@
 <!-- Bottom prompt bar.
-     Landscape (≥1024px): JS relocates #promptBlock into the active tab's
-     params pane; only the result URL row stays here, full-width.
-     Portrait (<1024px): everything stays here, side by side as before. -->
+     Landscape (≥1024px): JS relocates #promptBlock and #resultUrlRow (URL +
+     copy button) into the active tab's params pane — URL hint below the
+     prompt — and hides this bar entirely to gain vertical space.
+     Portrait (<1024px): everything stays here, as before. -->
 <div class="bottom-bar" id="bottomBar">
   <div class="prompt-block" id="promptBlock">
-    <textarea id="promptInput"
-      placeholder="Describe the image you want to generate in detail..."></textarea>
-    <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
+    <div class="prompt-input-wrap">
+      <textarea id="promptInput"
+        placeholder="Describe the image you want to generate in detail..."></textarea>
+      <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
+    </div>
     <div class="btn-col" id="btnCol">
       <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
     </div>

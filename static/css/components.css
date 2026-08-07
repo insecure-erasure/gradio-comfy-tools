@@ -411,7 +411,17 @@
     min-width: 0;
   }
 
-  .prompt-block textarea {
+  /* Wraps the textarea so the ✕ overlay anchors to the textarea itself (its
+     top-right corner) in both modes — not to the wider .prompt-block, which
+     in portrait also contains the button column. */
+  .prompt-input-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    min-width: 0;
+  }
+
+  .prompt-input-wrap textarea {
     flex: 1;
     background: var(--bg);
     border: 1px solid var(--border);
@@ -425,7 +435,7 @@
     line-height: 1.5;
     transition: .15s;
   }
-  .prompt-block textarea:focus {
+  .prompt-input-wrap textarea:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
@@ -456,8 +466,6 @@
     background: var(--accent);
     color: #fff;
   }
-  /* In the bottom bar the block is not positioned — anchor to the textarea */
-  .bottom-bar .prompt-block { position: relative; }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);
@@ -485,8 +493,12 @@
       min-height: 0;
       display: flex;
     }
-    .params-pane .prompt-block textarea {
-      flex: 1;                     /* textarea fills the whole block */
+    .params-pane .prompt-block .prompt-input-wrap {
+      flex: 1;                     /* wrap fills the block */
+      min-height: 0;
+    }
+    .params-pane .prompt-input-wrap textarea {
+      flex: 1;                     /* textarea fills the wrap */
       width: 100%;
       min-height: 64px;
       padding: 8px 14px 44px;      /* room for the overlaid buttons */
@@ -507,7 +519,12 @@
       font-size: .95rem;
       box-shadow: 0 2px 6px rgba(0,0,0,.35);
     }
-    .bottom-bar { padding: 6px 8px; }  /* slimmer — URL row only */
+    /* URL hint row sits below the prompt, inside the params pane; the bottom
+       bar is hidden entirely in landscape (see relayoutPrompt) */
+    .params-pane .result-url-row {
+      flex-shrink: 0;
+      margin-top: 8px;
+    }
   }
 
 

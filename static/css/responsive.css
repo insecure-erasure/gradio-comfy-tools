@@ -9,25 +9,33 @@
     .btn-col { width: 40px; }
     .btn-generate { font-size: 1rem; }
 
-    /* Stack: output on top, params fill remaining, prompt at bottom */
+    /* Stack: output fills ALL the available height; params below it,
+       scrolling if their content overflows */
     .split {
       flex-direction: column;
       flex: 1 1 auto;
       min-height: 0;
     }
     .output-pane {
-      flex: 0 0 auto;
-      min-height: 0;
-      max-height: 50vh;
-    }
-    .params-pane {
       flex: 1 1 auto;
       min-height: 0;
+      max-height: none;
+    }
+    .params-pane {
+      flex: 0 1 auto;   /* can shrink if space is tight */
+      min-height: 0;
+      max-height: 45vh;
       max-width: none;
       border-left: none;
       border-top: 1px solid var(--border);
       overflow-y: auto;
+      /* tighter spacing in portrait → more height for the output */
+      padding: 12px 14px;
+      gap: 8px;
     }
+    .bottom-bar { padding: 6px 6px; gap: 4px; }
+    .bottom-bar .prompt-block { gap: 6px; }
+    .bottom-bar .prompt-input-wrap textarea { min-height: 44px; }
     .tabs-params-zone { max-width: none; }
   }
   @media (max-width: 767px) {
@@ -37,7 +45,6 @@
     .output-pane { padding: 16px; }
     .source-url-field { bottom: 10px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
-    .params-pane { padding: 14px; gap: 10px; }
-    .bottom-bar { padding: 8px 8px; }
+    .params-pane { padding: 10px 12px; gap: 7px; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }

@@ -51,21 +51,29 @@ function switchTab(name) {
   relayoutPrompt();
 }
 
-// In landscape (≥1024px) the prompt block (textarea + action buttons) lives
-// inside the active tab's params pane, pinned to its bottom; the result URL
-// row stays in the bottom bar, full-width. Portrait: everything stays in the
-// bottom bar as before. The block is a single shared element (same textarea,
-// same value) — only its parent changes.
+// In landscape (≥1024px) the prompt block (textarea + action buttons) AND the
+// result URL row live inside the active tab's params pane — the URL hint sits
+// below the textarea — and the bottom bar is hidden entirely, gaining vertical
+// space. Portrait: everything stays in the bottom bar as before. The block and
+// URL row are single shared elements (same textarea, same value) — only their
+// parent changes.
 function relayoutPrompt() {
   const block = document.getElementById('promptBlock');
+  const urlRow = document.getElementById('resultUrlRow');
   const bar = document.getElementById('bottomBar');
   if (!block || !bar) return;
   const landscape = window.matchMedia('(min-width: 1024px)').matches;
   if (landscape) {
     const pane = document.querySelector(`#tab-${currentTab} .params-pane`);
-    if (pane && block.parentElement !== pane) pane.appendChild(block);
+    if (pane) {
+      if (block.parentElement !== pane) pane.appendChild(block);
+      if (urlRow && urlRow.parentElement !== pane) pane.appendChild(urlRow);
+    }
+    bar.style.display = 'none';
   } else {
     if (block.parentElement !== bar) bar.insertBefore(block, bar.firstChild);
+    if (urlRow && urlRow.parentElement !== bar) bar.appendChild(urlRow);
+    bar.style.display = 'flex';
   }
 }
 
