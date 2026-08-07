@@ -89,7 +89,7 @@
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
-    .output-pane { padding: 16px; }
+    .output-pane { padding: 8px; }
     .source-url-field { bottom: 10px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
     .params-pane { padding: 6px 12px; gap: 0; }
