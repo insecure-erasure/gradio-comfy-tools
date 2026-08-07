@@ -20,6 +20,7 @@ function generateEdit(forceMode) {
   if (btn) btn.disabled = true;
   pane.classList.add('busy');
   spinner.classList.add('show');
+  setGenerating(pane, true);
   showToast('Edit submitted to ComfyUI...');
 
   api('/api/edit', {
@@ -49,6 +50,7 @@ function generateEdit(forceMode) {
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
+    setGenerating(pane, false);
   });
 }
 

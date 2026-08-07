@@ -26,6 +26,7 @@ function generateVideo() {
   if (btn) btn.disabled = true;
   pane.classList.add('busy');
   spinner.classList.add('show');
+  setGenerating(pane, true);
   showToast('Video submitted to ComfyUI...');
 
   api('/api/video', {
@@ -45,6 +46,7 @@ function generateVideo() {
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
+    setGenerating(pane, false);
   });
 }
 

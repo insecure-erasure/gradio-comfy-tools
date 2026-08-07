@@ -88,3 +88,15 @@ function clearPrompt() {
   if (input) input.value = '';
   input.focus();
 }
+
+// Marks an output pane as "generating": the source URL overlay fades out and
+// stops being focusable so it does not interfere with viewing the result.
+// Also blurs the input so it collapses back to 10% width.
+function setGenerating(pane, on) {
+  if (!pane) return;
+  pane.classList.toggle('generating', on);
+  if (on) {
+    const field = pane.querySelector('.source-url-input');
+    if (field && document.activeElement === field) field.blur();
+  }
+}
