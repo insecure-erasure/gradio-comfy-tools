@@ -141,16 +141,17 @@ function relayoutPrompt() {
   if (landscape) {
     const pane = document.querySelector(`#tab-${currentTab} .params-pane`);
     if (pane) {
+      if (currentTab === 'upscale') {
+        // Upscale (landscape): no prompt bar and no prompt — the 🔍 button
+        // sits at the bottom-right of the params pane, just above the result
+        // URL row. The prompt block stays out (no textarea).
+        ensureUpscaleButton();
+        if (block && block.parentElement !== bar) bar.appendChild(block);
+      } else {
+        // Order matters: the prompt block first, the URL hint row below it.
+        if (block && block.parentElement !== pane) pane.appendChild(block);
+      }
       if (urlRow && urlRow.parentElement !== pane) pane.appendChild(urlRow);
-    }
-    if (currentTab === 'upscale') {
-      // Upscale (landscape): no prompt bar and no prompt — the 🔍 button
-      // sits at the bottom-right of the params pane, just above the result
-      // URL row. The prompt block stays out (no textarea).
-      ensureUpscaleButton();
-      if (block && block.parentElement !== bar) bar.appendChild(block);
-    } else {
-      if (block && block.parentElement !== pane) pane.appendChild(block);
     }
     bar.style.display = 'none';
   } else {
