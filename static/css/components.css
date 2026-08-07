@@ -20,7 +20,10 @@
     border-color: var(--accent);
   }
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
+  /* Bottom-right cluster: 🔗 (use previous) at the corner, 📁 (upload)
+     just to its LEFT (right: 48px = 30px button + 12px gap + 6px space). */
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
+  .output-overlay-btn.bottom-right-left { bottom: 12px; right: 48px; }
 
   /* Source image URL field — transparent overlay, bottom-LEFT of the
      output pane (Edit/Upscale/Video); paste an external URL here. The

@@ -88,15 +88,16 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 
 ### 3.2 Edit ✏️
 
-- **Output pane**: `📁` overlay (top-right) + collapsible URL field
-  (bottom-left) + `🔗` button (bottom-right) over the **compare slider**
+- **Output pane**: collapsible URL field (bottom-left) + 📁/🔗 buttons
+  (bottom-right, 📁 just left of 🔗) over the **compare slider**
   (Original | Edited).
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
 - **Params**: `👣 Steps` stepper (1–15, default 6) · `🌱 Seed` stepper + `🎲`.
 
 ### 3.3 Upscale 🔍
 
-- **Output pane**: `📁` + URL field + `🔗` over the **compare slider**
+- **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
+  the **compare slider** (Original | Upscaled).
   (Original | Upscaled).
 - **Toolbar**: ↺ only (no model, no ⚙️).
 - **Params**: `🌱 Seed` stepper + `🎲` only. (Resolution/blend/color stay as
@@ -110,7 +111,8 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 
 ### 3.4 Video 🎬
 
-- **Output pane**: `📁` + URL field + `🔗` over a real `<video>` player.
+- **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
+  real `<video>` player.
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
 - **Params**: `🎞️ Frames` stepper (81–161, step 4, default 81, snaps to
   4n+1) · `👣 Steps` stepper (4–10, default 4) · `🌱 Seed` stepper + `🎲`.
