@@ -772,6 +772,24 @@
     transform: translateY(12px);
     transition: transform .2s;
   }
+  /* Wan 2.2 (dual high/low path): wider modal so the negative prompt can be
+     laid out horizontally and LoRA rows fit without a scrollbar */
+  .modal-box.modal-wide {
+    max-width: 660px;
+  }
+  .modal-box.modal-wide .modal-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;   /* two columns for the dual paths */
+    gap: 14px 20px;
+    align-items: start;
+  }
+  .modal-box.modal-wide .field:last-child {
+    grid-column: 1 / -1;              /* negative prompt spans full width */
+  }
+  .modal-box.modal-wide .modal-body .field textarea {
+    min-height: 56px;                 /* shorter — horizontal */
+    resize: vertical;
+  }
   .modal-backdrop.show .modal-box { transform: translateY(0); }
   .modal-header {
     display: flex;

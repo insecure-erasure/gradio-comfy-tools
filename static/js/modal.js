@@ -69,6 +69,9 @@ function openModal(tab) {
     cfg = { ...cfg, fields: videoFields() };
   }
   const backdrop = document.getElementById('modalBackdrop');
+  const modalBox = document.getElementById('modalBox');
+  // Wan 2.2 (dual path) modal is wider; other tabs keep the default width
+  modalBox.classList.toggle('modal-wide', tab === 'video' && toolbarValues.vidVersion === 'wan22');
 
   document.getElementById('modalTitle').innerHTML = `⚙️ Advanced — ${cfg.title}`;
 
@@ -308,17 +311,19 @@ function renderModalLoraRows(path) {
   const container = document.getElementById(`loraRows-${path}`);
   if (!container) return;
   const rows = loraSets[path] || [];
+  // LoRA options filtered by the current model context, prefix stripped
+  const opts = loraOptionsForContext();
   let html = '';
   if (rows.length === 0) {
     html = '<p class="lora-empty">No LoRAs configured. Click “＋ Add LoRA”.</p>';
   }
   rows.forEach((row, i) => {
-    const opts = loraNames.map(n =>
-      `<option value="${esc(n)}"${n === row.name ? ' selected' : ''}>${esc(n)}</option>`
+    const options = opts.map(o =>
+      `<option value="${esc(o.value)}"${o.value === row.name ? ' selected' : ''}>${esc(o.label)}</option>`
     ).join('');
     html += `<div class="lora-row" data-i="${i}">
       <select class="lora-select" onchange="updateLoraRow('${path}', ${i}, 'name', this.value)">
-        ${opts || '<option value="">— no LoRAs —</option>'}
+        ${options || '<option value="">— no LoRAs —</option>'}
       </select>
       <div class="stepper lora-strength">
         <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, -0.05)" title="Decrease">−</button>
@@ -333,6 +338,36 @@ function renderModalLoraRows(path) {
   if (addBtn) addBtn.disabled = rows.length >= 4;
 }
 
+// Directory prefix that groups LoRAs per model family/version on the server
+// (zit/, flux2/, krea2/, wan21/, wan22/). Returns the dir for the current
+// tab + active model, or null when no filtering applies.
+function loraDirForContext() {
+  switch (currentModalTab) {
+    case 'generate':
+      return toolbarValues.genFamily === 'zimage' ? 'zit'
+        : toolbarValues.genFamily === 'krea2' ? 'krea2'
+        : 'flux2'; // flux2 default
+    case 'edit':
+      return 'flux2'; // Edit uses the flux-2-klein model
+    case 'video':
+      return toolbarValues.vidVersion; // wan21 | wan22
+    default:
+      return null;
+  }
+}
+
+// LoRA names available for the current context: filtered by the model's
+// directory prefix, with the prefix stripped for display (the full path is
+// kept as the option value for the backend).
+function loraOptionsForContext() {
+  const dir = loraDirForContext();
+  if (!dir) return loraNames.map(n => ({ value: n, label: n }));
+  const prefix = dir + '/';
+  return loraNames
+    .filter(n => n.startsWith(prefix))
+    .map(n => ({ value: n, label: n.slice(prefix.length) }));
+}
+
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -340,7 +375,8 @@ function esc(s) {
 function addModalLoraRow(path) {
   const rows = loraSets[path] || [];
   if (rows.length >= 4) return;
-  rows.push({ name: loraNames[0] || '', strength: 1.0 });
+  const first = loraOptionsForContext()[0]?.value || '';
+  rows.push({ name: first, strength: 1.0 });
   loraSets[path] = rows;
   renderModalLoraRows(path);
 }
