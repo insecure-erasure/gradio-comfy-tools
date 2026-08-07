@@ -251,6 +251,12 @@
     opacity: .85;
     border: 1px dashed rgba(255,255,255,.25);
   }
+  /* While a generation runs the source preview recedes behind the loading
+     overlay (the .gen-spinner, z-index 10, sits above it) — the Video tab
+     keeps the image visible under the spinner until the result is shown. */
+  .output-pane.busy .source-preview {
+    opacity: .35;
+  }
   .result-video {
     width: 100%;
     height: 100%;

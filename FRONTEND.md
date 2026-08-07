@@ -181,6 +181,14 @@ re-focusing the input expands it again). On failure it toasts the error
 **📁 upload** — any confirmed source becomes visible in the pane before
 generating.
 
+**Video tab specifics**: the preview **replaces the video component** — the
+mock placeholder (and any previous generated video) is hidden while the
+source image fills the pane. When generation starts the image **recedes
+behind the loading overlay** (dimmed, `.output-pane.busy .source-preview`;
+the `.gen-spinner` overlay, z-index 10, sits above it) and is **removed when
+the generation finishes** (`showResult`) to show the generated video. In the
+other tabs the preview behaves as before.
+
 Filename-vs-URL follows the backend convention (`normalize_source`,
 BACKEND.md §6): external URL → checked directly; anything else → treated as
 a ComfyUI temp filename, checked against `{media_base}/view?type=temp`

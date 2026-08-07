@@ -110,15 +110,24 @@ function proxiedSrc(value) {
 
 // Show the source image in the output pane, filling the available area.
 // Replaces any previous preview / plain result / placeholder and hides the
-// compare sliders; the video mock placeholder comes back (its tab).
+// compare sliders. In the Video tab the preview *replaces* the video
+// component (mock placeholder + any generated video) so the source image is
+// what fills the pane until a generation runs.
 function previewSourceImage(tab, src) {
   const pane = document.getElementById(`${tab}OutputPane`);
   if (!pane) return;
   clearSourcePreview(tab);
   pane.querySelectorAll('.output-placeholder').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');
-  const mock = pane.querySelector('.video-mock');
-  if (mock) mock.style.display = '';
+  if (tab === 'video') {
+    // Video tab: the preview replaces the video component — hide the mock
+    // placeholder and remove any previous generated video. The image stays
+    // behind the loading overlay while a generation runs and is removed
+    // when the generated video is shown (showResult).
+    pane.querySelectorAll('.result-video').forEach(el => el.remove());
+    const mock = pane.querySelector('.video-mock');
+    if (mock) mock.style.display = 'none';
+  }
   const img = document.createElement('img');
   img.className = 'source-preview';
   img.alt = 'Source preview';
@@ -127,12 +136,17 @@ function previewSourceImage(tab, src) {
 }
 
 // Remove only the source preview image (used when the field is edited).
-// Also cancels any pending 🔗 flash and un-forces the collapse so the field
-// can expand again while the user types.
+// Also cancels any pending 🔗 flash, un-forces the collapse so the field
+// can expand again while the user types, and restores the video mock
+// placeholder (Video tab).
 function clearSourcePreview(tab) {
   const pane = document.getElementById(`${tab}OutputPane`);
   if (!pane) return;
   pane.querySelectorAll('.source-preview').forEach(el => el.remove());
+  if (tab === 'video') {
+    const mock = pane.querySelector('.video-mock');
+    if (mock) mock.style.display = '';
+  }
   const field = sourceUrlField(tab);
   if (field) {
     clearTimeout(field._flashTimer);
