@@ -119,7 +119,10 @@ function clearPrompt() {
 
 // Disable/enable the action buttons that require a prompt. Tabs/buttons
 // without a prompt (Upscale, and the 🩹 Restore button) stay enabled.
+// While a generation runs (genLockActive) every action button is disabled
+// instead, so this returns early (see setGeneratingUi).
 function updateActionButtons() {
+  if (genLockActive) return; // generation lock holds all buttons disabled
   const prompt = (document.getElementById('promptInput')?.value || '').trim();
   const btnCol = document.getElementById('btnCol');
   if (!btnCol) return;
@@ -139,6 +142,57 @@ function setGenerating(pane, on) {
   if (on) {
     const field = pane.querySelector('.source-url-input');
     if (field && document.activeElement === field) field.blur();
+  }
+}
+
+// ── Generation UI lock ─────────────────────
+// While a generation runs (any tool) the prompt textarea is locked (typing
+// blocked, dimmed) and every action + 🪄 refine button is disabled — the
+// user cannot write/refine a prompt or start another job mid-generation,
+// and in Edit the complementary 🖌️/🩹 buttons are BOTH blocked too. The
+// click-catchers swap to a "Generation in progress…" toast. The lock is
+// released when the request settles (success, error, cancel — each tool's
+// .finally()).
+let genLockActive = false;
+let _genCatchers = [];
+
+function setGeneratingUi(on) {
+  genLockActive = !!on;
+  const input = document.getElementById('promptInput');
+  if (on) {
+    if (input) { input.disabled = true; input.classList.add('generating'); }
+    applyGenerationLock();
+  } else {
+    if (input) { input.disabled = false; input.classList.remove('generating'); }
+    const btnCol = document.getElementById('btnCol');
+    if (btnCol) {
+      btnCol.classList.remove('generating');
+      _genCatchers.forEach(({ el, orig }) => { el.onclick = orig; });
+      _genCatchers = [];
+    }
+    // Re-enable: 🪄 everywhere; the always-active buttons (🩹 Restore, 🔍
+    // Upscale — wherever they sit) unconditionally; the prompt-required
+    // ones follow the prompt state (updateActionButtons).
+    document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = false; });
+    document.querySelectorAll('.btn-generate:not([data-requires-prompt])').forEach(b => { b.disabled = false; });
+    updateActionButtons();
+  }
+}
+
+// Disable every action + refine button, wherever it lives, and swap the
+// click-catchers to the "Generation in progress…" toast. Re-applied on tab
+// switch mid-generation (switchTab rebuilds #btnCol, so the fresh buttons
+// need the lock re-asserted).
+function applyGenerationLock() {
+  document.querySelectorAll('.btn-generate, .btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
+  const btnCol = document.getElementById('btnCol');
+  _genCatchers = []; // previous catchers were rebuilt away by switchTab — drop them
+  if (btnCol) {
+    btnCol.classList.add('generating');
+    btnCol.querySelectorAll('.btn-catcher').forEach(c => {
+      _genCatchers.push({ el: c, orig: c.onclick });
+      c.onclick = () => showToast('Generation in progress…');
+    });
   }
 }
 

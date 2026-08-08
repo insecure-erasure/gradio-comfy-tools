@@ -101,6 +101,9 @@ function switchTab(name) {
 
   // Enable/disable the action button(s) based on the prompt state
   updateActionButtons();
+  // A generation running while switching tabs keeps the lock: switchTab
+  // rebuilt #btnCol with fresh (enabled) buttons, so re-assert it.
+  if (genLockActive) applyGenerationLock();
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the

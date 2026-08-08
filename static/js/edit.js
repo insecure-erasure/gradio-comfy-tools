@@ -30,6 +30,7 @@ function generateEdit(forceMode) {
   setGenerating(pane, true);
   showToast('Edit submitted to ComfyUI...');
   startProgressPolling();
+  setGeneratingUi(true);
 
   api('/api/edit', {
     image: src, mode, prompt, steps, seed, lora_config: loraConfig,
@@ -85,6 +86,7 @@ function generateEdit(forceMode) {
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
+    setGeneratingUi(false);
   });
 }
 

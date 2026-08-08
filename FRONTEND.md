@@ -66,6 +66,15 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   and re-enabled as you type; a transparent click-catcher overlays the
   disabled button to show a "Please write a prompt first" toast
   (`updateActionButtons` in `api.js`, `btn-catcher` in `tabs.js`).
+- **During a generation** (any tool): the prompt textarea is **locked**
+  (typing blocked, dimmed), the 🪄 refine buttons and EVERY action button
+  are disabled — including the complementary 🖌️/🩹 in Edit (running an
+  edit blocks the restore button and vice versa) and the Upscale buttons
+  wherever they sit. Clicking a disabled action shows the "Generation in
+  progress…" toast (click-catcher swap). The lock is released when the
+  request settles (success, error, cancel) and is **re-asserted on tab
+  switch** mid-generation (`switchTab` rebuilds `#btnCol` with fresh
+  buttons — `setGeneratingUi`/`applyGenerationLock` in `api.js`).
 - `🩹 Restore` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System

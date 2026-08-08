@@ -425,13 +425,20 @@
   }
   /* While a prompt refinement is in flight the generation buttons are
      disabled and their click-catcher shows (same overlay as the empty-
-     prompt state, but the toast says "Refining prompt…" — see refine.js). */
-  .btn-col.refining .btn-catcher {
+     prompt state, but the toast says "Refining prompt…" — see refine.js).
+     Same for the generation lock (".generating" — see api.js
+     setGeneratingUi): during a generation every action button is disabled
+     and the catcher toasts "Generation in progress…". */
+  .btn-col.refining .btn-catcher,
+  .btn-col.generating .btn-catcher {
     display: block;
   }
-  /* The prompt textarea is dimmed + non-editable while refining: the text
-     arrives progressively via streaming, so editing mid-refine is blocked. */
-  .prompt-input-wrap textarea.refining {
+  /* The prompt textarea is dimmed + non-editable while refining (the text
+     arrives progressively via streaming, so editing mid-refine is blocked)
+     and while a generation runs (typing is blocked — api.js
+     setGeneratingUi locks the input). */
+  .prompt-input-wrap textarea.refining,
+  .prompt-input-wrap textarea.generating {
     opacity: .55;
     cursor: not-allowed;
     pointer-events: none;

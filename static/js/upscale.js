@@ -25,6 +25,7 @@ function generateUpscale() {
   setGenerating(pane, true);
   showToast('Upscale submitted to ComfyUI...');
   startProgressPolling();
+  setGeneratingUi(true);
 
   api('/api/upscale', { image: src, seed }).then(res => {
     // Compare slider: original vs upscaled — this IS the result.
@@ -75,6 +76,7 @@ function generateUpscale() {
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
+    setGeneratingUi(false);
   });
 }
 

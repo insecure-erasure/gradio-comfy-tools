@@ -79,6 +79,7 @@ function generateVideo() {
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
+    setGeneratingUi(false);
   });
 }
 

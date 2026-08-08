@@ -33,6 +33,7 @@ function generateImage() {
   spinner.classList.add('show');
   showToast('Workflow submitted to ComfyUI...');
   startProgressPolling();
+  setGeneratingUi(true);
 
   api('/api/generate', {
     family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
@@ -56,6 +57,7 @@ function generateImage() {
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
+    setGeneratingUi(false);
   });
 }
 

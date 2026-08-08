@@ -268,6 +268,14 @@ mockup directly.
   dim + `:disabled` visual on the action button.
 - `api()` with AbortController timeout (240s) so a hung request never leaves
   the button stuck.
+- **Generation lock** (`setGeneratingUi(true|false)` + `applyGenerationLock`
+  in `api.js`): while a job runs the prompt textarea is locked (typing
+  blocked) and the 🪄 refine + ALL action buttons are disabled — including
+  the complementary 🖌️/🩹 in Edit (an edit blocks restore and vice versa)
+  and the Upscale buttons wherever they sit; the click-catchers toast
+  "Generation in progress…". Re-asserted on tab switch mid-generation
+  (`switchTab` rebuilds `#btnCol` with fresh buttons); released in each
+  tool's `.finally()`.
 - `showResult()` removes only previous result/placeholder, keeps overlays.
 - Compare slider ported from `../open-webui-comfy-tools/compare_images`
   (two stacked `<img>`, `clip-path` via `--p`, pointer drag/hover).
