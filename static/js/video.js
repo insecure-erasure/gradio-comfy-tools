@@ -54,8 +54,11 @@ function generateVideo() {
     image: src, model_version: mv, prompt, negative_prompt: negative,
     frames, steps, seed, lora_config: loraConfig, diffusion,
   }).then(res => {
-    // Hide the mock player; show the real video
-    if (mock) mock.style.display = 'none';
+    // Remove the mock player from the DOM (not just hide it): it is a
+    // flex block with width:100%, so leaving it (even display:none inline)
+    // gets restored by stopProgressPolling and pushes the real <video> to
+    // the side. showResult then fills the pane.
+    if (mock) mock.remove();
     showResult('videoOutputPane', res, true);
     // Video gallery (B5, deferred): mark the element + collect the URL for
     // a future video gallery (native controls don't mix with navigation).
