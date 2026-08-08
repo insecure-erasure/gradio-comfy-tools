@@ -235,10 +235,10 @@ function startProgressPolling() {
           if (!pv) {
             // The preview must fill the pane and stay centered: hide (not
             // remove) whatever competes for space — placeholder, previous
-            // result, source preview, compare slider. Overlays (spinner,
-            // buttons) stay. liveHidden is restored by stopProgressPolling
-            // on cancel.
-            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .compare-slider'));
+            // result, source preview, compare slider, video mock. Overlays
+            // (spinner, buttons) stay. liveHidden is restored by
+            // stopProgressPolling on cancel.
+            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
             liveHidden.forEach(el => { el.style.display = 'none'; });
             pv = document.createElement('img');
             pv.className = 'preview-live';

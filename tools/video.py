@@ -313,7 +313,15 @@ def generate_video(
         diffusion=diffusion,
     )
     with ComfyClient(settings=settings) as client:
-        prompt_id = client.queue_prompt(wf)
+        # preview_method: auto — the KSamplerAdvanced(s) decode the first
+        # frame of their intermediate latent each step (Wan21/Wan22 have
+        # latent_rgb_factors, so the Latent2RGB previewer handles the 5D
+        # latent) and stream JPEG previews over the WS, which server.py's
+        # job listener captures for the live preview in the Video tab. For
+        # wan22 the two KSamplers run in order (HIGH then LOW), so the
+        # previews arrive in flow order with their node_id (the UI shows
+        # KSampler HIGH .. then KSampler LOW ..).
+        prompt_id = client.queue_prompt(wf, extra_data={"preview_method": "auto"})
         outputs = client.wait_for_output(prompt_id, timeout=timeout)
     video = _common.find_output_video(outputs)
     return client.result_url(video["filename"], video.get("type", "output"))
