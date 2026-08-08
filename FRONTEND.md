@@ -219,9 +219,19 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 - **LoRA editor** (`modal.js`): inline rows of (LoRA name dropdown +
   strength text stepper ±0.05, default 1.0, up to 4) + "＋ Add LoRA". The
   JSON is derived on save (`advancedValues.lora` / `loraSets[path]`).
-  Dropdowns are **filtered by the model's directory** (`zit/`, `flux2/`,
-  `krea2/`, `wan21/`, `wan22/`) via `loraDirForContext()`; the label shows
-  the name **without** the dir prefix, the value keeps the full path.
+  Dropdowns list the LoRAs **whose directory matches the model context
+  first** (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/` via
+  `loraDirForContext()`) and **every other LoRA after** — ComfyUI can
+  resolve a unique name without its directory, so nothing is excluded. All
+  matching is **separator-agnostic** (`/` and `\` — the server runs
+  dual-boot Windows/Linux, so names arrive with either), the label shows
+  the name **without** any dir prefix, and the value keeps the full path
+  exactly as returned. A saved LoRA whose name no longer matches any
+  available file shows a "— not available —" placeholder instead of
+  silently becoming a different LoRA. By default **no LoRA is loaded**:
+  empty/blank rows are dropped both when parsing saved configs and when
+  saving (`parseLoraJson` / `loraSetsToJson`), and "＋ Add LoRA" only adds
+  a row when the server actually has LoRAs.
 - **Model dropdowns** are populated from `/models/diffusion_models` (via
   `GET /api/diffusion-models`), with a "— default —" empty option.
 - **wan22 dual path**: the modal is **wider** (`modal-wide`, 660px, 2-column

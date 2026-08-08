@@ -281,17 +281,24 @@ function fetchDiffusionModels() {
 function parseLoraJson(json) {
   let parsed = [];
   try { parsed = JSON.parse(json || '[]'); } catch (e) { parsed = []; }
-  return (Array.isArray(parsed) ? parsed : []).map(r => ({
-    name: typeof r === 'string' ? r : (r.name || ''),
-    strength: (typeof r === 'object' && r !== null) ? (parseFloat(r.strength) || 1.0) : 1.0,
-  }));
+  return (Array.isArray(parsed) ? parsed : [])
+    .map(r => ({
+      name: typeof r === 'string' ? r : (r.name || ''),
+      strength: (typeof r === 'object' && r !== null) ? (parseFloat(r.strength) || 1.0) : 1.0,
+    }))
+    // Empty/whitespace names mean "no LoRA loaded" — by default there is
+    // never a LoRA unless the user saved one (bogus empty rows, e.g. from
+    // the Windows-path bug, are dropped instead of showing as loaded).
+    .filter(r => String(r.name).trim() !== '');
 }
 
 function loraSetsToJson(path) {
   const rows = loraSets[path] || [];
   // video high/low sets carry their path; main set has no path
   const withPath = currentModalTab === 'video' && (path === 'high' || path === 'low');
-  return JSON.stringify(rows.map(r => ({
+  // Drop empty-name rows so a default/blank LoRA is never persisted.
+  const valid = rows.filter(r => String(r.name).trim() !== '');
+  return JSON.stringify(valid.map(r => ({
     name: r.name,
     strength: r.strength,
     ...(withPath ? { path } : {}),
@@ -314,17 +321,40 @@ function renderModalLoraRows(path) {
   const rows = loraSets[path] || [];
   // LoRA options filtered by the current model context, prefix stripped
   const opts = loraOptionsForContext();
+  // Separator-agnostic matching (dual-boot: a saved name may use / while
+  // the server returns \, or vice versa).
+  const norm = s => String(s).replace(/[\\/]+/g, '/');
   let html = '';
   if (rows.length === 0) {
     html = '<p class="lora-empty">No LoRAs configured. Click “＋ Add LoRA”.</p>';
   }
   rows.forEach((row, i) => {
-    const options = opts.map(o =>
-      `<option value="${esc(o.value)}"${o.value === row.name ? ' selected' : ''}>${esc(o.label)}</option>`
-    ).join('');
+    // Pick the option value to preselect: exact match wins, otherwise the
+    // separator-normalized match (so a saved Linux-style name restores on
+    // Windows and vice versa).
+    let sel = '';
+    if (opts.some(o => o.value === row.name)) {
+      sel = row.name;
+    } else {
+      const n = norm(row.name);
+      const m = opts.find(o => norm(o.value) === n);
+      sel = m ? m.value : '';
+    }
+    let options;
+    if (!sel) {
+      // Saved LoRA is no longer in the list (file removed / renamed): show
+      // a clearly non-matching placeholder so it never silently becomes a
+      // different LoRA; if the user saves as-is the empty name is dropped.
+      options = `<option value="">— not available —</option>`
+        + opts.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+    } else {
+      options = opts.map(o =>
+        `<option value="${esc(o.value)}"${o.value === sel ? ' selected' : ''}>${esc(o.label)}</option>`
+      ).join('');
+    }
     html += `<div class="lora-row" data-i="${i}">
       <select class="lora-select" onchange="updateLoraRow('${path}', ${i}, 'name', this.value)">
-        ${options || '<option value="">— no LoRAs —</option>'}
+        ${options}
       </select>
       <div class="stepper lora-strength">
         <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, -0.05)" title="Decrease">−</button>
@@ -357,16 +387,26 @@ function loraDirForContext() {
   }
 }
 
-// LoRA names available for the current context: filtered by the model's
-// directory prefix, with the prefix stripped for display (the full path is
-// kept as the option value for the backend).
+// LoRA names available for the current context. ComfyUI returns subfolder
+// paths with the OS separator (/ on Linux/macOS, \ on Windows — the user
+// runs dual-boot), so all matching is separator-agnostic. A LoRA whose
+// directory matches the current model context is listed first (label
+// without the dir); every other LoRA is still listed after it (label
+// without any dir) — ComfyUI can resolve a unique name even without its
+// directory. The FULL name as returned by ComfyUI is kept as the value so
+// the backend passes it through unchanged.
 function loraOptionsForContext() {
   const dir = loraDirForContext();
-  if (!dir) return loraNames.map(n => ({ value: n, label: n }));
-  const prefix = dir + '/';
-  return loraNames
-    .filter(n => n.startsWith(prefix))
-    .map(n => ({ value: n, label: n.slice(prefix.length) }));
+  const parse = n => {
+    const parts = String(n).split(/[\\/]/);
+    return { value: n, label: parts.pop(), dir: parts.join('/').toLowerCase() };
+  };
+  const items = loraNames.map(parse);
+  if (!dir) return items.map(({ value, label }) => ({ value, label }));
+  const target = dir.toLowerCase();
+  const inDir = items.filter(i => i.dir === target);
+  const rest = items.filter(i => i.dir !== target);
+  return [...inDir, ...rest].map(({ value, label }) => ({ value, label }));
 }
 
 function esc(s) {
@@ -377,6 +417,9 @@ function addModalLoraRow(path) {
   const rows = loraSets[path] || [];
   if (rows.length >= 4) return;
   const first = loraOptionsForContext()[0]?.value || '';
+  // Never add a row with an empty name ("a LoRA loaded" that is none) —
+  // only when the server actually has LoRAs to pick from.
+  if (!first) return showToast('No LoRAs available on the server');
   rows.push({ name: first, strength: 1.0 });
   loraSets[path] = rows;
   renderModalLoraRows(path);
