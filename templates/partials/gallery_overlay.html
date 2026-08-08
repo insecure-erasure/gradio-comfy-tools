@@ -2,8 +2,12 @@
      viewers (../open-webui-comfy-tools smart_generate_image / edit_image /
      upscale_image). Two modes, one overlay:
        • lightbox (Generate): a centered big image + gallery navigation
-         (‹ ›, n/N counter, prompt caption, download). Close ✕ is top-RIGHT,
+         (‹ ›, n/N counter, Show prompt button, download). Close ✕ is top-RIGHT,
          download is top-LEFT (inverted vs the reference — project decision).
+         The prompt is NOT shown as a bottom caption anymore: a 💬 Show prompt
+         button (visible only when the entry has a prompt) opens a
+         semi-transparent modal with the prompt at a device-appropriate
+         font size (see .gallery-prompt-* in components.css).
        • compare (Edit/Upscale): the interactive before/after slider fills
          the screen; the gallery there only navigates the edited/upscaled
          comparisons, and edited entries show the edit prompt as caption.
@@ -20,7 +24,14 @@
     <div class="divider"></div>
     <div class="handle"><span></span><span></span></div>
   </div>
-  <div class="gallery-caption" id="galleryCaption"></div>
+  <button class="gallery-prompt-btn" id="galleryPromptBtn" title="Show prompt">💬 Show prompt</button>
+  <div class="gallery-prompt-modal" id="galleryPromptModal">
+    <div class="gallery-prompt-box">
+      <div class="gallery-prompt-title">Prompt</div>
+      <div class="gallery-prompt-text" id="galleryPromptText"></div>
+      <button class="gallery-prompt-close" id="galleryPromptClose" title="Close" aria-label="Close prompt">✕</button>
+    </div>
+  </div>
   <div class="gallery-badge" id="galleryBadge"></div>
   <div class="gallery-badge-hint" id="galleryBadgeHint"></div>
   <button class="gallery-btn gallery-close" id="galleryClose" title="Close" aria-label="Close">

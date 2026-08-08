@@ -6,15 +6,22 @@
 //   • Generate (lightbox): navigates the GENERATED history — every image
 //     generated this session (window.galleryGenerated), even after the pane
 //     only shows the last one. An edit/restore APPENDS a new entry (the
-//     transformation's own prompt is the bottom caption; if the source was
-//     itself a gallery image, its prompt is preserved as the badge hover
-//     hint). An upscale REPLACES the original entry (the generation prompt
-//     stays as the caption, badge "Upscaled", no hover hint). Badges are
-//     top-center ("Edited" / "Restored" / "Upscaled"). Transformations of
-//     non-generated sources (uploads / external URLs) are appended.
+//     transformation's own prompt is shown via the 💬 Show prompt button;
+//     if the source was itself a gallery image, its prompt is preserved as
+//     the badge hover hint). An upscale REPLACES the original entry (badge
+//     "Upscaled", no hover hint). Badges are top-center ("Edited" /
+//     "Restored" / "Upscaled"). The prompt is never a bottom caption:
+//     Show prompt opens a semi-transparent modal with a
+//     device-appropriate font size (see .gallery-prompt-* CSS).
 //   • Edit/Upscale (compare): opens the fullscreen overlay with its own
 //     interactive slider; the gallery there ONLY navigates the
 //     edited/restored/upscaled comparisons (never generated images).
+//
+// Prompt access: the prompt is NOT shown as a bottom caption. A 💬 Show
+// prompt button (bottom-center, shown only when the entry has a prompt)
+// opens a semi-transparent modal (galleryPromptModal) with the full
+// prompt at a device-appropriate font size. The modal closes on ✕,
+// backdrop click, Escape, navigation (‹ › / ←/→) and gallery close.
 //
 // Close ✕ is top-RIGHT, download top-LEFT (inverted vs the reference —
 // project decision). Video results are only COLLECTED (data-video-gallery
@@ -25,7 +32,10 @@ const galleryBig = document.getElementById('galleryBig');
 const gallerySlider = document.getElementById('gallerySlider');
 const galleryBefore = document.getElementById('galleryBefore');
 const galleryAfter = document.getElementById('galleryAfter');
-const galleryCaption = document.getElementById('galleryCaption');
+const galleryPromptBtn = document.getElementById('galleryPromptBtn');
+const galleryPromptModal = document.getElementById('galleryPromptModal');
+const galleryPromptText = document.getElementById('galleryPromptText');
+const galleryPromptClose = document.getElementById('galleryPromptClose');
 const galleryCounter = document.getElementById('galleryCounter');
 const galleryLabelAfter = document.getElementById('galleryLabelAfter');
 const galleryBadge = document.getElementById('galleryBadge');
@@ -196,6 +206,7 @@ function openGalleryOverlay() {
 }
 
 function closeGallery() {
+  closeGalleryPrompt();
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
     try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
@@ -210,6 +221,7 @@ function closeGallery() {
     if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
       galleryOverlay.classList.remove('show');
       galleryMode = null;
+      closeGalleryPrompt();
     }
   })
 );
@@ -221,6 +233,13 @@ function renderGalleryItem() {
   const hint = document.getElementById('galleryBadgeHint');
   if (galleryMode === 'lightbox') {
     galleryBig.src = e.src;
+    // 💬 Show prompt: visible only when the entry has a prompt. The prompt
+    // itself is never rendered here — Show prompt opens the modal.
+    if (e.prompt) {
+      galleryPromptBtn.classList.add('show');
+    } else {
+      galleryPromptBtn.classList.remove('show');
+    }
     // Badge overlay (top-center): the transform that produced this image.
     if (e.badge) {
       galleryBadge.textContent = e.badge;
@@ -232,8 +251,8 @@ function renderGalleryItem() {
     // Hover hint below the badge: the ORIGINAL source prompt of an appended
     // edit/restore (hovering "Edited"/"Restored" shows the prompt of the
     // image it was made from, in a grey translucent panel). Empty for plain
-    // generations, upscales (replaced, prompt already in the caption) and
-    // edits of non-gallery sources.
+    // generations, upscales (replaced, prompt already shown via Show
+    // prompt) and edits of non-gallery sources.
     if (e.originalPrompt) {
       hint.textContent = e.originalPrompt;
       hint.classList.remove('empty');
@@ -251,17 +270,8 @@ function renderGalleryItem() {
     galleryBadge.classList.remove('show');
     hint.textContent = '';
     hint.classList.add('empty');
+    galleryPromptBtn.classList.remove('show'); // compare mode has no prompt button
     fitGallerySlider();
-  }
-  // Prompt caption: the entry's prompt — for a plain generation or an
-  // upscale (replaced) this is the generation prompt; for an appended
-  // edit/restore it is the transformation's own text.
-  if (e.prompt) {
-    galleryCaption.textContent = e.prompt; // textContent — never innerHTML
-    galleryCaption.classList.add('show');
-  } else {
-    galleryCaption.classList.remove('show');
-    galleryCaption.textContent = '';
   }
   // N/M paginator (bottom-right): always visible in the gallery; prev/next
   // buttons only when there is more than one entry. NB: the counter uses an
@@ -276,6 +286,7 @@ function renderGalleryItem() {
 
 function galleryNav(delta) {
   if (!galleryMode || galleryEntries.length < 2) return;
+  closeGalleryPrompt(); // a new entry — don't leave the old prompt open
   galleryIdx = ((galleryIdx + delta) % galleryEntries.length + galleryEntries.length) % galleryEntries.length;
   renderGalleryItem();
 }
@@ -349,17 +360,43 @@ async function galleryDownload() {
   }
 }
 
+// ── Prompt modal (💬 Show prompt) ───────────
+// Semi-transparent modal showing the current entry's prompt at a
+// device-appropriate font size (the CSS uses clamp(vw+vh)). Only available
+// in lightbox mode and only when the entry has a prompt (the button is
+// hidden otherwise). Closes on ✕, backdrop click, Escape, navigation and
+// gallery close.
+function openGalleryPrompt() {
+  const e = galleryEntries[galleryIdx];
+  if (!e || !e.prompt) return;
+  galleryPromptText.textContent = e.prompt; // textContent — never innerHTML
+  galleryPromptModal.classList.add('show');
+}
+
+function closeGalleryPrompt() {
+  galleryPromptModal.classList.remove('show');
+}
+
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
 galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); galleryNav(-1); });
 galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); galleryNav(1); });
 galleryBig.addEventListener('click', e => e.stopPropagation());
+galleryPromptBtn.addEventListener('click', e => { e.stopPropagation(); openGalleryPrompt(); });
+galleryPromptClose.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); });
+galleryPromptModal.addEventListener('click', e => { if (e.target === galleryPromptModal) closeGalleryPrompt(); });
 galleryOverlay.addEventListener('click', e => { if (e.target === galleryOverlay) closeGallery(); });
 
-// Keyboard: Escape closes; ←/→ navigate while the overlay is open.
+// Keyboard: Escape closes; ←/→ navigate while the overlay is open. While
+// the prompt modal is open, Escape closes ONLY the modal (the gallery stays)
+// and navigation is suspended so the shown prompt never goes stale.
 document.addEventListener('keydown', e => {
   if (!galleryOverlay.classList.contains('show')) return;
+  if (galleryPromptModal.classList.contains('show')) {
+    if (e.key === 'Escape') closeGalleryPrompt();
+    return;
+  }
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);
   else if (e.key === 'ArrowRight') galleryNav(1);

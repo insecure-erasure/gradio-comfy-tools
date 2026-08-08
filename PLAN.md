@@ -441,22 +441,29 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   - **Edit/Upscale (compare)**: the ⛶ button opens a fullscreen overlay with
     its own interactive slider; the gallery there **ONLY navigates the
     edited/restored/upscaled comparisons** (never generated images), the
-    AFTER image being the identity (like the reference's #thumb). The edit
-    text shows as caption; upscaled have none.
+    AFTER image being the identity (like the reference's #thumb).
+  - **Prompt display (2026-08-08)**: the prompt is **no longer a bottom
+    caption**. A 💬 **Show prompt** button sits bottom-center (only when the
+    entry has a prompt) and opens a **semi-transparent modal** with the
+    full prompt at a **device-appropriate font size** (`clamp(15px, 2vw +
+    1vh, 26px)` — scales with the screen resolution: ~16px phones, ~20px
+    tablets, ~26px capped on large displays; title/line-height share the
+    formula). Closes on ✕ / backdrop / Escape / navigation / gallery close;
+    while open, Escape closes only the modal and navigation is suspended.
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
-    - **Edit ✏️ / Restore 🩹**: appended entry shows the **transformation's
-      own text as the bottom caption**; if the source was itself a gallery
+    - **Edit ✏️ / Restore 🩹**: the appended entry's own text is what the
+      Show prompt modal shows; if the source was itself a gallery
       image, its prompt is kept as `originalPrompt` and shown on **badge
       hover** ("Edited"/"Restored", `#galleryBadge` → `#galleryBadgeHint`
       grey translucent panel, `.gallery-badge.show:hover +
       .gallery-badge-hint:not(.empty)`). Restore may have no prompt — then
-      the caption is empty but the hover still shows the source's prompt.
-      Edits of non-gallery sources (uploads / external URLs) are appended
-      with the edit text and no hover hint.
+      the Show prompt button is hidden but the hover still shows the
+      source's prompt. Edits of non-gallery sources (uploads / external
+      URLs) are appended with the edit text and no hover hint.
     - **Upscale 🔍**: **replaces** the source entry in place — the
-      generation prompt stays as the bottom caption, badge "Upscaled"
+      generation prompt stays as the Show prompt content, badge "Upscaled"
       top-center, no hover hint (an upscale has no transformation prompt).
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
@@ -526,9 +533,12 @@ fix):**
 - **Gallery in a live session (not stubbed)**: generate 2+ images, open the
   lightbox (click the result or ⛶) and verify the history navigates all of
   them (counter n/N, ‹ ›, ←/→); then edit/restore one of them and verify it
-  APPENDS a new entry (caption = edit text, badge hover = original prompt)
-  while the original stays; upscale one and verify it REPLACES its entry
-  (caption = generation prompt, badge "Upscaled"). Confirm the ⛶ compare
+  APPENDS a new entry (Show prompt = edit text, badge hover = original
+  prompt) while the original stays; upscale one and verify it REPLACES its
+  entry (Show prompt = generation prompt, badge "Upscaled"). Also verify
+  the 💬 Show prompt modal (semi-transparent, font size scales with the
+  device) opens/closes on button/✕/backdrop/Escape and closes on
+  navigation. Confirm the ⛶ compare
   overlay in Edit/Upscale only lists edited/restored/upscaled comparisons
   **and that several edits/restores/upscales done on the same tab all stay
   in the gallery** (regression: the first edit used to vanish once the

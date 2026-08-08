@@ -343,17 +343,29 @@ Two separate session-scoped galleries (in-memory; not persisted):
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
   - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
-    (the original image stays): the transformation's own text is the bottom
-    caption; if the source was a gallery image, its prompt is kept as
-    `originalPrompt` and shown on badge hover ("Edited"/"Restored" →
-    `#galleryBadgeHint`, a grey translucent panel below the badge, via
-    `.gallery-badge.show:hover + .gallery-badge-hint:not(.empty)`). Restore
-    may have no prompt — empty caption, but the hover still shows the
-    source's prompt. Edits of non-gallery sources (uploads / external URLs)
-    append with no hover hint.
+    (the original image stays): the transformation's own text is what the
+    💬 Show prompt modal shows; if the source was a gallery image, its
+    prompt is kept as `originalPrompt` and shown on badge hover
+    ("Edited"/"Restored" → `#galleryBadgeHint`, a grey translucent panel
+    below the badge, via `.gallery-badge.show:hover +
+    .gallery-badge-hint:not(.empty)`). Restore may have no prompt — the
+    Show prompt button is hidden, but the hover still shows the source's
+    prompt. Edits of non-gallery sources (uploads / external URLs) append
+    with no hover hint.
   - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
-    place: the generation prompt stays as the bottom caption, badge
+    place: the generation prompt stays as the Show prompt content, badge
     "Upscaled", no hover hint (an upscale has no transformation prompt).
+  - **Prompt display**: the prompt is NOT a bottom caption anymore. A 💬
+    **Show prompt** button sits bottom-center, visible only when the entry
+    has a prompt; clicking it opens a **semi-transparent modal**
+    (`#galleryPromptModal`) with the full prompt (white-space: pre-wrap,
+    textContent — never innerHTML) at a **device-appropriate font size**
+    (`font-size: clamp(15px, 2vw + 1vh, 26px)` — ~16px on phones, ~20px on
+    tablets, capped ~26px on large screens; title and line-height use the
+    same vw+vh formula). The modal closes on ✕, backdrop click, Escape,
+    navigation (‹ › / ←/→) and gallery close — while it is open, Escape
+    closes only the modal and gallery navigation is suspended so the shown
+    prompt never goes stale.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -361,10 +373,11 @@ Two separate session-scoped galleries (in-memory; not persisted):
   the AFTER image URL). `collectCompareEntries()` merges the registry with
   any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
-  (big image + caption + badge/hover + ‹ › + N/M counter bottom-right +
-  download top-left + close ✕ top-right), compare slider for Edit/Upscale
-  (interactive before/after). The N/M counter is always visible; ‹ › only
-  with more than one entry. Escape/✕/backdrop close; ←/→ navigate.
+  (big image + 💬 Show prompt button + badge/hover + ‹ › + N/M counter
+  bottom-right + download top-left + close ✕ top-right), compare slider for
+  Edit/Upscale (interactive before/after). The N/M counter is always
+  visible; ‹ › only with more than one entry. Escape/✕/backdrop close;
+  ←/→ navigate.
 - Video results are only COLLECTED (`window.galleryVideos`) for a future
   video gallery — not navigable yet.
 
