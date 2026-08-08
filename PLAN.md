@@ -395,10 +395,8 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     latent_rgb_factors; no TinyVAE needed). wan22's two KSamplers run HIGH
     then LOW, so the previews arrive in flow order with their node_id —
     the URL row shows "KSampler HIGH v/max" then "KSampler LOW v/max".
-    Validated live: wan21 2 steps → 2 previews from node 876.
-    (Note: a wan22 run on the dev box hit an unrelated psutil Windows bug
-    — PdhAddEnglishCounterW — in should_free_pins_for_ram_pressure; not
-    related to previews.)
+    Validated live: wan21 2 steps → 2 previews from node 876; wan22
+    confirmed working in the UI.
   - `server.py` WS listener sends the handshake `{"type": "feature_flags",
     "data": {"supports_preview_metadata": true}}` as its first message and
     parses binary frames: event 4 `PREVIEW_IMAGE_WITH_METADATA` (`>I(4) +
@@ -527,13 +525,14 @@ fix):**
 
 - **Gallery in a live session (not stubbed)**: generate 2+ images, open the
   lightbox (click the result or ⛶) and verify the history navigates all of
-  them (counter n/N, ‹ ›, ←/→); then edit/restore/upscale one of them and
-  verify it REPLACES its entry in the generated history (keeps the original
-  generation prompt as caption, shows the Edited/Restored/Upscaled badge
-  top-center). Confirm the ⛶ compare overlay in Edit/Upscale only lists
-  edited/restored/upscaled comparisons **and that several edits/restores/
-  upscales done on the same tab all stay in the gallery** (regression: the
-  first edit used to vanish once the second one landed — fixed 2026-08-08).
+  them (counter n/N, ‹ ›, ←/→); then edit/restore one of them and verify it
+  APPENDS a new entry (caption = edit text, badge hover = original prompt)
+  while the original stays; upscale one and verify it REPLACES its entry
+  (caption = generation prompt, badge "Upscaled"). Confirm the ⛶ compare
+  overlay in Edit/Upscale only lists edited/restored/upscaled comparisons
+  **and that several edits/restores/upscales done on the same tab all stay
+  in the gallery** (regression: the first edit used to vanish once the
+  second one landed — fixed 2026-08-08; append behavior 2026-08-08).
 - **Stale-cache fix**: with the server now serving `Cache-Control: no-cache`
   on `/static`, a normal refresh (F5) must pick up new JS/CSS without a
   hard reload — the "gallery only shows the last generated image" bug was a

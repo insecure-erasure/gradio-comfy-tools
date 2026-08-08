@@ -195,8 +195,10 @@ mock placeholder (and any previous generated video) is hidden while the
 source image fills the pane. When generation starts the image **recedes
 behind the loading overlay** (dimmed, `.output-pane.busy .source-preview`;
 the `.gen-spinner` overlay, z-index 10, sits above it) and is **removed when
-the generation finishes** (`showResult`) to show the generated video. In the
-other tabs the preview behaves as before.
+the generation finishes** (`showResult`) to show the generated video. The
+mock placeholder itself is **removed from the DOM** (not just hidden) when
+the result lands, so it cannot be resurrected by `stopProgressPolling` and
+push the `<video>` aside. In the other tabs the preview behaves as before.
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
 BACKEND.md §6): external URL → checked directly; anything else → treated as
@@ -264,6 +266,19 @@ _title> <value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI
 moves node to node. On success the URL replaces the progress text; on error
 the row is cleared (the error toast appears as before).
 
+**Live per-step preview** (Generate, Edit and Video): while the job runs,
+`/api/progress` also carries the latest latent decode (`active.preview`, a
+JPEG data URL). `startProgressPolling` paints it as an `<img class="preview-live">`
+inside the output pane of the tab that started the generation, and ONLY
+while that tab is active — switching tabs mid-generation keeps capturing
+server-side but stops painting; coming back resumes with the latest frame.
+While painted it hides (and restores on cancel) the placeholder / previous
+result / source preview / compare slider / video mock so it fills the pane
+and stays centered; the spinner stays on top (`.busy` z-index).
+`stopProgressPolling` removes it, and `showResult`/`clearPane` drop it too so
+the final result replaces the preview. The preview is ephemeral: it is
+intentionally lost on cancel and never shown after the job settles.
+
 **⏹ Cancel**: while a generation runs, the (disabled) 📋 copy button is
 **replaced by a ⏹ stop button** (`cancelGeneration` in `api.js`). Clicking it
 calls `POST /api/cancel` (backend: `POST /interrupt` to stop the running
@@ -280,7 +295,7 @@ button comes back (enabled once a result URL is shown, disabled otherwise).
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
   state, storage, api, source, tabs, generate, edit, upscale, video,
-  settings, modal, main.
+  gallery, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, theme. Saved on field change / modal save / theme toggle /
@@ -292,7 +307,7 @@ button comes back (enabled once a result URL is shown, disabled otherwise).
 |---|---|
 | `GET /` | renders the UI |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
-| `GET /api/progress` | live progress of the most recent job (`{active: {stage, node_title, value, max} | null}`) |
+| `GET /api/progress` | live progress of the most recent job (`{active: {stage, node, node_title, value, max, preview?} | null}` — `preview` is the latest per-step latent decode as a `data:image/jpeg;base64,…` URL, only while the job runs) |
 | `POST /api/cancel` | cancel the most recent job (interrupt running + delete pending) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
@@ -309,6 +324,38 @@ button comes back (enabled once a result URL is shown, disabled otherwise).
 - `lastGeneratedUrl` persists for chaining (🔗).
 - `advancedValues` (per-tab advanced config) persists across modal opens and
   reloads (localStorage).
+
+### 7.1 Galleries (`gallery.js`)
+
+Two separate session-scoped galleries (in-memory; not persisted):
+
+- **`window.galleryGenerated`** — the Generate lightbox history. Every
+  generation joins it via `addGeneratedEntry`. Transformations:
+  - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
+    (the original image stays): the transformation's own text is the bottom
+    caption; if the source was a gallery image, its prompt is kept as
+    `originalPrompt` and shown on badge hover ("Edited"/"Restored" →
+    `#galleryBadgeHint`, a grey translucent panel below the badge, via
+    `.gallery-badge.show:hover + .gallery-badge-hint:not(.empty)`). Restore
+    may have no prompt — empty caption, but the hover still shows the
+    source's prompt. Edits of non-gallery sources (uploads / external URLs)
+    append with no hover hint.
+  - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
+    place: the generation prompt stays as the bottom caption, badge
+    "Upscaled", no hover hint (an upscale has no transformation prompt).
+  - Identification by ComfyUI filename (`filenameFromUrl` handles
+    `/media/..`, `/view?filename=..`).
+- **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
+  edited/restored/upscaled before/after pairs (`addCompareEntry`, deduped by
+  the AFTER image URL). `collectCompareEntries()` merges the registry with
+  any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
+- The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
+  (big image + caption + badge/hover + ‹ › + N/M counter bottom-right +
+  download top-left + close ✕ top-right), compare slider for Edit/Upscale
+  (interactive before/after). The N/M counter is always visible; ‹ › only
+  with more than one entry. Escape/✕/backdrop close; ←/→ navigate.
+- Video results are only COLLECTED (`window.galleryVideos`) for a future
+  video gallery — not navigable yet.
 
 ## 8. Deviations from the mockup (code is source of truth)
 

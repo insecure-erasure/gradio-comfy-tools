@@ -19,7 +19,7 @@
 2. **Poll**: `GET /history/{prompt_id}` until the prompt completes; handle timeout and `POST /interrupt` on cancel.
 3. **Upload**: `POST /upload/image` (multipart) for user-uploaded source images in Edit/Upscale/Video; the resulting filename feeds the `Load Image (URL/Path)` node.
 4. **Results**: the public URL is `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. Images from `SaveImage`/`Random Preview Image`; videos from `VHS_VideoCombine` (`Output MP4`).
-5. **Config**: server URL (`COMFYUI_BASE_URL`, default `http://localhost:8188`), media base URL (`COMFYUI_MEDIA_BASE_URL`, default: derived from the server URL), optional API key.
+5. **Config**: server URL (`COMFYUI_BASE_URL`, default `http://192.168.1.8`), media base URL (`COMFYUI_MEDIA_BASE_URL`, default: derived from the server URL), optional API key.
 
 ### Model listings (for the UI dropdowns)
 - `list_loras()` → `GET /models/loras`; `list_diffusion_models()` → `GET /models/diffusion_models`. Both handle a list of strings or a list of `{name}` objects.
@@ -41,7 +41,7 @@
   or `{ok: false, error}` (always HTTP 200 so the UI distinguishes
   "not an image" from a transport failure).
 
-### Live progress (B5-lite)
+### Live progress + per-step previews (B5)
 - `comfy_client.queue_prompt` **materializes the client_id** (random when not
   given) and fires module-level **prompt hooks** (`register_prompt_hook`,
   called with `(client_id, prompt_id, workflow)`).
@@ -53,13 +53,37 @@
   the existing `wait_for_output` polling still completes the job.
 - `GET /api/progress` exposes the most recent active job — the frontend
   polls it and paints the stage in the result URL row.
+- **Live per-step previews** (Generate, Edit and Video) use the same
+  mechanism the ComfyUI web UI uses — no preview node needed:
+  - The tools queue with `extra_data={"preview_method": "auto"}` (the CLI
+    default is NoPreviews, so without this the sampler generates no
+    previews; the flag is per-prompt and auto-reset). Only Generate, Edit
+    and Video opt in; Upscale (SeedVR2) does not.
+  - The sampler decodes its intermediate latent each step (tiny VAE from
+    `models/vae_approx`, or the built-in Latent2RGB previewer — Wan
+    latents are 5D and preview their first frame) and streams JPEGs over
+    the WS as **binary frames**. The listener declares support with a
+    `feature_flags` handshake as its first message
+    (`{"type": "feature_flags", "data": {"supports_preview_metadata": true}}`)
+    and parses the frames: event 4 `PREVIEW_IMAGE_WITH_METADATA`
+    (`>I(4) + >I(len_json) + JSON{node_id, prompt_id} + JPEG`) and legacy
+    event 1 (`>I(4) + >I(image_type) + bytes`).
+  - Only the **last preview per job** is kept (bounded memory, ~50KB); it
+    is dropped when the job finishes or is cancelled (`_mark_job_result`
+    pops it) so nothing stale is ever served and no memory accumulates.
+  - `GET /api/progress` serves `active.preview` as a
+    `data:image/jpeg;base64,…` while the job runs. For wan22 the two
+    KSamplers run HIGH then LOW, so previews arrive in flow order with
+    their node_id (the UI shows `KSampler HIGH v/max` then
+    `KSampler LOW v/max`).
 - **Cancel** (`POST /api/cancel`): `ComfyClient.interrupt()` (`POST
   /interrupt`, empty body / Content-Length 0) stops the running prompt;
   `ComfyClient.cancel_prompt(pid)` (`POST /queue` `delete`) removes the
   pending one; the job is marked done so progress goes idle.
 - Verified live: `queued` → `SamplerCustomAdvanced 1/8..8/8` → `VAE Decode`
   → `Random Preview Image` → done; `/interrupt` and `/queue delete` both
-  return 200 on the live server.
+  return 200 on the live server; per-step previews confirmed for flux2,
+  krea2 and wan21.
 
 ## 3. Workflow injection pattern (tools/)
 
@@ -85,7 +109,7 @@ Precedence: `UI control / global setting  >  workflow default`
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
-| Model family dropdown | `model_family` (zit / krea2 / flux.2) | `Load Diffusion Model`, `Load CLIP`, `Load VAE` (models from the family config) |
+| Model family dropdown | `family` (zimage / krea2 / flux2) | `Load Diffusion Model`, `Load CLIP`, `Load VAE` (models from the family config) |
 | W/H readonly (auto) | `megapixel` + `aspect_ratio` (w:h) | `Flux Resolution Calc` |
 | AR dropdown | `aspect_ratio` (w:h) | `Flux Resolution Calc` |
 | 📐 MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
@@ -93,7 +117,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `RandomNoise` |
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
-| Modal: Model name | `model_name` (.safetensors) | `Load Diffusion Model` |
+| Modal: Model name | `model` (.safetensors, overrides the family default) | `Load Diffusion Model` |
 
 Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `Switch (SIGMAS)`, `VAE Decode`; output: `Random Preview Image`.
 
@@ -144,10 +168,10 @@ Other nodes: `SeedVR2 (Down)Load DiT Model` → **`SeedVR2LoadDiTModel`**, `Seed
 | Model dropdown (Wan 2.1 / 2.2) | `model_version` (wan21 / wan22) | workflow file selection + `Load Diffusion Model`(s) |
 | 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🎞️ Frames (81–161, 4n+1) | `length` (4n+1 snap) | `WanImageToVideo` |
-| 👣 Steps (4–10) | `steps` (wan22: odd→even) | `KSampler` (title "KSampler", class KSamplerAdvanced) |
+| 👣 Steps (4–10) | `steps` (wan22: odd→even) | `KSampler` (wan21, title "KSampler") / `KSampler HIGH` + `KSampler LOW` (wan22, class KSamplerAdvanced) |
 | 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `EasySeed` |
 | Negative Prompt | `negative_prompt` (overrides default) | `Negative Prompt` |
-| Modal: Diffusion model (JSON) | `diffusion_model` (object wan21 / array wan22 with `path`) | `Load Diffusion Model`(s) per `path` (high/low) |
+| Modal: Diffusion model (JSON) | `diffusion` (object wan21 / array wan22 with `path`) | `Load Diffusion Model`(s) per `path` (high/low) |
 | Modal: LoRA config (JSON) | `lora_config` (supports `path` high/low) | `Power Lora Loader (rgthree)` (filtered per path) |
 | Prompt (bottom bar) | `prompt` (motion) | `Positive Prompt` |
 
@@ -175,19 +199,21 @@ fields (model, LoRA/diffusion config):
 
 | Setting | Default | UI |
 |---|---|---|
-| server_url | `http://localhost:8188` | 🎨 dropdown |
+| server_url | `http://192.168.1.8` | 🎨 dropdown |
 | COMFYUI_MEDIA_BASE_URL | derived from the server | 🎨 dropdown |
 | theme | dark | 🎨 dropdown |
-| model_family | zit | settings |
+| model_family | zimage (backend) / krea2 (UI default) | settings / toolbar |
 | lora_config (default) | `[]` | settings |
 | diffusion_model (video) | `""` (built-in defaults) | modal (Video) |
 
 ## 8. State and session
 
 - Per-tab parameter state, independent; persists across tab switches (kept in the frontend's DOM — tabs are never rebuilt).
+- Per-tab prompts (`promptsByTab`) — one prompt per generate/edit/video; Upscale has none. Saved/restored on tab switch and persisted to localStorage.
 - The advanced modal persists its values per tab for the session.
-- Reset (↺) restores defaults and clears the tab's output.
+- Reset (↺) restores defaults, clears the tab's output and cancels any running job (see `cancelIfRunning`).
 - Each tab's result persists for the session (not lost on tab switch).
+- Session galleries (frontend): `window.galleryGenerated` (generations + transformations) and `window.galleryComparisons` (edited/restored/upscaled before/after pairs) — see FRONTEND.md §7.
 
 ## 9. Implementation notes
 

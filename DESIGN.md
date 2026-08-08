@@ -83,7 +83,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | File | Purpose |
 |------|---------|
 | `DESIGN.md` | This overview |
-| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) in progress |
+| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done except queueing/live-preview-notes — see §B5 |
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Design template/spec — never edited for functionality |
@@ -99,6 +99,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `scripts/run_upscale.py` | A3 Upscale CLI — `--image <filename|URL> [--seed]` |
 | `scripts/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
 | `scripts/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
+| `scripts/probe_previews.py` | Documents the raw ComfyUI per-step preview protocol (binary WS frames) — `python3 scripts/probe_previews.py [--family krea2|flux2|zimage] [--steps N]` |
 
 ### workflows/ contents
 
