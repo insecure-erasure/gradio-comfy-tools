@@ -235,7 +235,12 @@ def generate_image(
         model=model,
     )
     with ComfyClient(settings=settings) as client:
-        prompt_id = client.queue_prompt(wf)
+        # preview_method: auto — the sampler decodes its intermediate latent
+        # each step (tiny VAE / latent2rgb) and streams JPEG previews over
+        # the WS, which server.py's job listener captures for the live
+        # preview in the Generate tab. Only enabled here (image tools); the
+        # flag is per-prompt and reset after execution.
+        prompt_id = client.queue_prompt(wf, extra_data={"preview_method": "auto"})
         outputs = client.wait_for_output(prompt_id, timeout=timeout)
     image = _common.find_output_image(outputs)
     return client.result_url(image["filename"], image.get("type", "output"))

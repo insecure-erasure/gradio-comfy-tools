@@ -160,6 +160,12 @@ function recalcResolution() {
 
 // ── ↺ Reset ───────────────────────────────
 function resetGenerate() {
+  // If a generation is running, cancel the backend job and stop the live
+  // preview/progress polling so the reset leaves a clean pane: the
+  // placeholder is recreated below and nothing (preview or result)
+  // reappears over it.
+  cancelIfRunning();
+
   const family = document.getElementById('genModelFamily');
   if (family) family.selectedIndex = 0;
   const ar = document.getElementById('genAspectRatio');

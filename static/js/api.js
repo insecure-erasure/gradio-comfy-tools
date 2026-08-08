@@ -45,11 +45,13 @@ function showToast(msg) {
 
 // Render a result (image or video) into an output pane.
 // Removes only the previous result/placeholder/preview — keeps overlays like
-// the loading spinner (which lives inside the pane).
+// the loading spinner (which lives inside the pane). The live per-step
+// preview (preview-live) is also removed: it is replaced by the final
+// result.
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   if (isVideo) {
     const v = document.createElement('video');
     v.className = 'result-video';
@@ -72,7 +74,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';
     // Drop the gallery markers so a cleared result no longer appears in the
@@ -175,8 +177,34 @@ function cancelGeneration() {
   abortCurrentRequest();
 }
 
+// ↺ Reset helper: if a generation is running (polling active), cancel the
+// backend job and stop the live preview/progress polling so the reset
+// leaves a clean pane — nothing (preview or result) reappears over the
+// restored placeholder. Safe to call when idle (cancel is a no-op there).
+function cancelIfRunning() {
+  if (progressTimer) {
+    fetch('/api/cancel', { method: 'POST' }).catch(() => {});
+  }
+  stopProgressPolling();
+}
+
+// The tab that started the current generation. The live per-step preview is
+// captured for the job regardless of what the user does, but is only
+// PAINTED while the active tab is the one that started it (requirement:
+// "if the user switches tabs mid-generation, keep capturing but only show
+// in the tab where it started"). tab -> output pane id (generate uses
+// 'genOutputPane', the rest match by name).
+const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+let liveJobTab = null;
+// Elements hidden while the live preview is painted (placeholder, previous
+// result, source preview) so the preview fills the pane and stays centered;
+// restored if the job is cancelled (stopProgressPolling) — never removed,
+// so a cancel keeps the previous result visible.
+let liveHidden = [];
+
 function startProgressPolling() {
   stopProgressPolling();
+  liveJobTab = currentTab; // tab that initiated the generation
   setCancelVisible(true);
   const paint = async () => {
     try {
@@ -196,6 +224,30 @@ function startProgressPolling() {
         txt = '⚙️ ' + (a.node_title || '');
       }
       el.textContent = txt;
+      // Live per-step preview (any tab): paint the latest latent decode in
+      // the output pane of the tab that started the job, and ONLY while the
+      // user is on that tab (switching away pauses the painting; coming
+      // back resumes it with the latest frame). The spinner stays on top.
+      if (a.preview && liveJobTab && liveJobTab === currentTab) {
+        const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
+        if (pane) {
+          let pv = pane.querySelector('.preview-live');
+          if (!pv) {
+            // The preview must fill the pane and stay centered: hide (not
+            // remove) whatever competes for space — placeholder, previous
+            // result, source preview, compare slider, video mock. Overlays
+            // (spinner, buttons) stay. liveHidden is restored by
+            // stopProgressPolling on cancel.
+            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
+            liveHidden.forEach(el => { el.style.display = 'none'; });
+            pv = document.createElement('img');
+            pv.className = 'preview-live';
+            pv.alt = 'Live preview';
+            pane.appendChild(pv);
+          }
+          pv.src = a.preview;
+        }
+      }
     } catch (e) { /* server busy — ignore */ }
   };
   paint();
@@ -205,4 +257,13 @@ function startProgressPolling() {
 function stopProgressPolling() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
   setCancelVisible(false);
+  liveJobTab = null;
+  // Drop any live preview left in a pane (job settled: cancel or done). The
+  // final result replaces it via showResult; on cancel nothing should linger.
+  document.querySelectorAll('.preview-live').forEach(el => el.remove());
+  // Restore whatever was hidden while the preview was painted (placeholder /
+  // previous result / source preview), so a cancelled job keeps the pane as
+  // it was. Elements removed by showResult are simply gone from the DOM.
+  liveHidden.forEach(el => { el.style.display = ''; });
+  liveHidden = [];
 }

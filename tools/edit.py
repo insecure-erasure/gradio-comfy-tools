@@ -141,7 +141,11 @@ def edit_image(
         lora_config=lora_config,
     )
     with ComfyClient(settings=settings) as client:
-        prompt_id = client.queue_prompt(wf)
+        # preview_method: auto — the KSampler decodes its intermediate latent
+        # each step and streams JPEG previews over the WS, which server.py's
+        # job listener captures for the live preview in the Edit tab (same
+        # mechanism as Generate; the flag is per-prompt and auto-reset).
+        prompt_id = client.queue_prompt(wf, extra_data={"preview_method": "auto"})
         outputs = client.wait_for_output(prompt_id, timeout=timeout)
     image_rec = _common.find_output_image(outputs)
     return client.result_url(image_rec["filename"], image_rec.get("type", "output"))

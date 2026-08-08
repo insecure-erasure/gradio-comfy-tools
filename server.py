@@ -23,7 +23,9 @@ Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 
 from __future__ import annotations
 
+import base64
 import json
+import struct
 import threading
 import time
 from pathlib import Path
@@ -103,6 +105,44 @@ def _node_titles(workflow: dict) -> dict[str, str]:
     return out
 
 
+def _handle_ws_binary(raw: bytes, prompt_id: str) -> None:
+    """Parse a binary WS message and store the per-step latent preview.
+
+    ComfyUI streams previews as binary frames (only when the client declared
+    ``supports_preview_metadata`` on connect AND the prompt was queued with
+    ``extra_data.preview_method``):
+
+        event 4 (PREVIEW_IMAGE_WITH_METADATA):
+            >I(4) + >I(len_json) + JSON{node_id, prompt_id, ...} + JPEG
+        event 1 (legacy PREVIEW_IMAGE):
+            >I(4) + >I(image_type: 1=jpeg, 2=png) + bytes
+
+    Only the LAST preview per job is kept (each frame overwrites the
+    previous), so memory stays bounded: one job holds at most one ~50KB
+    JPEG. The preview is dropped when the job finishes (see _mark_job_result)
+    — it is ephemeral and intentionally lost on cancel.
+    """
+    try:
+        event = struct.unpack(">I", raw[:4])[0]
+        payload = raw[4:]
+        jpg: bytes | None = None
+        if event == 4:  # PREVIEW_IMAGE_WITH_METADATA
+            mlen = struct.unpack(">I", payload[:4])[0]
+            jpg = payload[4 + mlen :]
+        elif event == 1:  # legacy PREVIEW_IMAGE
+            jpg = payload[4:]  # drop the >I image_type
+        else:
+            return
+        if not jpg:
+            return
+        with _jobs_lock:
+            job = _jobs.get(prompt_id)
+            if job is not None:
+                job["preview"] = jpg
+    except Exception:
+        pass  # best-effort: never let a malformed frame kill the listener
+
+
 def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[str, str]) -> None:
     """Daemon thread: follow one job's events on the ComfyUI WebSocket."""
     try:
@@ -113,7 +153,17 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
             + f"/ws?clientId={client_id}"
         )
         with connect(ws_url, open_timeout=10, close_timeout=3) as ws:
+            # Declare preview support as the FIRST message: the server only
+            # sends preview images to clients that opt in per-connection
+            # (same handshake the ComfyUI web frontend does).
+            try:
+                ws.send(json.dumps({"type": "feature_flags", "data": {"supports_preview_metadata": True}}))
+            except Exception:
+                pass
             for raw in ws:
+                if isinstance(raw, (bytes, bytearray)):
+                    _handle_ws_binary(bytes(raw), prompt_id)
+                    continue
                 try:
                     msg = json.loads(raw)
                 except Exception:
@@ -176,11 +226,18 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
 
 
 def _mark_job_result(prompt_id: str, url: str) -> None:
+    """Mark a job done and attach its result URL.
+
+    The per-step preview is dropped here (and on cancel, where url=None):
+    previews are ephemeral — once the real result is ready (or the job was
+    cancelled) keeping them would only hold memory.
+    """
     with _jobs_lock:
         job = _jobs.get(prompt_id)
         if job is not None:
             job["done"] = True
             job["url"] = url
+            job.pop("preview", None)
 
 
 def _latest_job() -> dict | None:
@@ -236,18 +293,23 @@ def api_progress() -> dict:
     """Live progress of the most recent job (single-user app).
 
     Returns ``{"active": {...}}`` while a job runs, ``{"active": null}``
-    otherwise. The frontend polls this and paints the stage into the
-    result URL row.
+    otherwise. While the job runs, ``active.preview`` carries the latest
+    per-step latent preview (data URL, image/jpeg) when the job's workflow
+    requested previews (Generate) — the frontend shows it only in the tab
+    that started the generation. The preview is dropped as soon as the job
+    finishes, so it is never served stale.
     """
     job = _latest_job()
     if job is None or job.get("done"):
         return {"active": None}
-    return {
-        "active": {
-            k: job.get(k)
-            for k in ("prompt_id", "stage", "node", "node_title", "value", "max")
-        }
+    active = {
+        k: job.get(k)
+        for k in ("prompt_id", "stage", "node", "node_title", "value", "max")
     }
+    pv = job.get("preview")
+    if pv:
+        active["preview"] = "data:image/jpeg;base64," + base64.b64encode(pv).decode("ascii")
+    return {"active": active}
 
 
 @app.post("/api/cancel")
