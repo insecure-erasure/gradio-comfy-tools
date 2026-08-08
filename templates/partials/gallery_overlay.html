@@ -1,0 +1,37 @@
+<!-- Fullscreen gallery overlay (B5) — ported from the reference image
+     viewers (../open-webui-comfy-tools smart_generate_image / edit_image /
+     upscale_image). Two modes, one overlay:
+       • lightbox (Generate): a centered big image + gallery navigation
+         (‹ ›, n/N counter, prompt caption, download). Close ✕ is top-RIGHT,
+         download is top-LEFT (inverted vs the reference — project decision).
+       • compare (Edit/Upscale): the interactive before/after slider fills
+         the screen; the gallery there only navigates the edited/upscaled
+         comparisons, and edited entries show the edit prompt as caption.
+     The overlay element itself is fullscreened (not documentElement) so the
+     page state is untouched; Escape / backdrop / ✕ close it.
+     Opened/closed by static/js/gallery.js. -->
+<div class="gallery-overlay" id="galleryOverlay">
+  <img class="gallery-big" id="galleryBig" alt="">
+  <div class="compare-slider gallery-slider" id="gallerySlider">
+    <img class="side before" id="galleryBefore" src="" draggable="false" alt="Original">
+    <img class="side after" id="galleryAfter" src="" draggable="false" alt="Result">
+    <span class="label" id="galleryLabelBefore">Original</span>
+    <span class="label" id="galleryLabelAfter" style="right:12px;left:auto">Result</span>
+    <div class="divider"></div>
+    <div class="handle"><span></span><span></span></div>
+  </div>
+  <div class="gallery-caption" id="galleryCaption"></div>
+  <button class="gallery-btn gallery-close" id="galleryClose" title="Close" aria-label="Close">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <button class="gallery-btn gallery-dl" id="galleryDl" title="Download" aria-label="Download">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+  </button>
+  <button class="gallery-btn gallery-prev" id="galleryPrev" title="Previous" aria-label="Previous">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button class="gallery-btn gallery-next" id="galleryNext" title="Next" aria-label="Next">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </button>
+  <div class="gallery-counter" id="galleryCounter"></div>
+</div>

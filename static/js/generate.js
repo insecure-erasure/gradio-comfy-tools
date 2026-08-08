@@ -39,6 +39,14 @@ function generateImage() {
     steps: parseInt(steps), seed, lora_config: loraConfig, model,
   }).then(res => {
     showResult('genOutputPane', res, false);
+    // Gallery marker (B5): the result joins the lightbox gallery with its
+    // generation prompt as caption.
+    const genImg = document.getElementById('genOutputPane').querySelector('.result-img');
+    if (genImg) {
+      genImg.dataset.gallery = '1';
+      genImg.dataset.kind = 'generate';
+      genImg.dataset.prompt = prompt;
+    }
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;

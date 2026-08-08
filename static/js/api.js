@@ -73,7 +73,14 @@ function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
   pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
-  pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');
+  pane.querySelectorAll('.compare-slider').forEach(el => {
+    el.style.display = 'none';
+    // Drop the gallery markers so a cleared result no longer appears in the
+    // gallery (the reused slider would otherwise keep its last srcs).
+    delete el.dataset.gallery;
+    delete el.dataset.kind;
+    delete el.dataset.prompt;
+  });
   const mock = pane.querySelector('.video-mock');
   if (mock) mock.style.display = '';
 }

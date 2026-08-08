@@ -57,6 +57,11 @@ function generateVideo() {
     // Hide the mock player; show the real video
     if (mock) mock.style.display = 'none';
     showResult('videoOutputPane', res, true);
+    // Video gallery (B5, deferred): mark the element + collect the URL for
+    // a future video gallery (native controls don't mix with navigation).
+    const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
+    if (vid) vid.dataset.videoGallery = '1';
+    collectVideoUrl(res, prompt);
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;

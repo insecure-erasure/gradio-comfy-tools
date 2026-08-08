@@ -19,6 +19,9 @@
     color: #fff;
     border-color: var(--accent);
   }
+  /* Top-right: the ⛶ fullscreen/maximize buttons (gallery B5). Re-added
+     after the C1 cleanup pruned it as dead — the gallery feature uses it. */
+  .output-overlay-btn.top-right { top: 12px; right: 12px; }
   /* Bottom-right cluster: 🔗 (use previous) at the corner, 📁 (upload)
      just to its LEFT (right: 48px = 30px button + 12px gap + 6px space). */
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
@@ -905,3 +908,84 @@
     width: 100%;
   }
   .btn-add-lora:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── Fullscreen gallery overlay (B5) ──────── */
+  /* Lightbox (Generate results) + compare (Edit/Upscale results). Close ✕
+     is top-RIGHT, download top-LEFT (inverted vs the reference — project
+     decision). The overlay element is fullscreened (not documentElement) so
+     the page layout is untouched; Escape / backdrop / ✕ close it. */
+  .gallery-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 10, 20, .88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 300;           /* above modal (200), dropdown (150), toast (100) */
+  }
+  .gallery-overlay.show { display: flex; }
+  .gallery-big {
+    max-width: 96vw;
+    max-height: 96vh;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 4px 30px rgba(0,0,0,.6);
+  }
+  /* The compare slider inside the overlay: JS sizes w/h to the image aspect
+     + viewport (fitGallerySlider); these are the fallbacks before/after fit. */
+  .gallery-slider {
+    width: 96vw;
+    max-height: 92vh;
+  }
+  .gallery-caption {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    display: none;
+    padding: 56px 24px 18px;
+    color: #fff;
+    text-align: center;
+    font: 500 15px/1.5 system-ui, sans-serif;
+    text-shadow: 0 1px 4px rgba(0,0,0,.75);
+    white-space: pre-wrap;
+    overflow: hidden;
+    pointer-events: none;
+    /* gradient: transparent at top -> dark at bottom, so the white text
+       (in the darkest zone) stays readable over any image content */
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,.65) 65%, rgba(0,0,0,.88) 100%);
+  }
+  .gallery-caption.show { display: block; }
+  .gallery-btn {
+    position: absolute;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px; height: 38px;
+    background: rgba(28,28,28,.72);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 10px;
+    color: #f5f5f5;
+    cursor: pointer;
+    padding: 6px;
+    transition: .15s;
+  }
+  .gallery-btn:hover { background: rgba(70,70,80,.9); color: #fff; }
+  .gallery-btn svg { display: block; }
+  .gallery-close { top: 14px; right: 14px; }
+  .gallery-dl { top: 14px; left: 14px; }
+  .gallery-prev { top: 50%; left: 14px; transform: translateY(-50%); }
+  .gallery-next { top: 50%; right: 14px; transform: translateY(-50%); }
+  .gallery-counter {
+    position: absolute;
+    bottom: 14px; right: 14px;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(28,28,28,.72);
+    color: #f5f5f5;
+    border-radius: 10px;
+    padding: 5px 12px;
+    font: 600 13px system-ui, sans-serif;
+    pointer-events: none;
+  }

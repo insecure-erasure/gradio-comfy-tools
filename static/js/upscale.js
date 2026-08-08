@@ -38,6 +38,10 @@ function generateUpscale() {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
+      // Gallery marker (B5): the upscaled result joins the gallery (its
+      // identity is the AFTER image); no prompt caption for upscale.
+      cmp.dataset.gallery = '1';
+      cmp.dataset.kind = 'upscale';
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

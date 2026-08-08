@@ -45,6 +45,12 @@ function generateEdit(forceMode) {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
+      // Gallery marker (B5): the edited result joins the gallery; its
+      // identity is the AFTER image, and the edit prompt is the caption
+      // shown in the fullscreen comparisons.
+      cmp.dataset.gallery = '1';
+      cmp.dataset.kind = 'edit';
+      cmp.dataset.prompt = prompt;
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

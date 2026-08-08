@@ -89,3 +89,11 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') closeModal();
 });
+
+// ── Gallery (B5): clicking a generated result opens the lightbox ──
+// The ⛶ top-right buttons call openGenerateLightbox()/openCompareFullscreen()
+// directly; this handles the click-on-the-image case.
+document.addEventListener('click', e => {
+  const img = e.target.closest('.result-img[data-gallery="1"]');
+  if (img) openGenerateLightbox(img);
+});

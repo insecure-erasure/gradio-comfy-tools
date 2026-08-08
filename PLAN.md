@@ -388,34 +388,32 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 - **DONE**: **⏹ Cancel** — while a generation runs the disabled 📋 copy
   button is replaced by a stop button; it calls `POST /api/cancel`
   (`/interrupt` + `/queue delete`) and aborts the in-flight fetch.
-- **TODO (before queueing)**: **fullscreen preview for images** — the video
-  tab already has native fullscreen (via the `<video>` player controls);
-  image results have no way to view them large. The reference
-  implementation uses the SAME pattern across ALL the image tools (not just
-  compare_images — confirmed in `smart_generate_image`, `edit_image`,
-  `upscale_image`, `virtual_try_on`):
-  - **Click the image** opens a **lightbox that fills the browser window**
-    via the **Fullscreen API** (X top-left closes, download button
-    top-right forces a download via fetch blob → object URL → anchor;
-    theme follows `prefers-color-scheme`).
-  - **Gallery mode** (`smart_generate_image`, `edit_image`, `virtual_try_on`
-    — `gallery=True`): the viewer carries a `data-gallery="1"` marker;
-    opening the lightbox walks the parent DOM and collects every image with
-    the marker, showing **‹ › buttons**, a **"n/N" counter** (bottom-right)
-    and **ArrowLeft/ArrowRight** keyboard navigation with wrap-around
-    (reference DESIGN.md §11). The download button always uses the
-    currently-shown image.
-  - **compare_images** adds its own twist: a floating **maximize button at
-    the bottom-right** opens a fullscreen overlay with its **own interactive
-    slider** (same drag/tap/hover/divider), fullscreened on the **overlay
-    element** (not `documentElement`), exit via Escape / restore button /
-    backdrop (reference DESIGN.md §10.7/§10.8).
-  In our app the candidates are the Generate result (`result-img` — a
-  lightbox + gallery would fit, as we only show the last result) and the
-  Edit/Upscale compare sliders (compare-style fullscreen like the
-  reference). **Note**: the top-right corner of the output panes is free
-  (the 📁 button moved to the bottom-right cluster) — natural spot for a
-  maximize/fullscreen button.
+- **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
+  reference (`smart_generate_image` / `edit_image` / `upscale_image`),
+  adapted to this single-page app (the gallery walks the PAGE DOM, not chat
+  iframes). Implemented in `static/js/gallery.js` + the
+  `templates/partials/gallery_overlay.html` overlay:
+  - **Generate**: clicking the result image (or the top-right ⛶ button, added
+    for consistency) opens a fullscreen **lightbox** via the Fullscreen API
+    with gallery navigation — **‹ › buttons**, **"n/N" counter**
+    (bottom-right) and **ArrowLeft/ArrowRight** with wrap-around. The gallery
+    collects every `data-gallery="1"` marker in the page DOM (generated +
+    edited + upscaled results). **Close ✕ is top-RIGHT, download top-LEFT**
+    (inverted vs the reference — project decision). The prompt caption shows
+    over a bottom gradient (edited images show the edit text, upscaled have
+    none).
+  - **Edit/Upscale**: the output panes got a **maximize ⛶ button (top-right
+    corner, the free spot noted in c7a154d)** that opens a fullscreen overlay
+    with its **own interactive slider** (same drag/hover/divider), fullscreened
+    on the **overlay element** (not `documentElement`), exit via Escape /
+    backdrop / ✕. The gallery there **only navigates the edited/upscaled
+    comparisons**; edited entries show the edit prompt as caption, upscaled
+    have none. The AFTER image is the gallery identity (like the reference's
+    `#thumb`).
+  - **Video**: left as-is (native controls don't mix with gallery
+    navigation); the result now carries a `data-video-gallery="1"` marker and
+    its URL is collected in `window.galleryVideos` (registry) for a **future
+    video gallery — revisit later**.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
