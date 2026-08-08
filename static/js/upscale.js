@@ -38,10 +38,14 @@ function generateUpscale() {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
-      // Gallery marker (B5): the upscaled result joins the gallery (its
-      // identity is the AFTER image); no prompt caption for upscale.
+      // Gallery marker (B5): the upscaled result joins the compare gallery
+      // (identity = AFTER image); no prompt caption for upscale.
       cmp.dataset.gallery = '1';
       cmp.dataset.kind = 'upscale';
+      // Generated history (B5): an upscale REPLACES the source entry in the
+      // lightbox gallery (keeping its generation prompt, badge = upscaled);
+      // non-generated sources are appended.
+      addTransformedEntry(res.display, '', 'upscaled', src);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

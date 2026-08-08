@@ -92,8 +92,9 @@ document.addEventListener('keydown', e => {
 
 // ── Gallery (B5): clicking a generated result opens the lightbox ──
 // The ⛶ top-right buttons call openGenerateLightbox()/openCompareFullscreen()
-// directly; this handles the click-on-the-image case.
+// directly; this handles the click-on-the-image case (the lightbox positions
+// on that image's entry in the generated history).
 document.addEventListener('click', e => {
-  const img = e.target.closest('.result-img[data-gallery="1"]');
+  const img = e.target.closest('.result-img');
   if (img) openGenerateLightbox(img);
 });

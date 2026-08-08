@@ -954,6 +954,28 @@
     background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,.3) 30%, rgba(0,0,0,.65) 65%, rgba(0,0,0,.88) 100%);
   }
   .gallery-caption.show { display: block; }
+  /* Badge overlay top-CENTER: tells which transform produced the shown
+     image in the lightbox (Edited / Restored / Upscaled). */
+  .gallery-badge {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(28,28,28,.72);
+    border: 1px solid rgba(255,255,255,.14);
+    color: #f5f5f5;
+    border-radius: 20px;
+    padding: 5px 16px;
+    font: 600 13px system-ui, sans-serif;
+    letter-spacing: .04em;
+    text-transform: capitalize;
+    pointer-events: none;
+  }
+  .gallery-badge.show { display: flex; }
   .gallery-btn {
     position: absolute;
     z-index: 1000;

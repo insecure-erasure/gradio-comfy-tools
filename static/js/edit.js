@@ -45,12 +45,16 @@ function generateEdit(forceMode) {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
-      // Gallery marker (B5): the edited result joins the gallery; its
-      // identity is the AFTER image, and the edit prompt is the caption
-      // shown in the fullscreen comparisons.
+      // Gallery marker (B5): the edited/restored result joins the compare
+      // gallery (identity = AFTER image); its kind is the actual mode, and
+      // the prompt is the edit/restore text shown in the fullscreen.
       cmp.dataset.gallery = '1';
-      cmp.dataset.kind = 'edit';
+      cmp.dataset.kind = mode; // 'edit' | 'restore'
       cmp.dataset.prompt = prompt;
+      // Generated history (B5): an edit/restore REPLACES the source entry
+      // in the lightbox gallery (keeping its generation prompt, badge =
+      // edited/restored); non-generated sources are appended.
+      addTransformedEntry(res.display, prompt, mode === 'restore' ? 'restored' : 'edited', src);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

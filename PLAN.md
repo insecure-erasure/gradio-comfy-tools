@@ -390,30 +390,32 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   (`/interrupt` + `/queue delete`) and aborts the in-flight fetch.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
-  adapted to this single-page app (the gallery walks the PAGE DOM, not chat
-  iframes). Implemented in `static/js/gallery.js` + the
-  `templates/partials/gallery_overlay.html` overlay:
-  - **Generate**: clicking the result image (or the top-right ⛶ button, added
-    for consistency) opens a fullscreen **lightbox** via the Fullscreen API
-    with gallery navigation — **‹ › buttons**, **"n/N" counter**
-    (bottom-right) and **ArrowLeft/ArrowRight** with wrap-around. The gallery
-    collects every `data-gallery="1"` marker in the page DOM (generated +
-    edited + upscaled results). **Close ✕ is top-RIGHT, download top-LEFT**
-    (inverted vs the reference — project decision). The prompt caption shows
-    over a bottom gradient (edited images show the edit text, upscaled have
-    none).
-  - **Edit/Upscale**: the output panes got a **maximize ⛶ button (top-right
-    corner, the free spot noted in c7a154d)** that opens a fullscreen overlay
-    with its **own interactive slider** (same drag/hover/divider), fullscreened
-    on the **overlay element** (not `documentElement`), exit via Escape /
-    backdrop / ✕. The gallery there **only navigates the edited/upscaled
-    comparisons**; edited entries show the edit prompt as caption, upscaled
-    have none. The AFTER image is the gallery identity (like the reference's
-    `#thumb`).
+  adapted to this single-page app. Implemented in `static/js/gallery.js` +
+  the `templates/partials/gallery_overlay.html` overlay. **TWO SEPARATE
+  galleries** (user requirement):
+  - **Generate (lightbox)**: clicking the result image (or the top-right ⛶
+    button) opens a fullscreen **lightbox** via the Fullscreen API with
+    gallery navigation (‹ ›, "n/N" counter, ArrowLeft/Right). It navigates
+    the **generated history** — `window.galleryGenerated`, a session registry
+    that survives the pane only showing the last result (the history no
+    longer gets lost). **Close ✕ is top-RIGHT, download top-LEFT** (inverted
+    vs the reference — project decision).
+  - **Edit/Upscale (compare)**: the ⛶ button opens a fullscreen overlay with
+    its own interactive slider; the gallery there **ONLY navigates the
+    edited/restored/upscaled comparisons** (never generated images), the
+    AFTER image being the identity (like the reference's #thumb). The edit
+    text shows as caption; upscaled have none.
+  - **Transformation replacement (user requirement)**: an edit/restore/upscale
+    of a generated image **REPLACES that entry in the generated history** —
+    keeping the ORIGINAL generation prompt as the caption overlay and adding
+    a **badge overlay top-center** ("Edited"/"Restored"/"Upscaled",
+    `#galleryBadge`). Transformations of non-generated sources (uploads /
+    external URLs) are appended as new entries. Identification by ComfyUI
+    filename (`filenameFromUrl` handles `/media/..`, `/view?filename=..`).
   - **Video**: left as-is (native controls don't mix with gallery
     navigation); the result now carries a `data-video-gallery="1"` marker and
-    its URL is collected in `window.galleryVideos` (registry) for a **future
-    video gallery — revisit later**.
+    its URL is collected in `window.galleryVideos` for a **future video
+    gallery — revisit later**.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
