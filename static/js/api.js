@@ -177,6 +177,17 @@ function cancelGeneration() {
   abortCurrentRequest();
 }
 
+// ↺ Reset helper: if a generation is running (polling active), cancel the
+// backend job and stop the live preview/progress polling so the reset
+// leaves a clean pane — nothing (preview or result) reappears over the
+// restored placeholder. Safe to call when idle (cancel is a no-op there).
+function cancelIfRunning() {
+  if (progressTimer) {
+    fetch('/api/cancel', { method: 'POST' }).catch(() => {});
+  }
+  stopProgressPolling();
+}
+
 // The tab that started the current generation. The live per-step preview is
 // captured for the job regardless of what the user does, but is only
 // PAINTED while the active tab is the one that started it (requirement:
@@ -185,6 +196,11 @@ function cancelGeneration() {
 // 'genOutputPane', the rest match by name).
 const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
 let liveJobTab = null;
+// Elements hidden while the live preview is painted (placeholder, previous
+// result, source preview) so the preview fills the pane and stays centered;
+// restored if the job is cancelled (stopProgressPolling) — never removed,
+// so a cancel keeps the previous result visible.
+let liveHidden = [];
 
 function startProgressPolling() {
   stopProgressPolling();
@@ -217,6 +233,12 @@ function startProgressPolling() {
         if (pane) {
           let pv = pane.querySelector('.preview-live');
           if (!pv) {
+            // The preview must fill the pane and stay centered: hide (not
+            // remove) whatever competes for space — placeholder, previous
+            // result, source preview. Overlays (spinner, buttons) stay.
+            // liveHidden is restored by stopProgressPolling on cancel.
+            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview'));
+            liveHidden.forEach(el => { el.style.display = 'none'; });
             pv = document.createElement('img');
             pv.className = 'preview-live';
             pv.alt = 'Live preview';
@@ -238,4 +260,9 @@ function stopProgressPolling() {
   // Drop any live preview left in a pane (job settled: cancel or done). The
   // final result replaces it via showResult; on cancel nothing should linger.
   document.querySelectorAll('.preview-live').forEach(el => el.remove());
+  // Restore whatever was hidden while the preview was painted (placeholder /
+  // previous result / source preview), so a cancelled job keeps the pane as
+  // it was. Elements removed by showResult are simply gone from the DOM.
+  liveHidden.forEach(el => { el.style.display = ''; });
+  liveHidden = [];
 }

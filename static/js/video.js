@@ -110,6 +110,9 @@ function onVideoSeedRandomToggle() {
 
 // ── ↺ Reset ───────────────────────────────
 function resetVideo() {
+  // Cancel a running job + stop live preview/progress polling first, so the
+  // cleared pane stays clean.
+  cancelIfRunning();
   const mv = document.getElementById('videoModelVersion');
   if (mv) mv.selectedIndex = 0; // Wan 2.1
   document.getElementById('videoFrames').value = '81';

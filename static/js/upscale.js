@@ -92,6 +92,9 @@ function onUpscaleSeedRandomToggle() {
 
 // ── ↺ Reset ───────────────────────────────
 function resetUpscale() {
+  // Cancel a running job + stop live preview/progress polling first, so the
+  // cleared pane stays clean.
+  cancelIfRunning();
   document.getElementById('upscaleSeed').value = '0';
   document.getElementById('upscaleSeedRandom').checked = true;
   document.getElementById('upscaleSeed').disabled = true;

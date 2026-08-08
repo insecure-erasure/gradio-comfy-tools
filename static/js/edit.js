@@ -109,6 +109,9 @@ function onEditSeedRandomToggle() {
 
 // ── ↺ Reset ───────────────────────────────
 function resetEdit() {
+  // Cancel a running job + stop live preview/progress polling first, so the
+  // cleared pane stays clean (nothing reappears over the placeholder).
+  cancelIfRunning();
   document.getElementById('editSteps').value = '6';
   document.getElementById('editSeed').value = '0';
   document.getElementById('editSeedRandom').checked = true;
