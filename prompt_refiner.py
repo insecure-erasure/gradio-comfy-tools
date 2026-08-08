@@ -56,6 +56,11 @@ def refine_prompt(
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.7,
+        # Disable chain-of-thought: Qwen3-style instruct models emit a
+        # <think> block by default that lands in message.content (verified
+        # live). reasoning_effort=none turns it off so the assistant returns
+        # just the refined prompt (llama.cpp OpenAI-compatible docs).
+        "reasoning_effort": "none",
     }
     try:
         with httpx.Client(timeout=timeout) as client:
@@ -70,6 +75,12 @@ def refine_prompt(
     except (KeyError, IndexError, ValueError) as e:
         raise RefinerError(f"Refiner returned an unexpected payload: {resp.text[:200]}") from e
     refined = (content or "").strip()
+    # Defensive: strip a <think>...</think> block if the model still emits
+    # reasoning (e.g. a model that ignores reasoning_effort), keeping only
+    # the actual refined prompt.
+    if "<think>" in refined:
+        end = refined.find("</think>")
+        refined = refined[end + len("</think>") :].strip() if end != -1 else refined.split("<think>")[0].strip()
     if not refined:
         raise RefinerError("Refiner returned an empty prompt")
     return refined

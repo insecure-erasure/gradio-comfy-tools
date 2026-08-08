@@ -116,6 +116,47 @@ def test_refine_prompt_calls_llama(client, tmp_config, monkeypatch):
     msgs = captured["json"]["messages"]
     assert msgs[0] == {"role": "system", "content": "Refine."}
     assert msgs[1] == {"role": "user", "content": "a cat"}
+    # reasoning is disabled so the refined prompt is not polluted with <think>
+    assert captured["json"]["reasoning_effort"] == "none"
+
+
+def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
+    """Defensive: even if the model still emits a <think>...</think> block in
+    content (e.g. ignores reasoning_effort), only the text after it is kept.
+    """
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "choices": [{
+                    "message": {
+                        "content": "<think>Let me think...</think>A majestic cat in sunlight."
+                    }
+                }]
+            }
+
+    class FakeClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def post(self, url, json):
+            return FakeResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeClient)
+    resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})
+    assert resp.status_code == 200
+    assert resp.json()["refined"] == "A majestic cat in sunlight."
 
 
 def test_refine_prompt_error_becomes_400(client, tmp_config, monkeypatch):
