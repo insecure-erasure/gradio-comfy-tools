@@ -634,8 +634,11 @@ def api_refine_prompt(body: dict):
 
         def event_stream():
             try:
-                for delta in gen:
-                    yield f"data: {json.dumps({'delta': delta})}\n\n"
+                for item in gen:
+                    if isinstance(item, dict) and "delta" in item:
+                        yield f"data: {json.dumps({'delta': item['delta']})}\n\n"
+                    elif isinstance(item, dict) and "meta" in item:
+                        yield f"data: {json.dumps({'meta': item['meta']})}\n\n"
                 yield f"data: {json.dumps({'done': True})}\n\n"
             except RefinerError as e:
                 yield f"data: {json.dumps({'error': str(e)[:300]})}\n\n"

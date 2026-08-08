@@ -75,6 +75,9 @@ async function refinePrompt() {
   setRefining(true);
   setRefineButtons(true);
   showToast('🪄 Refining prompt…');
+  // Clear any previous stats in the progress area.
+  const resultUrlEl0 = document.getElementById('resultUrl');
+  if (resultUrlEl0) resultUrlEl0.textContent = '';
 
   // Keep the original prompt so cancel restores it (the textarea is filled
   // progressively with the streamed deltas).
@@ -94,11 +97,16 @@ async function refinePrompt() {
     if (!resp.body) throw new Error('Streaming not supported');
 
     // Read the SSE stream: each `data: {"delta": "..."}` appends to the
-    // textarea (live evolution); `data: {"done": true}` ends it.
+    // textarea (live evolution); `data: {"done": true}` ends it and
+    // `data: {"meta": {...}}` carries the final timings (tokens, tok/s).
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
+    const resultUrlEl = document.getElementById('resultUrl');
+    const startTime = performance.now();
     let buf = '';
     let refined = '';
+    let chars = 0;
+    let finalMeta = null;
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -112,9 +120,18 @@ async function refinePrompt() {
         if (!payload) continue;
         let ev;
         try { ev = JSON.parse(payload); } catch (e) { continue; }
-        if (ev.delta) {
+        if (typeof ev.delta === 'string') {
           refined += ev.delta;
+          chars += ev.delta.length;
           if (input) input.value = refined;
+          // Live tok/s estimate (chars/4 ≈ tokens) in the progress area.
+          if (resultUrlEl) {
+            const secs = (performance.now() - startTime) / 1000;
+            const estTok = chars / 4;
+            resultUrlEl.textContent = '🪄 ' + (secs > 0 ? (estTok / secs).toFixed(1) : '0') + ' tok/s';
+          }
+        } else if (ev.meta) {
+          finalMeta = ev.meta; // final timings: predicted_n + predicted_per_second
         } else if (ev.done) {
           buf = '';
         } else if (ev.error) {
@@ -134,8 +151,16 @@ async function refinePrompt() {
       if (promptsByTab && currentTab && currentTab !== 'upscale') {
         promptsByTab[currentTab] = original;
       }
+      if (resultUrlEl) resultUrlEl.textContent = '';
       updateActionButtons();
       return;
+    }
+
+    // Final stats in the progress area: real tokens + average tok/s.
+    if (resultUrlEl && finalMeta) {
+      const toks = finalMeta.predicted_n;
+      const tps = finalMeta.predicted_per_second;
+      resultUrlEl.textContent = '✨ ' + toks + ' tokens · ' + (tps ? tps.toFixed(1) : '?') + ' tok/s avg';
     }
 
     // Keep the per-tab prompt store + localStorage in sync (promptsByTab).
@@ -152,6 +177,8 @@ async function refinePrompt() {
       if (promptsByTab && currentTab && currentTab !== 'upscale') {
         promptsByTab[currentTab] = original;
       }
+      const r = document.getElementById('resultUrl');
+      if (r) r.textContent = '';
       updateActionButtons();
     } else {
       showToast('❌ ' + (e && e.message ? e.message : 'Could not refine prompt'));

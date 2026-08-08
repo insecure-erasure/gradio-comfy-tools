@@ -142,6 +142,7 @@ def test_refine_prompt_stream_sse(client, tmp_config, monkeypatch):
             return [
                 'data: {"choices": [{"delta": {"content": "A fluffy"}}]}',
                 'data: {"choices": [{"delta": {"content": " cat"}}]}',
+                'data: {"choices": [{"delta": {}}], "timings": {"predicted_n": 17, "predicted_per_second": 11.85}}',
                 "data: [DONE]",
             ]
 
@@ -170,6 +171,7 @@ def test_refine_prompt_stream_sse(client, tmp_config, monkeypatch):
     body = resp.text
     assert '"delta": "A fluffy"' in body
     assert '"delta": " cat"' in body
+    assert '"meta": {"predicted_n": 17, "predicted_per_second": 11.85}' in body
     assert '"done": true' in body
     assert captured["json"]["stream"] is True
 

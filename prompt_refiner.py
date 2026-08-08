@@ -143,12 +143,15 @@ def stream_refine_prompt(
                         except Exception:
                             continue
                         choices = obj.get("choices") or []
-                        if not choices:
-                            continue
-                        delta = choices[0].get("delta") or {}
-                        content = delta.get("content")
-                        if content:
-                            yield content
+                        if choices:
+                            delta = choices[0].get("delta") or {}
+                            content = delta.get("content")
+                            if content:
+                                yield {"delta": content}
+                        # The final chunk carries the timings (tokens + tok/s)
+                        # — forward them for the refinement stats.
+                        if obj.get("timings"):
+                            yield {"meta": obj["timings"]}
         except RefinerError:
             raise
         except Exception as e:
