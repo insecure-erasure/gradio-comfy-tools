@@ -1080,75 +1080,47 @@
   }
   .gallery-prompt-btn.show { display: inline-flex; }
   .gallery-prompt-btn:hover { background: rgba(70,70,80,.9); color: #fff; }
-  /* Semi-transparent BOTTOM panel (like the old caption): the prompt
-     appears at the bottom of the gallery, in a modest font that still
-     scales with the device resolution via clamp() on vw+vh (~13px phones,
-     ~16px tablets, capped ~18px on large screens; title/line-height use
-     the same formula). No full-screen dim — the image stays visible above;
-     the panel itself is translucent + blurred. The overlay layer is
-     pointer-transparent (the image and the gallery buttons stay usable);
-     the panel closes on ✕, Escape, gallery navigation and gallery close. */
+  /* Prompt BOTTOM panel — SAME STYLE as the original-prompt hover hint
+     (.gallery-badge-hint): a grey translucent pill centered at the bottom,
+     12px radius, 500-weight text, shadow. No title, no ✕ — it is a pure
+     hover peek (hover the Show prompt button to reveal it; leaving hides
+     it). The font stays modest and device-adaptive via clamp() on vw+vh
+     (~12px phones, ~14px desktop, capped ~16px large screens), mirroring
+     the hint's 14px on typical displays. The overlay layer is
+     pointer-transparent (image + gallery buttons stay usable); the panel
+     closes on pointer leave, Escape, gallery navigation and gallery close. */
   .gallery-prompt-modal {
     position: absolute;
-    inset: 0;
+    left: 0; right: 0; bottom: 16px;
     z-index: 1100;               /* above every gallery button */
     display: none;
-    align-items: flex-end;       /* bottom sheet — prompt at the bottom */
     justify-content: center;
-    padding: 14px 20px 18px;
+    padding: 0 20px;
     background: transparent;     /* no dim: the panel is the modal */
     pointer-events: none;        /* image + gallery buttons stay clickable */
   }
   .gallery-prompt-modal.show { display: flex; }
   .gallery-prompt-box {
-    position: relative;
-    width: min(840px, 100%);
+    max-width: min(560px, 92vw);
     max-height: 60vh;
     overflow-y: auto;
-    padding: 14px 44px 16px 20px;
-    background: rgba(15, 18, 34, .78);   /* semi-transparent: image shows through */
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 14px;
-    box-shadow: 0 10px 40px rgba(0,0,0,.5);
+    padding: 14px 20px;
+    background: rgba(96, 96, 96, .78);   /* same as .gallery-badge-hint */
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
     color: #fff;
-    text-align: left;
-    pointer-events: auto;        /* the panel itself is interactive */
-    animation: gallery-prompt-in .18s ease;   /* subtle slide-up on open */
-  }
-  @keyframes gallery-prompt-in {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: none; }
-  }
-  .gallery-prompt-title {
-    margin-bottom: 8px;
-    font: 700 clamp(11px, .9vw + .5vh, 14px) system-ui, sans-serif;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,.6);
+    font: 500 clamp(12px, .4vw + .55vh, 16px)/1.5 system-ui, sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+    word-break: break-word;
+    pointer-events: none;
   }
   .gallery-prompt-text {
-    font: 400 clamp(13px, 1.15vw + .7vh, 18px)/1.55 system-ui, sans-serif;
+    font: inherit;
     white-space: pre-wrap;
     word-break: break-word;
   }
-  .gallery-prompt-close {
-    position: absolute;
-    top: 12px; right: 12px;
-    width: 28px; height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255,255,255,.08);
-    border: none;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 13px;
-    cursor: pointer;
-    transition: .15s;
-  }
-  .gallery-prompt-close:hover { background: rgba(255,255,255,.18); }
   /* Badge overlay top-CENTER: tells which transform produced the shown
      image in the lightbox (Edited / Restored / Upscaled). */
   .gallery-badge {

@@ -19,14 +19,15 @@
 //
 // Prompt access: the prompt is NOT shown as a bottom caption. A Show
 // prompt button (bottom-center, shown only when the entry has a prompt)
-// reveals it on HOVER — no click needed — as a semi-transparent BOTTOM
-// panel (galleryPromptModal) with the full prompt at a modest,
-// device-appropriate font size. The overlay layer is pointer-transparent,
-// so the image and the gallery buttons stay usable while it is open. The
-// panel closes when the pointer leaves (short grace delay, the panel
-// itself is hoverable), on ✕ / Escape / gallery navigation (‹ › / ←/→ —
-// the click/key navigates AND closes, so the shown prompt never goes
-// stale) and gallery close. Click/tap still toggles it for touch/keyboard.
+// reveals it on HOVER — no click needed — as a BOTTOM panel
+// (galleryPromptModal) styled exactly like the original-prompt hover hint
+// (.gallery-badge-hint): a grey translucent pill, centered 500-weight
+// text, no title/✕. The overlay layer is pointer-transparent, so the image
+// and the gallery buttons stay usable while it is open. The panel hides
+// when the pointer leaves (short grace delay), on ✕ / Escape / gallery
+// navigation (‹ › / ←/→ — the click/key navigates AND closes, so the shown
+// prompt never goes stale) and gallery close. Click/tap still toggles it
+// for touch/keyboard.
 //
 // Close ✕ is top-RIGHT, download top-LEFT (inverted vs the reference —
 // project decision). Video results are only COLLECTED (data-video-gallery
@@ -40,7 +41,6 @@ const galleryAfter = document.getElementById('galleryAfter');
 const galleryPromptBtn = document.getElementById('galleryPromptBtn');
 const galleryPromptModal = document.getElementById('galleryPromptModal');
 const galleryPromptText = document.getElementById('galleryPromptText');
-const galleryPromptClose = document.getElementById('galleryPromptClose');
 const galleryCounter = document.getElementById('galleryCounter');
 const galleryLabelAfter = document.getElementById('galleryLabelAfter');
 const galleryBadge = document.getElementById('galleryBadge');
@@ -244,6 +244,7 @@ function renderGalleryItem() {
       galleryPromptBtn.classList.add('show');
     } else {
       galleryPromptBtn.classList.remove('show');
+      closeGalleryPrompt(); // an entry without a prompt — never leave the panel open
     }
     // Badge overlay (top-center): the transform that produced this image.
     if (e.badge) {
@@ -276,6 +277,7 @@ function renderGalleryItem() {
     hint.textContent = '';
     hint.classList.add('empty');
     galleryPromptBtn.classList.remove('show'); // compare mode has no prompt button
+    closeGalleryPrompt();
     fitGallerySlider();
   }
   // N/M paginator (bottom-right): always visible in the gallery; prev/next
@@ -366,17 +368,17 @@ async function galleryDownload() {
 }
 
 // ── Prompt panel (Show prompt) ─────────────
-// Semi-transparent BOTTOM panel with the current entry's prompt at a
-// modest, device-appropriate font size (the CSS uses clamp(vw+vh)). Only
-// available in lightbox mode and only when the entry has a prompt (the
-// button is hidden otherwise).
+// BOTTOM panel with the current entry's prompt — SAME STYLE as the
+// original-prompt hover hint (.gallery-badge-hint): a grey translucent
+// pill with centered text, no title, no close button. Only available in
+// lightbox mode and only when the entry has a prompt (the button is
+// hidden otherwise).
 //
 // HOVER-revealed: hovering the button (mouse) shows the panel; moving away
-// hides it after a short grace delay (so the user can move onto the panel
-// itself, which is hoverable, without it flickering closed). Click/tap
-// still toggles it (touch devices have no hover; keyboard activation works
-// too) and ✕ / Escape / navigation (‹ › / ←/→ — which also navigate) /
-// gallery close always close it.
+// hides it after a short grace delay (avoids flicker on tiny movements).
+// Click/tap still toggles it (touch devices have no hover; keyboard
+// activation works too) and Escape / navigation (‹ › / ←/→ — which also
+// navigate) / gallery close always close it.
 let promptHideTimer = null;
 
 function openGalleryPrompt() {
@@ -392,11 +394,10 @@ function closeGalleryPrompt() {
   galleryPromptModal.classList.remove('show');
 }
 
-// Hide after a short grace period: lets the pointer travel from the button
-// onto the panel (or its ✕) without the panel closing underneath it.
+// Hide after a short grace period: smooths the hover peek without flicker.
 function scheduleCloseGalleryPrompt() {
   clearTimeout(promptHideTimer);
-  promptHideTimer = setTimeout(closeGalleryPrompt, 200);
+  promptHideTimer = setTimeout(closeGalleryPrompt, 150);
 }
 
 // ── Wiring ─────────────────────────────────
@@ -410,8 +411,7 @@ galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGaller
 galleryBig.addEventListener('click', e => e.stopPropagation());
 // Hover reveals the prompt — no click needed. Only for real mouse pointers
 // (pointerenter/pointerleave do not fire on touch). Click/tap toggles as a
-// fallback for touch/keyboard. The panel box is hoverable: entering it
-// cancels the pending hide.
+// fallback for touch/keyboard.
 galleryPromptBtn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') openGalleryPrompt(); });
 galleryPromptBtn.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') scheduleCloseGalleryPrompt(); });
 galleryPromptBtn.addEventListener('click', e => {
@@ -419,12 +419,6 @@ galleryPromptBtn.addEventListener('click', e => {
   if (galleryPromptModal.classList.contains('show')) closeGalleryPrompt();
   else openGalleryPrompt();
 });
-const galleryPromptBox = document.getElementById('galleryPromptBox');
-if (galleryPromptBox) {
-  galleryPromptBox.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') openGalleryPrompt(); });
-  galleryPromptBox.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') scheduleCloseGalleryPrompt(); });
-}
-galleryPromptClose.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); });
 galleryOverlay.addEventListener('click', e => { if (e.target === galleryOverlay) closeGallery(); });
 
 // Keyboard: Escape closes; ←/→ navigate while the overlay is open. While

@@ -453,15 +453,14 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   - **Prompt display (2026-08-08)**: the prompt is **no longer a bottom
     caption**. A **Show prompt** button sits bottom-center (only when the
     entry has a prompt) and **hovering it is enough** — the prompt appears
-    as a **semi-transparent bottom panel** at a **modest, device-appropriate
-    font size** (`clamp(13px, 1.15vw + .7vh, 18px)` — ~13px phones, ~16px
-    tablets, capped ~18px on large displays; title/line-height share the
-    formula). The panel is anchored at the bottom (where the old caption
-    was), its overlay is pointer-transparent (image + gallery buttons stay
-    usable), it hides when the pointer leaves (short grace delay; the panel
-    itself is hoverable), and it closes on ✕ / Escape / navigation (which
-    also navigates) / gallery close. Click/tap still toggles it for
-    touch/keyboard.
+    as a **bottom panel** styled exactly like the original-prompt hover
+    hint (`.gallery-badge-hint`): grey translucent pill, centered 500-weight
+    text, no title/✕, font `clamp(12px, .4vw + .55vh, 16px)` (~12px phones,
+    ~14px desktop, capped ~16px). The panel is anchored at the bottom (where
+    the old caption was), its overlay is pointer-transparent (image +
+    gallery buttons stay usable), it hides when the pointer leaves (short
+    grace delay), and it closes on Escape / navigation (which also
+    navigates) / gallery close. Click/tap still toggles it for touch/keyboard.
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:

@@ -367,19 +367,19 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Prompt display**: the prompt is NOT a bottom caption anymore. A
     **Show prompt** button sits bottom-center, visible only when the entry
     has a prompt; **hovering it is enough** — the prompt appears as a
-    **semi-transparent bottom panel** (`#galleryPromptModal`) with the full
-    prompt (white-space: pre-wrap, textContent — never innerHTML) at a
-    **modest, device-appropriate font size** (`font-size: clamp(13px,
-    1.15vw + .7vh, 18px)` — ~13px on phones, ~16px on tablets, capped ~18px
-    on large screens; title and line-height use the same vw+vh formula).
-    The panel is anchored at the BOTTOM of the gallery (where the old
-    caption was) and its overlay layer is pointer-transparent, so the image
-    and the gallery buttons stay usable. It hides when the pointer leaves
-    (short grace delay — the panel itself is hoverable), and closes on ✕,
-    Escape, gallery navigation (‹ › / ←/→ — the click/key navigates AND
-    closes, so the shown prompt never goes stale) and gallery close.
-    Click/tap still toggles it (touch devices have no hover; keyboard
-    activation works too).
+    **bottom panel** (`#galleryPromptModal`) styled exactly like the
+    original-prompt hover hint (`.gallery-badge-hint`): a grey translucent
+    pill (`rgba(96,96,96,.78)`, 12px radius, `0 8px 24px` shadow), centered
+    500-weight text, no title and no ✕. The font stays modest and
+    device-adaptive (`font-size: clamp(12px, .4vw + .55vh, 16px)` — ~12px
+    phones, ~14px desktop mirroring the hint, capped ~16px on large
+    screens). The panel is anchored at the BOTTOM of the gallery (where the
+    old caption was) and its overlay layer is pointer-transparent, so the
+    image and the gallery buttons stay usable. It hides when the pointer
+    leaves (short grace delay), and closes on Escape, gallery navigation
+    (‹ › / ←/→ — the click/key navigates AND closes, so the shown prompt
+    never goes stale) and gallery close. Click/tap still toggles it (touch
+    devices have no hover; keyboard activation works too).
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
