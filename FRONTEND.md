@@ -59,7 +59,16 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   and restored on reload.
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   action buttons + URL row); the four tab buttons condense into the tabs
-  dropdown (icon + label of the active tab as the trigger).
+  dropdown (icon + label of the active tab as the trigger). The prompt is a
+  **compact single-line field**: the overlay buttons that live inside the
+  prompt wrap (🪄 refine + ✕ clear) form a **horizontal row** beside it,
+  clear rightmost; the action buttons (`.btn-col`) stay outside in the bar.
+  **Tapping the field opens a fullscreen prompt modal**
+  (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
+  (`.modal-mode`) with a large textarea and the overlay buttons back to
+  their **original layout** (✕ top-right, 🪄 bottom-right); a header holds
+  a ✓ Done button to close. `openPromptModal`/`closePromptModal`
+  (`tabs.js`); closed when crossing the breakpoint (`main.js`).
 
 ### Responsive
 

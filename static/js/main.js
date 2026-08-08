@@ -36,13 +36,13 @@ Object.values(PERSIST_FIELDS).flat().forEach(id => {
 });
 
 // Relocate the prompt block when crossing the landscape/portrait breakpoint;
-// also close the tabs dropdown (it is only visible in portrait) so it never
-// stays open across the switch.
+// also close the tabs dropdown and the prompt modal (both portrait-only) so
+// they never stay open across the switch.
 const layoutQuery = window.matchMedia('(min-width: 1024px)');
 if (layoutQuery.addEventListener) {
-  layoutQuery.addEventListener('change', () => { relayoutPrompt(); closeTabsDropdown(); });
+  layoutQuery.addEventListener('change', () => { relayoutPrompt(); closeTabsDropdown(); closePromptModal(); });
 } else if (layoutQuery.addListener) {
-  layoutQuery.addListener(() => { relayoutPrompt(); closeTabsDropdown(); }); // legacy Safari
+  layoutQuery.addListener(() => { relayoutPrompt(); closeTabsDropdown(); closePromptModal(); }); // legacy Safari
 }
 
 // ── Label tooltip ────────────────────────

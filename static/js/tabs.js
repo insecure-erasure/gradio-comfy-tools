@@ -275,6 +275,42 @@ document.addEventListener('click', (e) => {
   if (tabsDropdownOpen && !e.target.closest('#tabsDropdown')) closeTabsDropdown();
 });
 
+// ── Prompt modal (portrait only) ───────────
+// The compact single-line prompt in the bottom bar opens a fullscreen field
+// when tapped (openPromptModal — wired to the textarea's onclick). The
+// .prompt-input-wrap (textarea + ✕ clear + 🪄 refine) is RELOCATED into the
+// modal — the same elements, so the value and every handler keep working —
+// and moved back to #promptBlock on close. While open, the wrap gets
+// .modal-mode: the overlay buttons return to their original layout (✕
+// top-right, 🪄 bottom-right over the large textarea). The action buttons
+// (.btn-col) never leave the bar.
+function openPromptModal() {
+  if (window.matchMedia('(min-width: 1024px)').matches) return; // portrait only
+  const modal = document.getElementById('promptModal');
+  if (!modal || modal.classList.contains('show')) return;
+  const input = document.getElementById('promptInput');
+  const wrap = input && input.closest('.prompt-input-wrap');
+  const box = document.getElementById('promptModalBox');
+  if (!wrap || !box) return;
+  box.appendChild(wrap);
+  wrap.classList.add('modal-mode');
+  modal.classList.add('show');
+  input.focus();
+}
+
+function closePromptModal() {
+  const modal = document.getElementById('promptModal');
+  if (!modal || !modal.classList.contains('show')) return;
+  const input = document.getElementById('promptInput');
+  const wrap = input && input.closest('.prompt-input-wrap');
+  const block = document.getElementById('promptBlock');
+  if (wrap && block) {
+    wrap.classList.remove('modal-mode');
+    block.insertBefore(wrap, block.firstChild); // back before the button column
+  }
+  modal.classList.remove('show');
+}
+
 // Radio group toggle (kept for the mockup's segmented controls)
 function selectRadio(btn) {
   btn.parentElement.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));

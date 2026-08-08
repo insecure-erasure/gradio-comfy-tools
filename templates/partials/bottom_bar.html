@@ -7,7 +7,8 @@
   <div class="prompt-block" id="promptBlock">
     <div class="prompt-input-wrap">
       <textarea id="promptInput"
-        placeholder="Describe the image you want to generate in detail..."></textarea>
+        placeholder="Describe the image you want to generate in detail..."
+        onclick="openPromptModal()"></textarea>
       <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
       <button class="prompt-refine-btn" id="btnPromptRefine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button>
     </div>
@@ -18,5 +19,19 @@
   <div class="result-url-row" id="resultUrlRow">
     <span class="result-url" id="resultUrl"></span>
     <button class="btn-copy-inline" id="btnCopyUrl" onclick="copyResultUrl()" title="Copy URL" disabled>📋</button>
+  </div>
+  <!-- Prompt fullscreen modal (portrait only): the compact single-line
+       prompt opens a fullscreen field when tapped. openPromptModal()
+       relocates the .prompt-input-wrap (textarea + ✕ + 🪄) into the box
+       and adds .modal-mode (overlay buttons back to their original
+       layout: ✕ top-right, 🪄 bottom-right); closePromptModal() moves it
+       back to #promptBlock. The action buttons (.btn-col) stay in the
+       bar. -->
+  <div class="prompt-modal" id="promptModal">
+    <div class="prompt-modal-header">
+      <span class="prompt-modal-title">Prompt</span>
+      <button class="prompt-modal-done" onclick="closePromptModal()" title="Done">✓ Done</button>
+    </div>
+    <div class="prompt-modal-box" id="promptModalBox"></div>
   </div>
 </div>

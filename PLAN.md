@@ -544,6 +544,16 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   close when crossing the breakpoint in `main.js`). Portrait also hides
   the toolbar's **Model** label (`.tabs-toolbar .toolbar-model label`);
   landscape keeps it.
+- **FIX (2026-08-08)**: **portrait prompt modal** — the prompt becomes a
+  compact **single-line field** in the bottom bar; the overlay buttons
+  inside the prompt wrap (🪄 refine + ✕ clear) form a **horizontal row**
+  beside it (clear rightmost via flex order), while the action buttons
+  (`.btn-col`) stay outside. **Tapping the field opens a fullscreen
+  prompt modal** (`#promptModal`): `openPromptModal()` relocates the same
+  `.prompt-input-wrap` into it (`.modal-mode` — large textarea, overlay
+  buttons back to the original ✕ top-right / 🪄 bottom-right layout, ✓
+  Done header button); `closePromptModal()` moves it back before the
+  button column. Closed when crossing the breakpoint (`main.js`).
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
