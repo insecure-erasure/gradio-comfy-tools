@@ -87,11 +87,50 @@ function addTransformedEntry(src, prompt, badge, sourceSrc) {
 }
 
 // ── Compare entries (Edit/Upscale) ─────────
-// The compare gallery only collects the compare sliders marked in the DOM
-// (their AFTER image is the identity, like the reference's #thumb); never
-// generated images. kinds: edit | restore | upscale.
+// Session registry of edited/restored/upscaled comparisons. The live DOM
+// only ever holds ONE compare slider per tab (reused for every result), so
+// collecting the gallery from the DOM alone would drop earlier edits — the
+// registry is what lets the ⛶ compare gallery navigate the whole session.
+// Entry: { src (AFTER image, the identity), before (ORIGINAL),
+//          prompt, kind: edit|restore|upscale, tab }.
+window.galleryComparisons = [];
+
+// Normalize a URL for comparison (the DOM absolutizes img.src while the
+// registry stores the relative /media/... display URL).
+function absUrl(u) {
+  try { return new URL(u, window.location.origin).href; } catch (e) { return u; }
+}
+
+// Register a comparison, deduped by the AFTER image URL (the same result
+// cannot appear twice). Called from edit.js/upscale.js when a result lands.
+function addCompareEntry(entry) {
+  if (!entry || !entry.src) return;
+  const key = absUrl(entry.src);
+  if (window.galleryComparisons.some(e => absUrl(e.src) === key)) return;
+  window.galleryComparisons.push({
+    src: entry.src,
+    before: entry.before || null,
+    prompt: entry.prompt || '',
+    kind: entry.kind || 'edit',
+    tab: entry.tab || '',
+  });
+}
+
+// The compare gallery collects the session registry (never generated
+// images). Falls back to any data-gallery sliders still marked in the DOM
+// and merges them, deduped by src — covers the edge case of a reload that
+// lost the registry but kept a slider.
 function collectCompareEntries() {
   const entries = [];
+  const seen = new Set();
+  const push = e => {
+    if (!e.src) return;
+    const key = absUrl(e.src);
+    if (seen.has(key)) return;
+    seen.add(key);
+    entries.push(e);
+  };
+  for (const e of window.galleryComparisons) push(e);
   document.querySelectorAll('[data-gallery="1"]').forEach(el => {
     if (!el.classList.contains('compare-slider')) return;
     const after = el.querySelector('img.side.after');
@@ -99,16 +138,12 @@ function collectCompareEntries() {
     if (!after || !after.src) return;
     const kind = el.dataset.kind || 'edit';
     if (kind !== 'edit' && kind !== 'restore' && kind !== 'upscale') return;
-    const src = after.src;
-    if (!entries.some(e => e.src === src)) {
-      entries.push({
-        src,
-        before: bfr && bfr.src ? bfr.src : null,
-        prompt: el.dataset.prompt || '',
-        kind,
-        el,
-      });
-    }
+    push({
+      src: after.src,
+      before: bfr && bfr.src ? bfr.src : null,
+      prompt: el.dataset.prompt || '',
+      kind,
+    });
   });
   return entries;
 }

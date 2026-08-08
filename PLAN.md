@@ -416,6 +416,20 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     navigation); the result now carries a `data-video-gallery="1"` marker and
     its URL is collected in `window.galleryVideos` for a **future video
     gallery — revisit later**.
+- **FIX (2026-08-08)**: **the ⛶ compare gallery keeps every edit/restore/
+  upscale of the session** — it previously collected its entries by scanning
+  the live DOM (`[data-gallery="1"]`), but each tab has a SINGLE compare
+  slider that is reused for every result, so the first edit vanished from
+  the gallery as soon as the second one landed. `edit.js`/`upscale.js` now
+  register each comparison in a session registry (`window.galleryComparisons`
+  via `addCompareEntry`, deduped by the AFTER image URL);
+  `collectCompareEntries()` reads the registry (the DOM scan stays as a
+  fallback for a reload that lost the registry). The ↺ reset drops the
+  tab's entries from the registry too (matching the existing DOM-marker
+  cleanup in `clearPane`). Verified in jsdom: two edits + one upscale all
+  survive in the gallery, reset clears only its own tab, dedup works,
+  `openCompareFullscreen(kind)` still positions correctly, and the real
+  `generateEdit`/`generateUpscale` flows register their comparisons.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
@@ -437,7 +451,9 @@ fix):**
   verify it REPLACES its entry in the generated history (keeps the original
   generation prompt as caption, shows the Edited/Restored/Upscaled badge
   top-center). Confirm the ⛶ compare overlay in Edit/Upscale only lists
-  edited/restored/upscaled comparisons.
+  edited/restored/upscaled comparisons **and that several edits/restores/
+  upscales done on the same tab all stay in the gallery** (regression: the
+  first edit used to vanish once the second one landed — fixed 2026-08-08).
 - **Stale-cache fix**: with the server now serving `Cache-Control: no-cache`
   on `/static`, a normal refresh (F5) must pick up new JS/CSS without a
   hard reload — the "gallery only shows the last generated image" bug was a

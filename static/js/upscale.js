@@ -34,7 +34,8 @@ function generateUpscale() {
     if (beforeEl && afterEl) {
       // Resolve the source through the media proxy (temp filename or external URL)
       const srcIsUrl = /^https?:\/\//i.test(src);
-      beforeEl.src = srcIsUrl ? src : '/media/' + encodeURIComponent(src.split('/').pop()) + '?type=temp';
+      const beforeSrc = srcIsUrl ? src : '/media/' + encodeURIComponent(src.split('/').pop()) + '?type=temp';
+      beforeEl.src = beforeSrc;
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
@@ -42,6 +43,17 @@ function generateUpscale() {
       // (identity = AFTER image); no prompt caption for upscale.
       cmp.dataset.gallery = '1';
       cmp.dataset.kind = 'upscale';
+      // Compare gallery (B5): register the comparison in the session
+      // registry too — the DOM only holds ONE slider per tab (reused), so
+      // without this registry earlier upscales would vanish from the ⛶
+      // compare gallery.
+      addCompareEntry({
+        src: res.display,
+        before: beforeSrc,
+        prompt: '',
+        kind: 'upscale',
+        tab: 'upscale',
+      });
       // Generated history (B5): an upscale REPLACES the source entry in the
       // lightbox gallery (keeping its generation prompt, badge = upscaled);
       // non-generated sources are appended.

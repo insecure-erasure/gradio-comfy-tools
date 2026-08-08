@@ -81,6 +81,12 @@ function clearPane(paneId) {
     delete el.dataset.kind;
     delete el.dataset.prompt;
   });
+  // Drop the tab's comparisons from the session registry too, so a ↺ reset
+  // also clears that tab's history in the ⛶ compare gallery.
+  if (window.galleryComparisons) {
+    const tab = paneId.replace(/OutputPane$/, '');
+    window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== tab);
+  }
   const mock = pane.querySelector('.video-mock');
   if (mock) mock.style.display = '';
 }
