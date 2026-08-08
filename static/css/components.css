@@ -423,6 +423,12 @@
   .btn-wrap:has(.btn-generate:disabled) .btn-catcher {
     display: block;
   }
+  /* While a prompt refinement is in flight the generation buttons are
+     disabled and their click-catcher shows (same overlay as the empty-
+     prompt state, but the toast says "Refining prompt…" — see refine.js). */
+  .btn-col.refining .btn-catcher {
+    display: block;
+  }
 
   /* Prompt refiner (🪄): sits to the LEFT of the generate button. Only
      visible in landscape (≥1024px) — the portrait placement is still to be

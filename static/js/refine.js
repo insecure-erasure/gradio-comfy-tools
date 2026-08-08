@@ -9,6 +9,37 @@
 // portrait it is hidden (`.btn-refine { display: none }` until <1024px is
 // handled — see CSS).
 
+// While a refinement is in flight the generation buttons are disabled and
+// their transparent click-catcher overlay shows (the same trick used for
+// empty prompts) so a click gives feedback instead of doing nothing. The
+// catcher's toast changes to "Refining prompt…"; its original handler is
+// restored afterwards.
+let _refiningCatchers = [];
+
+function setRefining(on) {
+  const btnCol = document.getElementById('btnCol');
+  if (!btnCol) return;
+  if (on) {
+    btnCol.classList.add('refining');
+    _refiningCatchers = [];
+    btnCol.querySelectorAll('.btn-catcher').forEach(c => {
+      _refiningCatchers.push({ el: c, orig: c.onclick });
+      c.onclick = () => showToast('Refining prompt…');
+    });
+    btnCol.querySelectorAll('.btn-generate').forEach(b => { b.disabled = true; });
+  } else {
+    btnCol.classList.remove('refining');
+    _refiningCatchers.forEach(({ el, orig }) => { el.onclick = orig; });
+    _refiningCatchers = [];
+    // Re-enable: buttons that need a prompt follow updateActionButtons;
+    // always-active ones (🩹 Restore) come back unconditionally.
+    btnCol.querySelectorAll('.btn-generate').forEach(b => {
+      if (!b.dataset.requiresPrompt) b.disabled = false;
+    });
+    updateActionButtons();
+  }
+}
+
 async function refinePrompt() {
   const input = document.getElementById('promptInput');
   const prompt = input ? input.value.trim() : '';
@@ -16,6 +47,7 @@ async function refinePrompt() {
 
   const btn = document.querySelector('.btn-refine');
   if (btn) { btn.disabled = true; btn.style.opacity = '.5'; }
+  setRefining(true);
   showToast('🪄 Refining prompt…');
   try {
     const resp = await fetch('/api/refine-prompt', {
@@ -39,5 +71,6 @@ async function refinePrompt() {
     showToast('❌ ' + (e && e.message ? e.message : 'Could not refine prompt'));
   } finally {
     if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    setRefining(false);
   }
 }
