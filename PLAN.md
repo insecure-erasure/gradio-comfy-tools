@@ -545,10 +545,13 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   the toolbar's **Model** label (`.tabs-toolbar .toolbar-model label`);
   landscape keeps it.
 - **FIX (2026-08-08)**: **portrait prompt modal** — the prompt becomes a
-  compact **single-line field** in the bottom bar; the overlay buttons
-  inside the prompt wrap (🪄 refine + ✕ clear) form a **horizontal row**
-  beside it (clear rightmost via flex order), while the action buttons
-  (`.btn-col`) stay outside. **Tapping the field opens a fullscreen
+  compact **single-line field** in the bottom bar spanning its full width;
+  the ✕ clear and 🪄 refine buttons are **hidden in the bar** (they exist
+  ONLY inside the prompt modal), while the action buttons
+  (`.btn-col`) stay outside. The Generate **W/H read-only parameters are
+  hidden** in portrait (`#tab-generate .params-pane .field-inline:has(.readonly-field)`
+  — the grid drops to 4 columns: AR, MP, Steps, Seed). **Tapping the field
+  opens a fullscreen
   prompt modal** (`#promptModal`): `openPromptModal()` relocates the same
   `.prompt-input-wrap` into it (`.modal-mode` — large textarea, overlay
   buttons back to the original ✕ top-right / 🪄 bottom-right layout, ✓

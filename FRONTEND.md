@@ -60,10 +60,12 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   action buttons + URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
-  **compact single-line field**: the overlay buttons that live inside the
-  prompt wrap (🪄 refine + ✕ clear) form a **horizontal row** beside it,
-  clear rightmost; the action buttons (`.btn-col`) stay outside in the bar.
-  **Tapping the field opens a fullscreen prompt modal**
+  **compact single-line field** spanning the full bar width — the ✕ clear
+  and 🪄 refine buttons are **hidden in the bar** (they exist ONLY inside
+  the prompt modal); the action buttons (`.btn-col`) stay outside in the
+  bar. The Generate **W/H read-only parameters are hidden** in portrait
+  (they are derived from AR × MP). **Tapping the field opens a fullscreen
+  prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
   (`.modal-mode`) with a large textarea and the overlay buttons back to
   their **original layout** (✕ top-right, 🪄 bottom-right); a header holds
@@ -137,7 +139,8 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 **Params pane** (landscape two rows; portrait one wrapping row):
 - Row 1: `↔️ W` readonly · `↕️ H` readonly · `📐 AR` dropdown (`2:3` default,
   `1:1`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`) · `🔲 MP` stepper (0.1–2.0,
-  step 0.1, default 1.0)
+  step 0.1, default 1.0) — **in portrait the W/H read-only fields are
+  hidden** (AR + MP remain).
 - Row 2: `👣 Steps` stepper (1–15, auto-updates on model change) · `🌱 Seed`
   stepper + `🎲` (checked by default)
 

@@ -52,10 +52,17 @@
        does not shrink at the same rate as the seed. */
     #tab-generate .params-pane {
       display: grid;
-      grid-template-columns: minmax(48px, .5fr) minmax(48px, .5fr) minmax(60px, .9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
+      /* 4 columns: AR, MP, Steps, Seed — the W/H read-only fields are
+         HIDDEN in portrait (see below), so the grid drops to 4 columns */
+      grid-template-columns: minmax(60px, .9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
       align-items: center;
       column-gap: 8px;
       row-gap: 4px;
+    }
+    /* Portrait: hide the W/H readonly parameters (they are derived from
+       AR × MP anyway) — more space for the other controls. */
+    #tab-generate .params-pane .field-inline:has(.readonly-field) {
+      display: none;
     }
     #tab-generate .params-pane .field-row {
       display: contents;
@@ -71,9 +78,9 @@
     }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
-    /* Portrait: the prompt becomes a compact single-line field. The overlay
-       buttons that live INSIDE the prompt wrap (🪄 refine + ✕ clear) form a
-       horizontal row beside the field, clear rightmost (order 3). The
+    /* Portrait: the prompt becomes a compact single-line field. The ✕ clear
+       and 🪄 refine buttons are HIDDEN in the bar (they only exist in the
+       prompt modal now) — the field spans the full width of the wrap. The
        action buttons (.btn-col) stay outside, in the bar, as before. */
     .bottom-bar .prompt-input-wrap {
       flex-direction: row;
@@ -82,6 +89,7 @@
     }
     .bottom-bar .prompt-input-wrap textarea {
       flex: 1;
+      width: 100%;
       height: 36px;               /* one text line */
       min-height: 36px;
       padding: 6px 12px;
@@ -89,14 +97,8 @@
     }
     .bottom-bar .prompt-clear,
     .bottom-bar .prompt-refine-btn {
-      position: static;           /* in-flow: horizontal row */
-      width: 26px;
-      height: 26px;
-      border-radius: var(--radius);
-      flex: none;
+      display: none;              /* portrait bar: only in the modal now */
     }
-    .bottom-bar .prompt-refine-btn { order: 2; }
-    .bottom-bar .prompt-clear { order: 3; }   /* rightmost */
     /* Prompt fullscreen modal: opened by tapping the compact prompt. The
        wrap moves here (openPromptModal) with .modal-mode — the textarea
        fills the screen and the overlay buttons return to their ORIGINAL
