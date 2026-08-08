@@ -68,8 +68,11 @@ function addGeneratedEntry(src, prompt) {
 // a generated image (filename match), the entry is REPLACED in place —
 // keeping its generation prompt, updating the src and the badge. Sources
 // that are not generated images are appended as new entries (their prompt is
-// the transformation's prompt, empty when there is none).
-function addTransformedEntry(src, prompt, badge, sourceSrc) {
+// the transformation's prompt, empty when there is none). editPrompt (the
+// transformation's own text, e.g. the edit prompt) is stored on the entry
+// for the badge hover hint — for a replaced generated entry the caption
+// keeps the ORIGINAL generation prompt while the hint shows the edit text.
+function addTransformedEntry(src, prompt, badge, sourceSrc, editPrompt) {
   const fn = filenameFromUrl(sourceSrc);
   if (fn) {
     const i = window.galleryGenerated.findIndex(e => e.filename === fn);
@@ -78,11 +81,13 @@ function addTransformedEntry(src, prompt, badge, sourceSrc) {
       entry.src = src;
       entry.badge = badge;
       entry.filename = filenameFromUrl(src);
+      entry.editPrompt = editPrompt || '';
       return;
     }
   }
   window.galleryGenerated.push({
     src, prompt: prompt || '', badge, filename: filenameFromUrl(src),
+    editPrompt: editPrompt || '',
   });
 }
 
@@ -190,6 +195,7 @@ function closeGallery() {
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
+  const hint = document.getElementById('galleryBadgeHint');
   if (galleryMode === 'lightbox') {
     galleryBig.src = e.src;
     // Badge overlay (top-center): the transform that produced this image.
@@ -200,6 +206,16 @@ function renderGalleryItem() {
       galleryBadge.classList.remove('show');
       galleryBadge.textContent = '';
     }
+    // Hover hint below the badge: the edit prompt that produced this
+    // transform (hovering the badge shows it in a grey translucent panel).
+    // Empty when the entry has no edit prompt (plain generation / upscale).
+    if (e.editPrompt) {
+      hint.textContent = e.editPrompt;
+      hint.classList.remove('empty');
+    } else {
+      hint.textContent = '';
+      hint.classList.add('empty');
+    }
   } else {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;
@@ -208,6 +224,8 @@ function renderGalleryItem() {
       e.kind === 'edit' ? 'Edited' : e.kind === 'restore' ? 'Restored'
         : e.kind === 'upscale' ? 'Upscaled' : 'Result';
     galleryBadge.classList.remove('show');
+    hint.textContent = '';
+    hint.classList.add('empty');
     fitGallerySlider();
   }
   // Prompt caption: the entry's prompt (for a replaced generated entry this

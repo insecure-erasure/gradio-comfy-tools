@@ -412,6 +412,13 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     `#galleryBadge`). Transformations of non-generated sources (uploads /
     external URLs) are appended as new entries. Identification by ComfyUI
     filename (`filenameFromUrl` handles `/media/..`, `/view?filename=..`).
+    The transformation's OWN text is stored as the entry's `editPrompt`
+    (2026-08-08): hovering the badge shows it in a **grey translucent panel
+    below the badge** (`#galleryBadgeHint`, sibling of the badge, shown via
+    `.gallery-badge.show:hover + .gallery-badge-hint:not(.empty)`) — so for
+    a replaced generated image the bottom caption keeps the ORIGINAL
+    generation prompt while the hover hint shows the edit text; plain
+    generations and upscales (no edit prompt) never show it (`.empty`).
   - **Video**: left as-is (native controls don't mix with gallery
     navigation); the result now carries a `data-video-gallery="1"` marker and
     its URL is collected in `window.galleryVideos` for a **future video

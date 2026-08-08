@@ -973,9 +973,36 @@
     font: 600 13px system-ui, sans-serif;
     letter-spacing: .04em;
     text-transform: capitalize;
-    pointer-events: none;
+    /* receive hover: the edit-prompt hint (sibling below) is shown on
+       hover over the badge */
+    pointer-events: auto;
   }
   .gallery-badge.show { display: flex; }
+  /* Hover hint below the badge: the EDIT prompt of a transformed generated
+     image (Edited/Restored/Upscaled), in a translucent grey panel. Shown on
+     hover over the badge; hidden when the entry has no edit prompt
+     (.empty — plain generations, upscales). */
+  .gallery-badge-hint {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: none;
+    max-width: min(560px, 86vw);
+    padding: 14px 20px;
+    background: rgba(96, 96, 96, .78);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px;
+    color: #fff;
+    font: 500 14px/1.5 system-ui, sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    pointer-events: none;
+  }
+  .gallery-badge.show:hover + .gallery-badge-hint:not(.empty) { display: block; }
+  .gallery-badge:has(+ .gallery-badge-hint:not(.empty)) { cursor: help; }
   .gallery-btn {
     position: absolute;
     z-index: 1000;

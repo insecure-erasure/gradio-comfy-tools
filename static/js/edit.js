@@ -65,8 +65,9 @@ function generateEdit(forceMode) {
       });
       // Generated history (B5): an edit/restore REPLACES the source entry
       // in the lightbox gallery (keeping its generation prompt, badge =
-      // edited/restored); non-generated sources are appended.
-      addTransformedEntry(res.display, prompt, mode === 'restore' ? 'restored' : 'edited', src);
+      // edited/restored); non-generated sources are appended. The edit
+      // text is stored as the entry's editPrompt for the badge hover hint.
+      addTransformedEntry(res.display, prompt, mode === 'restore' ? 'restored' : 'edited', src, prompt);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
