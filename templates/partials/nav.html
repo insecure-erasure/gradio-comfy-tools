@@ -2,6 +2,30 @@
     <div class="tabs-output-zone">
       <div class="tabs-inner">
         <button class="tabs-title" onclick="toggleSettingsMenu(event)" title="Settings">☰</button>
+        <!-- Portrait-only: the tab buttons condense into this dropdown (the
+             nav bar is too small on vertical displays). Landscape keeps the
+             four inline tab buttons below. -->
+        <div class="tabs-dropdown" id="tabsDropdown">
+          <button class="tabs-dropdown-btn" id="tabsDropdownBtn" onclick="toggleTabsDropdown(event)" title="Switch tool">
+            <span class="tab-icon" id="tabsDropdownIcon">🖼️</span>
+            <span class="tab-label" id="tabsDropdownLabel">Generate</span>
+            <span class="tabs-dropdown-caret">▾</span>
+          </button>
+          <div class="tabs-dropdown-menu" id="tabsDropdownMenu">
+            <button class="tabs-dropdown-item" data-tab="generate" onclick="switchTab('generate'); closeTabsDropdown();">
+              <span class="tab-icon">🖼️</span><span class="tab-label">Generate</span>
+            </button>
+            <button class="tabs-dropdown-item" data-tab="edit" onclick="switchTab('edit'); closeTabsDropdown();">
+              <span class="tab-icon">🖍️</span><span class="tab-label">Edit</span>
+            </button>
+            <button class="tabs-dropdown-item" data-tab="upscale" onclick="switchTab('upscale'); closeTabsDropdown();">
+              <span class="tab-icon">🔍</span><span class="tab-label">Upscale</span>
+            </button>
+            <button class="tabs-dropdown-item" data-tab="video" onclick="switchTab('video'); closeTabsDropdown();">
+              <span class="tab-icon">🎬</span><span class="tab-label">Video</span>
+            </button>
+          </div>
+        </div>
         <button class="tab-btn active" data-tab="generate" onclick="switchTab('generate')">
           <span class="tab-icon">🖼️</span><span class="tab-label">Generate</span>
         </button>

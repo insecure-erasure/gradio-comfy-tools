@@ -530,6 +530,15 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   survive in the gallery, reset clears only its own tab, dedup works,
   `openCompareFullscreen(kind)` still positions correctly, and the real
   `generateEdit`/`generateUpscale` flows register their comparisons.
+- **FIX (2026-08-08)**: **portrait tabs dropdown** — the nav bar is too
+  small on vertical displays (<1024px), so the four tab buttons condense
+  into a dropdown (`#tabsDropdown` in `nav.html`): the trigger shows the
+  ACTIVE tab (icon + label + ▾) and the menu lists all four with the
+  active one highlighted. The inline `.tab-btn` stay in the DOM (hidden by
+  `responsive.css`; landscape keeps them). `updateTabsDropdown()` syncs
+  the trigger + highlight at the end of `switchTab`; open/close is
+  `toggleTabsDropdown`/`closeTabsDropdown` (click-outside closes; forced
+  close when crossing the breakpoint in `main.js`).
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws

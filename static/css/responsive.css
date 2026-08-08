@@ -2,6 +2,13 @@
   @media (max-width: 1023px) {
     /* Portrait: stacked layout fills viewport, params scroll if needed */
 
+    /* Portrait: the four tab buttons condense into the tabs dropdown (the
+       nav bar is too small on vertical displays). The inline .tab-btn stay
+       in the DOM (landscape needs them, and switchTab marks the active one)
+       but are hidden here; the dropdown trigger shows the active tab. */
+    .tabs-inner > .tab-btn { display: none; }
+    .tabs-dropdown { display: block; }
+
     /* Icons only — hide text labels to save horizontal space */
     .tab-btn { padding: 10px 10px; }
     .tab-label { display: none; }

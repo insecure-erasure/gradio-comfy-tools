@@ -104,6 +104,9 @@ function switchTab(name) {
   // A generation running while switching tabs keeps the lock: switchTab
   // rebuilt #btnCol with fresh (enabled) buttons, so re-assert it.
   if (genLockActive) applyGenerationLock();
+
+  // Portrait: sync the tabs dropdown trigger (icon + label) with the new tab
+  updateTabsDropdown();
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the
@@ -214,6 +217,50 @@ function ensureUpscaleButton() {
     }
   }
 }
+
+// ── Tabs dropdown (portrait only) ──────────
+// On vertical displays the nav bar is too small for the four tab buttons,
+// so they condense into this dropdown: the trigger shows the ACTIVE tab
+// (icon + label) and the menu lists all four. Landscape keeps the inline
+// tab buttons (the dropdown is display:none there — responsive.css).
+let tabsDropdownOpen = false;
+
+function toggleTabsDropdown(e) {
+  e.stopPropagation();
+  tabsDropdownOpen = !tabsDropdownOpen;
+  document.getElementById('tabsDropdownMenu').classList.toggle('show', tabsDropdownOpen);
+  document.getElementById('tabsDropdownBtn').classList.toggle('open', tabsDropdownOpen);
+}
+
+function closeTabsDropdown() {
+  tabsDropdownOpen = false;
+  const menu = document.getElementById('tabsDropdownMenu');
+  const btn = document.getElementById('tabsDropdownBtn');
+  if (menu) menu.classList.remove('show');
+  if (btn) btn.classList.remove('open');
+}
+
+// Sync the dropdown trigger (icon + label) and the active item highlight
+// with the currently active tab. Called at the end of switchTab().
+function updateTabsDropdown() {
+  const active = document.querySelector('.tab-btn.active');
+  const icon = document.getElementById('tabsDropdownIcon');
+  const label = document.getElementById('tabsDropdownLabel');
+  if (!active || !icon) return;
+  const aIcon = active.querySelector('.tab-icon');
+  const aLabel = active.querySelector('.tab-label');
+  if (aIcon) icon.textContent = aIcon.textContent;
+  if (aLabel && label) label.textContent = aLabel.textContent;
+  document.querySelectorAll('.tabs-dropdown-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.tab === active.dataset.tab);
+  });
+}
+
+// Close the tabs dropdown when clicking anywhere outside it (the trigger
+// button stops propagation, so its own toggle is unaffected).
+document.addEventListener('click', (e) => {
+  if (tabsDropdownOpen && !e.target.closest('#tabsDropdown')) closeTabsDropdown();
+});
 
 // Radio group toggle (kept for the mockup's segmented controls)
 function selectRadio(btn) {

@@ -76,6 +76,67 @@
     border-color: var(--border);
   }
 
+  /* Tabs dropdown — portrait only (the nav bar is too small for the four
+     tab buttons on vertical displays). Hidden by default; responsive.css
+     shows it and hides the inline .tab-btn under 1024px. The trigger shows
+     the ACTIVE tab (icon + label); the menu lists all four. */
+  .tabs-dropdown {
+    display: none;
+    position: relative;
+  }
+  .tabs-dropdown .tab-label { display: inline; }  /* the portrait rule hides .tab-label globally */
+  .tabs-dropdown-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: .85rem;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: .15s;
+    white-space: nowrap;
+  }
+  .tabs-dropdown-btn:hover { background: var(--surface-hover); border-color: var(--border); }
+  .tabs-dropdown-btn.open { background: var(--surface-hover); border-color: var(--border); }
+  .tabs-dropdown-caret { font-size: .55rem; color: var(--text-secondary); }
+  .tabs-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 170px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    z-index: 150;
+    padding: 6px;
+    display: none;
+  }
+  .tabs-dropdown-menu.show { display: block; }
+  .tabs-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius);
+    font-family: var(--font);
+    font-size: .85rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: .1s;
+    text-align: left;
+  }
+  .tabs-dropdown-item:hover { background: var(--surface-hover); }
+  .tabs-dropdown-item.active { color: var(--accent); }
+  .tabs-dropdown-item .tab-icon { margin-right: 0; }
+
   /* Per-tab toolbar (model dropdown + ⚙️ + ↺) — right side of the nav */
   .tabs-toolbar {
     display: flex;

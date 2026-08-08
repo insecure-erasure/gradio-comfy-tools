@@ -35,12 +35,14 @@ Object.values(PERSIST_FIELDS).flat().forEach(id => {
   if (el) el.addEventListener('change', savePersistedState);
 });
 
-// Relocate the prompt block when crossing the landscape/portrait breakpoint
+// Relocate the prompt block when crossing the landscape/portrait breakpoint;
+// also close the tabs dropdown (it is only visible in portrait) so it never
+// stays open across the switch.
 const layoutQuery = window.matchMedia('(min-width: 1024px)');
 if (layoutQuery.addEventListener) {
-  layoutQuery.addEventListener('change', relayoutPrompt);
+  layoutQuery.addEventListener('change', () => { relayoutPrompt(); closeTabsDropdown(); });
 } else if (layoutQuery.addListener) {
-  layoutQuery.addListener(relayoutPrompt); // legacy Safari
+  layoutQuery.addListener(() => { relayoutPrompt(); closeTabsDropdown(); }); // legacy Safari
 }
 
 // ── Label tooltip ────────────────────────
