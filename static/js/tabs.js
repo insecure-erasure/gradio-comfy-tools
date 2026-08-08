@@ -254,18 +254,24 @@ function closeTabsDropdown() {
 }
 
 // Sync the dropdown trigger (icon + label) and the active item highlight
-// with the currently active tab. Called at the end of switchTab().
+// with the currently active tab. Uses currentTab (set by switchTab) and
+// reads the matching inline .tab-btn — NOT document.querySelector('.tab-btn.active'),
+// which can hit a stale/inline first match: in portrait the inline .tab-btn
+// are display:none and switchTab's document.querySelector('[data-tab=..]')
+// may resolve to the dropdown ITEM (it comes first in the DOM), leaving
+// .tab-btn.active stale. currentTab is the single source of truth.
 function updateTabsDropdown() {
-  const active = document.querySelector('.tab-btn.active');
   const icon = document.getElementById('tabsDropdownIcon');
   const label = document.getElementById('tabsDropdownLabel');
-  if (!active || !icon) return;
-  const aIcon = active.querySelector('.tab-icon');
-  const aLabel = active.querySelector('.tab-label');
-  if (aIcon) icon.textContent = aIcon.textContent;
-  if (aLabel && label) label.textContent = aLabel.textContent;
+  const btn = document.querySelector(`.tab-btn[data-tab="${currentTab}"]`);
+  if (btn) {
+    const aIcon = btn.querySelector('.tab-icon');
+    const aLabel = btn.querySelector('.tab-label');
+    if (aIcon) icon.textContent = aIcon.textContent;
+    if (aLabel && label) label.textContent = aLabel.textContent;
+  }
   document.querySelectorAll('.tabs-dropdown-item').forEach(item => {
-    item.classList.toggle('active', item.dataset.tab === active.dataset.tab);
+    item.classList.toggle('active', item.dataset.tab === currentTab);
   });
 }
 
