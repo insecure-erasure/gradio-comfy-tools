@@ -428,6 +428,21 @@ Launch a generation in the UI; verify the result URL row shows live progress
 (%, node stage) updating in real time (`⏳ Queued…` → `⚙️ SamplerCustomAdvanced
 4/8` → the result URL on completion).
 
+**PENDING manual validation (2026-08-08, after the gallery feature + cache
+fix):**
+
+- **Gallery in a live session (not stubbed)**: generate 2+ images, open the
+  lightbox (click the result or ⛶) and verify the history navigates all of
+  them (counter n/N, ‹ ›, ←/→); then edit/restore/upscale one of them and
+  verify it REPLACES its entry in the generated history (keeps the original
+  generation prompt as caption, shows the Edited/Restored/Upscaled badge
+  top-center). Confirm the ⛶ compare overlay in Edit/Upscale only lists
+  edited/restored/upscaled comparisons.
+- **Stale-cache fix**: with the server now serving `Cache-Control: no-cache`
+  on `/static`, a normal refresh (F5) must pick up new JS/CSS without a
+  hard reload — the "gallery only shows the last generated image" bug was a
+  stale pre-fix `gallery.js` (2a36a53).
+
 ---
 
 ## C1. Cleanup: dead CSS pruning (done 2026-08-08 — CSS removed; JS candidates left by design)
