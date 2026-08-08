@@ -116,8 +116,9 @@ def test_refine_prompt_calls_llama(client, tmp_config, monkeypatch):
     msgs = captured["json"]["messages"]
     assert msgs[0] == {"role": "system", "content": "Refine."}
     assert msgs[1] == {"role": "user", "content": "a cat"}
-    # reasoning is disabled so the refined prompt is not polluted with <think>
-    assert captured["json"]["reasoning_effort"] == "none"
+    # reasoning is disabled via the chat template so the refined prompt is
+    # not polluted with <think> (reliable per llama.cpp docs)
+    assert captured["json"]["chat_template_kwargs"] == {"enable_thinking": False}
 
 
 def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
