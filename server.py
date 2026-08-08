@@ -295,9 +295,9 @@ def api_progress() -> dict:
     Returns ``{"active": {...}}`` while a job runs, ``{"active": null}``
     otherwise. While the job runs, ``active.preview`` carries the latest
     per-step latent preview (data URL, image/jpeg) when the job's workflow
-    requested previews (Generate) — the frontend shows it only in the tab
-    that started the generation. The preview is dropped as soon as the job
-    finishes, so it is never served stale.
+    requested previews (Generate / Edit / Video) — the frontend shows it
+    only in the tab that started the generation. The preview is dropped as
+    soon as the job finishes, so it is never served stale.
     """
     job = _latest_job()
     if job is None or job.get("done"):
