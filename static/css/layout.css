@@ -263,7 +263,6 @@
     border-radius: var(--radius);
     box-shadow: var(--shadow);
   }
-  .pane-loading { opacity: .6; pointer-events: none; }
   .output-pane.busy { background: #101020; }
 
   /* Spinner overlay over the output pane while a generation is running */
@@ -302,17 +301,6 @@
     min-width: 280px;
     max-width: 480px;
     min-height: 0;
-  }
-  .model-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .model-row .field-inline {
-    flex: 1;
-  }
-  .model-row .field-inline select {
-    flex: 1;
   }
   .btn-reset, .btn-gear-inline {
     width: 34px; height: 34px;
