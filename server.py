@@ -50,7 +50,22 @@ TEMPLATES = Jinja2Templates(directory=REPO / "templates")
 STATIC_DIR = REPO / "static"
 
 app = FastAPI(title="Comfy Tools")
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+class NoCacheStaticFiles(StaticFiles):
+    """StaticFiles that always revalidates (Cache-Control: no-cache) so a
+    stale browser tab never keeps running old JS/CSS after a deploy — the
+    gallery bug that surfaced as "only the last generated image shows" was
+    the browser running the pre-fix gallery.js from cache.
+    """
+
+    def file_response(self, *args, **kwargs):
+        resp = super().file_response(*args, **kwargs)
+        resp.headers.setdefault("Cache-Control", "no-cache")
+        return resp
+
+
+app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
 
 
 def _settings() -> Settings:
