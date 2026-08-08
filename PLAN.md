@@ -553,7 +553,11 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   `.prompt-input-wrap` into it (`.modal-mode` — large textarea, overlay
   buttons back to the original ✕ top-right / 🪄 bottom-right layout, ✓
   Done header button); `closePromptModal()` moves it back before the
-  button column. Closed when crossing the breakpoint (`main.js`).
+  button column. Closed when crossing the breakpoint (`main.js`). The
+  modal **fits the mobile keyboard**: `fitPromptModal()` listens to
+  `window.visualViewport` resize/scroll and sets the modal's top+height
+  to the real visible area (cleared on close), so the keyboard never
+  covers the textarea.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws

@@ -295,6 +295,7 @@ function openPromptModal() {
   box.appendChild(wrap);
   wrap.classList.add('modal-mode');
   modal.classList.add('show');
+  fitPromptModal();   // fit to the visible area BEFORE focusing (keyboard)
   input.focus();
 }
 
@@ -309,6 +310,31 @@ function closePromptModal() {
     block.insertBefore(wrap, block.firstChild); // back before the button column
   }
   modal.classList.remove('show');
+  // Clear the visual-viewport fit (top/height) so the CSS inset:0 takes over.
+  modal.style.top = '';
+  modal.style.height = '';
+}
+
+// Fit the fullscreen prompt modal to the ACTUAL visible area. The mobile
+// keyboard does NOT resize position:fixed elements — the layout viewport
+// stays the same and the keyboard just overlays it, so the textarea would
+// end up hidden behind the keyboard. window.visualViewport tracks the real
+// visible area (its height shrinks / offsetTop changes when the keyboard
+// opens, closes or the page zooms); on every such event we set the modal's
+// top + height to match it. With both top and height inline, the CSS
+// bottom:0 (from inset:0) is ignored per the abs/fixed box rules.
+function fitPromptModal() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const modal = document.getElementById('promptModal');
+  if (!modal || !modal.classList.contains('show')) return;
+  modal.style.top = (vv.offsetTop || 0) + 'px';
+  modal.style.height = vv.height + 'px';
+}
+
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', fitPromptModal);
+  window.visualViewport.addEventListener('scroll', fitPromptModal);
 }
 
 // Radio group toggle (kept for the mockup's segmented controls)

@@ -68,7 +68,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (`.modal-mode`) with a large textarea and the overlay buttons back to
   their **original layout** (✕ top-right, 🪄 bottom-right); a header holds
   a ✓ Done button to close. `openPromptModal`/`closePromptModal`
-  (`tabs.js`); closed when crossing the breakpoint (`main.js`).
+  (`tabs.js`); closed when crossing the breakpoint (`main.js`). The modal
+  **fits the visible area when the mobile keyboard opens**: the keyboard
+  does not resize `position: fixed` elements, so `fitPromptModal()`
+  listens to `window.visualViewport` resize/scroll and sets the modal's
+  top+height to the real viewport (cleared on close).
 
 ### Responsive
 
