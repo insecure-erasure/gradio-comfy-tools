@@ -445,20 +445,23 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     edited/restored/upscaled comparisons** (never generated images), the
     AFTER image being the identity (like the reference's #thumb). The edit
     text shows as caption; upscaled have none.
-  - **Transformation replacement (user requirement)**: an edit/restore/upscale
-    of a generated image **REPLACES that entry in the generated history** —
-    keeping the ORIGINAL generation prompt as the caption overlay and adding
-    a **badge overlay top-center** ("Edited"/"Restored"/"Upscaled",
-    `#galleryBadge`). Transformations of non-generated sources (uploads /
-    external URLs) are appended as new entries. Identification by ComfyUI
-    filename (`filenameFromUrl` handles `/media/..`, `/view?filename=..`).
-    The transformation's OWN text is stored as the entry's `editPrompt`
-    (2026-08-08): hovering the badge shows it in a **grey translucent panel
-    below the badge** (`#galleryBadgeHint`, sibling of the badge, shown via
-    `.gallery-badge.show:hover + .gallery-badge-hint:not(.empty)`) — so for
-    a replaced generated image the bottom caption keeps the ORIGINAL
-    generation prompt while the hover hint shows the edit text; plain
-    generations and upscales (no edit prompt) never show it (`.empty`).
+  - **Transformation behavior (user requirement, updated 2026-08-08)** —
+    edits/restores **APPEND** a new entry to the generated history (the
+    original image stays), upscales **REPLACE** the source entry:
+    - **Edit ✏️ / Restore 🩹**: appended entry shows the **transformation's
+      own text as the bottom caption**; if the source was itself a gallery
+      image, its prompt is kept as `originalPrompt` and shown on **badge
+      hover** ("Edited"/"Restored", `#galleryBadge` → `#galleryBadgeHint`
+      grey translucent panel, `.gallery-badge.show:hover +
+      .gallery-badge-hint:not(.empty)`). Restore may have no prompt — then
+      the caption is empty but the hover still shows the source's prompt.
+      Edits of non-gallery sources (uploads / external URLs) are appended
+      with the edit text and no hover hint.
+    - **Upscale 🔍**: **replaces** the source entry in place — the
+      generation prompt stays as the bottom caption, badge "Upscaled"
+      top-center, no hover hint (an upscale has no transformation prompt).
+    - Identification by ComfyUI filename (`filenameFromUrl` handles
+      `/media/..`, `/view?filename=..`).
   - **Video**: left as-is (native controls don't mix with gallery
     navigation); the result now carries a `data-video-gallery="1"` marker and
     its URL is collected in `window.galleryVideos` for a **future video

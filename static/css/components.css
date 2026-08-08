@@ -973,15 +973,16 @@
     font: 600 13px system-ui, sans-serif;
     letter-spacing: .04em;
     text-transform: capitalize;
-    /* receive hover: the edit-prompt hint (sibling below) is shown on
+    /* receive hover: the original-prompt hint (sibling below) is shown on
        hover over the badge */
     pointer-events: auto;
   }
   .gallery-badge.show { display: flex; }
-  /* Hover hint below the badge: the EDIT prompt of a transformed generated
-     image (Edited/Restored/Upscaled), in a translucent grey panel. Shown on
-     hover over the badge; hidden when the entry has no edit prompt
-     (.empty — plain generations, upscales). */
+  /* Hover hint below the badge: the ORIGINAL source prompt of an appended
+     edit/restore (hovering "Edited"/"Restored" shows the prompt of the
+     image it was made from), in a translucent grey panel. Shown on hover
+     over the badge; hidden when the entry has no original prompt (.empty —
+     plain generations, upscales, edits of non-gallery sources). */
   .gallery-badge-hint {
     position: absolute;
     top: 58px;

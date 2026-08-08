@@ -5,11 +5,13 @@
 //
 //   • Generate (lightbox): navigates the GENERATED history — every image
 //     generated this session (window.galleryGenerated), even after the pane
-//     only shows the last one. An edit/restore/upscale of a generated image
-//     REPLACES the original entry (keeping its generation prompt as the
-//     caption overlay) and adds a badge overlay top-center ("Edited" /
-//     "Restored" / "Upscaled"). Transformations of non-generated sources
-//     (uploads / external URLs) are appended as new entries.
+//     only shows the last one. An edit/restore APPENDS a new entry (the
+//     transformation's own prompt is the bottom caption; if the source was
+//     itself a gallery image, its prompt is preserved as the badge hover
+//     hint). An upscale REPLACES the original entry (the generation prompt
+//     stays as the caption, badge "Upscaled", no hover hint). Badges are
+//     top-center ("Edited" / "Restored" / "Upscaled"). Transformations of
+//     non-generated sources (uploads / external URLs) are appended.
 //   • Edit/Upscale (compare): opens the fullscreen overlay with its own
 //     interactive slider; the gallery there ONLY navigates the
 //     edited/restored/upscaled comparisons (never generated images).
@@ -38,8 +40,11 @@ let galleryIdx = -1;
 
 // ── Generated history ──────────────────────
 // Session-scoped registry of generated images + their transformations.
-// Entry: { src, prompt (generation prompt, preserved through transforms),
-//          badge: '' | 'edited' | 'restored' | 'upscaled', filename }.
+// Entry: { src, prompt (the bottom caption: generation prompt for plain
+//          generations and upscales, the transformation's own text for
+//          edits/restores), badge: '' | 'edited' | 'restored' | 'upscaled',
+//          filename, originalPrompt (for appended edits/restores: the
+//          source image's prompt, shown on badge hover; empty otherwise) }.
 window.galleryGenerated = [];
 
 // Identify a generated image by its ComfyUI filename:
@@ -61,18 +66,16 @@ function filenameFromUrl(url) {
 function addGeneratedEntry(src, prompt) {
   window.galleryGenerated.push({
     src, prompt: prompt || '', badge: '', filename: filenameFromUrl(src),
+    originalPrompt: '',
   });
 }
 
-// An edit/restore/upscale of sourceSrc -> new result src. When the source is
-// a generated image (filename match), the entry is REPLACED in place —
-// keeping its generation prompt, updating the src and the badge. Sources
-// that are not generated images are appended as new entries (their prompt is
-// the transformation's prompt, empty when there is none). editPrompt (the
-// transformation's own text, e.g. the edit prompt) is stored on the entry
-// for the badge hover hint — for a replaced generated entry the caption
-// keeps the ORIGINAL generation prompt while the hint shows the edit text.
-function addTransformedEntry(src, prompt, badge, sourceSrc, editPrompt) {
+// An UPScale of sourceSrc -> new result src: REPLACES the source entry in
+// place when it is a gallery image (keeping its generation prompt as the
+// bottom caption, updating src + badge "upscaled"; no hover hint, since an
+// upscale has no transformation prompt). Non-generated sources are
+// appended as new entries (empty prompt).
+function addTransformedEntry(src, prompt, badge, sourceSrc) {
   const fn = filenameFromUrl(sourceSrc);
   if (fn) {
     const i = window.galleryGenerated.findIndex(e => e.filename === fn);
@@ -81,13 +84,33 @@ function addTransformedEntry(src, prompt, badge, sourceSrc, editPrompt) {
       entry.src = src;
       entry.badge = badge;
       entry.filename = filenameFromUrl(src);
-      entry.editPrompt = editPrompt || '';
+      entry.originalPrompt = '';
       return;
     }
   }
   window.galleryGenerated.push({
     src, prompt: prompt || '', badge, filename: filenameFromUrl(src),
-    editPrompt: editPrompt || '',
+    originalPrompt: '',
+  });
+}
+
+// An edit/restore of sourceSrc -> new result src: APPENDS a new entry (the
+// original generation stays in the gallery — the edit/restore is a new
+// image). The transformation's own prompt is the bottom caption; when the
+// source was itself a gallery image (generated or previously transformed),
+// its prompt is preserved as originalPrompt for the badge hover hint.
+// Restore may have no prompt — then the caption is empty but the hover
+// still shows the source's prompt when the source was a gallery image.
+function appendTransformedEntry(src, prompt, badge, sourceSrc) {
+  let originalPrompt = '';
+  const fn = filenameFromUrl(sourceSrc);
+  if (fn) {
+    const i = window.galleryGenerated.findIndex(e => e.filename === fn);
+    if (i >= 0) originalPrompt = window.galleryGenerated[i].prompt || '';
+  }
+  window.galleryGenerated.push({
+    src, prompt: prompt || '', badge, filename: filenameFromUrl(src),
+    originalPrompt,
   });
 }
 
@@ -206,11 +229,13 @@ function renderGalleryItem() {
       galleryBadge.classList.remove('show');
       galleryBadge.textContent = '';
     }
-    // Hover hint below the badge: the edit prompt that produced this
-    // transform (hovering the badge shows it in a grey translucent panel).
-    // Empty when the entry has no edit prompt (plain generation / upscale).
-    if (e.editPrompt) {
-      hint.textContent = e.editPrompt;
+    // Hover hint below the badge: the ORIGINAL source prompt of an appended
+    // edit/restore (hovering "Edited"/"Restored" shows the prompt of the
+    // image it was made from, in a grey translucent panel). Empty for plain
+    // generations, upscales (replaced, prompt already in the caption) and
+    // edits of non-gallery sources.
+    if (e.originalPrompt) {
+      hint.textContent = e.originalPrompt;
       hint.classList.remove('empty');
     } else {
       hint.textContent = '';
@@ -228,8 +253,9 @@ function renderGalleryItem() {
     hint.classList.add('empty');
     fitGallerySlider();
   }
-  // Prompt caption: the entry's prompt (for a replaced generated entry this
-  // is the ORIGINAL generation prompt, preserved through the transform).
+  // Prompt caption: the entry's prompt — for a plain generation or an
+  // upscale (replaced) this is the generation prompt; for an appended
+  // edit/restore it is the transformation's own text.
   if (e.prompt) {
     galleryCaption.textContent = e.prompt; // textContent — never innerHTML
     galleryCaption.classList.add('show');
