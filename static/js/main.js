@@ -16,10 +16,17 @@ window.addEventListener('DOMContentLoaded', () => {
   savePersistedState();      // normalize the stored shape after applying
 });
 
-// Disable/enable action buttons as the shared prompt changes
+// Disable/enable action buttons as the shared prompt changes; also keep
+// the per-tab prompt store and localStorage up to date while typing.
 const promptInput = document.getElementById('promptInput');
 if (promptInput) {
-  promptInput.addEventListener('input', updateActionButtons);
+  promptInput.addEventListener('input', () => {
+    updateActionButtons();
+    if (promptsByTab && currentTab && currentTab !== 'upscale') {
+      promptsByTab[currentTab] = promptInput.value;
+    }
+    savePersistedState();
+  });
 }
 
 // Persist per-tab parameter fields whenever they change

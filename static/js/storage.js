@@ -28,6 +28,7 @@ function savePersistedState() {
     params: collectParams(),
     advanced: window.advancedValues || {},
     toolbar: toolbarValues,
+    prompts: promptsByTab,
     theme: currentTheme,
   };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* disabled */ }
@@ -64,6 +65,12 @@ function restorePersistedState() {
   }
   // advanced modal values
   if (data.advanced) window.advancedValues = data.advanced;
+  // per-tab prompts (independent text per tool)
+  if (data.prompts && typeof data.prompts === 'object') {
+    ['generate', 'edit', 'video'].forEach(t => {
+      if (typeof data.prompts[t] === 'string') promptsByTab[t] = data.prompts[t];
+    });
+  }
   // theme
   if (data.theme) currentTheme = data.theme;
   // keep params to re-apply after the auto-steps recalc (applyPersistedParams)

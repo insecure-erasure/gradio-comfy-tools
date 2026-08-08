@@ -31,10 +31,17 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   - **Edit**: ⚙️ + ↺ (no model selector)
   - **Upscale**: ↺ only (SeedVR2 fixed, no ⚙️)
   - **Video**: Model dropdown (Wan 2.1, Wan 2.2) + ⚙️ + ↺
-- **Landscape (≥1024px)**: the shared prompt block (textarea + action
+- **Landscape (≥1024px)**: the prompt block (textarea + action
   buttons + ✕ clear) and the result URL row are relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
   hidden. The URL row sits **below** the prompt, pinned to the pane bottom.
+  The textarea is a **single shared element** relocated between tabs, but
+  its VALUE is **independent per tool**: `promptsByTab` (state.js) stores
+  one prompt per tab (generate/edit/video; Upscale has none) —
+  `switchTab()` saves the outgoing tab's text and restores the incoming
+  tab's, and `clearPrompt` (✕) clears only the active tab. Prompts are
+  persisted to localStorage with the rest of the user config (storage.js)
+  and restored on reload.
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   action buttons + URL row); tabs show icons only.
 

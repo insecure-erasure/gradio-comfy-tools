@@ -4,6 +4,14 @@
 // lastGeneratedUrl persist for chaining.
 
 function switchTab(name) {
+  // Save the prompt of the tab we're leaving into the per-tab store BEFORE
+  // the shared textarea's value changes (the #promptInput element is a
+  // single instance relocated between tabs). Upscale has no prompt — its
+  // value is never stored so it cannot clobber another tab's text.
+  const input0 = document.getElementById('promptInput');
+  if (currentTab && currentTab !== 'upscale' && input0) {
+    promptsByTab[currentTab] = input0.value;
+  }
   currentTab = name;
 
   // Remove the upscale-specific buttons (portrait pane btn / landscape overlay)
@@ -79,6 +87,13 @@ function switchTab(name) {
 
   // Landscape: relocate the prompt block into this tab's params pane
   relayoutPrompt();
+
+  // Restore this tab's own prompt (independent per tool — the textarea is
+  // shared, so its value must be loaded from the per-tab store).
+  const input1 = document.getElementById('promptInput');
+  if (input1 && name !== 'upscale') {
+    input1.value = promptsByTab[name] || '';
+  }
 
   // Per-tab toolbar in the nav (model dropdown + ⚙️ + ↺)
   renderToolbar(name);

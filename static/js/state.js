@@ -19,3 +19,13 @@ let toolbarValues = {
   genFamily: 'krea2',
   vidVersion: 'wan21',
 };
+
+// Per-tab prompt text — the #promptInput textarea is a single shared
+// element that is relocated between tabs, so its VALUE must be saved and
+// restored per tab here (Upscale has no prompt). Persisted to localStorage
+// along with the other per-tab state (storage.js).
+let promptsByTab = {
+  generate: '',
+  edit: '',
+  video: '',
+};

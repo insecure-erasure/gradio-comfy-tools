@@ -443,6 +443,17 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     has no LoRAs. Verified against the live endpoint (54 LoRAs, all `\`)
     and in jsdom (dropdown listing, default empty state, separator
     normalization, not-available placeholder, wan22 HIGH/LOW editors).
+- **FIX (2026-08-08)**: **per-tab prompts independent per tool** — the
+  `#promptInput` textarea is a single shared element relocated between tabs,
+  so switching tools used to mix/overwrite the prompt. `state.js` now holds
+  `promptsByTab` (one prompt per generate/edit/video; Upscale has none);
+  `switchTab()` saves the outgoing tab's text before switching and restores
+  the incoming tab's after, `clearPrompt` (✕) clears only the active tab's
+  stored value, typing keeps the store up to date, and the prompts are
+  persisted to localStorage (storage.js) and restored on reload. Verified in
+  jsdom: switching generate → edit → generate preserves both prompts,
+  passing through Upscale (no prompt) loses nothing, ✕ clears only the
+  active tab, and reload restores each tab's text.
 - **FIX (2026-08-08)**: **the ⛶ compare gallery keeps every edit/restore/
   upscale of the session** — it previously collected its entries by scanning
   the live DOM (`[data-gallery="1"]`), but each tab has a SINGLE compare

@@ -105,10 +105,12 @@ function copyResultUrl() {
   }).catch(() => showToast('Copy failed'));
 }
 
-// ✕ clears the prompt textarea (shared, single instance).
+// ✕ clears the prompt textarea (single shared instance) and its per-tab
+// stored value, so the cleared state also sticks when switching tabs.
 function clearPrompt() {
   const input = document.getElementById('promptInput');
   if (input) input.value = '';
+  if (promptsByTab && currentTab) promptsByTab[currentTab] = '';
   updateActionButtons();
   input.focus();
 }
