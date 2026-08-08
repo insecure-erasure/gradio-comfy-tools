@@ -20,7 +20,13 @@ function hideSettingsMenu() {
 }
 
 document.addEventListener('click', (e) => {
-  if (settingsOpen && !e.target.closest('#tabNav')) hideSettingsMenu();
+  // Keep the menu open when the click is inside the nav (#tabNav) OR inside
+  // the settings menu itself (the dropdown is a SIBLING of #tabNav in
+  // .tabs-wrap, so clicks on it — e.g. the refiner system-prompt textarea —
+  // must not close the menu).
+  if (settingsOpen && !e.target.closest('#tabNav') && !e.target.closest('#settingsMenu')) {
+    hideSettingsMenu();
+  }
 });
 
 // ── Theme ─────────────────────────────────
