@@ -576,6 +576,38 @@
     background: var(--accent);
     color: #fff;
   }
+  /* Small 🪄 refine button, overlaid BOTTOM-right of the prompt (portrait
+     only — landscape uses the 🪄 in the button column). Analogous to the ✕
+     clear button. */
+  .prompt-refine-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.4);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .72rem;
+    line-height: 1;
+    padding: 0;
+    z-index: 5;
+    transition: .15s;
+  }
+  .prompt-refine-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+  /* In landscape the 🪄 lives in the button column — hide this overlay so it
+     does not overlap the landscape textarea layout. */
+  @media (min-width: 1024px) {
+    .prompt-refine-btn { display: none; }
+  }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);
