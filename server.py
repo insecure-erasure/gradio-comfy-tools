@@ -32,7 +32,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -575,6 +575,8 @@ def api_settings() -> dict:
         "comfyui_base_url": s.comfyui_base_url,
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
+        "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
 
 
@@ -582,8 +584,10 @@ def api_settings() -> dict:
 def api_settings_update(body: dict) -> dict:
     """Persist global settings from the 🎨 dropdown (B4).
 
-    Accepts any subset of {comfyui_base_url, comfyui_media_base_url}; empty
-    strings clear the override (media falls back to the server URL).
+    Accepts any subset of {comfyui_base_url, comfyui_media_base_url,
+    prompt_refiner_base_url, prompt_refiner_system_prompt}; empty strings
+    clear the override (media falls back to the server URL; the refiner
+    base URL empty disables the 🪄 refine button).
     """
     s = _settings()
     if "comfyui_base_url" in body:
@@ -593,8 +597,60 @@ def api_settings_update(body: dict) -> dict:
         s.set_base_url(value)
     if "comfyui_media_base_url" in body:
         s.set_media_base_url(str(body["comfyui_media_base_url"]).strip())
+    if "prompt_refiner_base_url" in body:
+        s.set_refiner_base_url(str(body["prompt_refiner_base_url"]).strip())
+    if "prompt_refiner_system_prompt" in body:
+        s.set_refiner_system_prompt(str(body["prompt_refiner_system_prompt"]))
     return {
         "comfyui_base_url": s.comfyui_base_url,
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
+        "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
+
+
+@app.post("/api/refine-prompt")
+def api_refine_prompt(body: dict):
+    """Refine a prompt via the llama-server refiner (OpenAI-compatible).
+
+    Body: ``{"prompt": "...", "system_prompt": "..."?, "stream": bool?}``.
+    With ``stream`` true it returns a Server-Sent-Events stream of the
+    refined prompt deltas (``data: {\"delta\": \"...\"}``) so the UI can
+    show the refinement evolving live and cancel mid-stream; otherwise it
+    returns ``{"refined": "..."}``. Failures are a 400 with a user-facing
+    message.
+    """
+    from prompt_refiner import RefinerError, RefinerUnavailable, refine_prompt, stream_refine_prompt
+
+    s = _settings()
+    prompt = str(body.get("prompt", ""))
+    system_prompt = body.get("system_prompt")
+    if body.get("stream"):
+        try:
+            gen = stream_refine_prompt(s, prompt, system_prompt)
+        except (RefinerUnavailable, RefinerError) as e:
+            raise HTTPException(400, str(e)) from e
+
+        def event_stream():
+            try:
+                for item in gen:
+                    if isinstance(item, dict) and "delta" in item:
+                        yield f"data: {json.dumps({'delta': item['delta']})}\n\n"
+                    elif isinstance(item, dict) and "meta" in item:
+                        yield f"data: {json.dumps({'meta': item['meta']})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except RefinerError as e:
+                yield f"data: {json.dumps({'error': str(e)[:300]})}\n\n"
+            except GeneratorExit:
+                gen.close()  # client disconnected / cancelled — close llama stream
+                raise
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
+    try:
+        refined = refine_prompt(s, prompt, system_prompt)
+    except RefinerUnavailable as e:
+        raise HTTPException(400, str(e)) from e
+    except RefinerError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"refined": refined}

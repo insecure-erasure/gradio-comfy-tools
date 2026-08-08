@@ -16,6 +16,17 @@ from pathlib import Path
 
 DEFAULT_BASE_URL = "http://192.168.1.8"
 
+# Prompt refiner (llama-server, OpenAI-compatible API). Empty base URL
+# disables the 🪄 refine button (it toasts that the service is not
+# configured). The system prompt is user-editable from the ☰ menu.
+DEFAULT_REFINER_SYSTEM_PROMPT = (
+    "You are an expert prompt engineer for AI image and video generation. "
+    "Given a user's prompt, rewrite it to be more detailed, vivid and "
+    "effective for text-to-image and text-to-video models, preserving the "
+    "original intent and style. Return only the refined prompt, without "
+    "quotes, prefixes or explanations."
+)
+
 _CONFIG_FILE = Path.home() / ".gradio-comfy-tools.json"
 
 
@@ -26,6 +37,10 @@ class Settings:
         self.comfyui_base_url: str = os.environ.get("COMFYUI_BASE_URL", DEFAULT_BASE_URL)
         self.comfyui_media_base_url: str = os.environ.get("COMFYUI_MEDIA_BASE_URL", "")
         self.api_key: str = os.environ.get("COMFYUI_API_KEY", "")
+        self.prompt_refiner_base_url: str = os.environ.get("PROMPT_REFINER_BASE_URL", "")
+        self.prompt_refiner_system_prompt: str = os.environ.get(
+            "PROMPT_REFINER_SYSTEM_PROMPT", DEFAULT_REFINER_SYSTEM_PROMPT
+        )
         self._load_from_disk()
 
     # ------------------------------------------------------------------ #
@@ -51,6 +66,14 @@ class Settings:
         self.api_key = key.strip()
         self.save()
 
+    def set_refiner_base_url(self, url: str) -> None:
+        self.prompt_refiner_base_url = url.strip().rstrip("/")
+        self.save()
+
+    def set_refiner_system_prompt(self, prompt: str) -> None:
+        self.prompt_refiner_system_prompt = prompt.strip()
+        self.save()
+
     # ------------------------------------------------------------------ #
     # Persistence
     # ------------------------------------------------------------------ #
@@ -61,6 +84,8 @@ class Settings:
                     "comfyui_base_url": self.comfyui_base_url,
                     "comfyui_media_base_url": self.comfyui_media_base_url,
                     "api_key": self.api_key,
+                    "prompt_refiner_base_url": self.prompt_refiner_base_url,
+                    "prompt_refiner_system_prompt": self.prompt_refiner_system_prompt,
                 },
                 indent=2,
                 ensure_ascii=False,
@@ -82,3 +107,7 @@ class Settings:
                 self.comfyui_media_base_url = str(data["comfyui_media_base_url"]).rstrip("/")
             if data.get("api_key"):
                 self.api_key = str(data["api_key"])
+            if data.get("prompt_refiner_base_url"):
+                self.prompt_refiner_base_url = str(data["prompt_refiner_base_url"]).rstrip("/")
+            if data.get("prompt_refiner_system_prompt"):
+                self.prompt_refiner_system_prompt = str(data["prompt_refiner_system_prompt"])

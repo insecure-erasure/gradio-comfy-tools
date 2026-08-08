@@ -57,16 +57,23 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 | Tab | Icon | Action buttons | Prompt visible |
 |---|---|---|---|
-| Generate | 🖼️ | `✨` (needs prompt) | Yes |
-| Edit | 🖍️ | `🖌️ Edit` (needs prompt) + `🩹 Restore` (always active) | Yes |
+| Generate | 🖼️ | `🪄` (refine prompt) + `✨` (needs prompt) | Yes |
+| Edit | 🖍️ | `🪄` (refine) + `🖌️ Edit` (needs prompt) + `🩹 Restore` (always active) | Yes |
 | Upscale | 🔍 | `🔍` (no prompt needed) | No |
-| Video | 🎬 | `🎬` (needs prompt) | Yes |
+| Video | 🎬 | `🪄` (refine) + `🎬` (needs prompt) | Yes |
 
 - Buttons that require a prompt are **disabled while the prompt is empty**
   and re-enabled as you type; a transparent click-catcher overlays the
   disabled button to show a "Please write a prompt first" toast
   (`updateActionButtons` in `api.js`, `btn-catcher` in `tabs.js`).
 - `🩹 Restore` and `🔍 Upscale` never require a prompt.
+- **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
+  OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System
+  prompt). In **landscape** it sits to the LEFT of the generate button in
+  the button column (Generate/Edit/Video); in **portrait** it is a small
+  overlay button at the bottom-right of the prompt textarea (analogous to
+  the ✕ clear button, which is top-right). `refinePrompt()` replaces the
+  textarea with the refined text and syncs the per-tab prompt store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
   the copyable result URL row is **cleared** (📋 disabled). `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video).
