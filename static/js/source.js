@@ -43,11 +43,35 @@ function selectAllOnFocus(input) {
   });
 }
 
-// Wire select-all-on-focus for every tab's source URL field.
+// Wire select-all-on-focus for every tab's source URL field, plus a
+// mobile keyboard guard: on phones (<768px) the field sits at the BOTTOM
+// of the output pane, which is taller than the visible area once the
+// keyboard opens (the layout viewport does not shrink for position:fixed/
+// absolute elements — the keyboard just overlays it). scrollIntoView on
+// focus + on every visualViewport resize/scroll keeps the focused field
+// above the keyboard.
 function initSourceFields() {
   ['edit', 'upscale', 'video'].forEach(tab => {
     selectAllOnFocus(document.getElementById(`${tab}SourceUrl`));
+    keepSourceFieldVisible(document.getElementById(`${tab}SourceUrl`));
   });
+}
+
+// Scroll the focused source URL field into view whenever the visible area
+// changes (keyboard open/close, zoom). Only on mobile; no-op elsewhere.
+// scrollIntoView works even though body is overflow:hidden — the browser
+// scrolls the visual viewport (the layout is fixed, the visual one pans).
+function keepSourceFieldVisible(input) {
+  if (!input) return;
+  const isMobile = () => window.matchMedia('(max-width: 767px)').matches;
+  const bring = () => { if (isMobile() && document.activeElement === input) input.scrollIntoView({ block: 'center', behavior: 'auto' }); };
+  input.addEventListener('focus', () => {
+    if (isMobile()) setTimeout(bring, 50); // after the field expands (focus)
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', bring);
+    window.visualViewport.addEventListener('scroll', bring);
+  }
 }
 
 // The source URL field wrapper for a tab (Edit/Upscale/Video).

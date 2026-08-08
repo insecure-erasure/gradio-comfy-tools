@@ -230,9 +230,15 @@ back to 10% when focus leaves). Clicking the field when it already has
 text **selects all of it** (`selectAllOnFocus`) so it can be deleted or
 pasted over easily (first click selects all; later clicks allow normal
 cursor placement); while a generation runs it fades (opacity .25,
-`pointer-events:none`) via `setGenerating()`. The value feeds the tool's
-`image` input (filename-vs-URL auto-detection, BACKEND.md §6); empty on
-generate → warning toast.
+`pointer-events:none`) via `setGenerating()`. **On mobile the field is
+kept above the keyboard**: when it is focused, `keepSourceFieldVisible`
+(`source.js`) calls `scrollIntoView` and re-rolls it on every
+`visualViewport` resize/scroll (the layout viewport does not shrink for
+the keyboard — only the visual one does, so the field at the bottom of
+output pane would otherwise be covered). Only on <768px and only for the
+focused field. The value feeds the tool's `image` input
+(filename-vs-URL auto-detection, BACKEND.md §6); empty on generate →
+warning toast.
 
 **✓ Confirm** (`confirmSourceUrl` in `source.js`): validates the field value
 server-side via `POST /api/check-image` (the browser cannot read
