@@ -153,16 +153,33 @@ function setGenerating(pane, on) {
 // click-catchers swap to a "Generation in progress…" toast. The lock is
 // released when the request settles (success, error, cancel — each tool's
 // .finally()).
+//
+// Stop-by-transformation (like the 🪄→⏹ refine button): the action button
+// that STARTED the generation transforms into the ⏹ stop button (glyph /
+// title / onclick), so there is no separate stop button in the corner
+// anymore. The originals are stashed on the element (data-gen-*) and
+// restored on unlock.
 let genLockActive = false;
+let genTriggerId = null;   // id of the action button that started the job
 let _genCatchers = [];
 
-function setGeneratingUi(on) {
+// Original state of a stop-transformed button, keyed by element: glyph,
+// title, the inline onclick attribute (if any) and the onclick PROPERTY
+// (direct handlers — e.g. the Upscale buttons are created with
+// `btn.onclick = generateUpscale`, no attribute). Restored on unlock.
+const _genStopOrig = new WeakMap();
+
+function setGeneratingUi(on, triggerId) {
   genLockActive = !!on;
+  if (on) {
+    genTriggerId = triggerId || null;
+  }
   const input = document.getElementById('promptInput');
   if (on) {
     if (input) { input.disabled = true; input.classList.add('generating'); }
     applyGenerationLock();
   } else {
+    genTriggerId = null;
     if (input) { input.disabled = false; input.classList.remove('generating'); }
     const btnCol = document.getElementById('btnCol');
     if (btnCol) {
@@ -170,21 +187,54 @@ function setGeneratingUi(on) {
       _genCatchers.forEach(({ el, orig }) => { el.onclick = orig; });
       _genCatchers = [];
     }
-    // Re-enable: 🪄 everywhere; the always-active buttons (🩹 Restore, 🔍
-    // Upscale — wherever they sit) unconditionally; the prompt-required
+    // Restore every stop-transformed button first (glyph/title/onclick),
+    // then re-enable: 🪄 everywhere; the always-active buttons (🩹 Restore,
+    // 🔍 Upscale — wherever they sit) unconditionally; the prompt-required
     // ones follow the prompt state (updateActionButtons).
+    document.querySelectorAll('.btn-generate').forEach(b => restoreStopButton(b));
     document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = false; });
-    document.querySelectorAll('.btn-generate:not([data-requires-prompt])').forEach(b => { b.disabled = false; });
+    document.querySelectorAll('.btn-generate').forEach(b => { b.disabled = false; });
     updateActionButtons();
   }
 }
 
+// Stash the button's original state and turn it into the ⏹ stop button.
+function makeStopButton(el) {
+  if (!el || _genStopOrig.has(el)) return; // already transformed
+  _genStopOrig.set(el, {
+    glyph: el.textContent,
+    title: el.title || '',
+    onclickAttr: el.getAttribute('onclick'),
+    onclickProp: el.onclick,
+  });
+  el.textContent = '⏹';
+  el.title = 'Stop generation';
+  el.setAttribute('onclick', 'cancelGeneration()');
+  el.disabled = false;
+}
+
+// Restore the stashed original state (glyph/title/handler).
+function restoreStopButton(el) {
+  const orig = _genStopOrig.get(el);
+  if (!orig) return;
+  el.textContent = orig.glyph;
+  el.title = orig.title;
+  el.removeAttribute('onclick');
+  el.onclick = orig.onclickProp; // direct handler, or the attribute-derived one
+  _genStopOrig.delete(el);
+}
+
 // Disable every action + refine button, wherever it lives, and swap the
-// click-catchers to the "Generation in progress…" toast. Re-applied on tab
-// switch mid-generation (switchTab rebuilds #btnCol, so the fresh buttons
-// need the lock re-asserted).
+// click-catchers to the "Generation in progress…" toast. The action button
+// that started the job becomes the ⏹ stop button instead of being disabled
+// (makeStopButton). Re-applied on tab switch mid-generation (switchTab
+// rebuilds #btnCol, so the fresh buttons need the lock re-asserted).
 function applyGenerationLock() {
-  document.querySelectorAll('.btn-generate, .btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
+  document.querySelectorAll('.btn-generate').forEach(b => {
+    if (genTriggerId && b.id === genTriggerId) makeStopButton(b);
+    else b.disabled = true;
+  });
+  document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
   const btnCol = document.getElementById('btnCol');
   _genCatchers = []; // previous catchers were rebuilt away by switchTab — drop them
   if (btnCol) {
@@ -209,21 +259,16 @@ function randomSeed() {
 // URL on completion). The URL replaces the progress text on success; on
 // error the row is cleared. Polling stops when the request settles.
 //
-// During the generation the 📋 copy button (disabled) is REPLACED by the ⏹
-// stop button; when the generation settles the copy button comes back
-// (enabled once a result URL is shown).
+// During the generation the 📋 copy button (disabled) is HIDDEN — the row
+// shows the live progress text; when the generation settles the copy
+// button comes back (enabled once a result URL is shown). The stop button
+// is the action button itself transformed into ⏹ (see makeStopButton).
 let progressTimer = null;
 let userCancelled = false;
 
-function setCancelVisible(on) {
-  const cancel = document.getElementById('btnCancel');
-  const copy = document.getElementById('btnCopyUrl');
-  if (cancel) cancel.style.display = on ? 'inline-flex' : 'none';
-  if (copy) copy.style.display = on ? 'none' : '';
-}
-
-// ⏹ Cancel: stop the backend job (POST /api/cancel — interrupt running +
-// delete pending) and abort the in-flight fetch so the UI settles now.
+// ⏹ Cancel (the transformed action button): stop the backend job (POST
+// /api/cancel — interrupt running + delete pending) and abort the in-flight
+// fetch so the UI settles now.
 function cancelGeneration() {
   userCancelled = true;
   stopProgressPolling();
@@ -259,7 +304,8 @@ let liveHidden = [];
 function startProgressPolling() {
   stopProgressPolling();
   liveJobTab = currentTab; // tab that initiated the generation
-  setCancelVisible(true);
+  const copy = document.getElementById('btnCopyUrl');
+  if (copy) copy.style.display = 'none'; // the row shows progress while generating
   const paint = async () => {
     try {
       const resp = await fetch('/api/progress');
@@ -310,7 +356,8 @@ function startProgressPolling() {
 
 function stopProgressPolling() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
-  setCancelVisible(false);
+  const copy = document.getElementById('btnCopyUrl');
+  if (copy) copy.style.display = ''; // restore the copy button (enabled once a result URL shows)
   liveJobTab = null;
   // Drop any live preview left in a pane (job settled: cancel or done). The
   // final result replaces it via showResult; on cancel nothing should linger.

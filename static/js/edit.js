@@ -30,7 +30,7 @@ function generateEdit(forceMode) {
   setGenerating(pane, true);
   showToast('Edit submitted to ComfyUI...');
   startProgressPolling();
-  setGeneratingUi(true);
+  setGeneratingUi(true, mode === 'restore' ? 'btnRestore' : 'btnEdit');
 
   api('/api/edit', {
     image: src, mode, prompt, steps, seed, lora_config: loraConfig,

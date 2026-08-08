@@ -25,7 +25,7 @@ function generateUpscale() {
   setGenerating(pane, true);
   showToast('Upscale submitted to ComfyUI...');
   startProgressPolling();
-  setGeneratingUi(true);
+  setGeneratingUi(true, window.matchMedia('(max-width: 1023px)').matches ? 'btnUpscalePane' : 'btnUpscaleLandscape');
 
   api('/api/upscale', { image: src, seed }).then(res => {
     // Compare slider: original vs upscaled — this IS the result.

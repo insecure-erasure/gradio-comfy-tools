@@ -67,14 +67,16 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   disabled button to show a "Please write a prompt first" toast
   (`updateActionButtons` in `api.js`, `btn-catcher` in `tabs.js`).
 - **During a generation** (any tool): the prompt textarea is **locked**
-  (typing blocked, dimmed), the 🪄 refine buttons and EVERY action button
-  are disabled — including the complementary 🖌️/🩹 in Edit (running an
-  edit blocks the restore button and vice versa) and the Upscale buttons
-  wherever they sit. Clicking a disabled action shows the "Generation in
-  progress…" toast (click-catcher swap). The lock is released when the
-  request settles (success, error, cancel) and is **re-asserted on tab
-  switch** mid-generation (`switchTab` rebuilds `#btnCol` with fresh
-  buttons — `setGeneratingUi`/`applyGenerationLock` in `api.js`).
+  (typing blocked, dimmed), the 🪄 refine buttons and every OTHER action
+  button are disabled — including the complementary 🖌️/🩹 in Edit (running
+  an edit blocks the restore button and vice versa) and the Upscale buttons
+  wherever they sit. The action button that STARTED the generation
+  transforms into the ⏹ **stop** button (see §4.9). Clicking a disabled
+  action shows the "Generation in progress…" toast (click-catcher swap).
+  The lock is released when the request settles (success, error, cancel)
+  and is **re-asserted on tab switch** mid-generation (`switchTab` rebuilds
+  `#btnCol` with fresh buttons — `setGeneratingUi`/`applyGenerationLock` in
+  `api.js`).
 - `🩹 Restore` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System
@@ -299,13 +301,21 @@ and stays centered; the spinner stays on top (`.busy` z-index).
 the final result replaces the preview. The preview is ephemeral: it is
 intentionally lost on cancel and never shown after the job settles.
 
-**⏹ Cancel**: while a generation runs, the (disabled) 📋 copy button is
-**replaced by a ⏹ stop button** (`cancelGeneration` in `api.js`). Clicking it
-calls `POST /api/cancel` (backend: `POST /interrupt` to stop the running
-prompt + `POST /queue` `delete` for the pending one, and marks the job done)
-and aborts the in-flight fetch, so the UI settles immediately (toast
-`Cancelled`). When the generation settles — success or cancel — the copy
-button comes back (enabled once a result URL is shown, disabled otherwise).
+**⏹ Cancel (by transformation)**: while a generation runs, the action
+button that started it — ✨ / 🖌️ / 🩹 / 🔍 / 🎬 — **transforms into the ⏹
+stop button** (same pattern as the 🪄 → ⏹ refine button: glyph, title and
+onclick are swapped and stashed on the element, `makeStopButton` /
+`restoreStopButton` in `api.js`). There is no separate stop button in the
+URL row anymore (the small corner ⏹ was removed). Clicking the transformed
+⏹ calls `cancelGeneration()` (`POST /api/cancel` — backend:
+`POST /interrupt` to stop the running prompt + `POST /queue` `delete` for
+the pending one, and marks the job done) and aborts the in-flight fetch,
+so the UI settles immediately (toast `Cancelled`). The 📋 copy button is
+HIDDEN while the generation runs (the row shows the live progress text)
+and comes back when the generation settles (enabled once a result URL is
+shown, disabled otherwise). The transform survives tab switches
+mid-generation (`switchTab` re-asserts the lock with `applyGenerationLock`
+and re-transforms the trigger button).
 
 ## 5. How the code is organized
 

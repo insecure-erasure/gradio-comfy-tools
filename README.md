@@ -48,7 +48,8 @@ Web application with four image and video tools powered by ComfyUI:
 ### During a generation
 
 - The bottom bar shows **live progress** (current node and completed steps).
-- The **⏹** button stops the running generation.
+- The **⏹** button (the action button, transformed) stops the running
+  generation.
 - While a generation runs the prompt field is **locked** and the action and
   🪄 refine buttons are **disabled** (you cannot start another job, refine,
   or type mid-generation).

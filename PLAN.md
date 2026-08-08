@@ -430,9 +430,13 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 - **DONE**: per-job WS listener (daemon thread, same clientId) + `GET
   /api/progress` + the UI paints the stage/% in the result URL row
   (polling; the blocking `wait_for_output` stays as the completion fallback).
-- **DONE**: **⏹ Cancel** — while a generation runs the disabled 📋 copy
-  button is replaced by a stop button; it calls `POST /api/cancel`
-  (`/interrupt` + `/queue delete`) and aborts the in-flight fetch.
+- **DONE**: **⏹ Cancel (by transformation)** — while a generation runs the
+  action button that started it (✨/🖌️/🩹/🔍/🎬) transforms into the ⏹
+  stop button (like 🪄→⏹; `makeStopButton`/`restoreStopButton` in api.js);
+  the small corner ⏹ in the URL row was removed. It calls `POST
+  /api/cancel` (`/interrupt` + `/queue delete`) and aborts the in-flight
+  fetch; the 📋 copy button is hidden while generating and restored on
+  settle.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +

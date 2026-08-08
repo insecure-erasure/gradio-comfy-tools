@@ -49,6 +49,7 @@ function generateVideo() {
   setGenerating(pane, true);
   showToast('Video submitted to ComfyUI...');
   startProgressPolling();
+  setGeneratingUi(true, 'btnVideo');
 
   api('/api/video', {
     image: src, model_version: mv, prompt, negative_prompt: negative,
