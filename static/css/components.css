@@ -810,7 +810,7 @@
   }
   .modal-box.modal-wide .lora-section-title {
     position: absolute;
-    top: -9px;                 /* straddle the top border (half the title height) */
+    top: -13px;                /* straddle the top border, slightly higher */
     left: 12px;                /* slightly right of the top-left corner */
     padding: 2px 8px;
     font: 600 13px system-ui, sans-serif;
