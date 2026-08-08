@@ -237,12 +237,15 @@ function renderGalleryItem() {
     galleryCaption.classList.remove('show');
     galleryCaption.textContent = '';
   }
-  // Counter + nav buttons only when there is more than one entry.
+  // N/M paginator (bottom-right): always visible in the gallery; prev/next
+  // buttons only when there is more than one entry. NB: the counter uses an
+  // explicit 'flex' (its CSS base is display:none — '' would clear the
+  // inline style and the counter would never show).
   const multi = galleryEntries.length > 1;
-  galleryPrevBtn.style.display = multi ? '' : 'none';
-  galleryNextBtn.style.display = multi ? '' : 'none';
-  galleryCounter.style.display = multi ? '' : 'none';
-  if (multi) galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
+  galleryPrevBtn.style.display = multi ? 'flex' : 'none';
+  galleryNextBtn.style.display = multi ? 'flex' : 'none';
+  galleryCounter.style.display = 'flex';
+  galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
 }
 
 function galleryNav(delta) {

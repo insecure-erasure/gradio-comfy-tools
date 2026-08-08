@@ -395,8 +395,9 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   galleries** (user requirement):
   - **Generate (lightbox)**: clicking the result image (or the top-right ⛶
     button) opens a fullscreen **lightbox** via the Fullscreen API with
-    gallery navigation (‹ ›, "n/N" counter, ArrowLeft/Right). It navigates
-    the **generated history** — `window.galleryGenerated`, a session registry
+    gallery navigation (‹ ›, "n/N" counter bottom-right, ArrowLeft/Right).
+    It navigates the
+    **generated history** — `window.galleryGenerated`, a session registry
     that survives the pane only showing the last result (the history no
     longer gets lost). **Close ✕ is top-RIGHT, download top-LEFT** (inverted
     vs the reference — project decision).
