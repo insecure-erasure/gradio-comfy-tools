@@ -201,6 +201,20 @@
     .output-pane { padding: 8px; }
     .source-url-field { bottom: 10px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
+    /* Mobile: the source URL fields are COLLAPSED by default — the idle
+       overlay shows a minimal sliver (10% width) and only expands while
+       focused. On phones the full-width (70%) field would cover the result
+       area; the expand-on-content rule (components.css) would otherwise
+       keep a saved value expanded. With :not(:focus-within) the field
+       snaps back to 10% as soon as focus leaves (the .collapsed class from
+       source.js still works — this is an extra default guard). */
+    .source-url-field {
+      width: 10%;
+    }
+    .source-url-field:focus-within {
+      width: 70%;
+    }
+    .source-url-input { width: 100%; }
     .params-pane { padding: 6px 12px; gap: 0; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }

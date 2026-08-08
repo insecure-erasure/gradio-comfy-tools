@@ -222,13 +222,17 @@ visible without cropping; the divider/handle follow `--p`.
 
 Overlay at the bottom-left of the output pane; `🔗` at bottom-right fills it
 with `lastGeneratedUrl`. Collapsible: **10% width when idle, expands to 50%
-on focus or with content** (and shows a **✓ confirm button**); clicking the
-field when it already has text **selects all of it** (`selectAllOnFocus`)
-so it can be deleted or pasted over easily (first click selects all; later
-clicks allow normal cursor placement); while a generation runs it fades
-(opacity .25, `pointer-events:none`) via `setGenerating()`. The value feeds
-the tool's `image` input (filename-vs-URL auto-detection, BACKEND.md §6);
-empty on generate → warning toast.
+on focus or with content** (and shows a **✓ confirm button**); **on mobile
+(<768px) it is collapsed by default** — the idle overlay is a minimal 10%
+sliver and only expands while focused (the expand-on-content rule is
+overridden, so a saved value never keeps it expanded on phones; it snaps
+back to 10% when focus leaves). Clicking the field when it already has
+text **selects all of it** (`selectAllOnFocus`) so it can be deleted or
+pasted over easily (first click selects all; later clicks allow normal
+cursor placement); while a generation runs it fades (opacity .25,
+`pointer-events:none`) via `setGenerating()`. The value feeds the tool's
+`image` input (filename-vs-URL auto-detection, BACKEND.md §6); empty on
+generate → warning toast.
 
 **✓ Confirm** (`confirmSourceUrl` in `source.js`): validates the field value
 server-side via `POST /api/check-image` (the browser cannot read
