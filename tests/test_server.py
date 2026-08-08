@@ -7,6 +7,7 @@ file; the media proxy is tested with a mocked httpx.AsyncClient.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -376,9 +377,67 @@ def test_api_progress_active_then_done(client, tmp_config, monkeypatch):
             server._jobs.clear()
 
 
+def test_preview_binary_with_metadata_stored_and_served(client, tmp_config, monkeypatch):
+    """A PREVIEW_IMAGE_WITH_METADATA (event 4) frame stores the JPEG in the
+    job, /api/progress serves it as a data URL while active, and the preview
+    is dropped once the job finishes (no stale frames, no memory retained).
+    """
+    import struct
+
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    server._start_job_listener("cid", "pid123", {"1": {"class_type": "X", "_meta": {"title": "T"}}})
+    try:
+        meta = json.dumps({"node_id": "429", "prompt_id": "pid123", "image_type": "jpeg"})
+        jpg = b"\xff\xd8\xff\xe0fakejpeg"
+        frame = struct.pack(">I", 4) + struct.pack(">I", len(meta)) + meta.encode() + jpg
+        server._handle_ws_binary(frame, "pid123")
+
+        with server._jobs_lock:
+            assert server._jobs["pid123"]["preview"] == jpg
+
+        resp = client.get("/api/progress").json()
+        assert resp["active"]["preview"].startswith("data:image/jpeg;base64,")
+        import base64
+        assert base64.b64decode(resp["active"]["preview"].split(",", 1)[1]) == jpg
+
+        # job finishes -> preview dropped, no longer active
+        server._mark_job_result("pid123", "http://x/view?filename=a.png&type=output")
+        resp = client.get("/api/progress").json()
+        assert resp["active"] is None
+        with server._jobs_lock:
+            assert "preview" not in server._jobs["pid123"]
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
+def test_preview_binary_legacy_and_malformed(client, tmp_config, monkeypatch):
+    """Legacy PREVIEW_IMAGE (event 1) also stores the image; malformed frames
+    are ignored without killing the listener.
+    """
+    import struct
+
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    server._start_job_listener("cid", "pid123", {})
+    try:
+        jpg = b"fakejpegbytes"
+        legacy = struct.pack(">I", 1) + struct.pack(">I", 1) + jpg  # type_num=1 (jpeg)
+        server._handle_ws_binary(legacy, "pid123")
+        with server._jobs_lock:
+            assert server._jobs["pid123"]["preview"] == jpg
+
+        # unknown event / garbage -> ignored, job intact
+        server._handle_ws_binary(b"\x00\x00\x00\x63whatever", "pid123")
+        server._handle_ws_binary(b"\x00\x00", "pid123")
+        with server._jobs_lock:
+            assert server._jobs["pid123"]["preview"] == jpg
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
 def test_api_cancel(client, tmp_config, monkeypatch):
     import comfy_client as cc
-
     calls = []
 
     class FakeClient:

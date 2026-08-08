@@ -239,6 +239,20 @@
     object-fit: contain;
     box-shadow: var(--shadow);
   }
+  /* Live per-step latent preview (Generate): painted while the job runs,
+     under the .gen-spinner (z-index 10) so the spinner stays on top. Same
+     treatment as a result but visually distinct — a low-res in-progress
+     frame, slightly dimmed, never to be confused with the final image.
+     Removed by showResult/clearPane/stopProgressPolling. */
+  .preview-live {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    border-radius: var(--radius);
+    object-fit: contain;
+    opacity: .9;
+    border: 1px dashed rgba(255,255,255,.22);
+  }
   /* Source image preview (✓ confirm / 🔗 / 📁): fills the available area,
      same treatment as a generated result, but visually distinct (dashed
      border + slightly dimmed) so it is clear it is the *input*, not output. */

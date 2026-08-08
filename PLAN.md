@@ -382,6 +382,34 @@ relays — giving real in-progress previews in the frontend. (Not yet executed i
 this repo's workflows; the per-step emission is inferred from the node design.)
 
 ### What remains from B5
+- **DONE (2026-08-08, branch feat/tvae-preview)**: **live per-step previews in
+  Generate** — the same mechanism the ComfyUI web UI uses, no preview node
+  needed. The sampler decodes its intermediate latent each step and streams
+  it over the WS as binary frames; the backend captures the latest frame per
+  job and the frontend paints it under the spinner while the job runs.
+  - `comfy_client.queue_prompt(extra_data=...)` — Generate queues with
+    `extra_data={"preview_method": "auto"}` (the CLI default is NoPreviews;
+    the flag is per-prompt and auto-reset). Only the image workflow opts in
+    for now (Wan video latents are 5D — not yet validated).
+  - `server.py` WS listener sends the handshake `{"type": "feature_flags",
+    "data": {"supports_preview_metadata": true}}` as its first message and
+    parses binary frames: event 4 `PREVIEW_IMAGE_WITH_METADATA` (`>I(4) +
+    >I(len_json) + JSON + JPEG`) and legacy event 1 (`>I(4) + >I(type) +
+    bytes`). Only the LAST preview per job is kept (bounded memory, ~50KB);
+    it is dropped when the job finishes or is cancelled (`_mark_job_result`
+    pops it) so nothing stale is ever served and no leak accumulates.
+  - `GET /api/progress` serves `active.preview` as a `data:image/jpeg;base64,…`
+    while the job runs.
+  - Frontend (`api.js`): paints an `<img class="preview-live">` in the
+    output pane of the tab that started the generation, and ONLY while that
+    tab is active — switching tabs mid-generation keeps capturing but stops
+    painting; coming back resumes with the latest frame. `stopProgressPolling`
+    removes it; `showResult`/`clearPane` also drop it so the final result
+    replaces the preview. The spinner stays on top (`.busy` z-index).
+  - Verified live against the server: flux2 8 steps → `/api/progress` served
+    a ~75KB data-URL preview mid-generation, job finished → `active: null`.
+    Probe script `scripts/probe_previews.py` documents the raw protocol
+    (4 previews per 4-step run for flux2 and krea2).
 - **DONE**: per-job WS listener (daemon thread, same clientId) + `GET
   /api/progress` + the UI paints the stage/% in the result URL row
   (polling; the blocking `wait_for_output` stays as the completion fallback).

@@ -45,11 +45,13 @@ function showToast(msg) {
 
 // Render a result (image or video) into an output pane.
 // Removes only the previous result/placeholder/preview — keeps overlays like
-// the loading spinner (which lives inside the pane).
+// the loading spinner (which lives inside the pane). The live per-step
+// preview (preview-live) is also removed: it is replaced by the final
+// result.
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   if (isVideo) {
     const v = document.createElement('video');
     v.className = 'result-video';
@@ -72,7 +74,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';
     // Drop the gallery markers so a cleared result no longer appears in the
@@ -175,8 +177,18 @@ function cancelGeneration() {
   abortCurrentRequest();
 }
 
+// The tab that started the current generation. The live per-step preview is
+// captured for the job regardless of what the user does, but is only
+// PAINTED while the active tab is the one that started it (requirement:
+// "if the user switches tabs mid-generation, keep capturing but only show
+// in the tab where it started"). tab -> output pane id (generate uses
+// 'genOutputPane', the rest match by name).
+const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+let liveJobTab = null;
+
 function startProgressPolling() {
   stopProgressPolling();
+  liveJobTab = currentTab; // tab that initiated the generation
   setCancelVisible(true);
   const paint = async () => {
     try {
@@ -196,6 +208,23 @@ function startProgressPolling() {
         txt = '⚙️ ' + (a.node_title || '');
       }
       el.textContent = txt;
+      // Live per-step preview (Generate): paint the latest latent decode in
+      // the output pane of the tab that started the job, and ONLY while the
+      // user is on that tab (switching away pauses the painting; coming
+      // back resumes it with the latest frame). The spinner stays on top.
+      if (a.preview && liveJobTab && liveJobTab === currentTab) {
+        const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
+        if (pane) {
+          let pv = pane.querySelector('.preview-live');
+          if (!pv) {
+            pv = document.createElement('img');
+            pv.className = 'preview-live';
+            pv.alt = 'Live preview';
+            pane.appendChild(pv);
+          }
+          pv.src = a.preview;
+        }
+      }
     } catch (e) { /* server busy — ignore */ }
   };
   paint();
@@ -205,4 +234,8 @@ function startProgressPolling() {
 function stopProgressPolling() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
   setCancelVisible(false);
+  liveJobTab = null;
+  // Drop any live preview left in a pane (job settled: cancel or done). The
+  // final result replaces it via showResult; on cancel nothing should linger.
+  document.querySelectorAll('.preview-live').forEach(el => el.remove());
 }

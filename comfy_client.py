@@ -149,16 +149,26 @@ class ComfyClient:
             raise ComfyError(f"Upload did not return a name: {data}")
         return name
 
-    def queue_prompt(self, workflow: dict[str, Any], client_id: str | None = None) -> str:
-        """POST /prompt — queue a workflow; returns the prompt_id."""
+    def queue_prompt(self, workflow: dict[str, Any], client_id: str | None = None, extra_data: dict[str, Any] | None = None) -> str:
+        """POST /prompt — queue a workflow; returns the prompt_id.
+
+        ``extra_data`` is passed through verbatim. The web UI uses it to
+        request per-step latent previews: ``{"preview_method": "auto"}``
+        makes the sampler decode its intermediate latent each step (tiny
+        VAE / latent2rgb) and stream it over the WS as binary messages
+        (the CLI default is NoPreviews, so without this no previews are
+        generated). The flag is per-prompt and reset automatically.
+        """
         # Materialize the client_id (default random) so the payload and the
         # prompt hooks use the SAME id — the WS listener must connect with it
         # to receive this prompt's per-node events.
         client_id = client_id or str(uuid.uuid4())
-        payload = {
+        payload: dict[str, Any] = {
             "prompt": workflow,
             "client_id": client_id,
         }
+        if extra_data:
+            payload["extra_data"] = extra_data
         resp = self._client.post(self._url("/prompt"), json=payload, headers=self._headers())
         resp.raise_for_status()
         data = resp.json()
