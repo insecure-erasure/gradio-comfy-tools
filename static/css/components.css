@@ -797,19 +797,25 @@
     display: block;   /* sections stack vertically */
   }
   /* A wan22 path section: a titled box that also acts as the separator
-     between HIGH and LOW. */
+     between HIGH and LOW. The title sits at the TOP-RIGHT, aligned with the
+     box's top border and nudged slightly right (12px from the right edge),
+     with a little padding so it never touches the border. */
   .modal-box.modal-wide .lora-section {
+    position: relative;
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px 14px;
+    padding: 26px 14px 12px;   /* extra top room for the corner title */
     margin-bottom: 16px;
   }
   .modal-box.modal-wide .lora-section-title {
+    position: absolute;
+    top: 0;
+    right: 12px;
+    padding: 2px 8px;
     font: 600 13px system-ui, sans-serif;
     letter-spacing: .05em;
     text-transform: uppercase;
     color: var(--text-secondary);
-    margin-bottom: 10px;
   }
   .modal-box.modal-wide .lora-section .field + .field {
     margin-top: 12px;
