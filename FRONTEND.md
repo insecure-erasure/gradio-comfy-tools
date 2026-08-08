@@ -65,7 +65,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 - **< 1024px**: the inline tab buttons are hidden and the **tabs dropdown**
   takes their place (icon-only trigger + ▾ caret; the labels appear only
-  inside the menu); `.split` stacks to a
+  inside the menu); the nav toolbar's **Model** label is hidden too
+  (landscape keeps it). `.split` stacks to a
   column — output fills all available height, params below (compact
   padding 6px, gap 0, `flex:0 0 auto` so buttons never clip), prompt at the
   bottom bar. Generate params condense to a single wrapping row.

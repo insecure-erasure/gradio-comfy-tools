@@ -541,7 +541,9 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   `toggleTabsDropdown`/`closeTabsDropdown` (the menu is `position: fixed`
   and JS anchors it under the trigger — the nav's `overflow-x:auto` would
   clip an absolute one; click-outside closes; forced
-  close when crossing the breakpoint in `main.js`).
+  close when crossing the breakpoint in `main.js`). Portrait also hides
+  the toolbar's **Model** label (`.tabs-toolbar .toolbar-model label`);
+  landscape keeps it.
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview
   node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws

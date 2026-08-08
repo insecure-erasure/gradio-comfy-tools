@@ -15,6 +15,9 @@
     .tab-icon { margin-right: 0; font-size: 1rem; }
     .btn-col { width: 40px; }
     .btn-generate { font-size: 1rem; }
+    /* Portrait only: the nav toolbar's "Model" label is hidden too (the
+       toolbar is cramped on vertical displays); landscape keeps it. */
+    .tabs-toolbar .toolbar-model label { display: none; }
 
     /* Stack: output fills ALL the available height; params below it,
        scrolling if their content overflows */
