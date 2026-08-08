@@ -127,7 +127,7 @@ async function refinePrompt() {
           // Live tok/s estimate (chars/4 ≈ tokens) in the progress area.
           if (resultUrlEl) {
             const secs = (performance.now() - startTime) / 1000;
-            const estTok = chars / 5.75;  // ≈5.75 chars/token (tuned estimate)
+            const estTok = chars / 5.5;  // ≈5.5 chars/token (tuned estimate)
             resultUrlEl.textContent = '🪄 ' + (secs > 0 ? (estTok / secs).toFixed(1) : '0') + ' tok/s';
           }
         } else if (ev.meta) {
