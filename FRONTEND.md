@@ -243,8 +243,12 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
   a row when the server actually has LoRAs.
 - **Model dropdowns** are populated from `/models/diffusion_models` (via
   `GET /api/diffusion-models`), with a "— default —" empty option.
-- **wan22 dual path**: the modal is **wider** (`modal-wide`, 660px, 2-column
-  grid) so HIGH/LOW fields sit side by side and LoRAs fit without scroll.
+- **wan22 dual path**: the modal is **wider** (`modal-wide`, 760px) and the
+  HIGH/LOW paths are **vertical sections** — each a titled box (`.lora-section`
+  + `.lora-section-title`) holding its own `Diffusion model` dropdown and
+  `LoRA config` editor, stacked top-to-bottom with the section header as the
+  separator (inner labels do NOT repeat HIGH/LOW). The negative prompt spans
+  the full width at the bottom.
 - **Per-version config store**: `advancedValues.video = { wan21: {...},
   wan22: {...} }` — switching versions preserves each one's own
   diffusion/LoRAs/negative (LoRAs are not cross-compatible).

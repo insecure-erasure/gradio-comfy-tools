@@ -772,22 +772,35 @@
     transform: translateY(12px);
     transition: transform .2s;
   }
-  /* Wan 2.2 (dual high/low path): wider modal so the negative prompt can be
-     laid out horizontally and LoRA rows fit without a scrollbar */
+  /* Wan 2.2 (dual high/low path): wider modal with VERTICAL sections — the
+     HIGH and LOW boxes stack top-to-bottom (each holding its own diffusion
+     model + LoRA editor), so the controls never overlap. */
   .modal-box.modal-wide {
-    max-width: 660px;
+    max-width: 760px;
   }
   .modal-box.modal-wide .modal-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;   /* two columns for the dual paths */
-    gap: 14px 20px;
-    align-items: start;
+    display: block;   /* sections stack vertically */
   }
-  .modal-box.modal-wide .field:last-child {
-    grid-column: 1 / -1;              /* negative prompt spans full width */
+  /* A wan22 path section: a titled box that also acts as the separator
+     between HIGH and LOW. */
+  .modal-box.modal-wide .lora-section {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .modal-box.modal-wide .lora-section-title {
+    font: 600 13px system-ui, sans-serif;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .modal-box.modal-wide .lora-section .field + .field {
+    margin-top: 12px;
   }
   .modal-box.modal-wide .modal-body .field textarea {
-    min-height: 56px;                 /* shorter — horizontal */
+    min-height: 56px;
     resize: vertical;
   }
   .modal-backdrop.show .modal-box { transform: translateY(0); }

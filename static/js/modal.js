@@ -5,7 +5,10 @@
 //
 // The Video tab renders differently depending on the Wan version:
 //   wan21: one diffusion model dropdown + one LoRA editor
-//   wan22: two diffusion dropdowns (HIGH / LOW) + two LoRA editors (HIGH/LOW)
+//   wan22: two vertical SECTIONS (HIGH / LOW), each with a diffusion model
+//          dropdown + a LoRA editor, separated visually; the negative
+//          prompt spans the full width at the bottom. Labels inside a
+//          section do NOT repeat the path (the section header says it).
 
 let currentModalTab = null;
 
@@ -16,7 +19,7 @@ const modalConfigs = {
   generate: {
     title: 'Generate Image',
     fields: [
-      { label: 'Model name', type: 'select', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
+      { label: 'Model name', type: 'select', key: 'model', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
       { label: 'LoRA config', type: 'lora', path: 'main' },
     ]
   },
@@ -43,23 +46,63 @@ const modalConfigs = {
 // The negative prompt goes at the bottom of the modal (after the LoRAs).
 function videoFields() {
   const wan22 = toolbarValues.vidVersion === 'wan22';
-  const fields = [];
   if (wan22) {
-    fields.push({ label: 'Diffusion model HIGH', type: 'select', path: 'high' });
-    fields.push({ label: 'Diffusion model LOW', type: 'select', path: 'low' });
-    fields.push({ label: 'LoRA config HIGH', type: 'lora', path: 'high' });
-    fields.push({ label: 'LoRA config LOW', type: 'lora', path: 'low' });
-    fields.push({ label: 'Negative prompt', type: 'textarea' });
-  } else {
-    fields.push({ label: 'Diffusion model', type: 'select', path: 'main' });
-    fields.push({ label: 'LoRA config', type: 'lora', path: 'main' });
-    fields.push({ label: 'Negative prompt', type: 'textarea' });
+    // Two vertical sections (HIGH then LOW), each holding its own diffusion
+    // model + LoRA editor; the section header carries the path, so the
+    // inner labels stay plain ("Diffusion model" / "LoRA config").
+    return [
+      { type: 'section', path: 'high', title: 'HIGH', fields: [
+        { label: 'Diffusion model', type: 'select', path: 'high', key: 'diffusionHigh' },
+        { label: 'LoRA config', type: 'lora', path: 'high' },
+      ]},
+      { type: 'section', path: 'low', title: 'LOW', fields: [
+        { label: 'Diffusion model', type: 'select', path: 'low', key: 'diffusionLow' },
+        { label: 'LoRA config', type: 'lora', path: 'low' },
+      ]},
+      { label: 'Negative prompt', type: 'textarea', key: 'negative' },
+    ];
   }
-  return fields;
+  return [
+    { label: 'Diffusion model', type: 'select', path: 'main', key: 'diffusion' },
+    { label: 'LoRA config', type: 'lora', path: 'main' },
+    { label: 'Negative prompt', type: 'textarea', key: 'negative' },
+  ];
 }
 
 function openAdvancedModal() {
   openModal(currentTab);
+}
+
+// HTML for a single modal field. Every field that maps to a store key
+// carries data-key (used for prefill and save); generate/edit fields keep
+// the label-based fallback (no data-key) for backward compatibility.
+function renderField(f) {
+  if (f.type === 'toggle') {
+    return `<div class="toggle-row"><span>${f.label}</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>`;
+  }
+  if (f.type === 'select') {
+    // Model/diffusion dropdown, populated from ComfyUI /models/diffusion_models
+    const opts = diffusionModels.map(m =>
+      `<option value="${esc(m)}">${esc(m)}</option>`
+    ).join('');
+    return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+      + `<select class="modal-model-select" data-key="${f.key || ''}" data-path="${f.path || 'main'}">`
+      + `<option value="">— default —</option>${opts}</select>`
+      + `</div>`;
+  }
+  if (f.type === 'lora') {
+    const path = f.path || 'main';
+    return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+      + `<div id="loraRows-${path}" class="lora-editor"></div>`
+      + `<button class="btn btn-secondary btn-add-lora" id="btnAddLora-${path}" onclick="addModalLoraRow('${path}')">＋ Add LoRA</button>`
+      + `</div>`;
+  }
+  if (f.type === 'textarea') {
+    return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+      + `<textarea data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></textarea></div>`;
+  }
+  return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+    + `<input type="text" data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></div>`;
 }
 
 function openModal(tab) {
@@ -77,27 +120,15 @@ function openModal(tab) {
 
   let html = '';
   cfg.fields.forEach(f => {
-    if (f.type === 'toggle') {
-      html += `<div class="toggle-row"><span>${f.label}</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>`;
-    } else if (f.type === 'select') {
-      // Model/diffusion dropdown, populated from ComfyUI /models/diffusion_models
-      const opts = diffusionModels.map(m =>
-        `<option value="${esc(m)}">${esc(m)}</option>`
-      ).join('');
-      html += `<div class="field"><label>${f.label}</label>`
-        + `<select class="modal-model-select" data-label="${f.label}" data-path="${f.path || 'main'}">`
-        + `<option value="">— default —</option>${opts}</select>`
+    if (f.type === 'section') {
+      // Vertical section (wan22 HIGH/LOW): a titled box holding its own
+      // fields; sections stack top-to-bottom and act as separators.
+      html += `<div class="lora-section" data-section="${f.path}">`
+        + `<div class="lora-section-title">${f.title}</div>`
+        + f.fields.map(renderField).join('')
         + `</div>`;
-    } else if (f.type === 'lora') {
-      const path = f.path || 'main';
-      html += `<div class="field"><label>${f.label}</label>`
-        + `<div id="loraRows-${path}" class="lora-editor"></div>`
-        + `<button class="btn btn-secondary btn-add-lora" id="btnAddLora-${path}" onclick="addModalLoraRow('${path}')">＋ Add LoRA</button>`
-        + `</div>`;
-    } else if (f.type === 'textarea') {
-      html += `<div class="field"><label>${f.label}</label><textarea placeholder="${f.placeholder || ''}"></textarea></div>`;
     } else {
-      html += `<div class="field"><label>${f.label}</label><input type="text" placeholder="${f.placeholder || ''}"></div>`;
+      html += renderField(f);
     }
   });
 
@@ -111,34 +142,38 @@ function openModal(tab) {
     ? (saved[toolbarValues.vidVersion] || {})
     : saved;
 
-  // Pre-fill plain text/textarea values
+  // Pre-fill plain text/textarea values (data-key wins; label fallback for
+  // legacy fields without a key)
   document.querySelectorAll('#modalBody .field input, #modalBody .field textarea').forEach(f => {
-    const label = f.previousElementSibling?.textContent;
-    const key = label === 'Model name' ? 'model'
-      : label === 'Diffusion model' ? 'diffusion'
-      : label === 'Diffusion model HIGH' ? 'diffusionHigh'
-      : label === 'Diffusion model LOW' ? 'diffusionLow'
-      : label === 'Negative prompt' ? 'negative'
-      : null;
+    let key = f.getAttribute('data-key');
+    if (!key) {
+      const label = f.previousElementSibling?.textContent;
+      key = label === 'Model name' ? 'model'
+        : label === 'Diffusion model' ? 'diffusion'
+        : label === 'Negative prompt' ? 'negative'
+        : null;
+    }
     if (key && store[key] !== undefined) f.value = store[key];
   });
 
-  // Pre-select model dropdowns from saved values
+  // Pre-select model dropdowns from saved values (data-key carries the
+  // store key: model / diffusion / diffusionHigh / diffusionLow; the
+  // wan22 high/low values live inside the assembled store.diffusion JSON)
   document.querySelectorAll('#modalBody .modal-model-select').forEach(sel => {
-    const path = sel.getAttribute('data-path');
-    const label = sel.getAttribute('data-label');
-    // key in the store: model / diffusion / diffusionHigh / diffusionLow
-    let key = 'diffusion';
-    if (label === 'Model name') key = 'model';
-    else if (label === 'Diffusion model HIGH') key = 'diffusionHigh';
-    else if (label === 'Diffusion model LOW') key = 'diffusionLow';
-    let v = store[key];
-    // diffusion JSON for wan21 may be {model: ...}; pick the filename
+    const key = sel.getAttribute('data-key') || 'diffusion';
     let filename = '';
-    if (key === 'diffusion' && v) {
-      try { filename = JSON.parse(v).model || ''; } catch (e) { filename = v; }
+    if (key === 'diffusionHigh' || key === 'diffusionLow') {
+      // wan22: assembled JSON {high, low}
+      let d = store.diffusion;
+      if (d) {
+        try { d = JSON.parse(d); filename = (d && d[key === 'diffusionHigh' ? 'high' : 'low']) || ''; }
+        catch (e) { filename = ''; }
+      }
+    } else if (key === 'diffusion' && store.diffusion) {
+      // wan21: JSON {model: ...}; fall back to a plain filename
+      try { filename = JSON.parse(store.diffusion).model || ''; } catch (e) { filename = store.diffusion; }
     } else {
-      filename = v || '';
+      filename = store[key] || '';
     }
     if (filename && [...sel.options].some(o => o.value === filename)) sel.value = filename;
   });
@@ -164,11 +199,15 @@ function closeModal() {
 }
 
 function saveAdvanced() {
-  // Collect values and store per tab (feeds the backend call)
+  // Collect values per store key: data-key wins (fields inside the wan22
+  // sections carry an explicit key), label fallback for legacy fields.
   const fields = document.querySelectorAll('#modalBody .field input, #modalBody .field textarea, #modalBody .modal-model-select');
   const toggles = document.querySelectorAll('#modalBody .toggle-switch');
   const values = {};
-  fields.forEach(f => { values[f.previousElementSibling?.textContent || 'field'] = f.value; });
+  fields.forEach(f => {
+    const key = f.getAttribute('data-key') || f.previousElementSibling?.textContent || 'field';
+    values[key] = f.value;
+  });
   toggles.forEach(t => { values[t.previousElementSibling?.textContent || 'toggle'] = t.classList.contains('on'); });
   if (!window.advancedValues) window.advancedValues = {};
 
@@ -185,19 +224,27 @@ function saveAdvanced() {
   if (currentModalTab === 'video') {
     const version = toolbarValues.vidVersion; // 'wan21' | 'wan22'
     const store = Object.assign({}, prev[version] || {});
-    (cfg.fields || []).forEach(f => {
-      const label = f.label;
+    const processField = (f) => {
       if (f.type === 'lora') {
         const path = f.path || 'main';
         if (!store.loraSets) store.loraSets = {};
         store.loraSets[path] = loraSetsToJson(path);
       } else if (f.type === 'select') {
-        if (label === 'Diffusion model') store.diffusion = diffusionSelectToJson(values[label], 'main');
-        else if (label === 'Diffusion model HIGH') store.diffusionHigh = values[label] || '';
-        else if (label === 'Diffusion model LOW') store.diffusionLow = values[label] || '';
+        const key = f.key || (f.label === 'Diffusion model' ? 'diffusion' : null);
+        if (key) {
+          store[key] = key === 'diffusion'
+            ? diffusionSelectToJson(values[key] || '', f.path || 'main')
+            : (values[key] || '');
+        }
       } else if (f.type === 'textarea') {
-        if (label === 'Negative prompt') store.negative = values[label] || '';
+        if (f.key === 'negative' || f.label === 'Negative prompt') {
+          store.negative = values[f.key || 'Negative prompt'] || '';
+        }
       }
+    };
+    (cfg.fields || []).forEach(f => {
+      if (f.type === 'section') f.fields.forEach(processField);
+      else processField(f);
     });
     // assemble final diffusion per version
     if (version === 'wan22') {
@@ -218,9 +265,9 @@ function saveAdvanced() {
         mapped.loraSets[path] = loraSetsToJson(path);
         mapped.lora = mapped.loraSets[path];
       } else if (f.type === 'select') {
-        if (label === 'Model name') mapped.model = values[label] || '';
+        if (label === 'Model name') mapped.model = values['model'] || values[label] || '';
       } else if (f.type === 'textarea') {
-        if (label === 'Negative prompt') mapped.negative = values[label] || '';
+        if (label === 'Negative prompt') mapped.negative = values['negative'] || values[label] || '';
       }
     });
   }
