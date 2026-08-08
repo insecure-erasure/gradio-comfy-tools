@@ -344,7 +344,7 @@ Two separate session-scoped galleries (in-memory; not persisted):
   generation joins it via `addGeneratedEntry`. Transformations:
   - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
     (the original image stays): the transformation's own text is what the
-    💬 Show prompt modal shows; if the source was a gallery image, its
+    Show prompt panel shows; if the source was a gallery image, its
     prompt is kept as `originalPrompt` and shown on badge hover
     ("Edited"/"Restored" → `#galleryBadgeHint`, a grey translucent panel
     below the badge, via `.gallery-badge.show:hover +
@@ -355,19 +355,22 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
     place: the generation prompt stays as the Show prompt content, badge
     "Upscaled", no hover hint (an upscale has no transformation prompt).
-  - **Prompt display**: the prompt is NOT a bottom caption anymore. A 💬
+  - **Prompt display**: the prompt is NOT a bottom caption anymore. A
     **Show prompt** button sits bottom-center, visible only when the entry
-    has a prompt; clicking it opens a **semi-transparent bottom panel**
-    (`#galleryPromptModal`) with the full prompt (white-space: pre-wrap,
-    textContent — never innerHTML) at a **modest, device-appropriate font
-    size** (`font-size: clamp(13px, 1.15vw + .7vh, 18px)` — ~13px on
-    phones, ~16px on tablets, capped ~18px on large screens; title and
-    line-height use the same vw+vh formula). The panel is anchored at the
-    BOTTOM of the gallery (where the old caption was) and its overlay layer
-    is pointer-transparent, so the image and the gallery buttons stay
-    usable. It closes on ✕, Escape, gallery navigation (‹ › / ←/→ — the
-    click/key navigates AND closes, so the shown prompt never goes stale)
-    and gallery close.
+    has a prompt; **hovering it is enough** — the prompt appears as a
+    **semi-transparent bottom panel** (`#galleryPromptModal`) with the full
+    prompt (white-space: pre-wrap, textContent — never innerHTML) at a
+    **modest, device-appropriate font size** (`font-size: clamp(13px,
+    1.15vw + .7vh, 18px)` — ~13px on phones, ~16px on tablets, capped ~18px
+    on large screens; title and line-height use the same vw+vh formula).
+    The panel is anchored at the BOTTOM of the gallery (where the old
+    caption was) and its overlay layer is pointer-transparent, so the image
+    and the gallery buttons stay usable. It hides when the pointer leaves
+    (short grace delay — the panel itself is hoverable), and closes on ✕,
+    Escape, gallery navigation (‹ › / ←/→ — the click/key navigates AND
+    closes, so the shown prompt never goes stale) and gallery close.
+    Click/tap still toggles it (touch devices have no hover; keyboard
+    activation works too).
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -375,7 +378,7 @@ Two separate session-scoped galleries (in-memory; not persisted):
   the AFTER image URL). `collectCompareEntries()` merges the registry with
   any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
-  (big image + 💬 Show prompt button + badge/hover + ‹ › + N/M counter
+  (big image + Show prompt button + badge/hover + ‹ › + N/M counter
   bottom-right + download top-left + close ✕ top-right), compare slider for
   Edit/Upscale (interactive before/after). The N/M counter is always
   visible; ‹ › only with more than one entry. Escape/✕/backdrop close;

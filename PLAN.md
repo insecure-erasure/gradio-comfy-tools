@@ -443,15 +443,17 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     edited/restored/upscaled comparisons** (never generated images), the
     AFTER image being the identity (like the reference's #thumb).
   - **Prompt display (2026-08-08)**: the prompt is **no longer a bottom
-    caption**. A 💬 **Show prompt** button sits bottom-center (only when the
-    entry has a prompt) and opens a **semi-transparent bottom panel** with
-    the full prompt at a **modest, device-appropriate font size**
-    (`clamp(13px, 1.15vw + .7vh, 18px)` — ~13px phones, ~16px tablets,
-    capped ~18px on large displays; title/line-height share the formula).
-    The panel is anchored at the bottom (where the old caption was), its
-    overlay is pointer-transparent (image + gallery buttons stay usable),
-    and it closes on ✕ / Escape / navigation (which also navigates) /
-    gallery close.
+    caption**. A **Show prompt** button sits bottom-center (only when the
+    entry has a prompt) and **hovering it is enough** — the prompt appears
+    as a **semi-transparent bottom panel** at a **modest, device-appropriate
+    font size** (`clamp(13px, 1.15vw + .7vh, 18px)` — ~13px phones, ~16px
+    tablets, capped ~18px on large displays; title/line-height share the
+    formula). The panel is anchored at the bottom (where the old caption
+    was), its overlay is pointer-transparent (image + gallery buttons stay
+    usable), it hides when the pointer leaves (short grace delay; the panel
+    itself is hoverable), and it closes on ✕ / Escape / navigation (which
+    also navigates) / gallery close. Click/tap still toggles it for
+    touch/keyboard.
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
@@ -538,8 +540,9 @@ fix):**
   APPENDS a new entry (Show prompt = edit text, badge hover = original
   prompt) while the original stays; upscale one and verify it REPLACES its
   entry (Show prompt = generation prompt, badge "Upscaled"). Also verify
-  the 💬 Show prompt modal (semi-transparent, font size scales with the
-  device) opens/closes on button/✕/backdrop/Escape and closes on
+  the Show prompt panel (semi-transparent, font size scales with the
+  device) appears on hover over the button (no click needed; click/tap
+  toggles for touch) and closes on pointer leave / ✕ / Escape /
   navigation. Confirm the ⛶ compare
   overlay in Edit/Upscale only lists edited/restored/upscaled comparisons
   **and that several edits/restores/upscales done on the same tab all stay

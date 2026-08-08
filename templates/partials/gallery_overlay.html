@@ -4,10 +4,11 @@
        • lightbox (Generate): a centered big image + gallery navigation
          (‹ ›, n/N counter, Show prompt button, download). Close ✕ is top-RIGHT,
          download is top-LEFT (inverted vs the reference — project decision).
-         The prompt is NOT shown as a bottom caption anymore: a 💬 Show prompt
-         button (visible only when the entry has a prompt) opens a
-         semi-transparent BOTTOM panel with the prompt at a modest,
-         device-appropriate font size (see .gallery-prompt-* in components.css).
+         The prompt is NOT shown as a bottom caption anymore: a Show prompt
+         button (visible only when the entry has a prompt) reveals it on
+         hover — no click needed — as a semi-transparent BOTTOM panel with
+         a modest, device-appropriate font size (see .gallery-prompt-* in
+         components.css).
        • compare (Edit/Upscale): the interactive before/after slider fills
          the screen; the gallery there only navigates the edited/upscaled
          comparisons, and edited entries show the edit prompt as caption.
@@ -24,9 +25,9 @@
     <div class="divider"></div>
     <div class="handle"><span></span><span></span></div>
   </div>
-  <button class="gallery-prompt-btn" id="galleryPromptBtn" title="Show prompt">💬 Show prompt</button>
+  <button class="gallery-prompt-btn" id="galleryPromptBtn" title="Show prompt">Show prompt</button>
   <div class="gallery-prompt-modal" id="galleryPromptModal">
-    <div class="gallery-prompt-box">
+    <div class="gallery-prompt-box" id="galleryPromptBox">
       <div class="gallery-prompt-title">Prompt</div>
       <div class="gallery-prompt-text" id="galleryPromptText"></div>
       <button class="gallery-prompt-close" id="galleryPromptClose" title="Close" aria-label="Close prompt">✕</button>
