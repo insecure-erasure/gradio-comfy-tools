@@ -105,8 +105,11 @@ function switchTab(name) {
   // rebuilt #btnCol with fresh (enabled) buttons, so re-assert it.
   if (genLockActive) applyGenerationLock();
 
-  // Portrait: sync the tabs dropdown trigger (icon + label) with the new tab
+  // Portrait: sync the tabs dropdown trigger (icon) with the new tab
   updateTabsDropdown();
+  // Keyboard tab switches (Ctrl+1..4) go through switchTab too — close the
+  // dropdown so it never stays open over the new tab.
+  closeTabsDropdown();
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the
@@ -228,8 +231,18 @@ let tabsDropdownOpen = false;
 function toggleTabsDropdown(e) {
   e.stopPropagation();
   tabsDropdownOpen = !tabsDropdownOpen;
-  document.getElementById('tabsDropdownMenu').classList.toggle('show', tabsDropdownOpen);
-  document.getElementById('tabsDropdownBtn').classList.toggle('open', tabsDropdownOpen);
+  const menu = document.getElementById('tabsDropdownMenu');
+  const btn = document.getElementById('tabsDropdownBtn');
+  if (tabsDropdownOpen) {
+    // Anchor the fixed menu under the trigger: the nav bar (.tabs) clips
+    // absolutely-positioned descendants via its overflow-x:auto, so the
+    // menu is fixed and positioned from the trigger's viewport rect.
+    const r = btn.getBoundingClientRect();
+    menu.style.left = r.left + 'px';
+    menu.style.top = (r.bottom + 4) + 'px';
+  }
+  menu.classList.toggle('show', tabsDropdownOpen);
+  btn.classList.toggle('open', tabsDropdownOpen);
 }
 
 function closeTabsDropdown() {

@@ -34,14 +34,18 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   - **Video**: Model dropdown (Wan 2.1, Wan 2.2) + ⚙️ + ↺
 - **Portrait-only tabs dropdown**: on vertical displays (<1024px) the nav
   bar is too small for four tab buttons, so they condense into a dropdown
-  (`#tabsDropdown`): the trigger shows the ACTIVE tab (icon + label + ▾)
-  and the menu lists all four (icon + label, active one highlighted). The
+  (`#tabsDropdown`): the trigger shows the ACTIVE tab as an **icon only**
+  (no letters — they appear only when the menu opens) + a ▾ caret, and the
+  menu lists all four (icon + label, active one highlighted). The
   inline `.tab-btn` stay in the DOM (hidden by `responsive.css`; landscape
   needs them and `switchTab` keeps marking the active one).
   `updateTabsDropdown()` (called at the end of `switchTab`) syncs the
-  trigger icon/label and the menu highlight; `toggleTabsDropdown` /
-  `closeTabsDropdown` manage open/close (clicking outside closes it, and
-  it is force-closed when crossing the breakpoint).
+  trigger icon and the menu highlight; `toggleTabsDropdown` /
+  `closeTabsDropdown` manage open/close. The menu is `position: fixed` and
+  JS anchors it under the trigger on open (the nav bar's
+  `overflow-x: auto` would clip an absolutely-positioned descendant);
+  clicking outside closes it, and it is force-closed when crossing the
+  breakpoint.
 - **Landscape (≥1024px)**: the prompt block (textarea + action
   buttons + ✕ clear) and the result URL row are relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
@@ -60,7 +64,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 ### Responsive
 
 - **< 1024px**: the inline tab buttons are hidden and the **tabs dropdown**
-  takes their place (icon+label trigger, ▾ caret); `.split` stacks to a
+  takes their place (icon-only trigger + ▾ caret; the labels appear only
+  inside the menu); `.split` stacks to a
   column — output fills all available height, params below (compact
   padding 6px, gap 0, `flex:0 0 auto` so buttons never clip), prompt at the
   bottom bar. Generate params condense to a single wrapping row.

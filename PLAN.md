@@ -533,11 +533,14 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 - **FIX (2026-08-08)**: **portrait tabs dropdown** — the nav bar is too
   small on vertical displays (<1024px), so the four tab buttons condense
   into a dropdown (`#tabsDropdown` in `nav.html`): the trigger shows the
-  ACTIVE tab (icon + label + ▾) and the menu lists all four with the
+  ACTIVE tab (icon only + ▾ caret; the labels appear only when the menu
+  opens) and the menu lists all four with the
   active one highlighted. The inline `.tab-btn` stay in the DOM (hidden by
   `responsive.css`; landscape keeps them). `updateTabsDropdown()` syncs
-  the trigger + highlight at the end of `switchTab`; open/close is
-  `toggleTabsDropdown`/`closeTabsDropdown` (click-outside closes; forced
+  the trigger icon + highlight at the end of `switchTab`; open/close is
+  `toggleTabsDropdown`/`closeTabsDropdown` (the menu is `position: fixed`
+  and JS anchors it under the trigger — the nav's `overflow-x:auto` would
+  clip an absolute one; click-outside closes; forced
   close when crossing the breakpoint in `main.js`).
 - **TODO (after fullscreen)**: **queueing** — see below.
 - **Remaining**: queue position, live previews (require adding the preview

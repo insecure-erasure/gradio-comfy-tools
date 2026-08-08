@@ -79,12 +79,17 @@
   /* Tabs dropdown — portrait only (the nav bar is too small for the four
      tab buttons on vertical displays). Hidden by default; responsive.css
      shows it and hides the inline .tab-btn under 1024px. The trigger shows
-     the ACTIVE tab (icon + label); the menu lists all four. */
+     the ACTIVE tab as an ICON ONLY (no letters — they appear only in the
+     menu items); the menu lists all four. The menu is position:fixed and
+     JS anchors it under the trigger on open: the nav bar (.tabs) has
+     overflow-x:auto, which would CLIP any absolutely-positioned
+     descendant that extends past its box. */
   .tabs-dropdown {
     display: none;
     position: relative;
   }
-  .tabs-dropdown .tab-label { display: inline; }  /* the portrait rule hides .tab-label globally */
+  .tabs-dropdown-btn .tab-label { display: none; }   /* trigger: icon only */
+  .tabs-dropdown-menu .tab-label { display: inline; } /* labels live in the menu */
   .tabs-dropdown-btn {
     display: inline-flex;
     align-items: center;
@@ -104,9 +109,8 @@
   .tabs-dropdown-btn.open { background: var(--surface-hover); border-color: var(--border); }
   .tabs-dropdown-caret { font-size: .55rem; color: var(--text-secondary); }
   .tabs-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
+    position: fixed;          /* escapes the nav's overflow-x:auto clip */
+    top: 0; left: 0;          /* JS sets these from the trigger's rect on open */
     min-width: 170px;
     background: var(--surface);
     border: 1px solid var(--border);
