@@ -357,15 +357,17 @@ Two separate session-scoped galleries (in-memory; not persisted):
     "Upscaled", no hover hint (an upscale has no transformation prompt).
   - **Prompt display**: the prompt is NOT a bottom caption anymore. A 💬
     **Show prompt** button sits bottom-center, visible only when the entry
-    has a prompt; clicking it opens a **semi-transparent modal**
+    has a prompt; clicking it opens a **semi-transparent bottom panel**
     (`#galleryPromptModal`) with the full prompt (white-space: pre-wrap,
-    textContent — never innerHTML) at a **device-appropriate font size**
-    (`font-size: clamp(15px, 2vw + 1vh, 26px)` — ~16px on phones, ~20px on
-    tablets, capped ~26px on large screens; title and line-height use the
-    same vw+vh formula). The modal closes on ✕, backdrop click, Escape,
-    navigation (‹ › / ←/→) and gallery close — while it is open, Escape
-    closes only the modal and gallery navigation is suspended so the shown
-    prompt never goes stale.
+    textContent — never innerHTML) at a **modest, device-appropriate font
+    size** (`font-size: clamp(13px, 1.15vw + .7vh, 18px)` — ~13px on
+    phones, ~16px on tablets, capped ~18px on large screens; title and
+    line-height use the same vw+vh formula). The panel is anchored at the
+    BOTTOM of the gallery (where the old caption was) and its overlay layer
+    is pointer-transparent, so the image and the gallery buttons stay
+    usable. It closes on ✕, Escape, gallery navigation (‹ › / ←/→ — the
+    click/key navigates AND closes, so the shown prompt never goes stale)
+    and gallery close.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:

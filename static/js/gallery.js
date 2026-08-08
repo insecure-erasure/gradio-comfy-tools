@@ -19,9 +19,12 @@
 //
 // Prompt access: the prompt is NOT shown as a bottom caption. A 💬 Show
 // prompt button (bottom-center, shown only when the entry has a prompt)
-// opens a semi-transparent modal (galleryPromptModal) with the full
-// prompt at a device-appropriate font size. The modal closes on ✕,
-// backdrop click, Escape, navigation (‹ › / ←/→) and gallery close.
+// opens a semi-transparent BOTTOM panel (galleryPromptModal) with the full
+// prompt at a modest, device-appropriate font size. The overlay layer is
+// pointer-transparent, so the image and the gallery buttons stay usable
+// while it is open. The panel closes on ✕, Escape, gallery navigation
+// (‹ › / ←/→ — the click/key navigates AND closes, so the shown prompt
+// never goes stale) and gallery close.
 //
 // Close ✕ is top-RIGHT, download top-LEFT (inverted vs the reference —
 // project decision). Video results are only COLLECTED (data-video-gallery
@@ -360,11 +363,13 @@ async function galleryDownload() {
   }
 }
 
-// ── Prompt modal (💬 Show prompt) ───────────
-// Semi-transparent modal showing the current entry's prompt at a
-// device-appropriate font size (the CSS uses clamp(vw+vh)). Only available
-// in lightbox mode and only when the entry has a prompt (the button is
-// hidden otherwise). Closes on ✕, backdrop click, Escape, navigation and
+// ── Prompt panel (💬 Show prompt) ──────────
+// Semi-transparent BOTTOM panel with the current entry's prompt at a
+// modest, device-appropriate font size (the CSS uses clamp(vw+vh)). Only
+// available in lightbox mode and only when the entry has a prompt (the
+// button is hidden otherwise). The overlay layer is pointer-transparent
+// (the image and gallery buttons stay usable); the panel closes on ✕,
+// Escape, navigation (which also navigates — see the handlers below) and
 // gallery close.
 function openGalleryPrompt() {
   const e = galleryEntries[galleryIdx];
@@ -380,17 +385,19 @@ function closeGalleryPrompt() {
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
-galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); galleryNav(-1); });
-galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); galleryNav(1); });
+// ‹ › while the prompt panel is open: close it and navigate (one action —
+// the shown prompt never goes stale). The overlay is pointer-transparent,
+// so these buttons stay clickable under it.
+galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
+galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
 galleryBig.addEventListener('click', e => e.stopPropagation());
 galleryPromptBtn.addEventListener('click', e => { e.stopPropagation(); openGalleryPrompt(); });
 galleryPromptClose.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); });
-galleryPromptModal.addEventListener('click', e => { if (e.target === galleryPromptModal) closeGalleryPrompt(); });
 galleryOverlay.addEventListener('click', e => { if (e.target === galleryOverlay) closeGallery(); });
 
 // Keyboard: Escape closes; ←/→ navigate while the overlay is open. While
-// the prompt modal is open, Escape closes ONLY the modal (the gallery stays)
-// and navigation is suspended so the shown prompt never goes stale.
+// the prompt panel is open, Escape closes ONLY the panel (the gallery
+// stays) and navigation is suspended so the shown prompt never goes stale.
 document.addEventListener('keydown', e => {
   if (!galleryOverlay.classList.contains('show')) return;
   if (galleryPromptModal.classList.contains('show')) {

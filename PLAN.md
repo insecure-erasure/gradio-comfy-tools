@@ -444,12 +444,14 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     AFTER image being the identity (like the reference's #thumb).
   - **Prompt display (2026-08-08)**: the prompt is **no longer a bottom
     caption**. A 💬 **Show prompt** button sits bottom-center (only when the
-    entry has a prompt) and opens a **semi-transparent modal** with the
-    full prompt at a **device-appropriate font size** (`clamp(15px, 2vw +
-    1vh, 26px)` — scales with the screen resolution: ~16px phones, ~20px
-    tablets, ~26px capped on large displays; title/line-height share the
-    formula). Closes on ✕ / backdrop / Escape / navigation / gallery close;
-    while open, Escape closes only the modal and navigation is suspended.
+    entry has a prompt) and opens a **semi-transparent bottom panel** with
+    the full prompt at a **modest, device-appropriate font size**
+    (`clamp(13px, 1.15vw + .7vh, 18px)` — ~13px phones, ~16px tablets,
+    capped ~18px on large displays; title/line-height share the formula).
+    The panel is anchored at the bottom (where the old caption was), its
+    overlay is pointer-transparent (image + gallery buttons stay usable),
+    and it closes on ✕ / Escape / navigation (which also navigates) /
+    gallery close.
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
