@@ -383,14 +383,14 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 
 ### What remains from B5
 - **DONE (2026-08-08, branch feat/tvae-preview)**: **live per-step previews in
-  Generate** — the same mechanism the ComfyUI web UI uses, no preview node
-  needed. The sampler decodes its intermediate latent each step and streams
+  Generate and Edit (edit/restore)** — the same mechanism the ComfyUI web UI
+  uses, no preview node needed. The sampler decodes its intermediate latent each step and streams
   it over the WS as binary frames; the backend captures the latest frame per
   job and the frontend paints it under the spinner while the job runs.
-  - `comfy_client.queue_prompt(extra_data=...)` — Generate queues with
-    `extra_data={"preview_method": "auto"}` (the CLI default is NoPreviews;
-    the flag is per-prompt and auto-reset). Only the image workflow opts in
-    for now (Wan video latents are 5D — not yet validated).
+  - `comfy_client.queue_prompt(extra_data=...)` — Generate AND Edit (both
+    image workflows) queue with `extra_data={"preview_method": "auto"}`
+    (the CLI default is NoPreviews; the flag is per-prompt and auto-reset).
+    Wan video latents are 5D — not yet validated.
   - `server.py` WS listener sends the handshake `{"type": "feature_flags",
     "data": {"supports_preview_metadata": true}}` as its first message and
     parses binary frames: event 4 `PREVIEW_IMAGE_WITH_METADATA` (`>I(4) +

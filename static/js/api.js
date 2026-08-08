@@ -224,7 +224,7 @@ function startProgressPolling() {
         txt = '⚙️ ' + (a.node_title || '');
       }
       el.textContent = txt;
-      // Live per-step preview (Generate): paint the latest latent decode in
+      // Live per-step preview (any tab): paint the latest latent decode in
       // the output pane of the tab that started the job, and ONLY while the
       // user is on that tab (switching away pauses the painting; coming
       // back resumes it with the latest frame). The spinner stays on top.
@@ -235,9 +235,10 @@ function startProgressPolling() {
           if (!pv) {
             // The preview must fill the pane and stay centered: hide (not
             // remove) whatever competes for space — placeholder, previous
-            // result, source preview. Overlays (spinner, buttons) stay.
-            // liveHidden is restored by stopProgressPolling on cancel.
-            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview'));
+            // result, source preview, compare slider. Overlays (spinner,
+            // buttons) stay. liveHidden is restored by stopProgressPolling
+            // on cancel.
+            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .compare-slider'));
             liveHidden.forEach(el => { el.style.display = 'none'; });
             pv = document.createElement('img');
             pv.className = 'preview-live';
