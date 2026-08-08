@@ -575,6 +575,8 @@ def api_settings() -> dict:
         "comfyui_base_url": s.comfyui_base_url,
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
+        "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
 
 
@@ -582,8 +584,10 @@ def api_settings() -> dict:
 def api_settings_update(body: dict) -> dict:
     """Persist global settings from the 🎨 dropdown (B4).
 
-    Accepts any subset of {comfyui_base_url, comfyui_media_base_url}; empty
-    strings clear the override (media falls back to the server URL).
+    Accepts any subset of {comfyui_base_url, comfyui_media_base_url,
+    prompt_refiner_base_url, prompt_refiner_system_prompt}; empty strings
+    clear the override (media falls back to the server URL; the refiner
+    base URL empty disables the 🪄 refine button).
     """
     s = _settings()
     if "comfyui_base_url" in body:
@@ -593,8 +597,38 @@ def api_settings_update(body: dict) -> dict:
         s.set_base_url(value)
     if "comfyui_media_base_url" in body:
         s.set_media_base_url(str(body["comfyui_media_base_url"]).strip())
+    if "prompt_refiner_base_url" in body:
+        s.set_refiner_base_url(str(body["prompt_refiner_base_url"]).strip())
+    if "prompt_refiner_system_prompt" in body:
+        s.set_refiner_system_prompt(str(body["prompt_refiner_system_prompt"]))
     return {
         "comfyui_base_url": s.comfyui_base_url,
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
+        "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
+
+
+@app.post("/api/refine-prompt")
+def api_refine_prompt(body: dict) -> dict:
+    """Refine a prompt via the llama-server refiner (OpenAI-compatible).
+
+    Body: ``{"prompt": "...", "system_prompt": "..."?}`` — the system
+    prompt defaults to the configured one when omitted. Returns
+    ``{"refined": "..."}`` or a 400 with a user-facing message.
+    """
+    from prompt_refiner import RefinerError, RefinerUnavailable, refine_prompt
+
+    s = _settings()
+    try:
+        refined = refine_prompt(
+            s,
+            prompt=str(body.get("prompt", "")),
+            system_prompt=body.get("system_prompt"),
+        )
+    except RefinerUnavailable as e:
+        raise HTTPException(400, str(e)) from e
+    except RefinerError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"refined": refined}

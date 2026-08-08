@@ -48,6 +48,102 @@ def test_settings_get(client, tmp_config):
     assert "comfyui_base_url" in body
     assert "media_base_url" in body
     assert "has_api_key" in body
+    assert "prompt_refiner_base_url" in body
+    assert "prompt_refiner_system_prompt" in body
+
+
+def test_settings_post_persists_refiner(client, tmp_config):
+    resp = client.post(
+        "/api/settings",
+        json={
+            "prompt_refiner_base_url": "http://127.0.0.1:8080",
+            "prompt_refiner_system_prompt": "Refine this image prompt.",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["prompt_refiner_base_url"] == "http://127.0.0.1:8080"
+    assert body["prompt_refiner_system_prompt"] == "Refine this image prompt."
+    from config import Settings
+
+    s = Settings()
+    assert s.prompt_refiner_base_url == "http://127.0.0.1:8080"
+    assert s.prompt_refiner_system_prompt == "Refine this image prompt."
+
+
+def test_refine_prompt_not_configured(client, tmp_config):
+    resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})
+    assert resp.status_code == 400
+    assert "not configured" in resp.json()["detail"]
+
+
+def test_refine_prompt_calls_llama(client, tmp_config, monkeypatch):
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    captured = {}
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"choices": [{"message": {"content": "a majestic cat in sunlight"}}]}
+
+    class FakeClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def post(self, url, json):
+            captured["url"] = url
+            captured["json"] = json
+            return FakeResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeClient)
+    resp = client.post(
+        "/api/refine-prompt",
+        json={"prompt": "a cat", "system_prompt": "Refine."},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["refined"] == "a majestic cat in sunlight"
+    assert captured["url"] == "http://127.0.0.1:8080/v1/chat/completions"
+    msgs = captured["json"]["messages"]
+    assert msgs[0] == {"role": "system", "content": "Refine."}
+    assert msgs[1] == {"role": "user", "content": "a cat"}
+
+
+def test_refine_prompt_error_becomes_400(client, tmp_config, monkeypatch):
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    class FakeResp:
+        status_code = 500
+        text = "boom"
+
+    class FakeClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def post(self, url, json):
+            return FakeResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeClient)
+    resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})
+    assert resp.status_code == 400
+    assert "HTTP 500" in resp.json()["detail"]
 
 
 def test_settings_post_persists(client, tmp_config):

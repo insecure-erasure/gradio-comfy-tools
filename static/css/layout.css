@@ -168,6 +168,24 @@
   .settings-dropdown .menu-item:hover { background: var(--surface-hover); }
   .settings-dropdown .menu-item .item-icon { font-size: 1rem; width: 20px; text-align: center; }
   .settings-dropdown .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+  /* Prompt refiner system prompt: an editable textarea inside the menu. */
+  .settings-dropdown .menu-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 2px 0 4px;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: .78rem/1.4 var(--font);
+    resize: vertical;
+  }
+  .settings-dropdown .menu-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(233,69,96,.15);
+  }
 
 
   /* ── Content area ─────────────────────────── */

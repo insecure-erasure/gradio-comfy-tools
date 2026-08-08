@@ -49,8 +49,12 @@ function applyTheme() {
 function updateSettingsDisplay(s) {
   const sv = document.getElementById('serverUrlValue');
   const mv = document.getElementById('mediaBaseUrlValue');
+  const rv = document.getElementById('refinerUrlValue');
+  const si = document.getElementById('refinerSystemPromptInput');
   if (sv) sv.textContent = s.comfyui_base_url || '…';
   if (mv) mv.textContent = s.media_base_url || 'default';
+  if (rv) rv.textContent = s.prompt_refiner_base_url || 'not set';
+  if (si && document.activeElement !== si) si.value = s.prompt_refiner_system_prompt || '';
 }
 
 function loadSettings() {
@@ -92,4 +96,19 @@ function configureMediaBaseUrl() {
     current === 'default' ? '' : current);
   if (url === null) return;
   saveSettings({ comfyui_media_base_url: url.trim() }, 'Media base URL updated');
+}
+
+// ── Prompt refiner (llama-server) ─────────
+function configureRefinerUrl() {
+  const current = document.getElementById('refinerUrlValue')?.textContent;
+  const url = prompt('Prompt refiner URL (http://host:port, OpenAI-compatible API):',
+    current === 'not set' ? '' : current);
+  if (url === null) return;
+  saveSettings({ prompt_refiner_base_url: url.trim() }, 'Refiner URL updated');
+}
+
+// Persist the system prompt when the field loses focus (or Enter).
+function onRefinerSystemPromptChange() {
+  const el = document.getElementById('refinerSystemPromptInput');
+  saveSettings({ prompt_refiner_system_prompt: el ? el.value : '' }, 'Refiner system prompt updated');
 }
