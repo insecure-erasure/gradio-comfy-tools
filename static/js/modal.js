@@ -82,10 +82,11 @@ function renderField(f) {
   }
   if (f.type === 'select') {
     // Model/diffusion dropdown, populated from ComfyUI /models/diffusion_models
+    // Label sits BESIDE the dropdown (row) to save vertical space.
     const opts = diffusionModels.map(m =>
       `<option value="${esc(m)}">${esc(m)}</option>`
     ).join('');
-    return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+    return `<div class="field field-row-label" data-key="${f.key || ''}"><label>${f.label}</label>`
       + `<select class="modal-model-select" data-key="${f.key || ''}" data-path="${f.path || 'main'}">`
       + `<option value="">— default —</option>${opts}</select>`
       + `</div>`;

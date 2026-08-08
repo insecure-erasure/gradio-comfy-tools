@@ -218,6 +218,21 @@
     transition: .15s;
     width: 100%;
   }
+  /* Diffusion model selects in the modal: label beside the dropdown (row),
+     saving vertical space (the wan22 modal stacks HIGH/LOW sections). */
+  .field.field-row-label {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .field.field-row-label label {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .field.field-row-label select {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
   .field select:focus, .field input:focus, .field textarea:focus {
     outline: none;
     border-color: var(--accent);
