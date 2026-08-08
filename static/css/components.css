@@ -429,6 +429,13 @@
   .btn-col.refining .btn-catcher {
     display: block;
   }
+  /* The prompt textarea is dimmed + non-editable while refining: the text
+     arrives progressively via streaming, so editing mid-refine is blocked. */
+  .prompt-input-wrap textarea.refining {
+    opacity: .55;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 
   /* Prompt refiner (🪄): sits to the LEFT of the generate button. Only
      visible in landscape (≥1024px) — the portrait placement is still to be

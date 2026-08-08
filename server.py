@@ -32,7 +32,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, File, HTTPException, UploadFile
-from fastapi.responses import Response
+from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -611,22 +611,41 @@ def api_settings_update(body: dict) -> dict:
 
 
 @app.post("/api/refine-prompt")
-def api_refine_prompt(body: dict) -> dict:
+def api_refine_prompt(body: dict):
     """Refine a prompt via the llama-server refiner (OpenAI-compatible).
 
-    Body: ``{"prompt": "...", "system_prompt": "..."?}`` — the system
-    prompt defaults to the configured one when omitted. Returns
-    ``{"refined": "..."}`` or a 400 with a user-facing message.
+    Body: ``{"prompt": "...", "system_prompt": "..."?, "stream": bool?}``.
+    With ``stream`` true it returns a Server-Sent-Events stream of the
+    refined prompt deltas (``data: {\"delta\": \"...\"}``) so the UI can
+    show the refinement evolving live and cancel mid-stream; otherwise it
+    returns ``{"refined": "..."}``. Failures are a 400 with a user-facing
+    message.
     """
-    from prompt_refiner import RefinerError, RefinerUnavailable, refine_prompt
+    from prompt_refiner import RefinerError, RefinerUnavailable, refine_prompt, stream_refine_prompt
 
     s = _settings()
+    prompt = str(body.get("prompt", ""))
+    system_prompt = body.get("system_prompt")
+    if body.get("stream"):
+        try:
+            gen = stream_refine_prompt(s, prompt, system_prompt)
+        except (RefinerUnavailable, RefinerError) as e:
+            raise HTTPException(400, str(e)) from e
+
+        def event_stream():
+            try:
+                for delta in gen:
+                    yield f"data: {json.dumps({'delta': delta})}\n\n"
+                yield f"data: {json.dumps({'done': True})}\n\n"
+            except RefinerError as e:
+                yield f"data: {json.dumps({'error': str(e)[:300]})}\n\n"
+            except GeneratorExit:
+                gen.close()  # client disconnected / cancelled — close llama stream
+                raise
+
+        return StreamingResponse(event_stream(), media_type="text/event-stream")
     try:
-        refined = refine_prompt(
-            s,
-            prompt=str(body.get("prompt", "")),
-            system_prompt=body.get("system_prompt"),
-        )
+        refined = refine_prompt(s, prompt, system_prompt)
     except RefinerUnavailable as e:
         raise HTTPException(400, str(e)) from e
     except RefinerError as e:

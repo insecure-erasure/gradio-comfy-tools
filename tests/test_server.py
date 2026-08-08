@@ -121,6 +121,59 @@ def test_refine_prompt_calls_llama(client, tmp_config, monkeypatch):
     assert captured["json"]["chat_template_kwargs"] == {"enable_thinking": False}
 
 
+def test_refine_prompt_stream_sse(client, tmp_config, monkeypatch):
+    """stream:true returns an SSE stream of content deltas."""
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    captured = {}
+
+    class FakeStreamResp:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def iter_lines(self):
+            return [
+                'data: {"choices": [{"delta": {"content": "A fluffy"}}]}',
+                'data: {"choices": [{"delta": {"content": " cat"}}]}',
+                "data: [DONE]",
+            ]
+
+        def read(self):
+            return b""
+
+    class FakeStreamingClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def stream(self, method, url, json):
+            captured["url"] = url
+            captured["json"] = json
+            return FakeStreamResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeStreamingClient)
+    resp = client.post("/api/refine-prompt", json={"prompt": "a cat", "stream": True})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    body = resp.text
+    assert '"delta": "A fluffy"' in body
+    assert '"delta": " cat"' in body
+    assert '"done": true' in body
+    assert captured["json"]["stream"] is True
+
+
 def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
     """Defensive: even if the model still emits a <think>...</think> block in
     content (e.g. ignores reasoning_effort), only the text after it is kept.
