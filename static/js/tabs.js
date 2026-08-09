@@ -22,7 +22,13 @@ function switchTab(name) {
 
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  // Qualify with .tab-btn: the portrait tabs dropdown (tabs-dropdown-item)
+  // sits BEFORE the inline tab buttons in the DOM, so a bare [data-tab=..]
+  // selector would add .active to the HIDDEN dropdown item instead of the
+  // visible tab button — leaving no accent on the selected tab in landscape.
+  // The dropdown items get their highlight from updateTabsDropdown() (below),
+  // which uses currentTab as the single source of truth.
+  document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
   document.getElementById(`tab-${name}`).classList.add('active');
 
   // Update prompt bar

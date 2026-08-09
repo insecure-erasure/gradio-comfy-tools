@@ -62,10 +62,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
-  **compact single-line field** that CONTAINS the action chips (🪄/🩹/✨
+  **compact single-line field** that CONTAINS the action chips (🩹/✨
   bottom-right, horizontal — the user can generate WITHOUT opening the
-  modal); the ✕ clear, the 🪄 overlay and the parameter chips are
-  **hidden in the bar** (they exist ONLY inside the prompt modal).
+  modal); the ✕ clear, the 🪄 refine chip (the `.btn-col` one AND the
+  `.prompt-actions` overlay) and the parameter chips are
+  **hidden in the bar** — 🪄 exists ONLY inside the prompt modal.
   **Tapping the field opens a fullscreen
   prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it

@@ -87,9 +87,11 @@
     }
     /* Action chips inside the field (portrait bar): a compact pill row at
        the right of the textarea, ALWAYS horizontal (never stacked — Edit
-       has three: 🪄 🩹 🖌️). The buttons keep their accent/neutral
-       colors; the click-catchers, generation lock and ⏹ transformation
-       work exactly as in landscape. */
+       has two: 🩹 🖌️). The buttons keep their accent/neutral colors; the
+       click-catchers, generation lock and ⏹ transformation work exactly
+       as in landscape. The 🪄 refine chip is EXCLUDED: in portrait it
+       lives only in the fullscreen prompt modal (.prompt-actions
+       #btnPromptRefine) — never in the compact bar field. */
     .bottom-bar .btn-col {
       display: flex;
       flex-direction: row;
@@ -101,8 +103,7 @@
       gap: 4px;
       z-index: 5;
     }
-    .bottom-bar .btn-col .btn-generate,
-    .bottom-bar .btn-col .btn-refine {
+    .bottom-bar .btn-col .btn-generate {
       flex: none;
       display: inline-flex;
       align-items: center;
@@ -114,6 +115,7 @@
       border-radius: 999px;
       font-size: .82rem;
     }
+    .bottom-bar .btn-col .btn-refine { display: none; } /* only in the prompt modal */
     .bottom-bar .btn-col .btn-wrap {
       flex: none;
     }

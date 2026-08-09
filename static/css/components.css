@@ -478,10 +478,15 @@
   .btn-refine:disabled { opacity: .45; cursor: not-allowed; }
 
   /* Upscale (landscape): 🔍 button at the bottom-right of the params pane,
-     just above the result URL row (which relayoutPrompt places there) */
+     just above the result URL row (which relayoutPrompt places there).
+     flex: none is REQUIRED: .btn-generate sets flex: 1, so without it the
+     button grows to fill the whole pane height (ignoring height: 34px) —
+     the portrait variant (btn-upscale-pane) has flex: 0 0 auto for the
+     same reason. */
   #tab-upscale .params-pane .btn-upscale-landscape {
     align-self: flex-end;
     margin-top: auto;      /* pushed to the bottom of the pane */
+    flex: none;            /* don't stretch — keep 44×34 */
     width: 44px;
     height: 34px;
     font-size: 1rem;
