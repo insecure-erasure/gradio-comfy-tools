@@ -1308,6 +1308,9 @@
     pointer-events: none;
   }
   .gallery-badge.show:hover + .gallery-badge-hint:not(.empty) { display: block; }
+  /* Badge click/tap toggles the hint (gallery.js) — same panel as the
+     hover, for touch/keyboard where there is no hover. */
+  .gallery-badge-hint.show { display: block; }
   .gallery-badge:has(+ .gallery-badge-hint:not(.empty)) { cursor: help; }
   .gallery-btn {
     position: absolute;

@@ -212,6 +212,9 @@ function openGalleryOverlay() {
 
 function closeGallery() {
   closeGalleryPrompt();
+  // A badge hint toggled open by click/tap must not survive the close.
+  const hint = document.getElementById('galleryBadgeHint');
+  if (hint) hint.classList.remove('show');
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
     try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
@@ -236,6 +239,9 @@ function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
   const hint = document.getElementById('galleryBadgeHint');
+  // Start clean: a hint left open on the previous entry (badge click/tap)
+  // must not linger when navigating.
+  hint.classList.remove('show');
   if (galleryMode === 'lightbox') {
     galleryBig.src = e.src;
     // Show prompt: visible only when the entry has a prompt. The prompt
@@ -409,6 +415,15 @@ galleryDlBtn.addEventListener('click', galleryDownload);
 galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
 galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
 galleryBig.addEventListener('click', e => e.stopPropagation());
+// Badge click/tap toggles the original-prompt hint (the same hover panel
+// below the badge, but reachable on touch/keyboard where there is no
+// hover). Hidden when the entry has no original prompt (.empty).
+galleryBadge.addEventListener('click', e => {
+  e.stopPropagation();
+  const hint = document.getElementById('galleryBadgeHint');
+  if (!hint || hint.classList.contains('empty')) return; // nothing to show
+  hint.classList.toggle('show');
+});
 // Hover reveals the prompt — no click needed. Only for real mouse pointers
 // (pointerenter/pointerleave do not fire on touch). Click/tap toggles as a
 // fallback for touch/keyboard.
