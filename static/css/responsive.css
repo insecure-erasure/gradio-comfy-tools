@@ -44,38 +44,11 @@
       padding: 6px 14px;
       gap: 0;
     }
-    /* Generate: condense W/H/AR/MP + Steps/Seed into one line in portrait
-       (landscape keeps the two rows as in the mockup). The two .field-row
-       wrappers become display:contents; the pane becomes a 6-column grid.
-       The seed column is the widest (long random value + 🎲) and absorbs the
-       squeeze first; AR has a min width (its select is only ~4 chars) so it
-       does not shrink at the same rate as the seed. */
-    #tab-generate .params-pane {
-      display: grid;
-      /* 4 columns: AR, MP, Steps, Seed — the W/H read-only fields are
-         HIDDEN in portrait (see below), so the grid drops to 4 columns */
-      grid-template-columns: minmax(60px, .9fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.6fr);
-      align-items: center;
-      column-gap: 8px;
-      row-gap: 4px;
-    }
-    /* Portrait: hide the W/H readonly parameters (they are derived from
-       AR × MP anyway) — more space for the other controls. */
-    #tab-generate .params-pane .field-inline:has(.readonly-field) {
-      display: none;
-    }
-    #tab-generate .params-pane .field-row {
-      display: contents;
-    }
-    #tab-generate .params-pane .field-inline {
-      min-width: 0;
-    }
-    #tab-generate .params-pane .field-inline .stepper { min-width: 0; }
-    #tab-generate .params-pane .field-inline .stepper input {
-      width: 100%;
-      min-width: 0;
-      padding: 7px 2px;
-    }
+    /* Generate (portrait): the params moved into the prompt-chip popover
+       (📏/👣), so this params pane is empty — hide it and let the output
+       fill the split. The controls live in the chips (visible in the
+       fullscreen prompt modal, see .prompt-chips below). */
+    #tab-generate .params-pane { display: none; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     /* Portrait: the prompt becomes a compact single-line field. The ✕ clear
@@ -99,6 +72,11 @@
     .bottom-bar .prompt-refine-btn {
       display: none;              /* portrait bar: only in the modal now */
     }
+    /* Portrait bar: the parameter chips are hidden in the compact single
+       line (they would crowd the field); they appear inside the fullscreen
+       prompt modal, where the wrap gets .modal-mode and there is room. */
+    .bottom-bar .prompt-chips { display: none; }
+    .prompt-modal-box .prompt-chips { display: flex; }
     /* Prompt fullscreen modal: opened by tapping the compact prompt. The
        wrap moves here (openPromptModal) with .modal-mode — the textarea
        fills the screen and the overlay buttons return to their ORIGINAL

@@ -68,33 +68,39 @@ function stepMp(delta) {
   const clamped = Math.round(Math.min(2, Math.max(0.1, val)) * 10) / 10;
   input.value = clamped;
   onModelFamilyChange();
+  updatePromptChips();
 }
 function stepSteps(delta) {
   const input = document.getElementById('genSteps');
   const val = parseInt(input.value) + delta;
   const clamped = Math.min(15, Math.max(1, val));
   input.value = clamped;
+  updatePromptChips();
 }
 function onStepsInput() {
   const input = document.getElementById('genSteps');
   const v = parseInt(input.value);
   if (isNaN(v) || v < 1) input.value = 1;
   if (v > 15) input.value = 15;
+  updatePromptChips();
 }
 
 // ── Seed + random toggle ──────────────────
-function stepGenSeed(d) { const input = document.getElementById('genSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
+function stepGenSeed(d) { const input = document.getElementById('genSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
 function onGenSeedInput() {
   const input = document.getElementById('genSeed');
   if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('genSeedRandom').checked = false;
   input.disabled = false;
+  updatePromptChips();
 }
 function onSeedRandomToggle() {
   document.getElementById('genSeed').disabled = document.getElementById('genSeedRandom').checked;
+  updatePromptChips();
 }
 function onSeedInput() {
   document.getElementById('genSeedRandom').checked = false;
+  updatePromptChips();
 }
 
 // ── Model family -> auto steps + W/H calc ──
@@ -106,6 +112,7 @@ function onModelFamilyChange() {
   // Update steps input
   const steps = parseInt(opt.getAttribute('data-steps')) || 8;
   document.getElementById('genSteps').value = steps;
+  updatePromptChips();
 
   // Show/hide custom ratio fields (dead code in the mockup — kept for parity)
   const arSel = document.getElementById('genAspectRatio');
@@ -158,6 +165,7 @@ function recalcResolution() {
 
   document.getElementById('genWidth').textContent = w;
   document.getElementById('genHeight').textContent = h;
+  updatePromptChips();
 }
 
 // ── ↺ Reset ───────────────────────────────

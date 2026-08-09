@@ -90,6 +90,9 @@ function applyPersistedParams() {
     });
   });
   window.__persistedParams = null;
+  // The restored values may differ from the family auto-steps/resolution —
+  // refresh the prompt chip labels (defined in tabs.js, loaded before).
+  if (typeof updatePromptChips === 'function') updatePromptChips();
 }
 
 // currentTheme is managed here (settings.js reads it) — default 'dark'.

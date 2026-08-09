@@ -99,6 +99,10 @@ function switchTab(name) {
   // Per-tab toolbar in the nav (model dropdown + ⚙️ + ↺)
   renderToolbar(name);
 
+  // Per-tab parameter chips overlaid on the prompt field (Generate: 📏 dims
+  // + 👣 steps/seed — the other tabs keep their params-pane controls for now)
+  renderPromptChips();
+
   // Enable/disable the action button(s) based on the prompt state
   updateActionButtons();
   // A generation running while switching tabs keeps the lock: switchTab
@@ -110,6 +114,8 @@ function switchTab(name) {
   // Keyboard tab switches (Ctrl+1..4) go through switchTab too — close the
   // dropdown so it never stays open over the new tab.
   closeTabsDropdown();
+  // A chip popover left open on the old tab must not survive the switch.
+  closeChipPopover();
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the
@@ -319,6 +325,8 @@ function closePromptModal() {
   // Clear the visual-viewport fit (top/height) so the CSS inset:0 takes over.
   modal.style.top = '';
   modal.style.height = '';
+  // The chips moved with the wrap — a popover anchored to them is stale now.
+  closeChipPopover();
 }
 
 // Fit the fullscreen prompt modal to the ACTUAL visible area. The mobile
@@ -342,6 +350,136 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', fitPromptModal);
   window.visualViewport.addEventListener('scroll', fitPromptModal);
 }
+
+// ── Prompt parameter chips ─────────────────
+// The per-tab parameter buttons are unified as chips OVERLAYED on the prompt
+// textarea (.prompt-chips inside .prompt-input-wrap); clicking one opens a
+// small popover (#chipPopover) with the actual controls. For Generate the
+// former params-pane fields (now in #genParams in tab_generate.html) are
+// moved into the popover body once on load — the prompt textarea then takes
+// over the whole params pane. The control IDs are unchanged, so storage.js /
+// generate.js / reset work without modifications.
+
+// Render the chips of the active tab. Only Generate has chips in this
+// iteration (📏 dimensions + 👣 steps/seed); the other tabs keep their
+// params-pane controls, and the chips box stays empty.
+function renderPromptChips() {
+  const box = document.getElementById('promptChips');
+  if (!box) return;
+  // Move the Generate params into the chip popover once (it stays there).
+  const params = document.getElementById('genParams');
+  const popBody = document.getElementById('chipPopoverBody');
+  if (params && popBody && params.parentElement !== popBody) {
+    params.removeAttribute('hidden'); // visibility is per-section (dims/stepseed)
+    popBody.appendChild(params);
+  }
+  if (currentTab !== 'generate') {
+    box.innerHTML = '';
+    delete box.dataset.rendered;
+    return;
+  }
+  if (box.dataset.rendered === 'generate' && box.children.length) {
+    updatePromptChips();
+    return;
+  }
+  box.dataset.rendered = 'generate';
+  box.innerHTML =
+    '<button class="prompt-chip chip-dims" id="chipDims" onclick="toggleChipPopover(\'dims\')" title="Image dimensions (W×H, aspect ratio, megapixels)">' +
+      '<span class="chip-icon">📏</span><span class="chip-label" id="chipDimsLabel">—</span>' +
+    '</button>' +
+    '<button class="prompt-chip chip-stepseed" id="chipStepSeed" onclick="toggleChipPopover(\'stepseed\')" title="Steps and seed">' +
+      '<span class="chip-icon">👣</span><span class="chip-label" id="chipStepSeedLabel">—</span>' +
+    '</button>';
+  updatePromptChips();
+}
+
+// Refresh the chip labels from the current control values (W×H for the ruler
+// chip; steps · seed — 🎲 when random — for the steps/seed chip).
+function updatePromptChips() {
+  const dimsLabel = document.getElementById('chipDimsLabel');
+  if (dimsLabel) {
+    const w = document.getElementById('genWidth');
+    const h = document.getElementById('genHeight');
+    dimsLabel.textContent = (w && h && w.textContent) ? `${w.textContent}×${h.textContent}` : '—';
+  }
+  const ssLabel = document.getElementById('chipStepSeedLabel');
+  if (ssLabel) {
+    const steps = document.getElementById('genSteps');
+    const seed = document.getElementById('genSeed');
+    const rnd = document.getElementById('genSeedRandom');
+    if (steps) {
+      const seedTxt = (rnd && rnd.checked) ? '🎲' : (seed ? seed.value : '0');
+      ssLabel.textContent = `${steps.value} · ${seedTxt}`;
+    }
+  }
+}
+
+// Open the chip popover showing the matching section of the Generate params
+// ('dims' → #genParamsDims, 'stepseed' → #genParamsStepSeed), anchored under
+// the clicked chip. Repositions above the chip when it would overflow the
+// bottom of the viewport.
+function openChipPopover(kind) {
+  const pop = document.getElementById('chipPopover');
+  const title = document.getElementById('chipPopoverTitle');
+  const dims = document.getElementById('genParamsDims');
+  const ss = document.getElementById('genParamsStepSeed');
+  if (!pop || !dims || !ss) return;
+  if (kind === 'dims') {
+    dims.hidden = false;
+    ss.hidden = true;
+    title.textContent = 'Dimensions';
+  } else {
+    dims.hidden = true;
+    ss.hidden = false;
+    title.textContent = 'Steps & seed';
+  }
+  const chip = document.getElementById(kind === 'dims' ? 'chipDims' : 'chipStepSeed');
+  if (chip) {
+    const r = chip.getBoundingClientRect();
+    const pw = pop.offsetWidth || 280;
+    const ph = pop.offsetHeight || 160;
+    let left = Math.min(r.left, window.innerWidth - pw - 8);
+    let top = r.bottom + 6;
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+    pop.style.left = Math.max(8, left) + 'px';
+    pop.style.top = top + 'px';
+  }
+  updatePromptChips();
+  pop.classList.add('show');
+}
+
+// Chip click: opens the popover, or switches sections when another chip is
+// clicked while the popover is open, or closes when the same chip is clicked
+// again. (There is no backdrop — the chips stay clickable, see below.)
+let chipPopoverKind = null;
+function toggleChipPopover(kind) {
+  const pop = document.getElementById('chipPopover');
+  const open = pop && pop.classList.contains('show');
+  if (open && chipPopoverKind === kind) {
+    closeChipPopover();
+    return;
+  }
+  chipPopoverKind = kind;
+  openChipPopover(kind);
+}
+
+function closeChipPopover() {
+  chipPopoverKind = null;
+  const pop = document.getElementById('chipPopover');
+  if (pop) pop.classList.remove('show');
+}
+
+// Close when clicking outside the popover and the chips (a click on the
+// chips themselves toggles, never closes from behind).
+document.addEventListener('click', e => {
+  if (e.target.closest('#chipPopover, #promptChips')) return;
+  closeChipPopover();
+});
+
+// Close the popover with Escape (the modal Esc handler in main.js coexists).
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeChipPopover();
+});
 
 // Radio group toggle (kept for the mockup's segmented controls)
 function selectRadio(btn) {

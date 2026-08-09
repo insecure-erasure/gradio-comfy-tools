@@ -47,6 +47,16 @@
 
 {% include "partials/tooltip.html" %}
 
+<!-- Chip popover: small modal with the parameters of the active prompt chip
+     (Generate: 📏 dimensions / 👣 steps+seed). The controls (the former
+     params-pane fields, see #genParams in tab_generate.html) are moved here
+     by renderPromptChips, so the prompt textarea takes over the params pane.
+     Closes on click-outside (listener in tabs.js) or Esc. -->
+<div class="chip-popover" id="chipPopover">
+  <div class="chip-popover-title" id="chipPopoverTitle"></div>
+  <div class="chip-popover-body" id="chipPopoverBody"></div>
+</div>
+
 <!-- Scripts (plain scripts share the global scope; load order matters) -->
 <script src="/static/js/state.js"></script>
 <script src="/static/js/storage.js"></script>

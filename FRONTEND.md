@@ -478,3 +478,10 @@ These are intentional, user-driven changes over the original `mockup.html`:
 13. **Source preview**: the ✓ button next to the source URL field validates
 the value and shows the image in the output pane; 🔗/📁 also preview the
 source (dashed-border `.source-preview`). Added over the mockup.
+14. **Parameter chips (Generate)**: the W/H/AR/MP and Steps/Seed controls
+moved out of the params pane into two chips overlaid on the prompt textarea
+— 📏 dimensions (ruler look, shows the current W×H) and 👣 steps & seed.
+Each opens a small popover with the controls (the same elements, moved into
+`#chipPopover`; IDs unchanged, so persistence/reset keep working). The
+prompt now fills the whole params pane in landscape; in portrait the chips
+appear inside the fullscreen prompt modal. `refactor/unify-action-buttons`.

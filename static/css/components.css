@@ -617,6 +617,109 @@
   @media (min-width: 1024px) {
     .prompt-refine-btn { display: none; }
   }
+
+  /* ── Prompt parameter chips ─────────────────
+     The per-tab parameter buttons are unified as chips OVERLAYED on the
+     prompt textarea (bottom-left); clicking one opens the small popover
+     with the actual controls (see .chip-popover below). */
+  .prompt-chips {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 5;
+    pointer-events: none;   /* allow clicks to pass between the chips */
+  }
+  .prompt-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-size: .7rem;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: .15s;
+    white-space: nowrap;
+    line-height: 1.2;
+    pointer-events: auto;
+  }
+  .prompt-chip:hover {
+    border-color: var(--accent);
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+  }
+  .prompt-chip .chip-icon { font-size: .78rem; line-height: 1; }
+  .prompt-chip .chip-label {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+  }
+  /* Ruler-look for the dimensions chip: tick marks along its bottom edge. */
+  .chip-dims {
+    background-image:
+      repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 5px);
+    background-position: 0 100%;
+    background-size: 100% 4px;
+    background-repeat: no-repeat;
+  }
+
+  /* Chip popover: small anchored modal with the controls of the clicked
+     chip. Reuses .field-row/.field-inline/.stepper from the form block.
+     No backdrop: it closes on click-outside / Esc (listener in tabs.js),
+     so the chips themselves and the prompt modal stay interactive — a click
+     on the other chip switches the section directly. */
+  .chip-popover {
+    position: fixed;
+    z-index: 450;   /* above the ⚙️ modal (200) and the prompt modal (400) */
+    display: none;
+    width: 280px;
+    max-width: calc(100vw - 16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.4);
+    padding: 12px;
+  }
+  .chip-popover.show { display: block; }
+  .chip-popover-title {
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .chip-popover .field-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .chip-popover .field-row:last-child { margin-bottom: 0; }
+  .chip-popover .field-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+  .chip-popover .field-inline .stepper { flex: 1; min-width: 0; }
+  .chip-popover .stepper input {
+    width: 100%;
+    min-width: 0;
+    padding: 7px 4px;
+  }
+  .chip-popover .readonly-field {
+    width: auto;
+    flex: 1;
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    color: var(--text);
+  }
+  .chip-popover .check-label { white-space: nowrap; }
+  .chip-popover .gen-dim { width: 100%; }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);
