@@ -165,8 +165,7 @@
       display: flex;
     }
     .prompt-modal-box .prompt-refine-btn,
-    .prompt-modal-box .prompt-restore-btn,
-    .prompt-modal-box .prompt-generate-btn {
+    .prompt-modal-box .prompt-restore-btn {
       position: static;
       display: flex;
       width: auto;
@@ -179,10 +178,32 @@
       color: var(--text-secondary);
     }
     .prompt-modal-box .prompt-refine-btn:hover,
-    .prompt-modal-box .prompt-restore-btn:hover,
-    .prompt-modal-box .prompt-generate-btn:hover {
+    .prompt-modal-box .prompt-restore-btn:hover {
       background: var(--surface-hover);
       color: var(--text);
+    }
+    /* The modal's direct-GENERATE button (✨/🖌️/🎬) matches the action
+       button OUTSIDE the modal: accent background + white glyph (the same
+       --accent/--accent-hover as .btn-generate). The 🩹 restore stays a
+       neutral pill (above) — deliberately different. */
+    .prompt-modal-box .prompt-generate-btn {
+      position: static;
+      display: flex;
+      width: auto;
+      height: auto;
+      padding: 6px 14px 7px;
+      border-radius: 999px;
+      font-size: .95rem;
+      background: var(--accent);
+      border: 1px solid var(--accent);
+      color: #fff;
+    }
+    .prompt-modal-box .prompt-generate-btn:hover {
+      background: var(--accent-hover);
+    }
+    .prompt-modal-box .prompt-generate-btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
     }
     /* Upscale (portrait): the params pane is a row — the seed takes most of
        the width and the 🔍 action button the rest; the result URL row wraps
