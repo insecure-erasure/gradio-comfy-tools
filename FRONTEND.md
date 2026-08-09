@@ -89,9 +89,10 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   takes their place (icon-only trigger + ▾ caret; the labels appear only
   inside the menu); the nav toolbar's **Model** label is hidden too
   (landscape keeps it). `.split` stacks to a
-  column — output fills all available height, params below (compact
-  padding 6px, gap 0, `flex:0 0 auto` so buttons never clip), prompt at the
-  bottom bar. Generate params condense to a single wrapping row.
+  column — output fills all available height, prompt at the
+  bottom bar. The Generate/Edit/Video **params panes are hidden** (their
+  controls live in the prompt chips → fullscreen prompt modal); Upscale
+  keeps its params pane (🌱 chip + 🔍 + URL row).
 - **< 768px**: more compact paddings.
 
 ## 2. Tabs and per-tab action buttons
@@ -163,20 +164,25 @@ empty and the prompt fills it; see also deviation 14):
   (bottom-right, 📁 just left of 🔗) over the **compare slider**
   (Original | Edited).
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
-- **Params**: `👣 Steps` stepper (1–15, default 6) · `🌱 Seed` stepper + `🎲`.
+- **Params**: a single **👣 chip** over the prompt textarea (same design as
+  Generate): shows `steps · 🎲` (steps only when the seed is fixed — the
+  separator and dice disappear). Its popover holds the `👣 Steps` stepper
+  (1–15, default 6) and the `🌱 Seed` stepper + `🎲`.
 
 ### 3.3 Upscale 🔍
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
   the **compare slider** (Original | Upscaled).
-  (Original | Upscaled).
 - **Toolbar**: ↺ only (no model, no ⚙️).
-- **Params**: `🌱 Seed` stepper + `🎲` only. (Resolution/blend/color stay as
+- **Params**: a **🌱 chip in the params pane** (Upscale has NO prompt, so
+  the chip cannot overlay the textarea — it lives directly in the pane):
+  shows `🎲` while the seed is random, the value when fixed. Its popover
+  holds the `🌱 Seed` stepper + `🎲`. (Resolution/blend/color stay as
   workflow defaults — see BACKEND.md.)
 - **Special layouts** (`tabs.js` `relayoutPrompt`):
   - **Portrait**: the bottom bar is hidden; the params pane is a row with
-    the seed taking most of the width and the 🔍 button the rest; the result
-    URL row wraps below full-width.
+    the 🌱 chip taking most of the width and the 🔍 button the rest; the
+    result URL row wraps below full-width.
   - **Landscape**: 🔍 sits at the bottom-right of the params pane, just
     above the result URL row.
 
@@ -185,8 +191,10 @@ empty and the prompt fills it; see also deviation 14):
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
   real `<video>` player.
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
-- **Params**: `🎞️ Frames` stepper (81–161, step 4, default 81, snaps to
-  4n+1) · `👣 Steps` stepper (4–10, default 4) · `🌱 Seed` stepper + `🎲`.
+- **Params**: two chips over the prompt textarea — **🎞️ Frames** (shows
+  the frame count, popover with the 81–161 stepper, step 4, 4n+1 snap) and
+  **👣 Steps & seed** (same label rules as Generate; popover with the
+  `👣 Steps` stepper 4–10 default 4 and the `🌱 Seed` stepper + `🎲`).
 - **Negative prompt**: in the advanced modal (not the params pane).
 
 ## 4. Behaviors
@@ -489,14 +497,21 @@ These are intentional, user-driven changes over the original `mockup.html`:
 13. **Source preview**: the ✓ button next to the source URL field validates
 the value and shows the image in the output pane; 🔗/📁 also preview the
 source (dashed-border `.source-preview`). Added over the mockup.
-14. **Parameter chips (Generate)**: the W/H/AR/MP and Steps/Seed controls
-moved out of the params pane into two chips overlaid on the prompt textarea
-— 📏 dimensions (shows the current aspect ratio, e.g. `2:3`) and 👣 steps
-& seed.
-Each opens a small popover with the controls (the same elements, moved into
-`#chipPopover`; IDs unchanged, so persistence/reset keep working). The
-prompt now fills the whole params pane in landscape; in portrait the chips
-appear inside the fullscreen prompt modal. The portrait prompt modal also
+14. **Parameter chips (all tools)**: the per-tab parameter controls moved
+out of the params panes into chips overlaid on the prompt textarea (each
+opens a small popover with the controls — the same elements, moved into
+`#chipPopover`; IDs unchanged, so persistence/reset keep working):
+    - **Generate 🖼️**: 📏 dimensions (shows the current aspect ratio, e.g.
+      `2:3`) + 👣 steps & seed.
+    - **Edit ✏️**: 👣 steps & seed.
+    - **Video 🎬**: 🎞️ frames + 👣 steps & seed.
+    - **Upscale 🔍**: 🌱 seed — the chip lives IN the params pane (Upscale
+      has no prompt to overlay).
+The 👣/🌱 chips show `steps · 🎲` / `🎲` while the seed is random and drop
+the separator + dice when the seed is FIXED (steps only / the value). The
+prompt fills the whole params pane in landscape; in portrait the chips
+appear inside the fullscreen prompt modal (Upscale keeps its pane). The
+portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
 🪄 refine + ✨ direct generation (bottom-right, per-tab glyph; becomes ⏹
 during a generation). `refactor/unify-action-buttons`.

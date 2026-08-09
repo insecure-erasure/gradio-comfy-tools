@@ -93,24 +93,27 @@ function snapVideoFrames(v) {
   if (v - snapped > 2) snapped += 4;
   return Math.min(snapped, 161);
 }
-function stepVideoFrames(d) { const input = document.getElementById('videoFrames'); input.value = snapVideoFrames(parseInt(input.value) + d); }
-function onVideoFramesInput() { const input = document.getElementById('videoFrames'); input.value = snapVideoFrames(parseInt(input.value)); }
-function stepVideoSteps(d) { const input = document.getElementById('videoSteps'); const val = Math.min(10, Math.max(4, parseInt(input.value) + d)); input.value = val; }
+function stepVideoFrames(d) { const input = document.getElementById('videoFrames'); input.value = snapVideoFrames(parseInt(input.value) + d); updatePromptChips(); }
+function onVideoFramesInput() { const input = document.getElementById('videoFrames'); input.value = snapVideoFrames(parseInt(input.value)); updatePromptChips(); }
+function stepVideoSteps(d) { const input = document.getElementById('videoSteps'); const val = Math.min(10, Math.max(4, parseInt(input.value) + d)); input.value = val; updatePromptChips(); }
 function onVideoStepsInput() {
   const input = document.getElementById('videoSteps');
   const v = parseInt(input.value);
   if (isNaN(v) || v < 4) input.value = 4;
   if (v > 10) input.value = 10;
+  updatePromptChips();
 }
-function stepVideoSeed(d) { const input = document.getElementById('videoSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
+function stepVideoSeed(d) { const input = document.getElementById('videoSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
 function onVideoSeedInput() {
   const input = document.getElementById('videoSeed');
   if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('videoSeedRandom').checked = false;
   input.disabled = false;
+  updatePromptChips();
 }
 function onVideoSeedRandomToggle() {
   document.getElementById('videoSeed').disabled = document.getElementById('videoSeedRandom').checked;
+  updatePromptChips();
 }
 
 // ── ↺ Reset ───────────────────────────────
@@ -135,5 +138,6 @@ function resetVideo() {
     }
   }
   clearPane('videoOutputPane');
+  updatePromptChips();
   showToast('Video parameters reset');
 }

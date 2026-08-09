@@ -23,8 +23,8 @@
     <!-- Generate parameter controls (moved to the prompt-chip popover by
          renderPromptChips on load — the IDs are unchanged, so storage.js and
          generate.js keep working without modifications). -->
-    <div id="genParams" hidden>
-      <div id="genParamsDims">
+    <div id="genParams" data-params-block hidden>
+      <div id="genParamsDims" data-chip-section="dims">
         <!-- Row 1: W | H (read-only) -->
         <div class="field-row">
           <div class="field-inline" style="flex:1"><label title="Width (read-only)">↔️</label><span class="readonly-field" id="genWidth">832</span></div>
@@ -65,7 +65,7 @@
           </div>
         </div>
       </div>
-      <div id="genParamsStepSeed">
+      <div id="genParamsStepSeed" data-chip-section="stepseed">
         <!-- Row: Steps -->
         <div class="field-row">
           <div class="field-inline" style="flex:1">

@@ -22,28 +22,41 @@
           <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
-          <!-- Row: Steps | Seed + Random -->
-          <div class="field-row">
-            <div class="field-inline">
-              <label title="Steps">👣</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepEditSteps(-1)" title="Decrease">−</button>
-                <input type="number" id="editSteps" value="6" min="1" max="15" step="1" oninput="onEditStepsInput()">
-                <button class="stepper-btn" onclick="stepEditSteps(1)" title="Increase">+</button>
-              </div>
+          <!-- Edit parameters live in the 👣 prompt chip (see #editParams
+               below): renderPromptChips moves them into the chip popover,
+               so the prompt fills this pane. -->
+        </div>
+      </div>
+    </div>
+    <!-- Edit parameter controls (moved to the 👣 chip popover by
+         renderPromptChips — the IDs are unchanged, so storage.js and
+         edit.js keep working without modifications). -->
+    <div id="editParams" data-params-block hidden>
+      <div id="editParamsStepSeed" data-chip-section="stepseed">
+        <!-- Row: Steps -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Steps">👣</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepEditSteps(-1)" title="Decrease">−</button>
+              <input type="number" id="editSteps" value="6" min="1" max="15" step="1" oninput="onEditStepsInput()">
+              <button class="stepper-btn" onclick="stepEditSteps(1)" title="Increase">+</button>
             </div>
-            <div class="field-inline" style="flex:1.6">
-              <label title="Seed">🌱</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepEditSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="editSeed" value="0" min="0" step="1" disabled oninput="onEditSeedInput()">
-                <button class="stepper-btn" onclick="stepEditSeed(1)" title="Increase">+</button>
-              </div>
-              <label class="check-label" style="margin-left:4px">
-                <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
-                🎲
-              </label>
+          </div>
+        </div>
+        <!-- Row: Seed + Random -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Seed">🌱</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepEditSeed(-1)" title="Decrease">−</button>
+              <input type="number" id="editSeed" value="0" min="0" step="1" disabled oninput="onEditSeedInput()">
+              <button class="stepper-btn" onclick="stepEditSeed(1)" title="Increase">+</button>
             </div>
+            <label class="check-label" style="margin-left:4px">
+              <input type="checkbox" id="editSeedRandom" checked onchange="onEditSeedRandomToggle()">
+              🎲
+            </label>
           </div>
         </div>
       </div>

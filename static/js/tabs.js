@@ -402,88 +402,146 @@ if (window.visualViewport) {
 // ── Prompt parameter chips ─────────────────
 // The per-tab parameter buttons are unified as chips OVERLAYED on the prompt
 // textarea (.prompt-chips inside .prompt-input-wrap); clicking one opens a
-// small popover (#chipPopover) with the actual controls. For Generate the
-// former params-pane fields (now in #genParams in tab_generate.html) are
-// moved into the popover body once on load — the prompt textarea then takes
-// over the whole params pane. The control IDs are unchanged, so storage.js /
-// generate.js / reset work without modifications.
+// small popover (#chipPopover) with the actual controls. Each tab's former
+// params-pane fields now live in a hidden block (#{tab}Params in the tab
+// partials) and are moved into the popover body — only the ACTIVE tab's
+// block is mounted. The control IDs are unchanged, so storage.js / the tool
+// modules / reset work without modifications.
 
-// Render the chips of the active tab. Only Generate has chips in this
-// iteration (📏 dimensions + 👣 steps/seed); the other tabs keep their
-// params-pane controls, and the chips box stays empty.
+// Chip definitions per tab (kind -> icon + tooltip). The label ids follow
+// CHIP_IDS below.
+const CHIP_CONFIGS = {
+  generate: [
+    { kind: 'dims', icon: '📏', title: 'Image dimensions (aspect ratio, megapixels)' },
+    { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
+  ],
+  edit: [
+    { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
+  ],
+  video: [
+    { kind: 'frames', icon: '🎞️', title: 'Frames (4n+1, 81–161)' },
+    { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
+  ],
+  // Upscale has no prompt — its seed chip lives in the params pane
+  // (#upscaleChips), not over the textarea.
+  upscale: [
+    { kind: 'seed', icon: '🌱', title: 'Seed' },
+  ],
+};
+
+const CHIP_IDS = {
+  dims: 'chipDims', frames: 'chipFrames', stepseed: 'chipStepSeed', seed: 'chipSeed',
+};
+const CHIP_LABEL_IDS = {
+  dims: 'chipDimsLabel', frames: 'chipFramesLabel', stepseed: 'chipStepSeedLabel', seed: 'chipSeedLabel',
+};
+const CHIP_KIND_INFO = {
+  dims: { title: 'Dimensions' },
+  frames: { title: 'Frames' },
+  stepseed: { title: 'Steps & seed' },
+  seed: { title: 'Seed' },
+};
+
+// The params block id per tab. NB: Generate's block is GENparams (abbreviated
+// from the original template) — the generic `${currentTab}Params` would look
+// for a non-existent 'generateParams'.
+const PARAMS_BLOCK_IDS = {
+  generate: 'genParams', edit: 'editParams', video: 'videoParams', upscale: 'upscaleParams',
+};
+
+// Render the chips of the active tab and mount its params block into the
+// popover body. Called on every tab switch (switchTab). Blocks are NEVER
+// removed from the DOM (the controls' ids must keep resolving globally for
+// storage.js / the tool modules); only the active tab's block is shown.
 function renderPromptChips() {
-  const box = document.getElementById('promptChips');
-  if (!box) return;
-  // Move the Generate params into the chip popover once (it stays there).
-  const params = document.getElementById('genParams');
   const popBody = document.getElementById('chipPopoverBody');
-  if (params && popBody && params.parentElement !== popBody) {
-    params.removeAttribute('hidden'); // visibility is per-section (dims/stepseed)
-    popBody.appendChild(params);
+  const blockId = PARAMS_BLOCK_IDS[currentTab];
+  if (popBody) {
+    // Hide every mounted block except the active tab's.
+    popBody.querySelectorAll('[data-params-block]').forEach(b => {
+      b.hidden = b.id !== blockId;
+    });
+    const params = document.getElementById(blockId);
+    if (params && params.parentElement !== popBody) {
+      params.removeAttribute('hidden'); // visibility is per-tab + per-section
+      popBody.appendChild(params);
+    }
   }
-  if (currentTab !== 'generate') {
-    box.innerHTML = '';
-    delete box.dataset.rendered;
-    return;
-  }
-  if (box.dataset.rendered === 'generate' && box.children.length) {
+  // The chip container: the prompt chips for tabs with a prompt (generate /
+  // edit / video), the params-pane chips for upscale (no prompt).
+  const box = document.getElementById('promptChips');
+  const upBox = document.getElementById('upscaleChips');
+  const target = currentTab === 'upscale' ? upBox : box;
+  if (!target) return;
+  const cfg = CHIP_CONFIGS[currentTab] || [];
+  if (target.dataset.rendered === currentTab && target.children.length) {
     updatePromptChips();
     return;
   }
-  box.dataset.rendered = 'generate';
-  box.innerHTML =
-    '<button class="prompt-chip chip-dims" id="chipDims" onclick="toggleChipPopover(\'dims\')" title="Image dimensions (aspect ratio, megapixels)">' +
-      '<span class="chip-icon">📏</span><span class="chip-label" id="chipDimsLabel">—</span>' +
-    '</button>' +
-    '<button class="prompt-chip chip-stepseed" id="chipStepSeed" onclick="toggleChipPopover(\'stepseed\')" title="Steps and seed">' +
-      '<span class="chip-icon">👣</span><span class="chip-label" id="chipStepSeedLabel">—</span>' +
-    '</button>';
+  target.dataset.rendered = currentTab;
+  target.innerHTML = cfg.map(c =>
+    `<button class="prompt-chip" data-kind="${c.kind}" id="${CHIP_IDS[c.kind]}" onclick="toggleChipPopover('${c.kind}')" title="${c.title}">` +
+      `<span class="chip-icon">${c.icon}</span><span class="chip-label" id="${CHIP_LABEL_IDS[c.kind]}">—</span>` +
+    `</button>`
+  ).join('');
   updatePromptChips();
 }
 
-// Refresh the chip labels from the current control values (aspect ratio for
-// the dimensions chip; steps · 🎲 while the seed is random, steps only when
-// the seed is fixed — the separator + dice disappear as the fixed-seed cue).
+// Refresh the chip labels from the active tab's controls.
 function updatePromptChips() {
+  // 📏 Dimensions (generate): the aspect ratio (the AR select value).
   const dimsLabel = document.getElementById('chipDimsLabel');
   if (dimsLabel) {
-    // Show the aspect ratio (the select value, e.g. "2:3") — not W×H.
     const ar = document.getElementById('genAspectRatio');
     dimsLabel.textContent = (ar && ar.value) ? ar.value : '—';
   }
+  // 🎞️ Frames (video)
+  const framesLabel = document.getElementById('chipFramesLabel');
+  if (framesLabel) {
+    const f = document.getElementById('videoFrames');
+    framesLabel.textContent = (f && f.value) ? f.value : '—';
+  }
+  // 👣 Steps & seed (generate/edit/video): "steps · 🎲" while the seed is
+  // random; when it is FIXED the separator and the dice disappear (steps
+  // only) — that is the visual cue.
   const ssLabel = document.getElementById('chipStepSeedLabel');
   if (ssLabel) {
-    const steps = document.getElementById('genSteps');
-    const rnd = document.getElementById('genSeedRandom');
-    if (steps) {
-      // Semilla aleatoria (🎲) → "steps · 🎲". Semilla fija → solo "steps":
-      // el separador y el dado desaparecen — esa es la pista visual de que
-      // la semilla está fijada (el valor exacto se ve en el popover).
-      ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
+    const ids = {
+      generate: ['genSteps', 'genSeedRandom'],
+      edit: ['editSteps', 'editSeedRandom'],
+      video: ['videoSteps', 'videoSeedRandom'],
+    }[currentTab];
+    if (ids) {
+      const steps = document.getElementById(ids[0]);
+      const rnd = document.getElementById(ids[1]);
+      if (steps) {
+        ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
+      }
     }
+  }
+  // 🌱 Seed (upscale): 🎲 while random, the value when fixed.
+  const seedLabel = document.getElementById('chipSeedLabel');
+  if (seedLabel) {
+    const rnd = document.getElementById('upscaleSeedRandom');
+    const seed = document.getElementById('upscaleSeed');
+    seedLabel.textContent = (rnd && rnd.checked) ? '🎲' : (seed ? seed.value : '0');
   }
 }
 
-// Open the chip popover showing the matching section of the Generate params
-// ('dims' → #genParamsDims, 'stepseed' → #genParamsStepSeed), anchored under
-// the clicked chip. Repositions above the chip when it would overflow the
-// bottom of the viewport.
+// Open the chip popover showing the matching section of the active tab's
+// params block ('dims'/'frames'/'stepseed'/'seed' → #{tab}Params{Kind}),
+// anchored under the clicked chip. Repositions above the chip when it would
+// overflow the bottom of the viewport.
 function openChipPopover(kind) {
   const pop = document.getElementById('chipPopover');
-  const title = document.getElementById('chipPopoverTitle');
-  const dims = document.getElementById('genParamsDims');
-  const ss = document.getElementById('genParamsStepSeed');
-  if (!pop || !dims || !ss) return;
-  if (kind === 'dims') {
-    dims.hidden = false;
-    ss.hidden = true;
-    title.textContent = 'Dimensions';
-  } else {
-    dims.hidden = true;
-    ss.hidden = false;
-    title.textContent = 'Steps & seed';
-  }
-  const chip = document.getElementById(kind === 'dims' ? 'chipDims' : 'chipStepSeed');
+  const block = document.getElementById(PARAMS_BLOCK_IDS[currentTab]);
+  if (!pop || !block) return;
+  block.querySelectorAll('[data-chip-section]').forEach(s => {
+    s.hidden = s.dataset.chipSection !== kind;
+  });
+  const info = CHIP_KIND_INFO[kind] || {};
+  document.getElementById('chipPopoverTitle').textContent = info.title || kind;
+  const chip = document.getElementById(CHIP_IDS[kind]);
   if (chip) {
     const r = chip.getBoundingClientRect();
     const pw = pop.offsetWidth || 280;
@@ -520,9 +578,10 @@ function closeChipPopover() {
 }
 
 // Close when clicking outside the popover and the chips (a click on the
-// chips themselves toggles, never closes from behind).
+// chips themselves toggles, never closes from behind). #upscaleChips is the
+// upscale chip container in its params pane.
 document.addEventListener('click', e => {
-  if (e.target.closest('#chipPopover, #promptChips')) return;
+  if (e.target.closest('#chipPopover, #promptChips, #upscaleChips')) return;
   closeChipPopover();
 });
 

@@ -22,20 +22,31 @@
           <div class="gen-spinner" id="upscaleSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
-          <!-- Row: Seed + Random -->
-          <div class="field-row">
-            <div class="field-inline" style="flex:1.6">
-              <label title="Seed">🌱</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepUpscaleSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="upscaleSeed" value="0" min="0" step="1" disabled oninput="onUpscaleSeedInput()">
-                <button class="stepper-btn" onclick="stepUpscaleSeed(1)" title="Increase">+</button>
-              </div>
-              <label class="check-label" style="margin-left:4px">
-                <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
-                🎲
-              </label>
+          <!-- Upscale has no prompt — its 🌱 seed chip lives HERE (in the
+               params pane, see #upscaleChips), and the controls move to the
+               chip popover by renderPromptChips (see #upscaleParams below). -->
+          <div class="upscale-chips" id="upscaleChips"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Upscale parameter controls (moved to the 🌱 chip popover by
+         renderPromptChips — the IDs are unchanged, so storage.js and
+         upscale.js keep working without modifications). -->
+    <div id="upscaleParams" data-params-block hidden>
+      <div id="upscaleParamsSeed" data-chip-section="seed">
+        <!-- Row: Seed + Random -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Seed">🌱</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepUpscaleSeed(-1)" title="Decrease">−</button>
+              <input type="number" id="upscaleSeed" value="0" min="0" step="1" disabled oninput="onUpscaleSeedInput()">
+              <button class="stepper-btn" onclick="stepUpscaleSeed(1)" title="Increase">+</button>
             </div>
+            <label class="check-label" style="margin-left:4px">
+              <input type="checkbox" id="upscaleSeedRandom" checked onchange="onUpscaleSeedRandomToggle()">
+              🎲
+            </label>
           </div>
         </div>
       </div>

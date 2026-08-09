@@ -91,22 +91,25 @@ function generateEdit(forceMode) {
 }
 
 // ── Steppers + seed ───────────────────────
-function stepEditSteps(d) { const input = document.getElementById('editSteps'); input.value = Math.min(15, Math.max(1, parseInt(input.value) + d)); }
+function stepEditSteps(d) { const input = document.getElementById('editSteps'); input.value = Math.min(15, Math.max(1, parseInt(input.value) + d)); updatePromptChips(); }
 function onEditStepsInput() {
   const input = document.getElementById('editSteps');
   const v = parseInt(input.value);
   if (isNaN(v) || v < 1) input.value = 1;
   if (v > 15) input.value = 15;
+  updatePromptChips();
 }
-function stepEditSeed(d) { const input = document.getElementById('editSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
+function stepEditSeed(d) { const input = document.getElementById('editSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
 function onEditSeedInput() {
   const input = document.getElementById('editSeed');
   if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('editSeedRandom').checked = false;
   input.disabled = false;
+  updatePromptChips();
 }
 function onEditSeedRandomToggle() {
   document.getElementById('editSeed').disabled = document.getElementById('editSeedRandom').checked;
+  updatePromptChips();
 }
 
 // ── ↺ Reset ───────────────────────────────
@@ -119,5 +122,6 @@ function resetEdit() {
   document.getElementById('editSeedRandom').checked = true;
   document.getElementById('editSeed').disabled = true;
   clearPane('editOutputPane');
+  updatePromptChips();
   showToast('Edit parameters reset');
 }

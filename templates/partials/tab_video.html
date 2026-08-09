@@ -15,36 +15,54 @@
           <div class="gen-spinner" id="videoSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
-          <!-- Row: Frames | Steps | Seed + Random -->
-          <div class="field-row">
-            <div class="field-inline" style="flex:0.7">
-              <label title="Frames (4n+1, 81–161)">🎞️</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
-                <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
-                <button class="stepper-btn" onclick="stepVideoFrames(4)" title="Increase">+</button>
-              </div>
+          <!-- Video parameters live in the 🎞️/👣 prompt chips (see
+               #videoParams below): renderPromptChips moves them into the
+               chip popover, so the prompt fills this pane. -->
+        </div>
+      </div>
+    </div>
+    <!-- Video parameter controls (moved to the 🎞️/👣 chip popover by
+         renderPromptChips — the IDs are unchanged, so storage.js and
+         video.js keep working without modifications). -->
+    <div id="videoParams" data-params-block hidden>
+      <div id="videoParamsFrames" data-chip-section="frames">
+        <!-- Row: Frames -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Frames (4n+1, 81–161)">🎞️</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepVideoFrames(-4)" title="Decrease">−</button>
+              <input type="number" id="videoFrames" value="81" min="81" max="161" step="4" oninput="onVideoFramesInput()">
+              <button class="stepper-btn" onclick="stepVideoFrames(4)" title="Increase">+</button>
             </div>
-            <div class="field-inline" style="flex:0.9">
-              <label title="Steps (4–10)">👣</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
-                <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
-                <button class="stepper-btn" onclick="stepVideoSteps(1)" title="Increase">+</button>
-              </div>
+          </div>
+        </div>
+      </div>
+      <div id="videoParamsStepSeed" data-chip-section="stepseed">
+        <!-- Row: Steps -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Steps (4–10)">👣</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepVideoSteps(-1)" title="Decrease">−</button>
+              <input type="number" id="videoSteps" value="4" min="4" max="10" step="1" oninput="onVideoStepsInput()">
+              <button class="stepper-btn" onclick="stepVideoSteps(1)" title="Increase">+</button>
             </div>
-            <div class="field-inline" style="flex:1.8">
-              <label title="Seed">🌱</label>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
-                <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
-                <button class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase">+</button>
-              </div>
-              <label class="check-label" style="margin-left:4px">
-                <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
-                🎲
-              </label>
+          </div>
+        </div>
+        <!-- Row: Seed + Random -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Seed">🌱</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
+              <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
+              <button class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase">+</button>
             </div>
+            <label class="check-label" style="margin-left:4px">
+              <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">
+              🎲
+            </label>
           </div>
         </div>
       </div>

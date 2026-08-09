@@ -44,11 +44,14 @@
       padding: 6px 14px;
       gap: 0;
     }
-    /* Generate (portrait): the params moved into the prompt-chip popover
-       (📏/👣), so this params pane is empty — hide it and let the output
-       fill the split. The controls live in the chips (visible in the
-       fullscreen prompt modal, see .prompt-chips below). */
-    #tab-generate .params-pane { display: none; }
+    /* Generate/Edit/Video (portrait): the params moved into the prompt-chip
+       popover (📏/👣/🎞️), so these params panes are empty — hide them and
+       let the output fill the split. The controls live in the chips
+       (visible in the fullscreen prompt modal, see .prompt-chips below).
+       Upscale keeps its params pane (its 🌱 chip lives there — no prompt). */
+    #tab-generate .params-pane,
+    #tab-edit .params-pane,
+    #tab-video .params-pane { display: none; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     /* Portrait: the prompt becomes a compact single-line field. The ✕ clear
@@ -187,7 +190,7 @@
       align-items: center;
       gap: 8px;
     }
-    #tab-upscale .params-pane .field-row {
+    #tab-upscale .params-pane .upscale-chips {
       flex: 1;
       min-width: 0;
     }
