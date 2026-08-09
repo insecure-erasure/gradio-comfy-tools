@@ -198,7 +198,15 @@ empty and the prompt fills it; see also deviation 14):
 ### 3.4 Video 🎬
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
-  real `<video>` player.
+  **custom video player** (`static/js/player.js`, replaces the native
+  controls): autoplay muted loop; bottom-centered ▶/⏸ + ⋮ controls (⋮
+  placeholder for the options menu) with optically centered glyphs; a thin
+  accent progress line at the very bottom edge (rAF-driven, always
+  visible); a **fullscreen overlay button ⛶ top-right** (same style as the
+  compare sliders' button — `.output-overlay-btn.top-right`) that toggles
+  real browser fullscreen and becomes ✕ in the same spot while in
+  fullscreen; **single click anywhere on the video toggles play/pause,
+  double click toggles fullscreen** (controls excluded).
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
 - **Params**: two chips over the prompt textarea — **🎞️ Frames** (shows
   the frame count, popover with the 81–161 stepper, step 4, 4n+1 snap) and

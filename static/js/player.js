@@ -13,6 +13,11 @@
 //     ALWAYS visible (feedback while it plays / loops)
 //   - portrait: the buttons are a bit LARGER (touch targets), still
 //     bottom-centered
+//   - single click anywhere on the video toggles play/pause; double click
+//     toggles browser fullscreen
+//   - fullscreen overlay button (⛶) top-right, same style as the compare
+//     sliders' button (.output-overlay-btn.top-right); in fullscreen it
+//     becomes ✕ exit in the same spot
 function createVideoPlayer(src) {
   const wrap = document.createElement('div');
   wrap.className = 'video-player';
@@ -38,14 +43,16 @@ function createVideoPlayer(src) {
   const ctrl = document.createElement('div');
   ctrl.className = 'video-controls';
 
+  const togglePlay = () => {
+    if (v.paused) { v.play().catch(() => {}); } else { v.pause(); }
+  };
+
   const playBtn = document.createElement('button');
   playBtn.type = 'button';
   playBtn.className = 'video-play-btn';
   playBtn.title = 'Pause';
   playBtn.setAttribute('aria-label', 'Pause');
-  playBtn.addEventListener('click', () => {
-    if (v.paused) { v.play().catch(() => {}); } else { v.pause(); }
-  });
+  playBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
   const setGlyph = (b, glyph) => {
     b.textContent = glyph;
     // The ▶/⏸/⋮ glyphs are not optically centered in their em box (each
@@ -95,11 +102,61 @@ function createVideoPlayer(src) {
   moreBtn.title = 'More options';
   moreBtn.setAttribute('aria-label', 'More options');
   // Placeholder: the options menu (speed/loop/download/…) comes later.
-  moreBtn.addEventListener('click', () => showToast('More options coming soon'));
+  moreBtn.addEventListener('click', (e) => { e.stopPropagation(); showToast('More options coming soon'); });
 
   ctrl.appendChild(playBtn);
   ctrl.appendChild(moreBtn);
   wrap.appendChild(ctrl);
+
+  // Fullscreen overlay button — top-right, SAME style as the compare
+  // sliders' ⛶ (.output-overlay-btn.top-right). Toggles real browser
+  // fullscreen of the whole player; in fullscreen it becomes the ✕ exit
+  // button in the SAME spot (fullscreenchange keeps it in sync, so Esc
+  // also updates it).
+  const fsBtn = document.createElement('button');
+  fsBtn.type = 'button';
+  fsBtn.className = 'output-overlay-btn top-right video-fs-btn';
+  fsBtn.textContent = '⛶';
+  fsBtn.title = 'Fullscreen';
+  fsBtn.setAttribute('aria-label', 'Fullscreen');
+  const syncFsBtn = () => {
+    const fs = document.fullscreenElement === wrap;
+    fsBtn.textContent = fs ? '✕' : '⛶';
+    fsBtn.title = fs ? 'Exit fullscreen' : 'Fullscreen';
+    fsBtn.setAttribute('aria-label', fs ? 'Exit fullscreen' : 'Fullscreen');
+  };
+  document.addEventListener('fullscreenchange', syncFsBtn);
+  document.addEventListener('webkitfullscreenchange', syncFsBtn); // Safari
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } else if (wrap.requestFullscreen) {
+      wrap.requestFullscreen().catch(() => {});
+    } else if (wrap.webkitRequestFullscreen) {
+      wrap.webkitRequestFullscreen();
+    }
+  };
+  fsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
+  wrap.appendChild(fsBtn);
+
+  // Single click anywhere on the video area toggles play/pause; a double
+  // click goes fullscreen. The controls (play/more/fullscreen buttons) are
+  // excluded (their own handlers + stopPropagation). The single-click is
+  // deferred ~250ms so the first click of a double-click doesn't also
+  // toggle play/pause.
+  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-more-btn, .video-fs-btn'));
+  let clickTimer = null;
+  wrap.addEventListener('click', (e) => {
+    if (isControl(e.target)) return;
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; } // second click of a dblclick — dblclick handler owns it
+    clickTimer = setTimeout(() => { clickTimer = null; togglePlay(); }, 250);
+  });
+  wrap.addEventListener('dblclick', (e) => {
+    if (isControl(e.target)) return;
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+    toggleFullscreen();
+  });
 
   // Progress fill — animated with requestAnimationFrame WHILE PLAYING: the
   // timeupdate event only fires ~4×/s (250ms steps), which reads as jerky
