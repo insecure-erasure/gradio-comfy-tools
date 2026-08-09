@@ -437,6 +437,16 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   /api/cancel` (`/interrupt` + `/queue delete`) and aborts the in-flight
   fetch; the 📋 copy button is hidden while generating and restored on
   settle.
+- **FIX (2026-08-09)**: **⏹ stop button unclickable during a generation** —
+  the `.btn-col.generating` rule showed the click-catcher overlay on EVERY
+  action button, including the stop-transformed trigger (which is ENABLED),
+  so clicks on ⏹ hit the invisible catcher ("Generation in progress…"
+  toast) and never cancelled. Fix: `.btn-col.generating
+  .btn-wrap:has(.btn-generate:not(:disabled)) .btn-catcher { display: none }`
+  — the catcher only overlays DISABLED buttons. Also: the prompt modal's
+  stop button now matches the actual trigger (🩹 restore → 🩹 becomes ⏹;
+  ✨/🖌️/🎬 → ✨ becomes ⏹), and `switchTab` refreshes the modal actions so
+  a tab switch with the modal open doesn't leave stale glyphs/visibility.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +

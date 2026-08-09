@@ -102,6 +102,10 @@ function switchTab(name) {
   // Per-tab parameter chips overlaid on the prompt field (Generate: 📏 dims
   // + 👣 steps/seed — the other tabs keep their params-pane controls for now)
   renderPromptChips();
+  // The modal's action buttons (🩹 restore show/hide, per-tab ✨ glyph) must
+  // follow the new tab even when the modal is already open (openPromptModal
+  // early-returns in that case).
+  updatePromptModalActions();
 
   // Enable/disable the action button(s) based on the prompt state
   updateActionButtons();

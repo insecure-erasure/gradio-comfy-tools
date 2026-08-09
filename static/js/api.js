@@ -236,10 +236,18 @@ function applyGenerationLock() {
     else b.disabled = true;
   });
   document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
-  // The prompt-modal direct-generate button (portrait) also becomes the ⏹
-  // stop button, and the ✕ clear is disabled — the prompt is locked.
-  const modalGen = document.getElementById('promptGenerateBtn');
-  if (modalGen) makeStopButton(modalGen);
+  // The prompt-modal action button (portrait) matching the trigger also
+  // becomes the ⏹ stop button (✨ for generate/video, 🖌️ for edit, 🩹 for
+  // restore — the OTHER modal action stays disabled), and the ✕ clear is
+  // disabled — the prompt is locked.
+  const modalActionForTrigger = {
+    btnGenerate: 'promptGenerateBtn',
+    btnVideo: 'promptGenerateBtn',
+    btnEdit: 'promptGenerateBtn',
+    btnRestore: 'promptRestoreBtn',
+  }[genTriggerId] || 'promptGenerateBtn';
+  const modalStop = document.getElementById(modalActionForTrigger);
+  if (modalStop) makeStopButton(modalStop);
   document.querySelectorAll('.prompt-clear').forEach(b => { b.disabled = true; });
   const btnCol = document.getElementById('btnCol');
   _genCatchers = []; // previous catchers were rebuilt away by switchTab — drop them

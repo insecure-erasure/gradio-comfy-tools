@@ -433,6 +433,14 @@
   .btn-col.generating .btn-catcher {
     display: block;
   }
+  /* BUT the stop-transformed trigger button (⏹) is ENABLED — its catcher
+     must not sit on top of it, or every click would hit the invisible
+     overlay (toasting "Generation in progress…") and the ⏹ would never
+     receive the click. The rule below overrides the .generating one for
+     the wrap whose .btn-generate is NOT disabled (the stop button). */
+  .btn-col.generating .btn-wrap:has(.btn-generate:not(:disabled)) .btn-catcher {
+    display: none;
+  }
   /* The prompt textarea is dimmed + non-editable while refining (the text
      arrives progressively via streaming, so editing mid-refine is blocked)
      and while a generation runs (typing is blocked — api.js
