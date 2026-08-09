@@ -71,11 +71,22 @@ function createVideoPlayer(src) {
   ctrl.appendChild(moreBtn);
   wrap.appendChild(ctrl);
 
-  // Progress fill: 0 until metadata, then tracks currentTime.
-  v.addEventListener('loadedmetadata', () => { fill.style.width = '0%'; });
-  v.addEventListener('timeupdate', () => {
+  // Progress fill — animated with requestAnimationFrame WHILE PLAYING: the
+  // timeupdate event only fires ~4×/s (250ms steps), which reads as jerky
+  // "tirones". rAF re-renders the fill every frame (~60fps) for a smooth
+  // bar; the loop is stopped on pause so a paused video doesn't burn CPU.
+  let rafId = null;
+  function paintProgress() {
     if (v.duration) fill.style.width = Math.min(100, (v.currentTime / v.duration) * 100) + '%';
-  });
+    rafId = requestAnimationFrame(paintProgress);
+  }
+  function stopProgress() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+  v.addEventListener('loadedmetadata', () => { fill.style.width = '0%'; });
+  v.addEventListener('play', () => { if (!rafId) paintProgress(); });
+  v.addEventListener('pause', stopProgress);
+  v.addEventListener('ended', () => { stopProgress(); fill.style.width = '100%'; });
 
   return wrap;
 }

@@ -1011,7 +1011,8 @@
     height: 100%;
     width: 0%;
     background: var(--accent);
-    transition: width .15s linear;
+    /* no transition: the fill is repainted every frame by requestAnimationFrame
+       (player.js) — a CSS transition would only add lag chasing the playhead */
   }
   /* Bottom-CENTERED control cluster: ▶/⏸ + ⋮. Never vertically centered. */
   .video-controls {
