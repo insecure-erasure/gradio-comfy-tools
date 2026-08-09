@@ -412,31 +412,28 @@ def test_media_proxy(client, tmp_config, monkeypatch):
         async def aiter_bytes(self):
             yield b"\x89PNG"
 
+    class FakeRequest:
+        def __init__(self, url, headers):
+            self.url = url
+            self.headers = headers or {}
+
     class FakeAsyncClient:
         def __init__(self, *a, **kw):
             pass
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *a):
-            return None
-
-        def stream(self, method, url, headers=None):
+        def build_request(self, method, url, headers=None):
             assert method == "GET"
             assert "filename=out.png&type=output" in url
-            # the caller uses `async with client.stream(...) as resp`
-            return _FakeStreamContext(FakeResp())
+            return FakeRequest(url, headers)
 
-    class _FakeStreamContext:
-        def __init__(self, resp):
-            self._resp = resp
+        async def send(self, request, stream=False):
+            # the endpoint streams: the client must stay alive until the
+            # body is consumed (StreamingResponse + BackgroundTask aclose)
+            assert stream is True
+            return FakeResp()
 
-        async def __aenter__(self):
-            return self._resp
-
-        async def __aexit__(self, *a):
-            return None
+        async def aclose(self):
+            pass
 
     monkeypatch.setattr(server.httpx, "AsyncClient", FakeAsyncClient)
     resp = client.get("/media/out.png?type=output")
@@ -462,29 +459,24 @@ def test_media_proxy_range_206(client, tmp_config, monkeypatch):
         async def aiter_bytes(self):
             yield b"\x00" * 16
 
+    class FakeRequest:
+        def __init__(self, url, headers):
+            self.url = url
+            self.headers = headers or {}
+
     class FakeAsyncClient:
         def __init__(self, *a, **kw):
             pass
 
-        async def __aenter__(self):
-            return self
-
-        async def __aexit__(self, *a):
-            return None
-
-        def stream(self, method, url, headers=None):
+        def build_request(self, method, url, headers=None):
             assert headers == {"Range": "bytes=0-1023"}  # the range is passed through
-            return _FakeStreamContext(FakeResp())
+            return FakeRequest(url, headers)
 
-    class _FakeStreamContext:
-        def __init__(self, resp):
-            self._resp = resp
+        async def send(self, request, stream=False):
+            return FakeResp()
 
-        async def __aenter__(self):
-            return self._resp
-
-        async def __aexit__(self, *a):
-            return None
+        async def aclose(self):
+            pass
 
     monkeypatch.setattr(server.httpx, "AsyncClient", FakeAsyncClient)
     resp = client.get("/media/out.mp4?type=output", headers={"Range": "bytes=0-1023"})

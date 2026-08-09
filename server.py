@@ -33,6 +33,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
+from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.requests import Request
@@ -557,32 +558,51 @@ async def media(filename: str, type: str = "output", range: str | None = Header(
     a full-buffer proxy (previous implementation) made videos unplayable
     until the whole file was downloaded (Wan MP4s are 20MB+, painful on
     vertical/mobile). Videos/images now start rendering while streaming.
+
+    The upstream client must stay ALIVE until Starlette has streamed the
+    whole body: the previous implementation returned the StreamingResponse
+    inside ``async with httpx.AsyncClient(...)``/``client.stream(...)``
+    blocks, which exited (closing the stream and the client) the moment the
+    handler returned — BEFORE Starlette iterated ``aiter_bytes()`` — so the
+    transfer died mid-body with ``httpx.StreamClosed`` (the browser showed
+    NS_ERROR_NET_PARTIAL_NETWORK_TRANSFER even though the upstream served
+    the file fully). The client is now created without a context manager and
+    closed via BackgroundTask once the response finishes streaming.
     """
     s = _settings()
     url = f"{s.media_base_url}/view?filename={filename}&type={type}"
     headers = {"Range": range} if range else None
+    client = httpx.AsyncClient(timeout=120)
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
-            async with client.stream("GET", url, headers=headers) as resp:
-                if resp.status_code >= 400:
-                    raise HTTPException(502, f"Could not fetch {url}: {resp.status_code}")
-                ctype = resp.headers.get("content-type", "application/octet-stream")
-                content_range = resp.headers.get("content-range")
-                resp_headers = {"Cache-Control": "no-store", "Content-Type": ctype}
-                if content_range:
-                    resp_headers["Content-Range"] = content_range
-                if resp.headers.get("accept-ranges"):
-                    resp_headers["Accept-Ranges"] = resp.headers.get("accept-ranges")
-                return StreamingResponse(
-                    resp.aiter_bytes(),
-                    status_code=resp.status_code,  # 206 for ranges, 200 otherwise
-                    media_type=ctype,
-                    headers=resp_headers,
-                )
-    except HTTPException:
-        raise
+        request = client.build_request("GET", url, headers=headers)
+        resp = await client.send(request, stream=True)
     except Exception as e:
+        await client.aclose()
         raise HTTPException(502, f"Could not fetch {url}: {e}") from e
+    if resp.status_code >= 400:
+        await resp.aclose()
+        await client.aclose()
+        raise HTTPException(502, f"Could not fetch {url}: {resp.status_code}")
+    ctype = resp.headers.get("content-type", "application/octet-stream")
+    content_range = resp.headers.get("content-range")
+    resp_headers = {"Cache-Control": "no-store", "Content-Type": ctype}
+    if content_range:
+        resp_headers["Content-Range"] = content_range
+    if resp.headers.get("accept-ranges"):
+        resp_headers["Accept-Ranges"] = resp.headers.get("accept-ranges")
+    # Forward the upstream Content-Length so the browser gets a known-size
+    # response (not chunked) — needed for <video> seeking/progress. When a
+    # Range was requested and the upstream answered 206, this is the length
+    # of the partial body (paired with Content-Range above).
+    if resp.headers.get("content-length"):
+        resp_headers["Content-Length"] = resp.headers["content-length"]
+    return StreamingResponse(
+        resp.aiter_bytes(),
+        status_code=resp.status_code,  # 206 for ranges, 200 otherwise
+        media_type=ctype,
+        headers=resp_headers,
+        background=BackgroundTask(client.aclose),  # close once streaming finishes
+    )
 
 
 # --------------------------------------------------------------------------- #
