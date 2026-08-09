@@ -43,25 +43,55 @@ function createVideoPlayer(src) {
   playBtn.className = 'video-play-btn';
   playBtn.title = 'Pause';
   playBtn.setAttribute('aria-label', 'Pause');
-  playBtn.textContent = '⏸'; // autoplay: it starts playing
   playBtn.addEventListener('click', () => {
     if (v.paused) { v.play().catch(() => {}); } else { v.pause(); }
   });
-  v.addEventListener('play', () => {
-    playBtn.textContent = '⏸';
-    playBtn.title = 'Pause';
-    playBtn.setAttribute('aria-label', 'Pause');
-  });
-  v.addEventListener('pause', () => {
-    playBtn.textContent = '▶';
-    playBtn.title = 'Play';
-    playBtn.setAttribute('aria-label', 'Play');
-  });
+  const setGlyph = (b, glyph) => {
+    b.textContent = glyph;
+    // The ▶/⏸/⋮ glyphs are not optically centered in their em box (each
+    // font carries its own metrics), so the bare glyph looks off-center in
+    // the round button. Measure the actual ink box of the rendered glyph
+    // with a hidden canvas and nudge its position so it IS centered. The
+    // measure uses the button's own font/size, so it adapts to any font or
+    // platform (no magic CSS numbers). Cheap: runs once per glyph swap.
+    centerGlyph(b);
+  };
+  const centerGlyph = (b) => {
+    const cs = getComputedStyle(b);
+    const size = parseFloat(cs.fontSize) || 16;
+    const canvas = centerGlyph._canvas || (centerGlyph._canvas = document.createElement('canvas'));
+    canvas.width = Math.ceil(size * 2);
+    canvas.height = Math.ceil(size * 2);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#000';
+    ctx.font = `${cs.fontWeight || 400} ${size}px ${cs.fontFamily || 'sans-serif'}`;
+    ctx.textBaseline = 'middle';
+    const cx = canvas.width / 2;
+    ctx.fillText(b.textContent, cx, canvas.height / 2);
+    const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    let minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        if (d[(y * canvas.width + x) * 4 + 3] > 20) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) return;
+    const inkCX = (minX + maxX) / 2;
+    const inkCY = (minY + maxY) / 2;
+    b.style.transform = `translate(${Math.round(cx - inkCX)}px, ${Math.round(canvas.height / 2 - inkCY)}px)`;
+  };
+  setGlyph(playBtn, '⏸'); // autoplay: it starts playing — centered from the start
 
   const moreBtn = document.createElement('button');
   moreBtn.type = 'button';
   moreBtn.className = 'video-more-btn';
-  moreBtn.textContent = '⋮';
+  setGlyph(moreBtn, '⋮');
   moreBtn.title = 'More options';
   moreBtn.setAttribute('aria-label', 'More options');
   // Placeholder: the options menu (speed/loop/download/…) comes later.
