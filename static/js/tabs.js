@@ -442,8 +442,8 @@ function renderPromptChips() {
 }
 
 // Refresh the chip labels from the current control values (aspect ratio for
-// the dimensions chip; steps · seed — 🎲 when random — for the steps/seed
-// chip).
+// the dimensions chip; steps · 🎲 while the seed is random, steps only when
+// the seed is fixed — the separator + dice disappear as the fixed-seed cue).
 function updatePromptChips() {
   const dimsLabel = document.getElementById('chipDimsLabel');
   if (dimsLabel) {
@@ -454,11 +454,12 @@ function updatePromptChips() {
   const ssLabel = document.getElementById('chipStepSeedLabel');
   if (ssLabel) {
     const steps = document.getElementById('genSteps');
-    const seed = document.getElementById('genSeed');
     const rnd = document.getElementById('genSeedRandom');
     if (steps) {
-      const seedTxt = (rnd && rnd.checked) ? '🎲' : (seed ? seed.value : '0');
-      ssLabel.textContent = `${steps.value} · ${seedTxt}`;
+      // Semilla aleatoria (🎲) → "steps · 🎲". Semilla fija → solo "steps":
+      // el separador y el dado desaparecen — esa es la pista visual de que
+      // la semilla está fijada (el valor exacto se ve en el popover).
+      ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
     }
   }
 }
