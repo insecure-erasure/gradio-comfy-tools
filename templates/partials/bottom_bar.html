@@ -10,7 +10,14 @@
         placeholder="Describe the image you want to generate in detail..."
         onclick="openPromptModal()"></textarea>
       <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
-      <button class="prompt-refine-btn" id="btnPromptRefine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button>
+      <!-- Overlay actions, bottom-right (portrait prompt modal only): 🪄
+           refine + ✨ direct generation — larger than the chips. In the
+           compact bar and in landscape they are hidden (CSS); the button
+           column (.btn-col) holds the same actions there. -->
+      <div class="prompt-actions" id="promptActions">
+        <button class="prompt-refine-btn" id="btnPromptRefine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button>
+        <button class="btn-generate prompt-generate-btn" id="promptGenerateBtn" onclick="promptModalGenerate()" title="Generate">✨</button>
+      </div>
       <!-- Per-tab parameter chips overlaid on the prompt field (renderPromptChips
            in tabs.js fills this): Generate shows 📏 dimensions + 👣 steps/seed.
            Clicking a chip opens the small popover with the actual controls. -->

@@ -308,6 +308,13 @@ function openPromptModal() {
   wrap.classList.add('modal-mode');
   modal.classList.add('show');
   fitPromptModal();   // fit to the visible area BEFORE focusing (keyboard)
+  updatePromptModalActions();
+  // A generation running while the modal opens: the direct-generate button
+  // must become the ⏹ stop button, not a disabled ✨.
+  if (genLockActive) {
+    const b = document.getElementById('promptGenerateBtn');
+    if (b) makeStopButton(b);
+  }
   input.focus();
 }
 
@@ -327,6 +334,47 @@ function closePromptModal() {
   modal.style.height = '';
   // The chips moved with the wrap — a popover anchored to them is stale now.
   closeChipPopover();
+}
+
+// ── Prompt modal direct actions ────────────
+// The portrait prompt modal has overlay pills in its bottom-right corner:
+// 🪄 refine (existing) + ✨ direct generation (per tab). The generate button
+// is the SAME class as the toolbar buttons (.btn-generate) so the generation
+// lock (makeStopButton/applyGenerationLock in api.js) turns it into the ⏹
+// stop button automatically.
+
+// Direct generation from the prompt modal: validates the prompt first (the
+// per-tab generators do too, but we must not close the modal when there is
+// nothing to run), closes the modal, then runs the active tab's action.
+function promptModalGenerate() {
+  const input = document.getElementById('promptInput');
+  const prompt = (input && input.value || '').trim();
+  const needsPrompt = currentTab === 'generate' || currentTab === 'edit' || currentTab === 'video';
+  if (needsPrompt && !prompt) return showToast('Please write a prompt first');
+  closePromptModal();
+  switch (currentTab) {
+    case 'generate': generateImage(); break;
+    case 'edit': generateEdit('edit'); break;
+    case 'video': generateVideo(); break;
+  }
+}
+
+// Set the glyph/title of the modal's direct-generate button for the active
+// tab (Upscale has no prompt modal — hidden defensively). Skipped while the
+// button is transformed into the ⏹ stop button (makeStopButton stash).
+function updatePromptModalActions() {
+  const btn = document.getElementById('promptGenerateBtn');
+  if (!btn) return;
+  const cfg = {
+    generate: { glyph: '✨', title: 'Generate' },
+    edit: { glyph: '🖌️', title: 'Edit' },
+    video: { glyph: '🎬', title: 'Generate video' },
+  }[currentTab];
+  if (!cfg) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  if (_genStopOrig.has(btn)) return; // already the ⏹ stop button
+  btn.textContent = cfg.glyph;
+  btn.title = cfg.title;
 }
 
 // Fit the fullscreen prompt modal to the ACTUAL visible area. The mobile

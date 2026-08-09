@@ -134,20 +134,59 @@
       height: auto;
       min-height: 0;
       width: 100%;
-      padding: 12px 14px 44px;    /* room for the overlay buttons */
+      padding: 12px 14px 58px;    /* room for the bottom-right action pills */
       overflow: auto;
       font-size: 1rem;
       line-height: 1.5;
     }
+    /* Clear button recovered in the modal (top-right), larger than the
+       chips — a pill like the bottom-right actions. display:flex overrides
+       .bottom-bar .prompt-clear{display:none} — the modal lives INSIDE
+       .bottom-bar in the DOM, so the compact-bar hiding would otherwise
+       keep it invisible here too. */
     .prompt-modal-box .prompt-clear {
-      position: absolute;         /* original overlay: top-right */
+      position: absolute;
       top: 8px;
       right: 8px;
+      display: flex;
+      width: auto;
+      height: auto;
+      padding: 6px 14px 7px;
+      border-radius: 999px;
+      font-size: .95rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
     }
-    .prompt-modal-box .prompt-refine-btn {
-      position: absolute;         /* original overlay: bottom-right */
-      bottom: 8px;
-      right: 8px;
+    .prompt-modal-box .prompt-clear:hover {
+      background: var(--surface-hover);
+      color: var(--text);
+    }
+    /* Bottom-right actions in the modal: 🪄 refine + ✨ direct generation,
+       side by side, larger than the chips (the base .prompt-refine-btn /
+       .prompt-generate-btn small circles are overridden to pills).
+       display:flex on the refine button overrides the compact-bar hiding
+       (see .prompt-clear above). */
+    .prompt-modal-box .prompt-actions {
+      display: flex;
+    }
+    .prompt-modal-box .prompt-refine-btn,
+    .prompt-modal-box .prompt-generate-btn {
+      position: static;
+      display: flex;
+      width: auto;
+      height: auto;
+      padding: 6px 14px 7px;
+      border-radius: 999px;
+      font-size: .95rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .prompt-modal-box .prompt-refine-btn:hover,
+    .prompt-modal-box .prompt-generate-btn:hover {
+      background: var(--surface-hover);
+      color: var(--text);
     }
     /* Upscale (portrait): the params pane is a row — the seed takes most of
        the width and the 🔍 action button the rest; the result URL row wraps

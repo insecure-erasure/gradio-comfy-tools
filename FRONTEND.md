@@ -67,10 +67,17 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (they are derived from AR × MP). **Tapping the field opens a fullscreen
   prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
-  (`.modal-mode`) with a large textarea and the overlay buttons back to
-  their **original layout** (✕ top-right, 🪄 bottom-right); a header holds
-  a ✓ Done button to close. `openPromptModal`/`closePromptModal`
-  (`tabs.js`); closed when crossing the breakpoint (`main.js`). The modal
+  (`.modal-mode`) with a large textarea and its overlay actions: **✕ clear
+  top-right** (recovered — it was hidden by the compact-bar rule because
+  the modal lives inside `.bottom-bar`), and at the **bottom-right two
+  pills larger than the chips**: **🪄 refine** + **✨ direct generation**
+  (the active tab's action: ✨ Generate / 🖌️ Edit / 🎬 Video — `promptModalGenerate`
+  validates the prompt, closes the modal and runs the tool; while a
+  generation runs it becomes the ⏹ stop button like the toolbar buttons,
+  and the ✕ is disabled). The chips (📏/👣) also appear inside the modal
+  (bottom-left). A header holds a ✓ Done button to close.
+  `openPromptModal`/`closePromptModal` (`tabs.js`); closed when crossing
+  the breakpoint (`main.js`). The modal
   **fits the visible area when the mobile keyboard opens**: the keyboard
   does not resize `position: fixed` elements, so `fitPromptModal()`
   listens to `window.visualViewport` resize/scroll and sets the modal's
@@ -484,4 +491,7 @@ moved out of the params pane into two chips overlaid on the prompt textarea
 Each opens a small popover with the controls (the same elements, moved into
 `#chipPopover`; IDs unchanged, so persistence/reset keep working). The
 prompt now fills the whole params pane in landscape; in portrait the chips
-appear inside the fullscreen prompt modal. `refactor/unify-action-buttons`.
+appear inside the fullscreen prompt modal. The portrait prompt modal also
+holds **overlay action pills** larger than the chips: ✕ clear (top-right),
+🪄 refine + ✨ direct generation (bottom-right, per-tab glyph; becomes ⏹
+during a generation). `refactor/unify-action-buttons`.

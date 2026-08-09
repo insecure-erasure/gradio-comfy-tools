@@ -618,6 +618,43 @@
     .prompt-refine-btn { display: none; }
   }
 
+  /* Container of the bottom-right overlay actions (🪄 refine + ✨ direct
+     generation). Only visible inside the portrait prompt modal — in the
+     compact bar and in landscape the same actions live in the button column
+     (.btn-col). */
+  .prompt-actions {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    z-index: 5;
+  }
+  /* Direct-generation button of the prompt modal (portrait). Base style is
+     the small circle like the 🪄 overlay; inside the modal it becomes the
+     larger pill (see .prompt-modal-box .prompt-generate-btn). */
+  .prompt-generate-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,.4);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: .8rem;
+    line-height: 1;
+    padding: 0;
+    width: 26px;
+    height: 26px;
+    transition: .15s;
+  }
+  .prompt-generate-btn:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
   /* ── Prompt parameter chips ─────────────────
      The per-tab parameter buttons are unified as chips OVERLAYED on the
      prompt textarea (bottom-left); clicking one opens the small popover

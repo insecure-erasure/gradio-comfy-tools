@@ -194,6 +194,7 @@ function setGeneratingUi(on, triggerId) {
     document.querySelectorAll('.btn-generate').forEach(b => restoreStopButton(b));
     document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = false; });
     document.querySelectorAll('.btn-generate').forEach(b => { b.disabled = false; });
+    document.querySelectorAll('.prompt-clear').forEach(b => { b.disabled = false; });
     updateActionButtons();
   }
 }
@@ -235,6 +236,11 @@ function applyGenerationLock() {
     else b.disabled = true;
   });
   document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
+  // The prompt-modal direct-generate button (portrait) also becomes the ⏹
+  // stop button, and the ✕ clear is disabled — the prompt is locked.
+  const modalGen = document.getElementById('promptGenerateBtn');
+  if (modalGen) makeStopButton(modalGen);
+  document.querySelectorAll('.prompt-clear').forEach(b => { b.disabled = true; });
   const btnCol = document.getElementById('btnCol');
   _genCatchers = []; // previous catchers were rebuilt away by switchTab — drop them
   if (btnCol) {
