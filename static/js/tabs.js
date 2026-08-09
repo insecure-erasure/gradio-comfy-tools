@@ -49,9 +49,11 @@ function switchTab(name) {
       input.style.display = 'block';
       input.closest('.prompt-input-wrap').style.display = '';
       input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
-      // 🖌️ needs a prompt (has catcher); 🩹 restore does not (always active);
-      // 🪄 refines the prompt (to the LEFT of the edit button in landscape).
-      btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button>';
+      // 🪄 refines the prompt; 🩹 restore is always active (no prompt);
+      // 🖌️ needs a prompt (has catcher). Order left→right (landscape row)
+      // / top→bottom (portrait column): 🪄 · 🩹 · 🖌️ — matching the
+      // portrait prompt modal's action pills (🪄 🩹 🖌️).
+      btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'upscale':
       // Upscale has no prompt. In portrait, the bottom bar (prompt + action)
