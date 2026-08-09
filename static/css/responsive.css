@@ -139,28 +139,18 @@
       font-size: 1rem;
       line-height: 1.5;
     }
-    /* Clear button recovered in the modal (top-right), larger than the
-       chips — a pill like the bottom-right actions. display:flex overrides
-       .bottom-bar .prompt-clear{display:none} — the modal lives INSIDE
-       .bottom-bar in the DOM, so the compact-bar hiding would otherwise
-       keep it invisible here too. */
+    /* Clear button in the modal (top-right): deliberately DISCRETE — the
+       same small dark circle the landscape prompt uses (.prompt-clear base
+       style in components.css: 22px, radius 50%, rgba(0,0,0,.4)). No size
+       override here; only display:flex is forced to undo the compact-bar
+       hiding (the modal lives INSIDE .bottom-bar in the DOM, so
+       .bottom-bar .prompt-clear{display:none} would otherwise keep it
+       invisible inside the modal too). */
     .prompt-modal-box .prompt-clear {
       position: absolute;
       top: 8px;
       right: 8px;
       display: flex;
-      width: auto;
-      height: auto;
-      padding: 6px 14px 7px;
-      border-radius: 999px;
-      font-size: .95rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-    }
-    .prompt-modal-box .prompt-clear:hover {
-      background: var(--surface-hover);
-      color: var(--text);
     }
     /* Bottom-right actions in the modal: 🪄 refine + ✨ direct generation,
        side by side, larger than the chips (the base .prompt-refine-btn /
