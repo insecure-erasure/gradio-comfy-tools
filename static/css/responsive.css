@@ -155,15 +155,17 @@
       right: 8px;
       display: flex;
     }
-    /* Bottom-right actions in the modal: 🪄 refine + ✨ direct generation,
-       side by side, larger than the chips (the base .prompt-refine-btn /
-       .prompt-generate-btn small circles are overridden to pills).
+    /* Bottom-right actions in the modal: 🪄 refine + 🩹 restore (Edit) +
+       ✨ direct generation, side by side, larger than the chips (the base
+       .prompt-refine-btn / .prompt-generate-btn small circles are
+       overridden to pills).
        display:flex on the refine button overrides the compact-bar hiding
        (see .prompt-clear above). */
     .prompt-modal-box .prompt-actions {
       display: flex;
     }
     .prompt-modal-box .prompt-refine-btn,
+    .prompt-modal-box .prompt-restore-btn,
     .prompt-modal-box .prompt-generate-btn {
       position: static;
       display: flex;
@@ -177,6 +179,7 @@
       color: var(--text-secondary);
     }
     .prompt-modal-box .prompt-refine-btn:hover,
+    .prompt-modal-box .prompt-restore-btn:hover,
     .prompt-modal-box .prompt-generate-btn:hover {
       background: var(--surface-hover);
       color: var(--text);
@@ -190,7 +193,7 @@
       align-items: center;
       gap: 8px;
     }
-    #tab-upscale .params-pane .upscale-chips {
+    #tab-upscale .params-pane .field-row {
       flex: 1;
       min-width: 0;
     }

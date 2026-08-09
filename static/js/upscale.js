@@ -81,17 +81,15 @@ function generateUpscale() {
 }
 
 // ── Steppers + seed ───────────────────────
-function stepUpscaleSeed(d) { const input = document.getElementById('upscaleSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
+function stepUpscaleSeed(d) { const input = document.getElementById('upscaleSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
 function onUpscaleSeedInput() {
   const input = document.getElementById('upscaleSeed');
   if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('upscaleSeedRandom').checked = false;
   input.disabled = false;
-  updatePromptChips();
 }
 function onUpscaleSeedRandomToggle() {
   document.getElementById('upscaleSeed').disabled = document.getElementById('upscaleSeedRandom').checked;
-  updatePromptChips();
 }
 
 // ── ↺ Reset ───────────────────────────────
@@ -103,6 +101,5 @@ function resetUpscale() {
   document.getElementById('upscaleSeedRandom').checked = true;
   document.getElementById('upscaleSeed').disabled = true;
   clearPane('upscaleOutputPane');
-  updatePromptChips();
   showToast('Upscale parameters reset');
 }

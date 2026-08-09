@@ -92,7 +92,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   column — output fills all available height, prompt at the
   bottom bar. The Generate/Edit/Video **params panes are hidden** (their
   controls live in the prompt chips → fullscreen prompt modal); Upscale
-  keeps its params pane (🌱 chip + 🔍 + URL row).
+  keeps its params pane (seed + 🔍 + URL row).
 - **< 768px**: more compact paddings.
 
 ## 2. Tabs and per-tab action buttons
@@ -174,14 +174,13 @@ empty and the prompt fills it; see also deviation 14):
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
   the **compare slider** (Original | Upscaled).
 - **Toolbar**: ↺ only (no model, no ⚙️).
-- **Params**: a **🌱 chip in the params pane** (Upscale has NO prompt, so
-  the chip cannot overlay the textarea — it lives directly in the pane):
-  shows `🎲` while the seed is random, the value when fixed. Its popover
-  holds the `🌱 Seed` stepper + `🎲`. (Resolution/blend/color stay as
+- **Params**: the `🌱 Seed` stepper + `🎲` directly in the params pane —
+  Upscale has NO prompt textarea, so it does not use the chip design and
+  keeps its control as before. (Resolution/blend/color stay as
   workflow defaults — see BACKEND.md.)
 - **Special layouts** (`tabs.js` `relayoutPrompt`):
   - **Portrait**: the bottom bar is hidden; the params pane is a row with
-    the 🌱 chip taking most of the width and the 🔍 button the rest; the
+    the seed taking most of the width and the 🔍 button the rest; the
     result URL row wraps below full-width.
   - **Landscape**: 🔍 sits at the bottom-right of the params pane, just
     above the result URL row.
@@ -505,13 +504,14 @@ opens a small popover with the controls — the same elements, moved into
       `2:3`) + 👣 steps & seed.
     - **Edit ✏️**: 👣 steps & seed.
     - **Video 🎬**: 🎞️ frames + 👣 steps & seed.
-    - **Upscale 🔍**: 🌱 seed — the chip lives IN the params pane (Upscale
-      has no prompt to overlay).
-The 👣/🌱 chips show `steps · 🎲` / `🎲` while the seed is random and drop
-the separator + dice when the seed is FIXED (steps only / the value). The
+    - **Upscale 🔍**: NO chips — it has no prompt textarea, so its seed
+      control stays directly in the params pane (as before).
+The 👣 chips show `steps · 🎲` while the seed is random and drop the
+separator + dice when the seed is FIXED (steps only). The
 prompt fills the whole params pane in landscape; in portrait the chips
 appear inside the fullscreen prompt modal (Upscale keeps its pane). The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
-🪄 refine + ✨ direct generation (bottom-right, per-tab glyph; becomes ⏹
+🪄 refine + 🩹 restore (Edit only, right of 🪄) + ✨ direct generation
+(bottom-right, per-tab glyph; becomes ⏹
 during a generation). `refactor/unify-action-buttons`.

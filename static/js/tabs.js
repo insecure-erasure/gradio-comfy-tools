@@ -359,19 +359,30 @@ function promptModalGenerate() {
   }
 }
 
+// 🩹 Restore from the prompt modal (Edit only): no prompt required — closes
+// the modal and runs the restore directly.
+function promptModalRestore() {
+  closePromptModal();
+  generateEdit('restore');
+}
+
 // Set the glyph/title of the modal's direct-generate button for the active
-// tab (Upscale has no prompt modal — hidden defensively). Skipped while the
-// button is transformed into the ⏹ stop button (makeStopButton stash).
+// tab, and show/hide the 🩹 restore button (Edit only — the other tabs have
+// no restore). Upscale has no prompt modal — hidden defensively. Skipped
+// while a button is transformed into the ⏹ stop button (makeStopButton
+// stash).
 function updatePromptModalActions() {
   const btn = document.getElementById('promptGenerateBtn');
+  const restore = document.getElementById('promptRestoreBtn');
   if (!btn) return;
   const cfg = {
     generate: { glyph: '✨', title: 'Generate' },
     edit: { glyph: '🖌️', title: 'Edit' },
     video: { glyph: '🎬', title: 'Generate video' },
   }[currentTab];
-  if (!cfg) { btn.style.display = 'none'; return; }
+  if (!cfg) { btn.style.display = 'none'; if (restore) restore.style.display = 'none'; return; }
   btn.style.display = '';
+  if (restore) restore.style.display = currentTab === 'edit' ? '' : 'none';
   if (_genStopOrig.has(btn)) return; // already the ⏹ stop button
   btn.textContent = cfg.glyph;
   btn.title = cfg.title;
@@ -422,31 +433,28 @@ const CHIP_CONFIGS = {
     { kind: 'frames', icon: '🎞️', title: 'Frames (4n+1, 81–161)' },
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
   ],
-  // Upscale has no prompt — its seed chip lives in the params pane
-  // (#upscaleChips), not over the textarea.
-  upscale: [
-    { kind: 'seed', icon: '🌱', title: 'Seed' },
-  ],
+  // Upscale has NO prompt textarea → no chip overlay; its seed control
+  // lives directly in the params pane (reverted — see tab_upscale.html).
+  upscale: [],
 };
 
 const CHIP_IDS = {
-  dims: 'chipDims', frames: 'chipFrames', stepseed: 'chipStepSeed', seed: 'chipSeed',
+  dims: 'chipDims', frames: 'chipFrames', stepseed: 'chipStepSeed',
 };
 const CHIP_LABEL_IDS = {
-  dims: 'chipDimsLabel', frames: 'chipFramesLabel', stepseed: 'chipStepSeedLabel', seed: 'chipSeedLabel',
+  dims: 'chipDimsLabel', frames: 'chipFramesLabel', stepseed: 'chipStepSeedLabel',
 };
 const CHIP_KIND_INFO = {
   dims: { title: 'Dimensions' },
   frames: { title: 'Frames' },
   stepseed: { title: 'Steps & seed' },
-  seed: { title: 'Seed' },
 };
 
 // The params block id per tab. NB: Generate's block is GENparams (abbreviated
 // from the original template) — the generic `${currentTab}Params` would look
-// for a non-existent 'generateParams'.
+// for a non-existent 'generateParams'. Upscale has no block (no chips).
 const PARAMS_BLOCK_IDS = {
-  generate: 'genParams', edit: 'editParams', video: 'videoParams', upscale: 'upscaleParams',
+  generate: 'genParams', edit: 'editParams', video: 'videoParams',
 };
 
 // Render the chips of the active tab and mount its params block into the
@@ -468,10 +476,9 @@ function renderPromptChips() {
     }
   }
   // The chip container: the prompt chips for tabs with a prompt (generate /
-  // edit / video), the params-pane chips for upscale (no prompt).
+  // edit / video); upscale has none (its seed lives in the params pane).
   const box = document.getElementById('promptChips');
-  const upBox = document.getElementById('upscaleChips');
-  const target = currentTab === 'upscale' ? upBox : box;
+  const target = box;
   if (!target) return;
   const cfg = CHIP_CONFIGS[currentTab] || [];
   if (target.dataset.rendered === currentTab && target.children.length) {
@@ -518,13 +525,6 @@ function updatePromptChips() {
         ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
       }
     }
-  }
-  // 🌱 Seed (upscale): 🎲 while random, the value when fixed.
-  const seedLabel = document.getElementById('chipSeedLabel');
-  if (seedLabel) {
-    const rnd = document.getElementById('upscaleSeedRandom');
-    const seed = document.getElementById('upscaleSeed');
-    seedLabel.textContent = (rnd && rnd.checked) ? '🎲' : (seed ? seed.value : '0');
   }
 }
 
@@ -578,10 +578,9 @@ function closeChipPopover() {
 }
 
 // Close when clicking outside the popover and the chips (a click on the
-// chips themselves toggles, never closes from behind). #upscaleChips is the
-// upscale chip container in its params pane.
+// chips themselves toggles, never closes from behind).
 document.addEventListener('click', e => {
-  if (e.target.closest('#chipPopover, #promptChips, #upscaleChips')) return;
+  if (e.target.closest('#chipPopover, #promptChips')) return;
   closeChipPopover();
 });
 

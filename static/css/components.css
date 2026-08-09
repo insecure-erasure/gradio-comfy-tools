@@ -668,13 +668,6 @@
     z-index: 5;
     pointer-events: none;   /* allow clicks to pass between the chips */
   }
-  /* Upscale chip container: no prompt, so the 🌱 seed chip lives directly
-     in the params pane (in normal flow, not overlaid on a textarea). */
-  .upscale-chips {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
   .prompt-chip {
     display: inline-flex;
     align-items: center;

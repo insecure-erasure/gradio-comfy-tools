@@ -260,7 +260,7 @@ mockup directly.
 |---|---|---|
 | Generate 🖼️ | model dropdown (Krea 2 default) + ⚙️ + ↺ in nav toolbar; parameters as prompt chips (📏 dims + 👣 steps/seed, popover each — `refactor/unify-action-buttons`); LoRA row editor + model dropdown in ⚙️ modal; submit → image + URL + 📋; spinner; button disabled with empty prompt; reset | ✅ |
 | Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore; 🩹 always active), before/after compare slider, spinner; params as 👣 chip (steps/seed — `refactor/unify-action-buttons`) | ✅ |
-| Upscale 🔍 | special layouts (portrait: 🌱 chip + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, reset; 🌱 seed chip in the pane | ✅ |
+| Upscale 🔍 | special layouts (portrait: seed + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, reset; seed control stays directly in the pane (no chip — no prompt textarea) | ✅ |
 | Video 🎬 | real `<video>` player, Wan 2.1/2.2, frames/steps/seed as 🎞️+👣 chips (`refactor/unify-action-buttons`); ⚙️ modal varies by version (wan22 dual high/low models + LoRAs, per-version config store); negative prompt in modal | ✅ |
 
 ### Shared UI behaviors (in static/js)
