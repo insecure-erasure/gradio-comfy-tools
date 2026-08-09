@@ -340,6 +340,16 @@ function closePromptModal() {
   closeChipPopover();
 }
 
+// Dismiss the portrait prompt modal when tapping OUTSIDE the prompt field:
+// a click on the modal's backdrop (header, empty box space) closes it, while
+// clicks on the textarea and its overlay buttons/chips (all inside
+// .prompt-input-wrap) keep working.
+document.addEventListener('click', e => {
+  const modal = document.getElementById('promptModal');
+  if (!modal || !modal.classList.contains('show')) return;
+  if (!e.target.closest('.prompt-input-wrap')) closePromptModal();
+});
+
 // ── Prompt modal direct actions ────────────
 // The portrait prompt modal has overlay pills in its bottom-right corner:
 // 🪄 refine (existing) + ✨ direct generation (per tab). The generate button

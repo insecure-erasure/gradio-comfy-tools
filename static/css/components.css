@@ -1230,10 +1230,11 @@
   }
   .gallery-prompt-modal.show { display: flex; }
   .gallery-prompt-box {
+    width: fit-content;            /* hug the text — never wider than needed */
     max-width: min(560px, 92vw);
     max-height: 60vh;
     overflow-y: auto;
-    padding: 14px 20px;
+    padding: 10px 14px;            /* tighter — the grey hugs the text */
     background: rgba(96, 96, 96, .78);   /* same as .gallery-badge-hint */
     border: 1px solid rgba(255,255,255,.16);
     border-radius: 12px;
