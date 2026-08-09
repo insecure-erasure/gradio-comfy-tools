@@ -145,10 +145,11 @@ function previewSourceImage(tab, src) {
   pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');
   if (tab === 'video') {
     // Video tab: the preview replaces the video component — hide the mock
-    // placeholder and remove any previous generated video. The image stays
+    // placeholder and remove any previous generated video (the custom
+    // .video-player wrapper; the <video> lives inside it). The image stays
     // behind the loading overlay while a generation runs and is removed
     // when the generated video is shown (showResult).
-    pane.querySelectorAll('.result-video').forEach(el => el.remove());
+    pane.querySelectorAll('.video-player, .result-video').forEach(el => el.remove());
     const mock = pane.querySelector('.video-mock');
     if (mock) mock.style.display = 'none';
   }
