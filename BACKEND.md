@@ -205,6 +205,8 @@ fields (model, LoRA/diffusion config):
 | model_family | zimage (backend) / krea2 (UI default) | settings / toolbar |
 | lora_config (default) | `[]` | settings |
 | diffusion_model (video) | `""` (built-in defaults) | modal (Video) |
+| prompt_refiner_base_url | `""` (🪄 disabled) | 🎨 dropdown |
+| prompt_refiner_system_prompt | default system prompt | 🎨 dropdown |
 
 ## 8. State and session
 
@@ -217,5 +219,8 @@ fields (model, LoRA/diffusion config):
 
 ## 9. Implementation notes
 
-1. **LoRAs are managed exclusively via the advanced modal** (`LoRA config (JSON)` in Generate/Edit/Video); there is no dynamic list in the params pane. `override_system_loras` does not exist (no override layers).
+1. **LoRAs are managed exclusively via the advanced modal** (the visual row
+   editor in Generate/Edit/Video — it derives the backend `lora_config`
+   JSON array on save); there is no dynamic list in the params pane.
+   `override_system_loras` does not exist (no override layers).
 2. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.

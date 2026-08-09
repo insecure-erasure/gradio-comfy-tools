@@ -34,7 +34,8 @@ Web application with four image and video tools powered by ComfyUI:
 
 ## Basic usage
 
-- **Generate an image**: type a description in the bottom text field and press ✨.
+- **Generate an image**: type a description in the prompt field (bottom
+  bar in portrait, params pane in landscape) and press ✨.
 - **Edit / restore**: upload an image (📁), paste a URL, or use 🔗 to take the last generated image. Describe the change and press 🖌️ (edit) or 🩹 (restore).
 - **Upscale**: set the source image and press 🔍.
 - **Generate a video**: set the source image, describe the motion, and press 🎬.
@@ -47,7 +48,8 @@ Web application with four image and video tools powered by ComfyUI:
 
 ### During a generation
 
-- The bottom bar shows **live progress** (current node and completed steps).
+- The **progress row** shows **live progress** (current node and completed
+  steps).
 - The **⏹** button (the action button, transformed) stops the running
   generation.
 - While a generation runs the prompt field is **locked** and the action and
@@ -57,7 +59,9 @@ Web application with four image and video tools powered by ComfyUI:
 
 ### Settings
 
-- **☰** (top-left): light/dark theme and ComfyUI connection settings (server URL and results URL).
+- **☰** (top-left): light/dark theme, ComfyUI connection settings (server
+  URL and results URL) and the prompt-refiner settings (Refiner URL +
+  system prompt for the 🪄 button).
 - **⚙️** (per tab): advanced options — model, LoRAs, video negative prompt.
 
 ## Troubleshooting

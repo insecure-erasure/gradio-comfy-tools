@@ -16,8 +16,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 │ Nav: [☰] [🖼️ Generate] [🖍️ Edit] [🔍 Upscale] [🎬 Video]     │ [toolbar por tab ▸] │
 ├───────────────────────────────┬───────────────────────────────┤
 │  Output pane (flex 6)         │  Params pane (flex 4)         │
-│  result / slider / video      │  per-tab controls + prompt    │
-│  background #111122, centered │  scrollable, 280–480px        │
+│  result / slider / video      │  prompt (fills the pane) +    │
+│  background #111122, centered │  parameter chips (📏/👣/🎞️)   │
 ├───────────────────────────────┴───────────────────────────────┤
 │  Bottom bar (portrait only): prompt + result URL row          │
 └───────────────────────────────────────────────────────────────┘
@@ -60,24 +60,27 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   action buttons + URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
-  **compact single-line field** spanning the full bar width — the ✕ clear
-  and 🪄 refine buttons are **hidden in the bar** (they exist ONLY inside
-  the prompt modal); the action buttons (`.btn-col`) stay outside in the
-  bar. The Generate **W/H read-only parameters are hidden** in portrait
-  (they are derived from AR × MP). **Tapping the field opens a fullscreen
+  **compact single-line field** spanning the full bar width — the ✕ clear,
+  🪄 refine and parameter chips are **hidden in the bar** (they exist ONLY
+  inside the prompt modal); the action buttons (`.btn-col`) stay outside in
+  the bar. **Tapping the field opens a fullscreen
   prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
   (`.modal-mode`) with a large textarea and its overlay actions: **✕ clear
   top-right** (recovered — it was hidden by the compact-bar rule because
-  the modal lives inside `.bottom-bar`), and at the **bottom-right two
-  pills larger than the chips**: **🪄 refine** + **✨ direct generation**
+  the modal lives inside `.bottom-bar`), and at the **bottom-right three
+  pills larger than the chips**: **🪄 refine** + **🩹 restore** (Edit only,
+  right of 🪄) + **✨ direct generation**
   (the active tab's action: ✨ Generate / 🖌️ Edit / 🎬 Video — `promptModalGenerate`
-  validates the prompt, closes the modal and runs the tool; while a
-  generation runs it becomes the ⏹ stop button like the toolbar buttons,
-  and the ✕ is disabled). The chips (📏/👣) also appear inside the modal
+  validates the prompt, closes the modal and runs the tool; `promptModalRestore`
+  runs the restore directly; the ✨ uses the accent background like the
+  buttons outside, while 🪄/🩹 stay neutral pills). While a
+  generation runs the matching modal button becomes the ⏹ stop button like
+  the toolbar buttons, and the ✕ is disabled). The chips (📏/👣/🎞️) also
+  appear inside the modal
   (bottom-left). A header holds a ✓ Done button to close.
   `openPromptModal`/`closePromptModal` (`tabs.js`); closed when crossing
-  the breakpoint (`main.js`). The modal
+  the breakpoint (`main.js`) or tapping outside the prompt field. The modal
   **fits the visible area when the mobile keyboard opens**: the keyboard
   does not resize `position: fixed` elements, so `fitPromptModal()`
   listens to `window.visualViewport` resize/scroll and sets the modal's
@@ -123,10 +126,10 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System
   prompt). In **landscape** it sits to the LEFT of the generate button in
-  the button column (Generate/Edit/Video); in **portrait** it is a small
-  overlay button at the bottom-right of the prompt textarea (analogous to
-  the ✕ clear button, which is top-right). `refinePrompt()` replaces the
-  textarea with the refined text and syncs the per-tab prompt store.
+  the button column (Generate/Edit/Video); in **portrait** it is a pill in
+  the prompt modal's bottom-right actions (next to 🩹/✨). `refinePrompt()`
+  replaces the textarea with the refined text and syncs the per-tab prompt
+  store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
   the copyable result URL row is **cleared** (📋 disabled). `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video).
@@ -380,14 +383,21 @@ shown, disabled otherwise). The transform survives tab switches
 mid-generation (`switchTab` re-asserts the lock with `applyGenerationLock`
 and re-transforms the trigger button).
 
+- The stop-transformed trigger is ENABLED, so the click-catcher overlay
+  must not sit on top of it — `.btn-col.generating .btn-wrap:has(.btn-generate:not(:disabled))
+  .btn-catcher { display: none }` (the catcher only overlays DISABLED
+  buttons; a click on the ⏹ reaches it directly). In the portrait prompt
+  modal, the button that matches the trigger becomes the ⏹ (🩹 restore →
+  🩹; ✨/🖌️/🎬 → ✨) and the other modal action stays disabled.
+
 ## 5. How the code is organized
 
 - **`templates/index.html`**: shell + Jinja2 includes + script/css links.
 - **`templates/partials/`**: nav, settings_menu, tab_generate, tab_edit,
-  tab_upscale, tab_video, bottom_bar, modal, toast, tooltip.
+  tab_upscale, tab_video, bottom_bar, modal, gallery_overlay, toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, storage, api, source, tabs, generate, edit, upscale, video,
+  state, storage, api, refine, source, tabs, generate, edit, upscale, video,
   gallery, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
@@ -440,19 +450,26 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Prompt display**: the prompt is NOT a bottom caption anymore. A
     **Show prompt** button sits bottom-center, visible only when the entry
     has a prompt; **hovering it is enough** — the prompt appears as a
-    **bottom panel** (`#galleryPromptModal`) styled exactly like the
+    **bottom panel** (`#galleryPromptModal`) styled like the
     original-prompt hover hint (`.gallery-badge-hint`): a grey translucent
-    pill (`rgba(96,96,96,.78)`, 12px radius, `0 8px 24px` shadow), centered
-    500-weight text, no title and no ✕. The font stays modest and
+    pill (`rgba(96,96,96,.78)`, 12px radius, `0 8px 24px` shadow), 500-weight
+    text, no title and no ✕. The font stays modest and
     device-adaptive (`font-size: clamp(12px, .4vw + .55vh, 16px)` — ~12px
     phones, ~14px desktop mirroring the hint, capped ~16px on large
-    screens). The panel is anchored at the BOTTOM of the gallery (where the
-    old caption was) and its overlay layer is pointer-transparent, so the
-    image and the gallery buttons stay usable. It hides when the pointer
-    leaves (short grace delay), and closes on Escape, gallery navigation
-    (‹ › / ←/→ — the click/key navigates AND closes, so the shown prompt
-    never goes stale) and gallery close. Click/tap still toggles it (touch
-    devices have no hover; keyboard activation works too).
+    screens). The panel hugs its text (`width: fit-content`, padding
+    10px 14px — a short prompt never stretches the pill to the 560px cap)
+    and its text is CENTERED. The panel is anchored at the BOTTOM of the
+    gallery (where the old caption was) and its overlay layer is
+    pointer-transparent, so the image and the gallery buttons stay usable.
+    It hides when the pointer leaves (short grace delay), and closes on
+    Escape, gallery navigation (‹ › / ←/→ — the click/key navigates AND
+    closes, so the shown prompt never goes stale) and gallery close.
+    Click/tap still toggles it (touch devices have no hover; keyboard
+    activation works too). The **badge hover hint** (the ORIGINAL source
+    prompt of an appended edit/restore, under the Edited/Restored badge)
+    shares the same panel styling (fit-content + tight padding + clamp
+    font) but its text is LEFT-aligned, so a long source prompt reads as
+    normal paragraphs instead of a narrow centered column.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -513,5 +530,13 @@ appear inside the fullscreen prompt modal (Upscale keeps its pane). The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
 🪄 refine + 🩹 restore (Edit only, right of 🪄) + ✨ direct generation
-(bottom-right, per-tab glyph; becomes ⏹
+(bottom-right, per-tab glyph; the ✨ uses the accent background like the
+buttons outside, 🪄/🩹 stay neutral; the matching button becomes ⏹
 during a generation). `refactor/unify-action-buttons`.
+15. **Stop button fix**: the ⏹ (stop-transformed trigger) is ENABLED, so
+the click-catcher overlay no longer sits on top of it (`.btn-col.generating
+.btn-wrap:has(.btn-generate:not(:disabled)) .btn-catcher { display: none }`)
+— a click on the ⏹ cancels directly instead of hitting the invisible
+catcher. **Tap outside the prompt field** closes the portrait prompt modal
+(header / modal padding); taps on the textarea and its overlay buttons
+keep working.

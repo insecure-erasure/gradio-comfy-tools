@@ -56,7 +56,9 @@ and a full-width prompt bar at the bottom.
 
 Generation flow:
 
-1. The user fills in parameters and prompt, then clicks the action button (✨/🖌️/🩹/🔍/🎬) in the bottom bar.
+1. The user fills in parameters (via the prompt chips) and prompt, then
+   clicks the action button (✨/🖌️/🩹/🔍/🎬) — in the prompt (landscape)
+   or the bottom bar / prompt modal (portrait).
 2. `static/js/*` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
 3. `server.py` calls `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
 4. `comfy_client.py` does `POST /prompt`, then polls `GET /history/{prompt_id}` until completion.
@@ -66,24 +68,47 @@ Generation flow:
 
 The mockup evolved beyond the original DESIGN.md. The docs are already aligned with the mockup; the summary is here so nobody reimplements the old spec:
 
-1. **⚙️ Advanced**: the gear lives in the **model-row** of Generate, Edit and Video (not in the tab bar). Upscale has **no gear** and no advanced fields (resolution/blend/color stay fixed in the workflow; see BACKEND.md).
-2. **Edit has no mode radio** — the mode is chosen with the bottom bar buttons: 🖌️ Edit / 🩹 Restore.
-3. **LoRAs are managed exclusively via the advanced modal** — there is no dynamic list / `+ Add LoRA` button in the params pane; each tool configures LoRAs through the `LoRA config (JSON)` field of its modal (Generate, Edit, Video).
+1. **⚙️ Advanced**: the gear lives in the **per-tab nav toolbar** of
+   Generate, Edit and Video (with the model dropdown + ↺). Upscale has
+   **no gear** and no advanced fields (resolution/blend/color stay fixed in
+   the workflow; see BACKEND.md).
+2. **Edit has no mode radio** — the mode is chosen with the action buttons:
+   🖌️ Edit / 🩹 Restore (in the prompt in landscape; bottom bar + prompt
+   modal in portrait).
+3. **LoRAs are managed exclusively via the advanced modal** — there is no
+   dynamic list / `+ Add LoRA` button in the params pane; each tool
+   configures LoRAs through the **visual row editor** of its modal
+   (dropdown + strength, up to 4 rows; Generate, Edit, Video).
 4. **Upscale exposes only Seed** (+🎲); resolution/blend/color-correction were removed from the UI (they remain as workflow defaults).
 5. **Video Frames = 81–161** (4n+1), not 5–161.
 6. **No Custom AR option** in Generate (the hidden custom row is dead code and is not ported).
-7. **Action buttons live in the bottom bar** (not in the params panel); Reset is ↺ in the model-row.
-8. **Inline labels** W / H / AR / 📐 / 👣 / 🎞️ / 🌱 with tooltips (not "unlabeled" rows).
+7. **Action buttons live in the prompt** (landscape: overlaid bottom-right
+   of the textarea in the params pane; portrait: in the bottom bar, plus
+   the same actions as pills inside the fullscreen prompt modal); Reset is
+   ↺ in the per-tab nav toolbar.
+8. **Parameter chips instead of inline labels** — the per-tab controls
+   (W / H / AR / 📐 / 👣 / 🎞️ / 🌱) moved out of the params panes into
+   chips overlaid on the prompt textarea (📏/👣 Generate, 👣 Edit, 🎞️/👣
+   Video), each opening a small popover with the controls; Upscale (no
+   prompt) keeps its 🌱 seed control directly in the params pane. The
+   prompt fills the whole params pane in landscape; in portrait the chips
+   live inside the fullscreen prompt modal (see FRONTEND.md §8.14).
 9. **Theme via manual toggle** in the 🎨 dropdown (no `prefers-color-scheme`).
 10. **Global config, no override layers** — the app is single-user: no admin/user hierarchy, no "Override system LoRAs"; `COMFYUI_BASE_URL` and `COMFYUI_MEDIA_BASE_URL` are global settings in the 🎨 dropdown, not per-tool.
-11. **Source image URL field** — Edit/Upscale/Video have a transparent text field (bottom-left of the output pane; `🔗` button bottom-right) for the input image URL; `🔗` fills it with the last generation and it persists per tab. Added to the mockup (was not in the original design, which only had attachment buttons in the prompt bar).
+11. **Source image URL field** — Edit/Upscale/Video have a transparent text
+    field (bottom-left of the output pane; `🔗` button bottom-right) for the
+    input image URL; `🔗` fills it with the last generation and it persists
+    per tab. Added to the mockup (was not in the original design, which
+    only had attachment buttons in the prompt bar).
+12. **Parameter chips + portrait prompt modal actions** — see the design
+    details in FRONTEND.md §3 and §8.14–8.15.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `DESIGN.md` | This overview |
-| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done except queueing/live-preview-notes — see §B5 |
+| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; remaining: queue position + true concurrent tabs — see §B5 |
 | `FRONTEND.md` | UI specification — the mockup is the source of truth |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Design template/spec — never edited for functionality |

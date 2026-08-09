@@ -560,7 +560,11 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   ONLY inside the prompt modal), while the action buttons
   (`.btn-col`) stay outside. The Generate **W/H read-only parameters are
   hidden** in portrait (`#tab-generate .params-pane .field-inline:has(.readonly-field)`
-  — the grid drops to 4 columns: AR, MP, Steps, Seed). **Tapping the field
+  — the grid drops to 4 columns: AR, MP, Steps, Seed).
+  *(Superseded 2026-08-09 by `refactor/unify-action-buttons`: the params
+  moved into prompt chips (📏/👣/🎞️) and the Generate/Edit/Video params
+  panes are hidden entirely — see the frontend wiring table above.)*
+  **Tapping the field
   opens a fullscreen
   prompt modal** (`#promptModal`): `openPromptModal()` relocates the same
   `.prompt-input-wrap` into it (`.modal-mode` — large textarea, overlay
@@ -572,11 +576,10 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   to the real visible area (cleared on close), so the keyboard never
   covers the textarea.
 - **TODO (after fullscreen)**: **queueing** — see below.
-- **Remaining**: queue position, live previews (require adding the preview
-  node — tiny-decoder + `ImagePreviewFromLatent+` — to the workflows; the ws
-  alone only gives numeric `progress`), and true concurrent tabs (each tab
-  still blocks on its own `fetch()`; `/api/progress` is single-user
-  "most recent job").
+- **Remaining**: queue position and true concurrent tabs (each tab still
+  blocks on its own `fetch()`; `/api/progress` is single-user "most recent
+  job"). The per-step live previews are DONE (see "What remains from B5"
+  above — the ws `preview_method:auto` mechanism, no preview node needed).
 
 ### Manual validation (B5)
 Launch a generation in the UI; verify the result URL row shows live progress
