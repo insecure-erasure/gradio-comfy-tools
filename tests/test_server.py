@@ -406,11 +406,11 @@ def test_media_proxy(client, tmp_config, monkeypatch):
     import httpx
 
     class FakeResp:
-        content = b"\x89PNG"
+        status_code = 200
         headers = {"content-type": "image/png"}
 
-        def raise_for_status(self):
-            return None
+        async def aiter_bytes(self):
+            yield b"\x89PNG"
 
     class FakeAsyncClient:
         def __init__(self, *a, **kw):
@@ -422,15 +422,75 @@ def test_media_proxy(client, tmp_config, monkeypatch):
         async def __aexit__(self, *a):
             return None
 
-        async def get(self, url):
+        def stream(self, method, url, headers=None):
+            assert method == "GET"
             assert "filename=out.png&type=output" in url
-            return FakeResp()
+            # the caller uses `async with client.stream(...) as resp`
+            return _FakeStreamContext(FakeResp())
+
+    class _FakeStreamContext:
+        def __init__(self, resp):
+            self._resp = resp
+
+        async def __aenter__(self):
+            return self._resp
+
+        async def __aexit__(self, *a):
+            return None
 
     monkeypatch.setattr(server.httpx, "AsyncClient", FakeAsyncClient)
     resp = client.get("/media/out.png?type=output")
     assert resp.status_code == 200
     assert resp.content == b"\x89PNG"
     assert resp.headers["content-type"] == "image/png"
+
+
+def test_media_proxy_range_206(client, tmp_config, monkeypatch):
+    """The proxy must pass Range through and stream with a 206 so <video>
+    elements can seek/buffer progressively (videos were unplayable with the
+    old full-buffer proxy)."""
+    import httpx
+
+    class FakeResp:
+        status_code = 206
+        headers = {
+            "content-type": "video/mp4",
+            "content-range": "bytes 0-1023/4096",
+            "accept-ranges": "bytes",
+        }
+
+        async def aiter_bytes(self):
+            yield b"\x00" * 16
+
+    class FakeAsyncClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return None
+
+        def stream(self, method, url, headers=None):
+            assert headers == {"Range": "bytes=0-1023"}  # the range is passed through
+            return _FakeStreamContext(FakeResp())
+
+    class _FakeStreamContext:
+        def __init__(self, resp):
+            self._resp = resp
+
+        async def __aenter__(self):
+            return self._resp
+
+        async def __aexit__(self, *a):
+            return None
+
+    monkeypatch.setattr(server.httpx, "AsyncClient", FakeAsyncClient)
+    resp = client.get("/media/out.mp4?type=output", headers={"Range": "bytes=0-1023"})
+    assert resp.status_code == 206
+    assert resp.headers["content-range"] == "bytes 0-1023/4096"
+    assert resp.headers["accept-ranges"] == "bytes"
 
 
 # --------------------------------------------------------------------------- #

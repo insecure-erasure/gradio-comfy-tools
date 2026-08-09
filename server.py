@@ -31,7 +31,7 @@ import time
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.responses import Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -549,20 +549,40 @@ async def api_upload(file: UploadFile = File(...)) -> dict:
 
 
 @app.get("/media/{filename}")
-async def media(filename: str, type: str = "output") -> Response:
+async def media(filename: str, type: str = "output", range: str | None = Header(default=None)) -> Response:
+    """Same-origin proxy of ComfyUI results.
+
+    Streams the body (no full-buffer) and honors HTTP Range headers — a
+    <video> element issues range requests to seek/buffer progressively, and
+    a full-buffer proxy (previous implementation) made videos unplayable
+    until the whole file was downloaded (Wan MP4s are 20MB+, painful on
+    vertical/mobile). Videos/images now start rendering while streaming.
+    """
     s = _settings()
     url = f"{s.media_base_url}/view?filename={filename}&type={type}"
+    headers = {"Range": range} if range else None
     try:
         async with httpx.AsyncClient(timeout=120) as client:
-            resp = await client.get(url)
-            resp.raise_for_status()
+            async with client.stream("GET", url, headers=headers) as resp:
+                if resp.status_code >= 400:
+                    raise HTTPException(502, f"Could not fetch {url}: {resp.status_code}")
+                ctype = resp.headers.get("content-type", "application/octet-stream")
+                content_range = resp.headers.get("content-range")
+                resp_headers = {"Cache-Control": "no-store", "Content-Type": ctype}
+                if content_range:
+                    resp_headers["Content-Range"] = content_range
+                if resp.headers.get("accept-ranges"):
+                    resp_headers["Accept-Ranges"] = resp.headers.get("accept-ranges")
+                return StreamingResponse(
+                    resp.aiter_bytes(),
+                    status_code=resp.status_code,  # 206 for ranges, 200 otherwise
+                    media_type=ctype,
+                    headers=resp_headers,
+                )
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(502, f"Could not fetch {url}: {e}") from e
-    return Response(
-        content=resp.content,
-        media_type=resp.headers.get("content-type", "application/octet-stream"),
-        headers={"Cache-Control": "no-store"},
-    )
 
 
 # --------------------------------------------------------------------------- #
