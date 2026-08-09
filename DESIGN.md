@@ -84,7 +84,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 6. **No Custom AR option** in Generate (the hidden custom row is dead code and is not ported).
 7. **Action chips live INSIDE the prompt field** (landscape: bottom-right
    of the textarea — 🪄/🩹/✨; portrait: the compact bar field holds the
-   same chips, and the fullscreen prompt modal shows bigger pills);
+   generation chips only — 🩹/✨ or 🖌️/🎬 — while the 🪄 refine lives
+   EXCLUSIVELY in the fullscreen prompt modal, which shows bigger pills);
    Reset is ↺ in the per-tab nav toolbar.
 8. **Parameter chips instead of inline labels** — the per-tab controls
    (W / H / AR / 📐 / 👣 / 🎞️ / 🌱) moved out of the params panes into
@@ -109,7 +110,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 |------|---------|
 | `DESIGN.md` | This overview |
 | `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; remaining: queue position + true concurrent tabs — see §B5 |
-| `FRONTEND.md` | UI specification — the mockup is the source of truth |
+| `FRONTEND.md` | UI specification — the **code** (`templates/` + `static/`) is the source of truth; `mockup.html` is the historical spec |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Design template/spec — never edited for functionality |
 | `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |

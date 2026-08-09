@@ -376,8 +376,8 @@ inside the output pane of the tab that started the generation, and ONLY
 while that tab is active — switching tabs mid-generation keeps capturing
 server-side but stops painting; coming back resumes with the latest frame.
 While painted it hides (and restores on cancel) the placeholder / previous
-result / source preview / compare slider / video mock so it fills the pane
-and stays centered; the spinner stays on top (`.busy` z-index).
+result / source preview / compare slider / video mock / video player so it
+fills the pane and stays centered; the spinner stays on top (`.busy` z-index).
 `stopProgressPolling` removes it, and `showResult`/`clearPane` drop it too so
 the final result replaces the preview. The preview is ephemeral: it is
 intentionally lost on cancel and never shown after the job settles.
@@ -412,8 +412,8 @@ and re-transforms the trigger button).
   tab_upscale, tab_video, bottom_bar, modal, gallery_overlay, toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, storage, api, refine, source, tabs, generate, edit, upscale, video,
-  gallery, settings, modal, main.
+  state, storage, api, player, refine, source, tabs, generate, edit, upscale,
+  video, gallery, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, theme. Saved on field change / modal save / theme toggle /
