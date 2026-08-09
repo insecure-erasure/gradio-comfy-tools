@@ -54,22 +54,72 @@
     #tab-video .params-pane { display: none; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
-    /* Portrait: the prompt becomes a compact single-line field. The ✕ clear
-       and 🪄 refine buttons are HIDDEN in the bar (they only exist in the
-       prompt modal now) — the field spans the full width of the wrap. The
-       action buttons (.btn-col) stay outside, in the bar, as before. */
-    .bottom-bar .prompt-input-wrap {
+    /* Portrait: the prompt becomes a compact single-line FIELD that
+       contains the action chips. The .prompt-input-wrap itself is the
+       visible field (border + radius + bg); the textarea is borderless
+       and the action chips (✨/🖌️/🩹/🎬 + 🪄) sit INSIDE it, at the
+       right — so the user can generate without opening the fullscreen
+       prompt modal. The ✕ clear, the small 🪄 overlay and the parameter
+       chips stay hidden in the bar (they live in the modal). */
+    .bottom-bar .prompt-input-wrap:not(.modal-mode) {
       flex-direction: row;
       align-items: center;
       gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      padding-right: 4px;
     }
-    .bottom-bar .prompt-input-wrap textarea {
+    .bottom-bar .prompt-input-wrap:not(.modal-mode):focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(233,69,96,.15);
+    }
+    .bottom-bar .prompt-input-wrap:not(.modal-mode) textarea {
       flex: 1;
       width: 100%;
-      height: 36px;               /* one text line */
-      min-height: 36px;
-      padding: 6px 12px;
+      height: 42px;               /* a bit taller — room for the chips */
+      min-height: 42px;
+      padding: 8px 12px;
       overflow: hidden;           /* single visual line — the modal shows it all */
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    /* Action chips inside the field (portrait bar): a compact pill row at
+       the right of the textarea, ALWAYS horizontal (never stacked — Edit
+       has three: 🪄 🩹 🖌️). The buttons keep their accent/neutral
+       colors; the click-catchers, generation lock and ⏹ transformation
+       work exactly as in landscape. */
+    .bottom-bar .btn-col {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      align-items: center;
+      width: auto;
+      height: auto;
+      align-self: center;
+      gap: 4px;
+      z-index: 5;
+    }
+    .bottom-bar .btn-col .btn-generate,
+    .bottom-bar .btn-col .btn-refine {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: auto;
+      min-height: 26px;
+      padding: 4px 11px 5px;
+      border-radius: 999px;
+      font-size: .82rem;
+    }
+    .bottom-bar .btn-col .btn-wrap {
+      flex: none;
+    }
+    .bottom-bar .btn-col .btn-wrap .btn-generate {
+      width: auto;
+      height: auto;
     }
     .bottom-bar .prompt-clear,
     .bottom-bar .prompt-refine-btn {
@@ -80,13 +130,9 @@
        prompt modal, where the wrap gets .modal-mode and there is room. */
     .bottom-bar .prompt-chips { display: none; }
     .prompt-modal-box .prompt-chips { display: flex; }
-    /* Portrait: the action buttons (✨/🖌️/🩹/🎬 + 🪄) are ALSO chips inside
-       the prompt field now — in the bar they would crowd the single line,
-       and the fullscreen prompt modal already shows them as pills
-       (.prompt-actions). Hiding .btn-col (it lives inside the wrap, which
-       moves to the modal) leaves the field to span the whole bar width. */
-    .bottom-bar .btn-col,
-    .prompt-modal-box .btn-col { display: none; }
+    /* In the fullscreen prompt modal the action buttons are the big pills
+       (.prompt-actions) — the wrap's own .btn-col is hidden there. */
+    .prompt-input-wrap.modal-mode .btn-col { display: none; }
     /* Prompt fullscreen modal: opened by tapping the compact prompt. The
        wrap moves here (openPromptModal) with .modal-mode — the textarea
        fills the screen and the overlay buttons return to their ORIGINAL
