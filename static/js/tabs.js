@@ -432,7 +432,7 @@ function renderPromptChips() {
   }
   box.dataset.rendered = 'generate';
   box.innerHTML =
-    '<button class="prompt-chip chip-dims" id="chipDims" onclick="toggleChipPopover(\'dims\')" title="Image dimensions (W×H, aspect ratio, megapixels)">' +
+    '<button class="prompt-chip chip-dims" id="chipDims" onclick="toggleChipPopover(\'dims\')" title="Image dimensions (aspect ratio, megapixels)">' +
       '<span class="chip-icon">📏</span><span class="chip-label" id="chipDimsLabel">—</span>' +
     '</button>' +
     '<button class="prompt-chip chip-stepseed" id="chipStepSeed" onclick="toggleChipPopover(\'stepseed\')" title="Steps and seed">' +
@@ -441,14 +441,15 @@ function renderPromptChips() {
   updatePromptChips();
 }
 
-// Refresh the chip labels from the current control values (W×H for the ruler
-// chip; steps · seed — 🎲 when random — for the steps/seed chip).
+// Refresh the chip labels from the current control values (aspect ratio for
+// the dimensions chip; steps · seed — 🎲 when random — for the steps/seed
+// chip).
 function updatePromptChips() {
   const dimsLabel = document.getElementById('chipDimsLabel');
   if (dimsLabel) {
-    const w = document.getElementById('genWidth');
-    const h = document.getElementById('genHeight');
-    dimsLabel.textContent = (w && h && w.textContent) ? `${w.textContent}×${h.textContent}` : '—';
+    // Show the aspect ratio (the select value, e.g. "2:3") — not W×H.
+    const ar = document.getElementById('genAspectRatio');
+    dimsLabel.textContent = (ar && ar.value) ? ar.value : '—';
   }
   const ssLabel = document.getElementById('chipStepSeedLabel');
   if (ssLabel) {

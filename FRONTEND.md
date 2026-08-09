@@ -143,13 +143,15 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 | FLUX.2 Klein | 8 | 64 |
 | Z-Image Turbo | 10 | 16 |
 
-**Params pane** (landscape two rows; portrait one wrapping row):
-- Row 1: `↔️ W` readonly · `↕️ H` readonly · `📐 AR` dropdown (`2:3` default,
-  `1:1`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`) · `🔲 MP` stepper (0.1–2.0,
-  step 0.1, default 1.0) — **in portrait the W/H read-only fields are
-  hidden** (AR + MP remain).
-- Row 2: `👣 Steps` stepper (1–15, auto-updates on model change) · `🌱 Seed`
-  stepper + `🎲` (checked by default)
+**Parameter chips** (overlaid on the prompt textarea — the params pane is
+empty and the prompt fills it; see also deviation 14):
+- **📏 Dimensions** — shows the current **aspect ratio** (e.g. `2:3`). Its
+  popover holds `↔️ W` readonly · `↕️ H` readonly · `📐 AR` dropdown
+  (`2:3` default, `1:1`, `3:2`, `3:4`, `4:3`, `9:16`, `16:9`) · `🔲 MP`
+  stepper (0.1–2.0, step 0.1, default 1.0).
+- **👣 Steps & seed** — shows `steps · seed` (🎲 when random). Its popover
+  holds the `👣 Steps` stepper (1–15, auto-updates on model change) and the
+  `🌱 Seed` stepper + `🎲` (checked by default).
 
 **LoRAs**: managed in the advanced modal via the inline row editor (see §4.7).
 
@@ -487,7 +489,8 @@ the value and shows the image in the output pane; 🔗/📁 also preview the
 source (dashed-border `.source-preview`). Added over the mockup.
 14. **Parameter chips (Generate)**: the W/H/AR/MP and Steps/Seed controls
 moved out of the params pane into two chips overlaid on the prompt textarea
-— 📏 dimensions (ruler look, shows the current W×H) and 👣 steps & seed.
+— 📏 dimensions (shows the current aspect ratio, e.g. `2:3`) and 👣 steps
+& seed.
 Each opens a small popover with the controls (the same elements, moved into
 `#chipPopover`; IDs unchanged, so persistence/reset keep working). The
 prompt now fills the whole params pane in landscape; in portrait the chips

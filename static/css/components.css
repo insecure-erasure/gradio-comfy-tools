@@ -694,14 +694,6 @@
   .prompt-chip .chip-label {
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   }
-  /* Ruler-look for the dimensions chip: tick marks along its bottom edge. */
-  .chip-dims {
-    background-image:
-      repeating-linear-gradient(90deg, var(--border) 0 1px, transparent 1px 5px);
-    background-position: 0 100%;
-    background-size: 100% 4px;
-    background-repeat: no-repeat;
-  }
 
   /* Chip popover: small anchored modal with the controls of the clicked
      chip. Reuses .field-row/.field-inline/.stepper from the form block.
