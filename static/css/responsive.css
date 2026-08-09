@@ -227,6 +227,18 @@
     #tab-upscale .params-pane .result-url-row {
       flex-basis: 100%;
     }
+    /* Gallery — edited/restored original-prompt hint (vertical): a centered
+       fitted pill looked cramped between the ‹ › controls. Span the FULL
+       screen width (with small side margins) instead of hugging the text;
+       landscape keeps the fitted centered pill. */
+    .gallery-badge-hint {
+      left: 0;
+      right: 0;
+      transform: none;
+      width: auto;
+      max-width: none;
+      margin: 0 12px;
+    }
   }
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }
