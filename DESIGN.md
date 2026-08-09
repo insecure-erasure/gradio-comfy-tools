@@ -72,9 +72,9 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
    Generate, Edit and Video (with the model dropdown + ↺). Upscale has
    **no gear** and no advanced fields (resolution/blend/color stay fixed in
    the workflow; see BACKEND.md).
-2. **Edit has no mode radio** — the mode is chosen with the action buttons:
-   🖌️ Edit / 🩹 Restore (in the prompt in landscape; bottom bar + prompt
-   modal in portrait).
+2. **Edit has no mode radio** — the mode is chosen with the action chips:
+   🖌️ Edit / 🩹 Restore (order 🪄 · 🩹 · 🖌️; in the prompt field in
+   landscape, inside the compact field / modal in portrait).
 3. **LoRAs are managed exclusively via the advanced modal** — there is no
    dynamic list / `+ Add LoRA` button in the params pane; each tool
    configures LoRAs through the **visual row editor** of its modal
@@ -82,10 +82,10 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 4. **Upscale exposes only Seed** (+🎲); resolution/blend/color-correction were removed from the UI (they remain as workflow defaults).
 5. **Video Frames = 81–161** (4n+1), not 5–161.
 6. **No Custom AR option** in Generate (the hidden custom row is dead code and is not ported).
-7. **Action buttons live in the prompt** (landscape: overlaid bottom-right
-   of the textarea in the params pane; portrait: in the bottom bar, plus
-   the same actions as pills inside the fullscreen prompt modal); Reset is
-   ↺ in the per-tab nav toolbar.
+7. **Action chips live INSIDE the prompt field** (landscape: bottom-right
+   of the textarea — 🪄/🩹/✨; portrait: the compact bar field holds the
+   same chips, and the fullscreen prompt modal shows bigger pills);
+   Reset is ↺ in the per-tab nav toolbar.
 8. **Parameter chips instead of inline labels** — the per-tab controls
    (W / H / AR / 📐 / 👣 / 🎞️ / 🌱) moved out of the params panes into
    chips overlaid on the prompt textarea (📏/👣 Generate, 👣 Edit, 🎞️/👣
@@ -101,7 +101,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
     per tab. Added to the mockup (was not in the original design, which
     only had attachment buttons in the prompt bar).
 12. **Parameter chips + portrait prompt modal actions** — see the design
-    details in FRONTEND.md §3 and §8.14–8.15.
+    details in FRONTEND.md §3 and §8.14–8.16.
 
 ## Files
 

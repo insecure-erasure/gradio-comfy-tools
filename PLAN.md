@@ -447,6 +447,24 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   stop button now matches the actual trigger (🩹 restore → 🩹 becomes ⏹;
   ✨/🖌️/🎬 → ✨ becomes ⏹), and `switchTab` refreshes the modal actions so
   a tab switch with the modal open doesn't leave stale glyphs/visibility.
+- **DONE (2026-08-09, `refactor/unify-action-buttons`)**: **parameter AND
+  action chips inside the prompt field** — the per-tab parameters moved
+  out of the params panes into prompt chips (📏/👣 Generate, 👣 Edit,
+  🎞️/👣 Video) each with its own popover (`#chipPopover`), and the action
+  buttons (✨/🖌️/🩹/🎬 + 🪄) became chips too (`.btn-col` moved inside
+  `.prompt-input-wrap`). Landscape: the prompt fills the whole params
+  pane; portrait: the compact bar field holds the action chips (generate
+  without the modal), and the fullscreen prompt modal shows the ✕ + big
+  pills (🪄/🩹/✨). Upscale (no prompt) keeps its seed control in the
+  params pane. See FRONTEND.md §8.14–8.16.
+- **FIX (2026-08-09)**: **videos unplayable in portrait** — the `/media`
+  proxy buffered the whole file before responding, so `<video>` (which
+  issues Range requests) couldn't play until the full Wan MP4 downloaded.
+  Fix: `/media` now STREAMS and honors `Range` (206 for partials,
+  Content-Range/Accept-Ranges pass through).
+- **FIX (2026-08-09)**: **gallery badge original-prompt hint** — reachable
+  by click/tap (not just hover; touch has no hover) and full-screen-width
+  in portrait (was a cramped fitted pill).
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +

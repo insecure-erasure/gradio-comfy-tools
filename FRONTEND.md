@@ -62,10 +62,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
-  **compact single-line field** spanning the full bar width — the ✕ clear,
-  🪄 refine, parameter chips AND the action buttons (`.btn-col`) are
-  **hidden in the bar** (they exist ONLY inside the prompt modal, so the
-  field spans the whole bar). **Tapping the field opens a fullscreen
+  **compact single-line field** that CONTAINS the action chips (🪄/🩹/✨
+  bottom-right, horizontal — the user can generate WITHOUT opening the
+  modal); the ✕ clear, the 🪄 overlay and the parameter chips are
+  **hidden in the bar** (they exist ONLY inside the prompt modal).
+  **Tapping the field opens a fullscreen
   prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
   (`.modal-mode`) with a large textarea and its overlay actions: **✕ clear
@@ -78,7 +79,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   runs the restore directly; the ✨ uses the accent background like the
   buttons outside, while 🪄/🩹 stay neutral pills). While a
   generation runs the matching modal button becomes the ⏹ stop button like
-  the toolbar buttons, and the ✕ is disabled). The chips (📏/👣/🎞️) also
+  the toolbar buttons, and the ✕ is disabled). The wrap's own `.btn-col`
+  is hidden inside the modal (`.prompt-input-wrap.modal-mode .btn-col`).
+  The chips (📏/👣/🎞️) also
   appear inside the modal
   (bottom-left). A header holds a ✓ Done button to close.
   `openPromptModal`/`closePromptModal` (`tabs.js`); closed when crossing
@@ -105,7 +108,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 | Tab | Icon | Action buttons | Prompt visible |
 |---|---|---|---|
 | Generate | 🖼️ | `🪄` (refine prompt) + `✨` (needs prompt) | Yes |
-| Edit | 🖍️ | `🪄` (refine) + `🖌️ Edit` (needs prompt) + `🩹 Restore` (always active) | Yes |
+| Edit | 🖍️ | `🪄` (refine) + `🩹 Restore` (always active) + `🖌️ Edit` (needs prompt) — order 🪄 · 🩹 · 🖌️ | Yes |
 | Upscale | 🔍 | `🔍` (no prompt needed) | No |
 | Video | 🎬 | `🪄` (refine) + `🎬` (needs prompt) | Yes |
 
@@ -419,9 +422,10 @@ and re-transforms the trigger button).
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |
 | `POST /api/generate` / `edit` / `upscale` / `video` | run the tools |
+| `POST /api/refine-prompt` | 🪄 refine a prompt via the llama-server refiner (OpenAI-compatible; `stream:true` → SSE of deltas, `system_prompt` override) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
-| `GET /media/{filename}` | same-origin proxy of results |
+| `GET /media/{filename}` | same-origin **streaming** proxy of results (honors the `Range` header — the `<video>` element can seek/buffer progressively; returns 206 for partials) |
 
 ## 7. Session state
 
@@ -440,13 +444,13 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
     (the original image stays): the transformation's own text is what the
     Show prompt panel shows; if the source was a gallery image, its
-    prompt is kept as `originalPrompt` and shown on badge hover
+    prompt is kept as `originalPrompt` and shown by the badge
     ("Edited"/"Restored" → `#galleryBadgeHint`, a grey translucent panel
-    below the badge, via `.gallery-badge.show:hover +
-    .gallery-badge-hint:not(.empty)`). Restore may have no prompt — the
-    Show prompt button is hidden, but the hover still shows the source's
+    below the badge) — on **hover AND on click/tap** (the badge toggles it;
+    touch has no hover). Restore may have no prompt — the
+    Show prompt button is hidden, but the badge still shows the source's
     prompt. Edits of non-gallery sources (uploads / external URLs) append
-    with no hover hint.
+    with no badge hint.
   - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
     place: the generation prompt stays as the Show prompt content, badge
     "Upscaled", no hover hint (an upscale has no transformation prompt).
@@ -472,7 +476,10 @@ Two separate session-scoped galleries (in-memory; not persisted):
     prompt of an appended edit/restore, under the Edited/Restored badge)
     shares the same panel styling (fit-content + tight padding + clamp
     font) but its text is LEFT-aligned, so a long source prompt reads as
-    normal paragraphs instead of a narrow centered column.
+    normal paragraphs instead of a narrow centered column. In **portrait
+    (<1024px) the badge hint spans the full screen width** (left/right 0
+    with 12px margins) instead of the fitted pill — landscape keeps the
+    fitted centered pill.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -496,8 +503,8 @@ These are intentional, user-driven changes over the original `mockup.html`:
    right); per-tab model/gear/reset toolbar at right (was in the params
    pane); Edit/Upscale no longer show a model selector.
 2. **Prompt**: in landscape it lives inside the params pane (fills the
-   height, action buttons overlaid bottom-right, ✕ clear top-right); the
-   bottom bar only holds it in portrait.
+   height, with the ✕ clear top-right and the parameter/action chips at
+   the bottom); the bottom bar only holds it in portrait.
 3. **Result URL row**: below the prompt (not a separate full-width bar in
    landscape).
 4. **Advanced modal**: LoRA JSON textarea replaced by the visual row editor;
@@ -538,8 +545,8 @@ on the chips exactly as on the old buttons.
 The
 prompt fills the whole params pane in landscape; in portrait the chips
 appear inside the fullscreen prompt modal (Upscale keeps its pane), and
-the bottom bar shows ONLY the prompt field (no action column — the modal
-has the pills). The
+the bottom bar shows the prompt field WITH the action chips inside it
+(generate without the modal — see deviation 14 below). The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
 🪄 refine + 🩹 restore (Edit only, right of 🪄) + ✨ direct generation
@@ -553,3 +560,6 @@ the click-catcher overlay no longer sits on top of it (`.btn-col.generating
 catcher. **Tap outside the prompt field** closes the portrait prompt modal
 (header / modal padding); taps on the textarea and its overlay buttons
 keep working.
+16. **Gallery badge hint reachable by tap**: the Edited/Restored badge
+toggles its original-prompt hint on click/tap (not just hover), and in
+portrait the hint spans the full screen width — see §7.1.

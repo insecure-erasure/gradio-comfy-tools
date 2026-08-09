@@ -18,7 +18,7 @@
 1. **Submit**: `POST /prompt` with the (API-format) workflow and injected parameters.
 2. **Poll**: `GET /history/{prompt_id}` until the prompt completes; handle timeout and `POST /interrupt` on cancel.
 3. **Upload**: `POST /upload/image` (multipart) for user-uploaded source images in Edit/Upscale/Video; the resulting filename feeds the `Load Image (URL/Path)` node.
-4. **Results**: the public URL is `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. Images from `SaveImage`/`Random Preview Image`; videos from `VHS_VideoCombine` (`Output MP4`).
+4. **Results**: the public URL is `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. Images from `SaveImage`/`Random Preview Image`; videos from `VHS_VideoCombine` (`Output MP4`). The same-origin `/media` proxy **streams** and honors the `Range` header (returns 206 for partials, passes `Content-Range`/`Accept-Ranges`) so the `<video>` element can seek/buffer progressively.
 5. **Config**: server URL (`COMFYUI_BASE_URL`, default `http://192.168.1.8`), media base URL (`COMFYUI_MEDIA_BASE_URL`, default: derived from the server URL), optional API key.
 
 ### Model listings (for the UI dropdowns)
