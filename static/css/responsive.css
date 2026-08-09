@@ -80,6 +80,13 @@
        prompt modal, where the wrap gets .modal-mode and there is room. */
     .bottom-bar .prompt-chips { display: none; }
     .prompt-modal-box .prompt-chips { display: flex; }
+    /* Portrait: the action buttons (✨/🖌️/🩹/🎬 + 🪄) are ALSO chips inside
+       the prompt field now — in the bar they would crowd the single line,
+       and the fullscreen prompt modal already shows them as pills
+       (.prompt-actions). Hiding .btn-col (it lives inside the wrap, which
+       moves to the modal) leaves the field to span the whole bar width. */
+    .bottom-bar .btn-col,
+    .prompt-modal-box .btn-col { display: none; }
     /* Prompt fullscreen modal: opened by tapping the compact prompt. The
        wrap moves here (openPromptModal) with .modal-mode — the textarea
        fills the screen and the overlay buttons return to their ORIGINAL

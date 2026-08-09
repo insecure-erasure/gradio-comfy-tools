@@ -24,9 +24,13 @@
            in tabs.js fills this): Generate shows 📏 dimensions + 👣 steps/seed.
            Clicking a chip opens the small popover with the actual controls. -->
       <div class="prompt-chips" id="promptChips"></div>
-    </div>
-    <div class="btn-col" id="btnCol">
-      <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
+      <!-- Action buttons (✨/🖌️/🩹/🎬 + 🪄 refine) — now ALSO chips inside
+           the prompt field (bottom-right), consistent with the prompt modal.
+           switchTab rebuilds this innerHTML per tab; the generation lock /
+           stop-by-transformation / click-catchers keep working as before. -->
+      <div class="btn-col" id="btnCol">
+        <button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate">✨</button>
+      </div>
     </div>
   </div>
   <div class="result-url-row" id="resultUrlRow">

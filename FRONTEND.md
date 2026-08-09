@@ -46,8 +46,10 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   `overflow-x: auto` would clip an absolutely-positioned descendant);
   clicking outside closes it, and it is force-closed when crossing the
   breakpoint.
-- **Landscape (≥1024px)**: the prompt block (textarea + action
-  buttons + ✕ clear) and the result URL row are relocated into the active
+- **Landscape (≥1024px)**: the prompt block (textarea with its ✕ clear +
+  the parameter chips 📏/👣/🎞️ bottom-left and the ACTION chips 🪄/🩹/✨
+  bottom-right — all INSIDE the field) and the result URL row are
+  relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
   hidden. The URL row sits **below** the prompt, pinned to the pane bottom.
   The textarea is a **single shared element** relocated between tabs, but
@@ -58,12 +60,12 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   persisted to localStorage with the rest of the user config (storage.js)
   and restored on reload.
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
-  action buttons + URL row); the four tab buttons condense into the tabs
+  URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
   **compact single-line field** spanning the full bar width — the ✕ clear,
-  🪄 refine and parameter chips are **hidden in the bar** (they exist ONLY
-  inside the prompt modal); the action buttons (`.btn-col`) stay outside in
-  the bar. **Tapping the field opens a fullscreen
+  🪄 refine, parameter chips AND the action buttons (`.btn-col`) are
+  **hidden in the bar** (they exist ONLY inside the prompt modal, so the
+  field spans the whole bar). **Tapping the field opens a fullscreen
   prompt modal**
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
   (`.modal-mode`) with a large textarea and its overlay actions: **✕ clear
@@ -125,8 +127,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - `🩹 Restore` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System
-  prompt). In **landscape** it sits to the LEFT of the generate button in
-  the button column (Generate/Edit/Video); in **portrait** it is a pill in
+  prompt). In **landscape** it is a chip at the
+  bottom-right of the prompt field, before the generate chip (Generate/Edit/Video);
+  in **portrait** it is a pill in
   the prompt modal's bottom-right actions (next to 🩹/✨). `refinePrompt()`
   replaces the textarea with the refined text and syncs the per-tab prompt
   store.
@@ -513,10 +516,13 @@ These are intentional, user-driven changes over the original `mockup.html`:
 13. **Source preview**: the ✓ button next to the source URL field validates
 the value and shows the image in the output pane; 🔗/📁 also preview the
 source (dashed-border `.source-preview`). Added over the mockup.
-14. **Parameter chips (all tools)**: the per-tab parameter controls moved
+14. **Parameter + action chips (all tools)**: the per-tab parameter
+controls moved
 out of the params panes into chips overlaid on the prompt textarea (each
 opens a small popover with the controls — the same elements, moved into
-`#chipPopover`; IDs unchanged, so persistence/reset keep working):
+`#chipPopover`; IDs unchanged, so persistence/reset keep working), and the
+ACTION buttons (✨/🖌️/🩹/🎬 + 🪄 refine) are chips too, bottom-right of
+the field (`.btn-col` moved inside `.prompt-input-wrap`):
     - **Generate 🖼️**: 📏 dimensions (shows the current aspect ratio, e.g.
       `2:3`) + 👣 steps & seed.
     - **Edit ✏️**: 👣 steps & seed.
@@ -524,9 +530,16 @@ opens a small popover with the controls — the same elements, moved into
     - **Upscale 🔍**: NO chips — it has no prompt textarea, so its seed
       control stays directly in the params pane (as before).
 The 👣 chips show `steps · 🎲` while the seed is random and drop the
-separator + dice when the seed is FIXED (steps only). The
+separator + dice when the seed is FIXED (steps only). The action chips
+(bottom-right) mirror the portrait modal pills: 🪄 refine + the tool's
+generation chip(s) (✨/🖌️/🎬, accent background; 🩹 restore in Edit);
+the click-catchers, generation lock and stop-by-transformation (⏹) work
+on the chips exactly as on the old buttons.
+The
 prompt fills the whole params pane in landscape; in portrait the chips
-appear inside the fullscreen prompt modal (Upscale keeps its pane). The
+appear inside the fullscreen prompt modal (Upscale keeps its pane), and
+the bottom bar shows ONLY the prompt field (no action column — the modal
+has the pills). The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
 🪄 refine + 🩹 restore (Edit only, right of 🪄) + ✨ direct generation

@@ -792,28 +792,45 @@
       flex: 1;                     /* textarea fills the wrap */
       width: 100%;
       min-height: 64px;
-      padding: 8px 14px 44px;      /* room for the overlaid buttons */
+      padding: 8px 14px 56px;      /* room for the chip rows (params + actions) */
     }
     .params-pane .btn-col {
-      position: absolute;          /* overlay: bottom-right of the textarea */
+      position: absolute;          /* chips: bottom-right of the textarea */
       bottom: 8px;
       right: 8px;
       flex-direction: row;
       width: auto;
       height: auto;
       gap: 6px;
+      z-index: 5;
+      pointer-events: none;        /* clicks pass between the chips */
     }
-    .params-pane .btn-generate {
+    /* The action buttons become CHIPS inside the prompt field (same design
+       as the params chips and the portrait prompt modal pills): a pill with
+       auto width, small padding, pill radius. The generate button keeps its
+       accent background; refine stays neutral. */
+    .params-pane .btn-col .btn-generate,
+    .params-pane .btn-col .btn-refine {
       flex: none;
-      width: 34px;
-      height: 30px;
-      font-size: .95rem;
+      display: inline-flex;        /* the base .btn-refine is display:none */
+      align-items: center;
+      justify-content: center;
+      width: auto;
+      height: auto;
+      min-height: 26px;
+      padding: 4px 13px 5px;
+      border-radius: 999px;
+      font-size: .9rem;
       box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      pointer-events: auto;
     }
-    .params-pane .btn-refine {
-      display: flex;
-      height: 30px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+    .params-pane .btn-col .btn-wrap {
+      flex: none;
+      pointer-events: auto;       /* keep the catcher feedback working */
+    }
+    .params-pane .btn-col .btn-wrap .btn-generate {
+      width: auto;
+      height: auto;
     }
     /* URL hint row sits below the prompt, inside the params pane; the bottom
        bar is hidden entirely in landscape (see relayoutPrompt) */
