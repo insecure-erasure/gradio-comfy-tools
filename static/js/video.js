@@ -61,6 +61,13 @@ function generateVideo() {
     // the side. showResult then fills the pane.
     if (mock) mock.remove();
     showResult('videoOutputPane', res, true);
+    // If the user switched away while the video was generating, don't let
+    // the autoplaying result keep consuming resources hidden behind another
+    // tab — pause it (the ▶ button shows ▶; a click resumes). No-op if the
+    // user is (back) on the Video tab.
+    if (typeof currentTab !== 'undefined' && currentTab !== 'video') {
+      pauseActiveVideo();
+    }
     // Video gallery (B5, deferred): mark the element + collect the URL for
     // a future video gallery (native controls don't mix with navigation).
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');

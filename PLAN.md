@@ -479,6 +479,12 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   play/pause, double click toggles fullscreen** (controls excluded),
   portrait uses larger touch targets. Autoplay muted loop kept. See
   FRONTEND.md §3.4.
+- **DONE (2026-08-10)**: video player polish — the ▶/⏸ button now **follows
+  the playback state** (⏸ playing / ▶ paused, synced via `play`/`pause`/
+  `ended`; previously the glyph froze on ⏸ because `setGlyph` was only
+  called at creation); **leaving the Video tab pauses a playing video**
+  (`pauseActiveVideo()` in `player.js`, called from `switchTab`) so it
+  doesn't keep consuming resources in the background.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +

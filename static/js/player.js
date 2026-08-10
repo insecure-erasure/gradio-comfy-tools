@@ -18,6 +18,21 @@
 //   - fullscreen overlay button (⛶) top-right, same style as the compare
 //     sliders' button (.output-overlay-btn.top-right); in fullscreen it
 //     becomes ✕ exit in the same spot
+//
+// The current result video is tracked so the app can pause it when leaving
+// the Video tab (switchTab → pauseActiveVideo): a playing video hidden
+// behind another tab would keep consuming CPU/decoding resources.
+let activeVideoEl = null;
+
+// Pause the current result video if it is playing. No-op when there is no
+// video, it is already paused, or it was removed from the DOM (clearPane /
+// source preview replaced it). The ▶/⏸ button re-syncs itself through the
+// 'pause' event (syncPlayState).
+function pauseActiveVideo() {
+  if (!activeVideoEl || !activeVideoEl.isConnected || activeVideoEl.paused) return;
+  activeVideoEl.pause();
+}
+
 function createVideoPlayer(src) {
   const wrap = document.createElement('div');
   wrap.className = 'video-player';
@@ -186,6 +201,9 @@ function createVideoPlayer(src) {
   v.addEventListener('play', () => { if (!rafId) paintProgress(); });
   v.addEventListener('pause', stopProgress);
   v.addEventListener('ended', () => { stopProgress(); fill.style.width = '100%'; });
+
+  // Register as the current result video (tracked by pauseActiveVideo).
+  activeVideoEl = v;
 
   return wrap;
 }
