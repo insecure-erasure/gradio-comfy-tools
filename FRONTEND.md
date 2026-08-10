@@ -203,9 +203,16 @@ empty and the prompt fills it; see also deviation 14):
   placeholder for the options menu) with optically centered glyphs that
   **follow the playback state** (⏸ while playing, ▶ while paused — synced
   via `play`/`pause`/`ended`, so a browser-blocked autoplay shows ▶ from
-  the start); a thin
-  accent progress line at the very bottom edge (rAF-driven, always
-  visible); a **fullscreen overlay button ⛶ top-right** (same style as the
+  the start); a thin accent progress line at the very bottom edge
+  (rAF-driven, always visible) that is also a **scrubber**: hover (or
+  touch on mobile) doubles the line height and reveals a circular accent
+  thumb + a shaded tooltip with the position in tenths of a second
+  (seconds, e.g. `3.4s`); dragging (or tapping) the bar **seeks the video,
+  playing or
+  paused** — the hit area is 12px tall, flush with the pane's bottom
+  overlay buttons so they stay fully clickable; the drag uses pointer
+  events + capture with `touch-action: none` (no page scroll); a
+  **fullscreen overlay button ⛶ top-right** (same style as the
   compare sliders' button — `.output-overlay-btn.top-right`) that toggles
   real browser fullscreen and becomes ✕ in the same spot while in
   fullscreen; **single click anywhere on the video toggles play/pause,

@@ -485,6 +485,15 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   called at creation); **leaving the Video tab pauses a playing video**
   (`pauseActiveVideo()` in `player.js`, called from `switchTab`) so it
   doesn't keep consuming resources in the background.
+- **DONE (2026-08-10)**: **progress bar is now a scrubber** — hover (or
+  touch on mobile) doubles the line height (3→6px) and reveals a circular
+  accent thumb + shaded tooltip with the position in tenths of a second
+  (seconds, e.g. `3.4s`); dragging or tapping **seeks the video, playing or paused**
+  (pointer events + capture, `touch-action: none` so the drag never scrolls
+  the page). The 12px hit area is flush with the pane's bottom overlay
+  buttons (📁/🔗, URL field — bottom:12px) so they stay fully clickable.
+  `role=slider` + aria attrs on the bar; a `seeked` listener repaints the
+  fill when paused. See FRONTEND.md §3.4.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +

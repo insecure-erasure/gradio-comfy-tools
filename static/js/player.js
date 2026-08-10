@@ -10,7 +10,11 @@
 //       ▶/⏸ play-pause (always visible) + ⋮ more options (placeholder
 //       for now — the dropdown menu comes later)
 //   - a thin ACCENT progress line at the very BOTTOM edge of the video,
-//     ALWAYS visible (feedback while it plays / loops)
+//     ALWAYS visible (feedback while it plays / loops) — also a
+//     SCRUBBER: hover doubles the line height and reveals a circular
+//     accent thumb + shaded tooltip (position in tenths of a second);
+//     drag (or tap) seeks the video, playing or paused; on mobile the
+//     thumb appears where you touch and drags with your finger
 //   - portrait: the buttons are a bit LARGER (touch targets), still
 //     bottom-centered
 //   - single click anywhere on the video toggles play/pause; double click
@@ -46,13 +50,103 @@ function createVideoPlayer(src) {
   v.playsinline = true;   // iOS: keep it in the pane, no fullscreen takeover
   wrap.appendChild(v);
 
-  // Thin progress line at the bottom edge — always visible.
+  // Interactive progress bar (scrubber): the thin accent line at the very
+  // bottom edge stays always visible. The bar is a 12px-tall hit area (full
+  // width) so it can be hovered/dragged/tapped to seek, playing or paused.
+  // 12px keeps it FLUSH with the pane's bottom overlay buttons (📁/🔗 and
+  // the URL field sit at bottom:12px) so they stay fully clickable above it.
   const prog = document.createElement('div');
   prog.className = 'video-progress';
+  prog.setAttribute('role', 'slider');
+  prog.setAttribute('aria-label', 'Seek');
+  prog.setAttribute('aria-valuemin', '0');
+  prog.setAttribute('aria-valuemax', '100');
+  prog.setAttribute('aria-valuenow', '0');
+
+  const track = document.createElement('div');
+  track.className = 'video-progress-track';
   const fill = document.createElement('div');
   fill.className = 'video-progress-fill';
-  prog.appendChild(fill);
+  track.appendChild(fill);
+  prog.appendChild(track);
+
+  const thumb = document.createElement('div');
+  thumb.className = 'video-progress-thumb';
+  prog.appendChild(thumb);
+  const tip = document.createElement('div');
+  tip.className = 'video-progress-tip';
+  prog.appendChild(tip);
   wrap.appendChild(prog);
+
+  // ── Scrubber behavior ──
+  // Seconds with tenths and the unit — the generated videos are always a
+  // few seconds long, so minutes would just add noise (m:ss.d → 0:03.4s
+  // reads worse than 3.4s). Precision stays at 0.1s (the requirement).
+  const formatTime = (sec) => {
+    if (!isFinite(sec) || sec < 0) sec = 0;
+    return (Math.floor(sec * 10) / 10).toFixed(1) + 's';
+  };
+  const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+  const setFill = (ratio) => {
+    ratio = clamp(ratio, 0, 1);
+    fill.style.width = ratio * 100 + '%';
+    prog.setAttribute('aria-valuenow', String(Math.round(ratio * 100)));
+  };
+  const ratioFromEvent = (e) => {
+    const rect = prog.getBoundingClientRect();
+    return rect.width ? clamp((e.clientX - rect.left) / rect.width, 0, 1) : 0;
+  };
+  const updateThumb = (ratio) => {
+    // Keep the thumb inside the rounded corners; the tip is wider, so it is
+    // clamped tighter so the text never gets clipped at the edges.
+    thumb.style.left = (clamp(ratio, 0.015, 0.985) * 100) + '%';
+    tip.style.left = (clamp(ratio, 0.06, 0.94) * 100) + '%';
+    tip.textContent = formatTime(ratio * (v.duration || 0));
+  };
+  const showScrub = () => { thumb.classList.add('show'); tip.classList.add('show'); };
+  const hideScrub = () => { if (!scrubbing) { thumb.classList.remove('show'); tip.classList.remove('show'); } };
+
+  let scrubbing = false;
+  let hovering = false;
+  let previewRatio = 0;
+
+  prog.addEventListener('pointerenter', () => { hovering = true; if (!scrubbing) showScrub(); });
+  prog.addEventListener('pointerleave', () => { hovering = false; hideScrub(); });
+  prog.addEventListener('pointerdown', (e) => {
+    if (e.button !== undefined && e.button !== 0) return; // primary button / touch only
+    scrubbing = true;
+    prog.classList.add('scrubbing');
+    try { prog.setPointerCapture(e.pointerId); } catch (_) {} // keep the drag even off the bar
+    stopProgress(); // freeze the rAF fill so the drag preview is not overwritten
+    previewRatio = ratioFromEvent(e);
+    setFill(previewRatio);
+    updateThumb(previewRatio);
+    showScrub();
+    e.preventDefault();
+  });
+  prog.addEventListener('pointermove', (e) => {
+    const r = ratioFromEvent(e);
+    if (scrubbing) { previewRatio = r; setFill(r); } // the fill previews the drag
+    updateThumb(r);
+  });
+  prog.addEventListener('pointerup', () => {
+    if (!scrubbing) return;
+    scrubbing = false;
+    prog.classList.remove('scrubbing');
+    if (v.duration) v.currentTime = previewRatio * v.duration; // commit the seek
+    paintOnce();
+    if (!v.paused) paintProgress(); // resume the rAF loop while playing
+    // Keep the thumb/tooltip if the pointer still hovers the bar (desktop
+    // drag released over it); on touch there is no hover, so they hide.
+    if (!hovering) hideScrub();
+  });
+  prog.addEventListener('pointercancel', () => {
+    scrubbing = false;
+    prog.classList.remove('scrubbing');
+    paintOnce();
+    if (!v.paused) paintProgress();
+    hideScrub();
+  });
 
   // Bottom-center control cluster.
   const ctrl = document.createElement('div');
@@ -172,7 +266,7 @@ function createVideoPlayer(src) {
   // excluded (their own handlers + stopPropagation). The single-click is
   // deferred ~250ms so the first click of a double-click doesn't also
   // toggle play/pause.
-  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-more-btn, .video-fs-btn'));
+  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-more-btn, .video-fs-btn, .video-progress'));
   let clickTimer = null;
   wrap.addEventListener('click', (e) => {
     if (isControl(e.target)) return;
@@ -191,16 +285,22 @@ function createVideoPlayer(src) {
   // bar; the loop is stopped on pause so a paused video doesn't burn CPU.
   let rafId = null;
   function paintProgress() {
-    if (v.duration) fill.style.width = Math.min(100, (v.currentTime / v.duration) * 100) + '%';
+    if (v.duration) setFill(v.currentTime / v.duration);
     rafId = requestAnimationFrame(paintProgress);
+  }
+  function paintOnce() {
+    if (v.duration) setFill(v.currentTime / v.duration);
   }
   function stopProgress() {
     if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
   }
-  v.addEventListener('loadedmetadata', () => { fill.style.width = '0%'; });
+  v.addEventListener('loadedmetadata', () => setFill(0));
   v.addEventListener('play', () => { if (!rafId) paintProgress(); });
   v.addEventListener('pause', stopProgress);
-  v.addEventListener('ended', () => { stopProgress(); fill.style.width = '100%'; });
+  // After a programmatic seek the rAF loop may be stopped (paused video) —
+  // repaint once so the fill matches the new position immediately.
+  v.addEventListener('seeked', () => { if (!rafId) paintOnce(); });
+  v.addEventListener('ended', () => { stopProgress(); setFill(1); });
 
   // Register as the current result video (tracked by pauseActiveVideo).
   activeVideoEl = v;

@@ -996,24 +996,88 @@
     object-fit: contain;
     border-radius: var(--radius);
   }
-  /* Thin progress line at the very BOTTOM edge — always visible. */
+  /* Interactive progress/seek bar: the thin ACCENT line at the very BOTTOM
+     edge stays always visible (feedback while it plays / loops). The bar is
+     a 12px-tall hit area (full width) so it can be hovered/dragged/tapped
+     to seek — playing or paused. 12px keeps it FLUSH with the pane's bottom
+     overlay buttons (📁/🔗 and the URL field sit at bottom:12px) so they
+     stay fully clickable above it.
+     Hover (or touch on mobile) doubles the line height (3→6px) and reveals
+     a circular accent thumb + a shaded tooltip with the position in tenths
+     of a second. */
   .video-progress {
     position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
-    height: 3px;
-    background: rgba(255,255,255,.14);
-    pointer-events: none;
+    height: 12px;             /* hit area — taller than the visible line */
+    cursor: pointer;
+    touch-action: none;       /* dragging must not scroll/zoom the page */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
     z-index: 6;
+  }
+  .video-progress-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;              /* the visible line — doubles on hover/drag */
+    background: rgba(255,255,255,.14);
+    border-radius: 2px;
+    pointer-events: none;     /* events belong to .video-progress */
+    transition: height .15s;
+  }
+  .video-progress:hover .video-progress-track,
+  .video-progress.scrubbing .video-progress-track {
+    height: 6px;              /* doubled while interacting */
   }
   .video-progress-fill {
     height: 100%;
     width: 0%;
     background: var(--accent);
+    border-radius: 2px;
     /* no transition: the fill is repainted every frame by requestAnimationFrame
        (player.js) — a CSS transition would only add lag chasing the playhead */
   }
+  /* Circular accent thumb — follows the pointer on hover/drag. */
+  .video-progress-thumb {
+    position: absolute;
+    bottom: 1px;              /* centered on the 3px line */
+    left: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.5);
+    transform: translateX(-50%) translateY(50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .video-progress-thumb.show { opacity: 1; }
+  /* Shaded tooltip with the position (tenths of a second), above the thumb. */
+  .video-progress-tip {
+    position: absolute;
+    bottom: 20px;             /* above the thumb */
+    left: 0;
+    padding: 3px 7px;
+    background: rgba(0,0,0,.78);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 6px;
+    color: #fff;
+    font: 600 11px/1 system-ui, sans-serif;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,.9);      /* shaded text */
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);      /* shaded tooltip */
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .video-progress-tip.show { opacity: 1; }
   /* Bottom-CENTERED control cluster: ▶/⏸ + ⋮. Never vertically centered. */
   .video-controls {
     position: absolute;
@@ -1063,6 +1127,9 @@
     .video-play-btn { width: 54px; height: 54px; font-size: 1.25rem; }
     .video-more-btn { width: 42px; height: 42px; font-size: 1.15rem; }
     .video-controls { bottom: 18px; gap: 12px; }
+    /* Touch: bigger thumb + tooltip on the scrubber. */
+    .video-progress-thumb { width: 14px; height: 14px; }
+    .video-progress-tip { bottom: 22px; font-size: 12px; padding: 4px 8px; }
   }
 
   /* ── Toast / status ────────────────────────── */
