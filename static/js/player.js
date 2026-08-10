@@ -50,8 +50,6 @@ function createVideoPlayer(src) {
   const playBtn = document.createElement('button');
   playBtn.type = 'button';
   playBtn.className = 'video-play-btn';
-  playBtn.title = 'Pause';
-  playBtn.setAttribute('aria-label', 'Pause');
   playBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
   const setGlyph = (b, glyph) => {
     b.textContent = glyph;
@@ -93,7 +91,21 @@ function createVideoPlayer(src) {
     const inkCY = (minY + maxY) / 2;
     b.style.transform = `translate(${Math.round(cx - inkCX)}px, ${Math.round(canvas.height / 2 - inkCY)}px)`;
   };
-  setGlyph(playBtn, '⏸'); // autoplay: it starts playing — centered from the start
+  // The ▶/⏸ glyph must FOLLOW the playback state: ⏸ while playing, ▶ while
+  // paused. The video autoplays muted, but autoplay can be blocked by the
+  // browser — so the initial state is read from v.paused, not assumed, and
+  // re-synced on every play/pause/ended (previously setGlyph was called
+  // only once at creation, so the button kept the ⏸ glyph forever).
+  const syncPlayState = () => {
+    const paused = v.paused;
+    setGlyph(playBtn, paused ? '▶' : '⏸');
+    playBtn.title = paused ? 'Play' : 'Pause';
+    playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+  };
+  v.addEventListener('play', syncPlayState);
+  v.addEventListener('pause', syncPlayState);
+  v.addEventListener('ended', syncPlayState); // no-loop end: paused again
+  syncPlayState();
 
   const moreBtn = document.createElement('button');
   moreBtn.type = 'button';
