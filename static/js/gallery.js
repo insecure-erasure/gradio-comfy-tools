@@ -35,6 +35,7 @@
 
 const galleryOverlay = document.getElementById('galleryOverlay');
 const galleryBig = document.getElementById('galleryBig');
+const galleryVideoWrap = document.getElementById('galleryVideoWrap');
 const gallerySlider = document.getElementById('gallerySlider');
 const galleryBefore = document.getElementById('galleryBefore');
 const galleryAfter = document.getElementById('galleryAfter');
@@ -48,6 +49,7 @@ const galleryBadgeBox = document.getElementById('galleryBadgeBox');
 const galleryBadgeBoxText = document.getElementById('galleryBadgeBoxText');
 const galleryCloseBtn = document.getElementById('galleryClose');
 const galleryDlBtn = document.getElementById('galleryDl');
+const galleryTrashBtn = document.getElementById('galleryTrash');
 const galleryPrevBtn = document.getElementById('galleryPrev');
 const galleryNextBtn = document.getElementById('galleryNext');
 
@@ -267,6 +269,10 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
+  // Destroy the video player of the OVERLAY (stops playback) and hide the
+  // wrap. The pane's own player/result is untouched — closing the gallery
+  // must not destroy the tool's last generation.
+  if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
     try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
@@ -274,6 +280,12 @@ function closeGallery() {
     galleryOverlay.classList.remove('show');
   }
   galleryMode = null;
+  // After closing, make sure the ACTIVE tool's pane still shows its last
+  // generation (it normally does — the overlay never touches the pane — but
+  // if the user deleted the shown entry via 🗑️, restore from the gallery).
+  if (typeof restoreTabResult === 'function' && currentTab) {
+    restoreTabResult(currentTab);
+  }
 }
 
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
@@ -283,6 +295,8 @@ function closeGallery() {
       galleryMode = null;
       closeGalleryPrompt();
       closeBadgeBox();
+      if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
+      if (typeof restoreTabResult === 'function' && currentTab) restoreTabResult(currentTab);
     }
   })
 );
@@ -317,6 +331,15 @@ function renderGalleryItem() {
       galleryBadge.classList.remove('no-action');
       galleryBadge.textContent = '';
     }
+  } else if (galleryMode === 'video') {
+    // Custom player for the current video entry (autoplay muted loop; the
+    // player is rebuilt per navigation so the src is always fresh).
+    galleryVideoWrap.innerHTML = '';
+    galleryVideoWrap.appendChild(createVideoPlayer(e.src));
+    galleryBadge.classList.remove('show');
+    galleryBadge.textContent = '';
+    if (e.prompt) galleryPromptBtn.classList.add('show');
+    else { galleryPromptBtn.classList.remove('show'); closeGalleryPrompt(); }
   } else {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;
@@ -363,6 +386,7 @@ async function openGenerateLightbox(img) {
   galleryEntries = all;
   galleryBig.style.display = '';
   gallerySlider.style.display = 'none';
+  if (galleryVideoWrap) galleryVideoWrap.style.display = 'none';
   let idx = all.length - 1; // default: most recent
   if (img && img.src) {
     const i = all.findIndex(e => e.src === img.src);
@@ -373,18 +397,63 @@ async function openGenerateLightbox(img) {
   openGalleryOverlay();
 }
 
-// Edit/Upscale compare: the gallery ONLY navigates the edited/restored/
-// upscaled comparisons; start from the requested kind.
+// Edit/Upscale fullscreen: the ⛶ button opens THIS tool's gallery. It
+// prefers the before/after comparisons of the current tool; when there are
+// none but the tool has transformed entries in the generated gallery
+// (edited/restored/upscaled with a badge), it falls back to a lightbox of
+// those — so the button NEVER says "No comparison" while the tool has
+// gallery content.
 async function openCompareFullscreen(kind) {
   await verifyStoredGalleries(true); // drop dead files before showing
-  const all = collectCompareEntries();
-  if (!all.length) return showToast('No comparison to show yet');
-  galleryMode = 'compare';
+  const tab = kind === 'upscale' ? 'upscale' : 'edit';
+  // Comparisons belonging to THIS tool (the registry carries .tab; the DOM
+  // fallback entries map kind → tab).
+  const comps = collectCompareEntries().filter(c => {
+    const t = c.tab || (c.kind === 'upscale' ? 'upscale' : 'edit');
+    return t === tab;
+  });
+  if (comps.length) {
+    galleryMode = 'compare';
+    galleryEntries = comps;
+    galleryBig.style.display = 'none';
+    gallerySlider.style.display = '';
+    galleryVideoWrap.style.display = 'none';
+    const i = comps.findIndex(e => e.kind === kind);
+    galleryIdx = i >= 0 ? i : comps.length - 1;
+    renderGalleryItem();
+    openGalleryOverlay();
+    return;
+  }
+  // Fallback: transformed entries of this tool in the generated gallery.
+  const badgeMatch = kind === 'upscale' ? ['upscaled'] : ['edited', 'restored'];
+  const gen = (window.galleryGenerated || []).filter(e => badgeMatch.includes(e.badge));
+  if (!gen.length) {
+    return showToast(kind === 'upscale' ? 'No upscaled image yet' : 'No edited image yet');
+  }
+  galleryMode = 'lightbox';
+  galleryEntries = gen;
+  galleryBig.style.display = '';
+  gallerySlider.style.display = 'none';
+  galleryVideoWrap.style.display = 'none';
+  galleryIdx = gen.length - 1;
+  renderGalleryItem();
+  openGalleryOverlay();
+}
+
+// Video fullscreen: the ⛶ button on the Video tab opens the generated
+// videos gallery (window.galleryVideos) — the custom player fills the
+// overlay, ‹› navigates, the 🗑️ deletes the shown entry, Show prompt
+// reveals its prompt.
+async function openVideoGallery() {
+  await verifyStoredGalleries(true); // drop dead files before showing
+  const all = window.galleryVideos;
+  if (!all.length) return showToast('No video to show yet');
+  galleryMode = 'video';
   galleryEntries = all;
   galleryBig.style.display = 'none';
-  gallerySlider.style.display = '';
-  const i = all.findIndex(e => e.kind === kind);
-  galleryIdx = i >= 0 ? i : all.length - 1;
+  gallerySlider.style.display = 'none';
+  galleryVideoWrap.style.display = '';
+  galleryIdx = all.length - 1;
   renderGalleryItem();
   openGalleryOverlay();
 }
@@ -409,7 +478,9 @@ window.addEventListener('resize', () => { if (galleryMode === 'compare') fitGall
 async function galleryDownload() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
-  const src = galleryMode === 'lightbox' ? galleryBig.src : galleryAfter.src;
+  const src = galleryMode === 'lightbox' ? galleryBig.src
+    : galleryMode === 'video' ? (e.src || e.url)
+    : galleryAfter.src;
   try {
     const r = await fetch(src);
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -422,6 +493,67 @@ async function galleryDownload() {
   } catch (err) {
     const w = window.open(src, '_blank'); if (w) w.focus();
   }
+}
+
+// ── Delete current gallery entry ────────────
+// The 🗑️ overlay button (bottom-left) removes ONLY the entry currently
+// shown fullscreen — from the live registry AND the persisted storage —
+// then navigates (or closes if it was the last one) and re-renders.
+function galleryDeleteCurrent() {
+  const e = galleryEntries[galleryIdx];
+  if (!e) return;
+  const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
+  closeGalleryPrompt();
+  closeBadgeBox();
+
+  // 1) Remove from the persisted registry (the source of truth).
+  if (galleryMode === 'lightbox') {
+    // galleryGenerated: by filename (prefer) or by src URL.
+    window.galleryGenerated = (window.galleryGenerated || []).filter(x => {
+      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
+      return !(fn && xf === fn) && !(!fn && x.src === e.src);
+    });
+  } else if (galleryMode === 'video') {
+    // video gallery: by src (display URL) or filename.
+    window.galleryVideos = (window.galleryVideos || []).filter(x => {
+      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
+      return !(fn && xf === fn) && !(!fn && x.src === e.src);
+    });
+  } else {
+    // compare mode: by AFTER src (identity) — the entry's src or the after img.
+    const afterSrc = e.src || galleryAfter.src;
+    window.galleryComparisons = (window.galleryComparisons || []).filter(
+      x => !(x.src === e.src) && !(afterSrc && x.src === afterSrc)
+    );
+  }
+
+  // If the deleted entry was what the ACTIVE tool's pane was showing, clear
+  // the pane so closing the gallery restores the next/last generation (or
+  // the idle placeholder) instead of leaving a ghost of the deleted file.
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+  const pane = document.getElementById(paneIds[currentTab]);
+  if (pane) {
+    // The pane's shown src: result-img .src, video-player > video .src, or
+    // compare-slider > img.side.after .src.
+    const img = pane.querySelector('.result-img');
+    const vid = pane.querySelector('.video-player video');
+    const cmpAfter = pane.querySelector('.compare-slider img.side.after');
+    const shownSrc = (img && img.src) || (vid && vid.src) || (cmpAfter && cmpAfter.src) || null;
+    const entrySrc = galleryMode === 'video' ? (e.src || e.url) : e.src;
+    if (shownSrc && entrySrc && shownSrc === entrySrc) clearPane(pane.id);
+  }
+
+  // 2) Remove from the live entries + navigate/clamp.
+  galleryEntries.splice(galleryIdx, 1);
+  if (galleryEntries.length === 0) {
+    closeGallery(); // nothing left — close the overlay
+    if (typeof savePersistedState === 'function') savePersistedState();
+    return;
+  }
+  // Navigate to the next entry (wrap), or clamp to the new last.
+  if (galleryIdx >= galleryEntries.length) galleryIdx = galleryEntries.length - 1;
+  renderGalleryItem();
+  if (typeof savePersistedState === 'function') savePersistedState();
 }
 
 // ── Prompt panel (Show prompt) ─────────────
@@ -462,6 +594,7 @@ function scheduleCloseGalleryPrompt() {
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
+galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
 // ‹ › while the prompt panel is open: close it and navigate (one action —
 // the shown prompt never goes stale). The overlay is pointer-transparent,
 // so these buttons stay clickable under it.

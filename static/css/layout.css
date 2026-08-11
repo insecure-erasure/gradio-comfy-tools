@@ -391,7 +391,7 @@
     max-width: 480px;
     min-height: 0;
   }
-  .btn-reset, .btn-gear-inline {
+  .btn-reset, .btn-gear-inline, .btn-trash {
     width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid var(--border);
@@ -404,8 +404,12 @@
     flex-shrink: 0;
   }
   .btn-reset:hover,
-  .btn-gear-inline:hover {
+  .btn-gear-inline:hover,
+  .btn-trash:hover {
     background: var(--surface-hover);
     color: var(--text);
     border-color: var(--border);
   }
+  /* Trash: destructive — hover turns the icon red so it reads as "clear",
+     distinct from the neutral reset. */
+  .btn-trash:hover { color: #e5484d; }

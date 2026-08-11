@@ -2,6 +2,9 @@
     <div class="tab-panel" id="tab-video">
       <div class="split">
         <div class="output-pane" id="videoOutputPane">
+          <button class="output-overlay-btn top-right" onclick="openVideoGallery()" title="Fullscreen (gallery)" aria-label="Fullscreen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
           <button class="output-overlay-btn bottom-right-left" onclick="uploadForTab('video')" title="Upload image">📁</button>
           <div class="source-url-field">
             <input type="text" class="source-url-input" id="videoSourceUrl" placeholder="Paste image URL…" oninput="clearSourcePreview('video')" />

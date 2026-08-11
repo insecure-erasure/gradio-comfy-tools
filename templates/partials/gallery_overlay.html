@@ -17,6 +17,7 @@
      Opened/closed by static/js/gallery.js. -->
 <div class="gallery-overlay" id="galleryOverlay">
   <img class="gallery-big" id="galleryBig" alt="">
+  <div class="gallery-video-wrap" id="galleryVideoWrap" style="display:none"></div>
   <div class="compare-slider gallery-slider" id="gallerySlider">
     <img class="side before" id="galleryBefore" src="" draggable="false" alt="Original">
     <img class="side after" id="galleryAfter" src="" draggable="false" alt="Result">
@@ -46,6 +47,9 @@
   </button>
   <button class="gallery-btn gallery-dl" id="galleryDl" title="Download" aria-label="Download">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+  </button>
+  <button class="gallery-btn gallery-trash" id="galleryTrash" title="Delete this entry" aria-label="Delete this entry">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
   </button>
   <button class="gallery-btn gallery-prev" id="galleryPrev" title="Previous" aria-label="Previous">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>

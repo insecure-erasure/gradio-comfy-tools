@@ -89,3 +89,55 @@ function restoreTabResult(tab) {
 function restoreActiveTabResult() {
   if (currentTab) restoreTabResult(currentTab);
 }
+
+// ── Trash (🗑️): clear the current tool's gallery + refresh its pane ──
+// Independent per tool. Clears the persisted registries for THIS tab only,
+// empties the pane (restores the placeholder / video mock), clears the
+// result URL row and persists. Other tools' galleries are untouched.
+function clearTabGallery(tab) {
+  switch (tab) {
+    case 'generate':
+      window.galleryGenerated = [];
+      break;
+    case 'edit':
+    case 'upscale':
+      if (Array.isArray(window.galleryComparisons)) {
+        window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== tab);
+      }
+      break;
+    case 'video':
+      window.galleryVideos = [];
+      break;
+  }
+  // Refresh the pane: drop the result / slider / video, restore the
+  // placeholder. The resets already clearPane, but here we do it directly
+  // so the pane shows the idle state regardless of the tab.
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+  const paneId = paneIds[tab];
+  if (paneId) {
+    clearPane(paneId);
+    const pane = document.getElementById(paneId);
+    if (pane && !pane.querySelector('.output-placeholder') && tab === 'generate') {
+      const ph = document.createElement('div');
+      ph.className = 'output-placeholder';
+      ph.innerHTML = '<div class="icon">🖼️</div><p>Your generated image<br>will appear here</p>' +
+                     '<p style="font-size:.75rem;margin-top:6px;">Click to open lightbox</p>';
+      pane.insertBefore(ph, pane.firstChild);
+    }
+  }
+  // Clear the result URL row for this tab (it is shared, so only when the
+  // current tab is the one being cleared).
+  if (currentTab === tab) {
+    document.getElementById('resultUrl').textContent = '';
+    document.getElementById('btnCopyUrl').disabled = true;
+  }
+  savePersistedState();
+  showToast(tab === 'generate' ? '🗑️ Generated images cleared'
+    : tab === 'video' ? '🗑️ Videos cleared'
+    : tab === 'edit' ? '🗑️ Edits cleared' : '🗑️ Upscales cleared');
+}
+
+// Toolbar trash handler: clears the gallery of the ACTIVE tab.
+function trashCurrentTab() {
+  if (currentTab) clearTabGallery(currentTab);
+}

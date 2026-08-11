@@ -140,12 +140,15 @@ function renderToolbar(tab) {
         <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
       </select></div>
       <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
-      <button class="btn-reset" onclick="resetGenerate()" title="Reset">↺</button>`;
+      <button class="btn-reset" onclick="resetGenerate()" title="Reset">↺</button>
+      <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   } else if (tab === 'edit') {
     html += `<button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
-      <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>`;
+      <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>
+      <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   } else if (tab === 'upscale') {
-    html += `<button class="btn-reset" onclick="resetUpscale()" title="Reset">↺</button>`;
+    html += `<button class="btn-reset" onclick="resetUpscale()" title="Reset">↺</button>
+      <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   } else if (tab === 'video') {
     html += `<div class="toolbar-model"><label>Model</label>
       <select id="videoModelVersion" onchange="toolbarValues.vidVersion = this.value; savePersistedState()">
@@ -153,7 +156,8 @@ function renderToolbar(tab) {
         <option value="wan22" data-key="wan22">Wan 2.2</option>
       </select></div>
       <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
-      <button class="btn-reset" onclick="resetVideo()" title="Reset">↺</button>`;
+      <button class="btn-reset" onclick="resetVideo()" title="Reset">↺</button>
+      <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   }
   tb.innerHTML = html;
   // restore persisted selections
