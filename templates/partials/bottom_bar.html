@@ -6,8 +6,18 @@
 <div class="bottom-bar" id="bottomBar">
   <div class="prompt-block" id="promptBlock">
     <div class="prompt-input-wrap">
-      <textarea id="promptInput"
+      <!-- One INDEPENDENT textarea per tab (generate / edit / video). Each
+           keeps its own value permanently — the tabs never share a field,
+           so prompts can never mix. switchTab only toggles which one is
+           visible (.prompt-input.active). Upscale has no prompt. -->
+      <textarea id="promptInputGenerate" class="prompt-input" data-tab="generate"
         placeholder="Describe the image you want to generate in detail..."
+        onclick="openPromptModal()"></textarea>
+      <textarea id="promptInputEdit" class="prompt-input" data-tab="edit"
+        placeholder="Describe the edit you want to apply (e.g., &quot;change the background to a beach at sunset&quot;)..."
+        onclick="openPromptModal()"></textarea>
+      <textarea id="promptInputVideo" class="prompt-input" data-tab="video"
+        placeholder="Describe the motion and action (e.g., &quot;a cat walking slowly through a field of flowers, gentle breeze&quot;)..."
         onclick="openPromptModal()"></textarea>
       <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
       <!-- Overlay actions, bottom-right (portrait prompt modal only): 🪄

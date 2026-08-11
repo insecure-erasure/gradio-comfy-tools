@@ -34,17 +34,22 @@ function getSourceUrl(tab) {
 // host-validation) — that is why everything goes through /media.
 function beforeProxyUrl(value) {
   if (!value) return '';
-  // External URL -> as-is (the backend serves it; the browser can load it).
-  if (/^https?:\/\//i.test(value)) return value;
-  // /media/FILENAME?type=.. -> already same-origin.
-  if (/^\/media\//.test(value)) return value;
-  // {base}/view?filename=..&type=.. -> keep only the query (proxy path).
+  // ComfyUI result URL ({base}/view?filename=..&type=..) — including the
+  // direct http(s) form that 🔗 puts in the source field. MUST be proxied
+  // through the same-origin /media endpoint: on mobile (portrait) the
+  // ComfyUI hostname often does not resolve from the phone, and the raw
+  // <img> would come back black. This check comes BEFORE the generic
+  // external-URL check for that reason.
   if (/\/view\?/.test(value)) {
     const q = value.split('?')[1] || '';
     const fn = new URLSearchParams(q).get('filename');
     const type = new URLSearchParams(q).get('type') || 'output';
     if (fn) return '/media/' + encodeURIComponent(fn) + '?type=' + type;
   }
+  // /media/FILENAME?type=.. -> already same-origin.
+  if (/^\/media\//.test(value)) return value;
+  // Genuinely external URL -> as-is (a plain <img> can load any public URL).
+  if (/^https?:\/\//i.test(value)) return value;
   // Bare temp filename (uploaded) -> proxy as temp.
   return '/media/' + encodeURIComponent(value.split('/').pop()) + '?type=temp';
 }
@@ -135,22 +140,12 @@ function flashSourceField(tab) {
 // The proxy keeps the browser away from the ComfyUI host (no CORS / host
 // validation issues) — the same reason generated results use /media.
 function proxiedSrc(value) {
-  if (!/^https?:\/\//i.test(value)) {
-    return '/media/' + encodeURIComponent(value) + '?type=temp';
-  }
-  if (baseUrl) {
-    try {
-      const u = new URL(value);
-      const origin = new URL(baseUrl).origin;
-      if (u.origin === origin && u.pathname === '/view') {
-        const fn = u.searchParams.get('filename');
-        if (fn) {
-          return '/media/' + encodeURIComponent(fn) + '?type=' + (u.searchParams.get('type') || 'output');
-        }
-      }
-    } catch (e) { /* not a URL — fall through to direct */ }
-  }
-  return value;
+  // Same logic as beforeProxyUrl: proxy ANY ComfyUI /view?filename= URL
+  // through the same-origin /media endpoint (the origin comparison here
+  // used to let a mismatched base URL leak the raw ComfyUI host to the
+  // <img> — black on devices that cannot reach that hostname, e.g. a
+  // phone in portrait).
+  return beforeProxyUrl(value);
 }
 
 // Show the source image in the output pane, filling the available area.

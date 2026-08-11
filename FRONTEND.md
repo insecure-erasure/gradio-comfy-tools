@@ -52,13 +52,13 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
   hidden. The URL row sits **below** the prompt, pinned to the pane bottom.
-  The textarea is a **single shared element** relocated between tabs, but
-  its VALUE is **independent per tool**: `promptsByTab` (state.js) stores
-  one prompt per tab (generate/edit/video; Upscale has none) —
-  `switchTab()` saves the outgoing tab's text and restores the incoming
-  tab's, and `clearPrompt` (✕) clears only the active tab. Prompts are
-  persisted to localStorage with the rest of the user config (storage.js)
-  and restored on reload.
+  There is **one INDEPENDENT textarea per tab** (generate/edit/video;
+  Upscale has none) inside the shared `.prompt-input-wrap` — each field
+  keeps its own value permanently, so prompts can never mix.
+  `switchTab()` only toggles which field is visible (`.prompt-input.active`),
+  and `clearPrompt` (✕) clears only the active tab. `promptsByTab`
+  (state.js) mirrors the fields for localStorage persistence (storage.js),
+  restored once at startup.
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   URL row); the four tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a

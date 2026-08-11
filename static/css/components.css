@@ -575,6 +575,10 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
   }
+  /* One textarea per tab (generate/edit/video) — only the ACTIVE tab's
+     field is visible; the others stay hidden but keep their value. */
+  .prompt-input-wrap textarea.prompt-input { display: none; }
+  .prompt-input-wrap textarea.prompt-input.active { display: block; flex: 1; }
 
   /* Small ✕ clear button, overlaid top-right of the prompt (both modes) */
   .prompt-clear {

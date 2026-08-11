@@ -103,10 +103,10 @@ function copyResultUrl() {
   }).catch(() => showToast('Copy failed'));
 }
 
-// ✕ clears the prompt textarea (single shared instance) and its per-tab
-// stored value, so the cleared state also sticks when switching tabs.
+// ✕ clears the ACTIVE tab's prompt textarea (each tab has its own field,
+// so only that tab's value is affected) and its stored value.
 function clearPrompt() {
-  const input = document.getElementById('promptInput');
+  const input = activePromptInput();
   if (input) input.value = '';
   if (promptsByTab && currentTab) promptsByTab[currentTab] = '';
   updateActionButtons();
@@ -119,7 +119,7 @@ function clearPrompt() {
 // instead, so this returns early (see setGeneratingUi).
 function updateActionButtons() {
   if (genLockActive) return; // generation lock holds all buttons disabled
-  const prompt = (document.getElementById('promptInput')?.value || '').trim();
+  const prompt = (activePromptInput()?.value || '').trim();
   const btnCol = document.getElementById('btnCol');
   if (!btnCol) return;
   if (currentTab === 'upscale') return; // no prompt needed
@@ -170,7 +170,7 @@ function setGeneratingUi(on, triggerId) {
   if (on) {
     genTriggerId = triggerId || null;
   }
-  const input = document.getElementById('promptInput');
+  const input = activePromptInput();
   if (on) {
     if (input) { input.disabled = true; input.classList.add('generating'); }
     applyGenerationLock();

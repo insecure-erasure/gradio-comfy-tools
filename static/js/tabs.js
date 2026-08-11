@@ -11,14 +11,6 @@ function switchTab(name) {
     pauseActiveVideo();
   }
 
-  // Save the prompt of the tab we're leaving into the per-tab store BEFORE
-  // the shared textarea's value changes (the #promptInput element is a
-  // single instance relocated between tabs). Upscale has no prompt — its
-  // value is never stored so it cannot clobber another tab's text.
-  const input0 = document.getElementById('promptInput');
-  if (currentTab && currentTab !== 'upscale' && input0) {
-    promptsByTab[currentTab] = input0.value;
-  }
   currentTab = name;
 
   // Remove the upscale-specific buttons (portrait pane btn / landscape overlay)
@@ -38,9 +30,10 @@ function switchTab(name) {
   document.querySelector(`.tab-btn[data-tab="${name}"]`).classList.add('active');
   document.getElementById(`tab-${name}`).classList.add('active');
 
-  // Update prompt bar
+  // Update prompt bar. The .prompt-input-wrap holds one textarea per tab;
+  // switchTab only toggles which field is visible (see the .active class).
   const bar = document.getElementById('bottomBar');
-  const input = document.getElementById('promptInput');
+  const wrap = document.querySelector('.prompt-input-wrap');
   const btnCol = document.getElementById('btnCol');
 
   // Reset the copyable result URL row when switching tools. The source
@@ -52,16 +45,12 @@ function switchTab(name) {
   switch (name) {
     case 'generate':
       bar.style.display = 'flex';
-      input.style.display = 'block';
-      input.closest('.prompt-input-wrap').style.display = '';
-      input.placeholder = 'Describe the image you want to generate in detail...';
+      wrap.style.display = '';
       btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><div class="btn-wrap"><button class="btn-generate" id="btnGenerate" onclick="generateImage()" title="Generate" data-requires-prompt>✨</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'edit':
       bar.style.display = 'flex';
-      input.style.display = 'block';
-      input.closest('.prompt-input-wrap').style.display = '';
-      input.placeholder = 'Describe the edit you want to apply (e.g., "change the background to a beach at sunset")...';
+      wrap.style.display = '';
       // 🪄 refines the prompt; 🩹 restore is always active (no prompt);
       // 🖌️ needs a prompt (has catcher). Order left→right (landscape row)
       // / top→bottom (portrait column): 🪄 · 🩹 · 🖌️ — matching the
@@ -72,7 +61,7 @@ function switchTab(name) {
       // Upscale has no prompt. In portrait, the bottom bar (prompt + action)
       // is hidden entirely and the 🔍 button moves into the params pane,
       // which only holds the seed — a compact special layout.
-      input.closest('.prompt-input-wrap').style.display = 'none';
+      wrap.style.display = 'none';
       if (window.matchMedia('(max-width: 1023px)').matches) {
         bar.style.display = 'none';
         btnCol.innerHTML = '';
@@ -94,9 +83,7 @@ function switchTab(name) {
       break;
     case 'video':
       bar.style.display = 'flex';
-      input.style.display = 'block';
-      input.closest('.prompt-input-wrap').style.display = '';
-      input.placeholder = 'Describe the motion and action (e.g., "a cat walking slowly through a field of flowers, gentle breeze")...';
+      wrap.style.display = '';
       btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><div class="btn-wrap"><button class="btn-generate" id="btnVideo" onclick="generateVideo()" title="Video" data-requires-prompt>🎬</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
   }
@@ -104,12 +91,11 @@ function switchTab(name) {
   // Landscape: relocate the prompt block into this tab's params pane
   relayoutPrompt();
 
-  // Restore this tab's own prompt (independent per tool — the textarea is
-  // shared, so its value must be loaded from the per-tab store).
-  const input1 = document.getElementById('promptInput');
-  if (input1 && name !== 'upscale') {
-    input1.value = promptsByTab[name] || '';
-  }
+  // Show ONLY the active tab's textarea. Each tab owns its field and its
+  // value — nothing is copied between tabs, so prompts can never mix.
+  document.querySelectorAll('.prompt-input').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === name);
+  });
 
   // Per-tab toolbar in the nav (model dropdown + ⚙️ + ↺)
   renderToolbar(name);
@@ -319,8 +305,8 @@ function openPromptModal() {
   if (window.matchMedia('(min-width: 1024px)').matches) return; // portrait only
   const modal = document.getElementById('promptModal');
   if (!modal || modal.classList.contains('show')) return;
-  const input = document.getElementById('promptInput');
-  const wrap = input && input.closest('.prompt-input-wrap');
+  const input = activePromptInput();
+  const wrap = document.querySelector('.prompt-input-wrap');
   const box = document.getElementById('promptModalBox');
   if (!wrap || !box) return;
   box.appendChild(wrap);
@@ -340,8 +326,7 @@ function openPromptModal() {
 function closePromptModal() {
   const modal = document.getElementById('promptModal');
   if (!modal || !modal.classList.contains('show')) return;
-  const input = document.getElementById('promptInput');
-  const wrap = input && input.closest('.prompt-input-wrap');
+  const wrap = document.querySelector('.prompt-input-wrap');
   const block = document.getElementById('promptBlock');
   if (wrap && block) {
     wrap.classList.remove('modal-mode');
@@ -376,7 +361,7 @@ document.addEventListener('click', e => {
 // per-tab generators do too, but we must not close the modal when there is
 // nothing to run), closes the modal, then runs the active tab's action.
 function promptModalGenerate() {
-  const input = document.getElementById('promptInput');
+  const input = activePromptInput();
   const prompt = (input && input.value || '').trim();
   const needsPrompt = currentTab === 'generate' || currentTab === 'edit' || currentTab === 'video';
   if (needsPrompt && !prompt) return showToast('Please write a prompt first');

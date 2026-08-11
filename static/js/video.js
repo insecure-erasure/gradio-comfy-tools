@@ -17,7 +17,7 @@ function generateVideo() {
   } else {
     seed = parseInt(seedEl?.value) || 0;
   }
-  const prompt = document.getElementById('promptInput')?.value || '';
+  const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): negative prompt, diffusion model override + LoRA config.
   // Video stores per-version config (wan21/wan22) — read the active one.
   const adv = (window.advancedValues && window.advancedValues.video) || {};

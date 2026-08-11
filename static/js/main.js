@@ -4,6 +4,13 @@
 // Initial calculations on page load
 window.addEventListener('DOMContentLoaded', () => {
   restorePersistedState(); // set toolbarValues + advanced + theme (before toolbar paint)
+  // Pour the persisted per-tab prompts into their own textareas (each tab
+  // has an independent field — this only happens once at startup).
+  document.querySelectorAll('.prompt-input').forEach(t => {
+    if (promptsByTab && typeof promptsByTab[t.dataset.tab] === 'string') {
+      t.value = promptsByTab[t.dataset.tab];
+    }
+  });
   applyTheme();            // paint the persisted theme (if any)
   renderToolbar('generate'); // paint the nav toolbar (restores persisted family)
   switchTab('generate');     // mount the action button (with catcher) for the active tab
@@ -16,18 +23,17 @@ window.addEventListener('DOMContentLoaded', () => {
   savePersistedState();      // normalize the stored shape after applying
 });
 
-// Disable/enable action buttons as the shared prompt changes; also keep
-// the per-tab prompt store and localStorage up to date while typing.
-const promptInput = document.getElementById('promptInput');
-if (promptInput) {
-  promptInput.addEventListener('input', () => {
-    updateActionButtons();
-    if (promptsByTab && currentTab && currentTab !== 'upscale') {
-      promptsByTab[currentTab] = promptInput.value;
-    }
+// Each tab has its OWN textarea (.prompt-input). Typing updates the action
+// buttons (from the ACTIVE field) and keeps that tab's prompt + localStorage
+// in sync — the tabs can never mix values, each field is independent.
+document.querySelectorAll('.prompt-input').forEach(t => {
+  t.addEventListener('input', () => {
+    const tab = t.dataset.tab;
+    if (tab && promptsByTab) promptsByTab[tab] = t.value;
+    if (tab === currentTab) updateActionButtons();
     savePersistedState();
   });
-}
+});
 
 // Persist per-tab parameter fields whenever they change
 Object.values(PERSIST_FIELDS).flat().forEach(id => {

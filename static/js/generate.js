@@ -17,7 +17,7 @@ function generateImage() {
   } else {
     seed = parseInt(seedEl?.value) || 0;
   }
-  const prompt = document.getElementById('promptInput')?.value || '';
+  const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): LoRA config + optional model override
   const adv = (window.advancedValues && window.advancedValues.generate) || {};
   const loraConfig = adv.lora || '[]';

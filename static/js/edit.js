@@ -16,7 +16,7 @@ function generateEdit(forceMode) {
   } else {
     seed = parseInt(seedEl?.value) || 0;
   }
-  const prompt = document.getElementById('promptInput')?.value || '';
+  const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): LoRA config
   const adv = (window.advancedValues && window.advancedValues.edit) || {};
   const loraConfig = adv.lora || '[]';

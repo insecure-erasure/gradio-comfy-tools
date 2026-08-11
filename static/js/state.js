@@ -20,12 +20,19 @@ let toolbarValues = {
   vidVersion: 'wan21',
 };
 
-// Per-tab prompt text — the #promptInput textarea is a single shared
-// element that is relocated between tabs, so its VALUE must be saved and
-// restored per tab here (Upscale has no prompt). Persisted to localStorage
-// along with the other per-tab state (storage.js).
+// Per-tab prompt text — each tab (generate/edit/video) has its OWN textarea
+// element (#promptInput<Cap>), so values never mix; promptsByTab mirrors
+// them for localStorage persistence (storage.js).
 let promptsByTab = {
   generate: '',
   edit: '',
   video: '',
 };
+
+// The textarea of the ACTIVE tab (the only visible one). Falls back to any
+// .prompt-input when currentTab has none (defensive).
+function activePromptInput() {
+  const id = { generate: 'promptInputGenerate', edit: 'promptInputEdit', video: 'promptInputVideo' }[currentTab];
+  const el = id ? document.getElementById(id) : null;
+  return el || document.querySelector('.prompt-input.active') || document.querySelector('.prompt-input');
+}

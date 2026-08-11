@@ -32,7 +32,7 @@ function setRefineButtons(refining) {
 // be edited mid-refinement.
 function setRefining(on) {
   const btnCol = document.getElementById('btnCol');
-  const input = document.getElementById('promptInput');
+  const input = activePromptInput();
   if (btnCol) {
     if (on) {
       btnCol.classList.add('refining');
@@ -66,7 +66,7 @@ function stopRefining() {
 }
 
 async function refinePrompt() {
-  const input = document.getElementById('promptInput');
+  const input = activePromptInput();
   const prompt = input ? input.value.trim() : '';
   if (!prompt) return showToast('Please write a prompt first');
   if (_refineController) return; // already refining
