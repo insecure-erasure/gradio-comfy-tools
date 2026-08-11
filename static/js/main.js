@@ -67,7 +67,11 @@ document.addEventListener('mouseout', e => {
 });
 
 // ── Compare slider drag — sets --p (like the reference compare_images) ──
-document.querySelectorAll('.compare-slider').forEach(slider => {
+// DELEGATED on document: works for the pane sliders (edit/upscale) AND the
+// fullscreen gallery slider (#gallerySlider), which is inside the overlay
+// (it exists in the DOM at load, but the delegation makes it robust to any
+// slider created later — including future ones).
+function setupCompareSlider(slider) {
   let dragging = false;
   function setP(x) {
     const rect = slider.getBoundingClientRect();
@@ -87,7 +91,8 @@ document.querySelectorAll('.compare-slider').forEach(slider => {
   });
   slider.addEventListener('pointerup', () => { dragging = false; });
   slider.addEventListener('pointercancel', () => { dragging = false; });
-});
+}
+document.querySelectorAll('.compare-slider').forEach(setupCompareSlider);
 
 // ── Keyboard shortcuts ────────────────────
 // Ctrl+1..4 switches tabs; Esc closes the modal.

@@ -28,6 +28,27 @@ function getSourceUrl(tab) {
   return input ? input.value.trim() : '';
 }
 
+// Resolve a source value (external URL, /media/.., {base}/view?.., bare
+// temp filename) to a SAME-ORIGIN proxy URL for the compare-slider BEFORE
+// image. The pane cannot load the ComfyUI host URL directly (CORS /
+// host-validation) — that is why everything goes through /media.
+function beforeProxyUrl(value) {
+  if (!value) return '';
+  // External URL -> as-is (the backend serves it; the browser can load it).
+  if (/^https?:\/\//i.test(value)) return value;
+  // /media/FILENAME?type=.. -> already same-origin.
+  if (/^\/media\//.test(value)) return value;
+  // {base}/view?filename=..&type=.. -> keep only the query (proxy path).
+  if (/\/view\?/.test(value)) {
+    const q = value.split('?')[1] || '';
+    const fn = new URLSearchParams(q).get('filename');
+    const type = new URLSearchParams(q).get('type') || 'output';
+    if (fn) return '/media/' + encodeURIComponent(fn) + '?type=' + type;
+  }
+  // Bare temp filename (uploaded) -> proxy as temp.
+  return '/media/' + encodeURIComponent(value.split('/').pop()) + '?type=temp';
+}
+
 // Clicking a source URL field selects all its text when it already has
 // content, so it can be deleted or replaced easily (paste over). The
 // select-all only applies on the first focus; subsequent clicks behave

@@ -28,7 +28,8 @@
     }
     .output-pane {
       flex: 1 1 auto;
-      min-height: 0;
+      min-height: 40vh;        /* never collapse — the compare slider needs
+                                  real height to show BOTH images */
       max-height: none;
     }
     .params-pane {
@@ -282,13 +283,17 @@
     #tab-upscale .params-pane .result-url-row {
       flex-basis: 100%;
     }
-    /* Gallery — prompt box (vertical): a centered fitted box looked
-       cramped between the ‹ › controls. Span the FULL screen width (with
-       small side margins) instead of hugging the text; landscape keeps the
-       fitted box. */
+    /* Gallery — prompt box (vertical): the box spans the FULL width (small
+       side margins), never narrowed — landscape keeps the fitted box. */
+    .gallery-badge-box {
+      left: 0;
+      right: 0;
+      transform: none;
+      margin: 0 12px;
+    }
     .gallery-badge-box .gallery-prompt-box {
+      width: 100%;
       max-width: none;
-      width: calc(100% - 24px);
     }
   }
   @media (max-width: 767px) {

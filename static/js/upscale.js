@@ -33,9 +33,11 @@ function generateUpscale() {
     const afterEl = document.getElementById('upscaleAfter');
     const cmp = document.getElementById('upscaleCompare');
     if (beforeEl && afterEl) {
-      // Resolve the source through the media proxy (temp filename or external URL)
-      const srcIsUrl = /^https?:\/\//i.test(src);
-      const beforeSrc = srcIsUrl ? src : '/media/' + encodeURIComponent(src.split('/').pop()) + '?type=temp';
+      // Resolve the source through the SAME-ORIGIN proxy (/media) — the
+      // pane cannot load the ComfyUI host URL directly (CORS/host
+      // validation). beforeProxyUrl handles external URLs, /media/..,
+      // {base}/view?.. and bare temp filenames.
+      const beforeSrc = beforeProxyUrl(src);
       beforeEl.src = beforeSrc;
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');

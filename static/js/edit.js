@@ -40,9 +40,15 @@ function generateEdit(forceMode) {
     const afterEl = document.getElementById('editAfter');
     const cmp = document.getElementById('editCompare');
     if (beforeEl && afterEl) {
-      // Resolve the source through the media proxy (temp filename or external URL)
-      const srcIsUrl = /^https?:\/\//i.test(src);
-      const beforeSrc = srcIsUrl ? src : '/media/' + encodeURIComponent(src.split('/').pop()) + '?type=temp';
+      // The AFTER label follows the mode (Edit / Restore) — it is not a
+      // hardcoded "Edited".
+      const afterLabel = document.getElementById('editCompareAfterLabel');
+      if (afterLabel) afterLabel.textContent = mode === 'restore' ? 'Restored' : 'Edited';
+      // Resolve the source through the SAME-ORIGIN proxy (/media) — the
+      // pane cannot load the ComfyUI host URL directly (CORS/host
+      // validation). beforeProxyUrl handles external URLs, /media/..,
+      // {base}/view?.. and bare temp filenames.
+      const beforeSrc = beforeProxyUrl(src);
       beforeEl.src = beforeSrc;
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');

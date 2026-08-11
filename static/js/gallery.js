@@ -216,6 +216,33 @@ function closeBadgeBox() {
   if (galleryBadgeBox) galleryBadgeBox.classList.remove('show');
 }
 
+// Close BOTH text boxes (the badge prompt box and the Show-prompt panel)
+// and restore the badge that a box-open hid. Returns true when anything
+// was closed. Shared by click-outside and Escape.
+function closeTextBoxes() {
+  let changed = false;
+  if (galleryPromptModal.classList.contains('show')) { closeGalleryPrompt(); changed = true; }
+  if (galleryBadgeBox.classList.contains('show')) {
+    closeBadgeBox();
+    const entry = galleryEntries[galleryIdx];
+    if (entry && entry.badge) {
+      galleryBadge.textContent = entry.badge;
+      galleryBadge.classList.add('show');
+    }
+    changed = true;
+  }
+  // The Show-prompt button comes back whenever nothing is open and the
+  // entry has a prompt — it may have been hidden by a click on itself or
+  // by the badge box.
+  const entry = galleryEntries[galleryIdx];
+  if (entry && entry.prompt &&
+      !galleryPromptModal.classList.contains('show') &&
+      !galleryBadgeBox.classList.contains('show')) {
+    galleryPromptBtn.classList.add('show');
+  }
+  return changed;
+}
+
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
@@ -262,8 +289,11 @@ function renderGalleryItem() {
     if (e.badge) {
       galleryBadge.textContent = e.badge;
       galleryBadge.classList.add('show');
+      // The "Upscaled" badge is informational only — no click action.
+      galleryBadge.classList.toggle('no-action', e.badge === 'upscaled');
     } else {
       galleryBadge.classList.remove('show');
+      galleryBadge.classList.remove('no-action');
       galleryBadge.textContent = '';
     }
   } else {
@@ -381,6 +411,7 @@ async function galleryDownload() {
 // activation works too) and Escape / navigation (‹ › / ←/→ — which also
 // navigate) / gallery close always close it.
 let promptHideTimer = null;
+let promptPinned = false;   // the Show-prompt panel was opened by CLICK (button hidden)
 
 function openGalleryPrompt() {
   clearTimeout(promptHideTimer);
@@ -392,6 +423,7 @@ function openGalleryPrompt() {
 
 function closeGalleryPrompt() {
   clearTimeout(promptHideTimer);
+  promptPinned = false;
   galleryPromptModal.classList.remove('show');
 }
 
@@ -409,7 +441,6 @@ galleryDlBtn.addEventListener('click', galleryDownload);
 // so these buttons stay clickable under it.
 galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
 galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
-galleryBig.addEventListener('click', e => e.stopPropagation());
 // Badge click/tap: HIDE the badge and show a single box with ONLY the
 // ORIGINAL generation prompt (the prompt of the image the edit/restore/
 // upscale was made from). No label, no transformation text. If the entry
@@ -419,8 +450,16 @@ galleryBadge.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries[galleryIdx];
   if (!e2 || !e2.badge) return;
+  // The "Upscaled" badge has no action: an upscale replaces the source
+  // entry and has no original prompt to show (the generation prompt stays
+  // available via the Show-prompt button). Keep it visible, open nothing.
+  if (e2.badge === 'upscaled') return;
   galleryBadge.classList.remove('show');
   galleryBadge.textContent = '';
+  // The bottom Show-prompt button hides too while the box is open (and its
+  // panel closes, so the two never overlap).
+  galleryPromptBtn.classList.remove('show');
+  closeGalleryPrompt();
   if (!e2.originalPrompt) return; // only the original prompt is ever shown
   galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadgeBox.classList.add('show');
@@ -429,27 +468,35 @@ galleryBadge.addEventListener('click', e => {
 // (pointerenter/pointerleave do not fire on touch). Click/tap toggles as a
 // fallback for touch/keyboard.
 galleryPromptBtn.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') openGalleryPrompt(); });
-galleryPromptBtn.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') scheduleCloseGalleryPrompt(); });
+galleryPromptBtn.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !promptPinned) scheduleCloseGalleryPrompt(); });
 galleryPromptBtn.addEventListener('click', e => {
   e.stopPropagation();
-  if (galleryPromptModal.classList.contains('show')) closeGalleryPrompt();
-  else openGalleryPrompt();
+  // Symmetric with the top badge: the button hides itself and the panel
+  // stays open, pinned (the pointerleave fired when the button disappears
+  // must not close it). Clicking anywhere else closes it and restores the
+  // button (closeTextBoxes).
+  promptPinned = true;
+  galleryPromptBtn.classList.remove('show');
+  openGalleryPrompt();
 });
-galleryOverlay.addEventListener('click', e => { if (e.target === galleryOverlay) closeGallery(); });
+// Clicking ANYWHERE on the screen (image, backdrop…) closes any open text
+// box — the badge prompt box and the Show-prompt panel — restoring the
+// badge. Only when no box is open does clicking the dark backdrop close
+// the gallery itself.
+galleryOverlay.addEventListener('click', e => {
+  if (closeTextBoxes()) return;
+  if (e.target === galleryOverlay) closeGallery();
+});
 
 // Keyboard: Escape closes; ←/→ navigate while the overlay is open. While
 // the prompt panel is open, Escape closes ONLY the panel (the gallery
 // stays) and navigation is suspended so the shown prompt never goes stale.
 document.addEventListener('keydown', e => {
   if (!galleryOverlay.classList.contains('show')) return;
-  if (galleryPromptModal.classList.contains('show')) {
-    if (e.key === 'Escape') closeGalleryPrompt();
-    return;
-  }
-  if (galleryBadgeBox.classList.contains('show')) {
-    if (e.key === 'Escape') { closeBadgeBox(); renderGalleryItem(); }
-    return;
-  }
+  // While any text box is open, Escape closes it (both) and navigation is
+  // suspended so the shown prompt never goes stale.
+  if (closeTextBoxes() && e.key === 'Escape') return;
+  if (galleryPromptModal.classList.contains('show') || galleryBadgeBox.classList.contains('show')) return;
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);
   else if (e.key === 'ArrowRight') galleryNav(1);
