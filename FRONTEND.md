@@ -403,8 +403,11 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
   `loraDirForContext()`) — a STRICT filter, not a priority sort: LoRAs
   trained for another model family are excluded entirely (injecting them
   would silently produce garbage). All
-  matching is **separator-agnostic** (`/` and `\` — the server runs
-  dual-boot Windows/Linux, so names arrive with either), the label shows
+  matching is **separator-agnostic**: ComfyUI Windows returns paths with
+  backslashes that the JSON body serializes as `\\` (escaped), Linux with
+  forward slashes. A tiny `PurePosixPath` shim (`modal.js`) normalizes
+  any run of `/` and `\` to `/` (via `purePath`), so the directory
+  matching works identically on both OSes. The label shows
   the name **without** any dir prefix (all listed are in the same dir),
   and the value keeps the full path
   exactly as returned. A saved LoRA whose name no longer matches any

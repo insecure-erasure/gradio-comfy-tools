@@ -23,6 +23,7 @@ import argparse
 import json
 import re
 import sys
+from pathlib import PurePosixPath
 import urllib.request
 from pathlib import Path
 
@@ -71,9 +72,14 @@ def installed_files(base: str) -> set[str]:
         if isinstance(files, list):
             for name in files:
                 if isinstance(name, str):
-                    norm = name.replace("\\", "/")
+                    # ComfyUI returns Windows paths with (possibly escaped)
+                    # backslashes and Linux paths with forward slashes;
+                    # PurePosixPath treats both as separators and gives a
+                    # canonical posix form + the basename.
+                    p = PurePosixPath(name.replace("\\", "/"))
+                    norm = str(p)
                     available.add(norm)
-                    available.add(norm.split("/")[-1])
+                    available.add(p.name)
     return available
 
 
@@ -128,8 +134,10 @@ def main() -> int:
 
     print(f"\nModelos activos usados por workflows/ ({len(used_models)}):")
     for m in sorted(used_models):
-        norm = m.replace("\\", "/")
-        if norm in available or norm.split("/")[-1] in available:
+        # Same canonicalization as installed_files (PurePosixPath).
+        p = PurePosixPath(m.replace("\\", "/"))
+        norm = str(p)
+        if norm in available or p.name in available:
             print(f"  [OK]    {m}")
         else:
             failures += 1

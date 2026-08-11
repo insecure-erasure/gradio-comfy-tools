@@ -420,6 +420,35 @@ function renderModalLoraRows(path) {
 // Directory prefix that groups LoRAs per model family/version on the server
 // (zit/, flux2/, krea2/, wan21/, wan22/). Returns the dir for the current
 // tab + active model, or null when no filtering applies.
+// LoRA names available for the current context — STRICTLY FILTERED to the
+// compatible ones. ComfyUI returns subfolder paths with the OS separator
+// (/ on Linux/macOS, \ on Windows — the user runs dual-boot), so paths are
+// normalized with a PurePosixPath shim (treats both separators as one,
+// exposes .name/.parts/.dirname) — no manual string splitting. Only LoRAs
+// whose directory matches the current model context are shown (`zit/`,
+// `krea2/`, `flux2/`, `wan21/`, `wan22/`); everything else is EXCLUDED —
+// injecting a LoRA trained for another model family into a workflow would
+// silently produce garbage, so incompatible LoRAs never even appear in the
+// dropdown. The label shows the name without the dir (all are in the same
+// dir); the FULL name as returned by ComfyUI is kept as the value so the
+// backend passes it through unchanged.
+//
+// Tiny PurePosixPath shim for RELATIVE paths (pathlib is not available in
+// the browser): normalizes both separators to '/', and exposes .name /
+// .parent / .parts. Relative-path specific (no drive/root handling) —
+// exactly what the model paths are.
+function purePath(str) {
+  const s = String(str);
+  const clean = s.replace(/[\\/]+/g, '/').replace(/^\.\//, '');
+  const parts = clean.split('/').filter(Boolean);
+  return {
+    parts,
+    name: parts[parts.length - 1] || '',
+    parent: parts.slice(0, -1).join('/'),
+    toString: () => clean,
+  };
+}
+
 function loraDirForContext() {
   switch (currentModalTab) {
     case 'generate':
@@ -435,24 +464,12 @@ function loraDirForContext() {
   }
 }
 
-// LoRA names available for the current context — STRICTLY FILTERED to the
-// compatible ones. ComfyUI returns subfolder paths with the OS separator
-// (/ on Linux/macOS, \ on Windows — the user runs dual-boot), so all
-// matching is separator-agnostic. Only LoRAs whose directory matches the
-// current model context are shown (`zit/`, `krea2/`, `flux2/`, `wan21/`,
-// `wan22/`); everything else is EXCLUDED — injecting a LoRA trained for
-// another model family into a workflow would silently produce garbage, so
-// incompatible LoRAs never even appear in the dropdown. The label shows
-// the name without the dir (all are in the same dir); the FULL name as
-// returned by ComfyUI is kept as the value so the backend passes it
-// through unchanged.
 function loraOptionsForContext() {
   const dir = loraDirForContext();
-  const parse = n => {
-    const parts = String(n).split(/[\\/]/);
-    return { value: n, label: parts.pop(), dir: parts.join('/').toLowerCase() };
-  };
-  const items = loraNames.map(parse);
+  const items = loraNames.map(n => {
+    const p = purePath(n);
+    return { value: n, label: p.name, dir: p.parent.toLowerCase() };
+  });
   if (!dir) return items.map(({ value, label }) => ({ value, label }));
   const target = dir.toLowerCase();
   // Strict: only the LoRAs under the model's directory are compatible.
