@@ -30,6 +30,14 @@ function savePersistedState() {
     toolbar: toolbarValues,
     prompts: promptsByTab,
     theme: currentTheme,
+    // Galleries: persisted so a reload does not lose the history. The
+    // stored entries are validated against the server on restore (see
+    // verifyStoredGalleries) — dead files are dropped, never shown.
+    galleries: {
+      generated: window.galleryGenerated || [],
+      videos: window.galleryVideos || [],
+      comparisons: window.galleryComparisons || [],
+    },
   };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* disabled */ }
 }
@@ -73,8 +81,91 @@ function restorePersistedState() {
   }
   // theme
   if (data.theme) currentTheme = data.theme;
+  // persisted galleries (validated against the server afterwards — the
+  // heavy part is async, so the UI is not blocked; see verifyStoredGalleries)
+  if (data.galleries) {
+    if (Array.isArray(data.galleries.generated)) window.galleryGenerated = data.galleries.generated;
+    if (Array.isArray(data.galleries.videos)) window.galleryVideos = data.galleries.videos;
+    if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
+  }
   // keep params to re-apply after the auto-steps recalc (applyPersistedParams)
   window.__persistedParams = data.params || null;
+}
+
+// ── Gallery existence validation (lightweight) ──
+// localStorage galleries can hold entries whose file no longer exists on
+// the ComfyUI host (output pruning). Each unique filename is checked via
+// GET /api/media-exists (a HEAD/206 probe — no body transferred). Results
+// are cached per session (a filename is probed once), the probe runs with
+// small concurrency, and a transport failure keeps the entry (a missing
+// file is not worth dropping the whole gallery on a hiccup). Entries
+// without a filename (external URLs) are kept as-is.
+const _mediaExistsCache = new Map();
+
+async function _mediaExists(filename, force) {
+  if (!force && _mediaExistsCache.has(filename)) return _mediaExistsCache.get(filename);
+  try {
+    const r = await fetch('/api/media-exists?filename=' + encodeURIComponent(filename) + '&type=output');
+    const j = await r.json();
+    const exists = !!j.exists;
+    _mediaExistsCache.set(filename, exists);
+    return exists;
+  } catch (e) {
+    _mediaExistsCache.set(filename, true); // transport hiccup → keep
+    return true;
+  }
+}
+
+// Filter a gallery array, dropping entries whose file is gone. Probes each
+// unique filename once (via the cache) with limited concurrency; preserves
+// order. Returns a Promise of the filtered array.
+async function _pruneDeadEntries(entries, force) {
+  const out = [];
+  const uniqFns = [];
+  const seen = new Set();
+  for (const e of entries) {
+    const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
+    if (!fn) { out.push(e); continue; }          // external/no-name → keep
+    if (!seen.has(fn)) { seen.add(fn); uniqFns.push(fn); }
+  }
+  // Probe with limited concurrency (5 at a time). force=true bypasses the
+  // per-session cache so a file deleted mid-session is caught on open.
+  const existsMap = new Map();
+  let i = 0;
+  async function worker() {
+    while (i < uniqFns.length) {
+      const fn = uniqFns[i++];
+      existsMap.set(fn, await _mediaExists(fn, force));
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(5, uniqFns.length) }, worker));
+  return entries.filter(e => {
+    const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
+    return !fn || existsMap.get(fn) !== false;
+  });
+}
+
+// Kick off the async validation of all persisted galleries after load;
+// mutates the live registries in place when dead entries are found.
+async function verifyStoredGalleries(force) {
+  const jobs = [];
+  if (Array.isArray(window.galleryGenerated)) {
+    jobs.push(_pruneDeadEntries(window.galleryGenerated, force).then(ok => {
+      if (ok.length !== window.galleryGenerated.length) window.galleryGenerated = ok;
+    }));
+  }
+  if (Array.isArray(window.galleryVideos)) {
+    jobs.push(_pruneDeadEntries(window.galleryVideos, force).then(ok => {
+      if (ok.length !== window.galleryVideos.length) window.galleryVideos = ok;
+    }));
+  }
+  if (Array.isArray(window.galleryComparisons)) {
+    jobs.push(_pruneDeadEntries(window.galleryComparisons, force).then(ok => {
+      if (ok.length !== window.galleryComparisons.length) window.galleryComparisons = ok;
+    }));
+  }
+  await Promise.all(jobs);
+  savePersistedState(); // persist the pruned set
 }
 
 // Re-apply persisted per-tab params AFTER onModelFamilyChange ran, so the

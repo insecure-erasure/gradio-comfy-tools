@@ -752,3 +752,120 @@ def test_api_cancel_no_job(client, tmp_config, monkeypatch):
     assert body["prompt_id"] is None
     assert "interrupt" in calls  # interrupt is always attempted
     assert not [c for c in calls if isinstance(c, tuple)]
+
+
+def test_media_exists_head_ok(client, tmp_config, monkeypatch):
+    """HEAD upstream succeeds → exists True (cheapest path, no body)."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            assert "filename=out.png&type=output" in url
+            r = type("R", (), {})()
+            r.status_code = 200
+            return r
+
+        def get(self, url, headers=None):
+            raise AssertionError("get should not be called when HEAD works")
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=out.png&type=output")
+    assert resp.status_code == 200
+    assert resp.json() == {"exists": True, "status": 200}
+
+
+def test_media_exists_head_rejected_get_206(client, tmp_config, monkeypatch):
+    """Server rejects HEAD → falls back to GET+Range (206 → exists)."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 405
+            return r
+
+        def get(self, url, headers=None):
+            assert headers == {"Range": "bytes=0-0"}
+            r = type("R", (), {})()
+            r.status_code = 206
+            return r
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=out.png&type=output")
+    assert resp.status_code == 200
+    assert resp.json() == {"exists": True, "status": 206}
+
+
+def test_media_exists_404(client, tmp_config, monkeypatch):
+    """Upstream 404 → exists False (file pruned)."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 404
+            return r
+
+        def get(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 404
+            return r
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=gone.png&type=output")
+    assert resp.status_code == 200
+    assert resp.json() == {"exists": False, "status": 404}
+
+
+def test_media_exists_transport_error(client, tmp_config, monkeypatch):
+    """Transport failure → exists False with error (not an HTTP 500)."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            raise httpx.ConnectError("down")
+
+        def get(self, url, headers=None):
+            raise httpx.ConnectError("down")
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=out.png&type=output")
+    assert resp.status_code == 200
+    assert resp.json()["exists"] is False
+    assert resp.json()["error"] == "transport"

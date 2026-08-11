@@ -68,11 +68,12 @@ function generateVideo() {
     if (typeof currentTab !== 'undefined' && currentTab !== 'video') {
       pauseActiveVideo();
     }
-    // Video gallery (B5, deferred): mark the element + collect the URL for
-    // a future video gallery (native controls don't mix with navigation).
+    // Video gallery (B5): mark the element + register the video in the
+    // session registry (analogous to the generated images) for the future
+    // video gallery. Native controls don't mix with navigation.
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
-    collectVideoUrl(res, prompt);
+    addGeneratedVideo(res, prompt);
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;

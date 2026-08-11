@@ -193,13 +193,21 @@ function collectCompareEntries() {
   return entries;
 }
 
-// Video results: URL collection for a future video gallery (PLAN.md B5).
+// Generated videos — session registry, ANALOGOUS to the generated images
+// (window.galleryGenerated): each generated video joins at the end (no
+// dedup — same behavior as addGeneratedEntry; the persisted set is pruned
+// against the server on restore). Entry: { src (display URL), url, prompt,
+// filename }. Used by the future video gallery.
 window.galleryVideos = window.galleryVideos || [];
-function collectVideoUrl(result, prompt) {
+function addGeneratedVideo(result, prompt) {
   const url = result.url || result.display;
-  if (!window.galleryVideos.some(v => v.url === url)) {
-    window.galleryVideos.push({ url, display: result.display, prompt: prompt || '' });
-  }
+  const display = result.display || url;
+  window.galleryVideos.push({
+    src: display,        // like galleryGenerated.src — the same-origin display URL
+    url,                 // direct ComfyUI URL (chaining/copy)
+    prompt: prompt || '',
+    filename: filenameFromUrl(display),  // null for non-generated sources (defensive)
+  });
 }
 
 // ── Open / close ───────────────────────────
@@ -331,7 +339,11 @@ function galleryNav(delta) {
 // Generate lightbox: the GENERATED history (session), not the live DOM —
 // so the history survives the pane only showing the last result. Called with
 // the clicked img (to position on it) or nothing (⛶ → most recent).
-function openGenerateLightbox(img) {
+async function openGenerateLightbox(img) {
+  // Re-verify the persisted gallery against the server (cache-busted so a
+  // file deleted mid-session is dropped before the overlay opens). Cheap:
+  // one HEAD per unique filename, concurrency 5 — a few entries → <100ms.
+  await verifyStoredGalleries(true);
   const all = window.galleryGenerated;
   if (!all.length) return showToast('Nothing to show yet');
   galleryMode = 'lightbox';
@@ -350,7 +362,8 @@ function openGenerateLightbox(img) {
 
 // Edit/Upscale compare: the gallery ONLY navigates the edited/restored/
 // upscaled comparisons; start from the requested kind.
-function openCompareFullscreen(kind) {
+async function openCompareFullscreen(kind) {
+  await verifyStoredGalleries(true); // drop dead files before showing
   const all = collectCompareEntries();
   if (!all.length) return showToast('No comparison to show yet');
   galleryMode = 'compare';

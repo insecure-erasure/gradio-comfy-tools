@@ -21,6 +21,9 @@ window.addEventListener('DOMContentLoaded', () => {
   relayoutPrompt();
   updateActionButtons();
   savePersistedState();      // normalize the stored shape after applying
+  // Validate persisted galleries against the server (async, non-blocking):
+  // drop entries whose file no longer exists, then persist the pruned set.
+  verifyStoredGalleries();
 });
 
 // Each tab has its OWN textarea (.prompt-input). Typing updates the action

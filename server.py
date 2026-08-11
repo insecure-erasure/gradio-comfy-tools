@@ -529,6 +529,43 @@ def _looks_like_image(head: bytes) -> bool:
 
 
 # --------------------------------------------------------------------------- #
+# Media existence check (for persisted galleries)
+# --------------------------------------------------------------------------- #
+@app.get("/api/media-exists")
+def api_media_exists(filename: str, type: str = "output") -> dict:
+    """Lightweight check that a result file still exists on the ComfyUI host.
+
+    Used when restoring persisted galleries from localStorage: entries whose
+    file has been deleted (ComfyUI can prune its output folder) must not be
+    shown. Implemented as a HEAD to the upstream /view (no body transferred);
+    some servers reject HEAD, so it falls back to a GET with
+    ``Range: bytes=0-0`` (expects 206, transfers nothing). Never proxies the
+    body — this is deliberately the cheapest possible probe.
+    """
+    from urllib.parse import urlencode
+
+    s = _settings()
+    url = f"{s.media_base_url}/view?{urlencode({'filename': filename, 'type': type})}"
+    try:
+        with httpx.Client(timeout=10) as client:
+            # HEAD first (cheapest); if the server rejects it, GET with a
+            # 0-byte Range (206 Partial Content, no body streamed).
+            try:
+                r = client.head(url, headers={"Accept": "*/*"})
+                if r.status_code in (200, 206):
+                    return {"exists": True, "status": r.status_code}
+            except Exception:
+                pass  # fall through to GET+Range
+            try:
+                r = client.get(url, headers={"Range": "bytes=0-0"})
+                return {"exists": r.status_code in (200, 206), "status": r.status_code}
+            except Exception:
+                return {"exists": False, "error": "transport"}
+    except Exception:
+        return {"exists": False, "error": "transport"}
+
+
+# --------------------------------------------------------------------------- #
 # Upload + media proxy
 # --------------------------------------------------------------------------- #
 @app.post("/api/upload")
