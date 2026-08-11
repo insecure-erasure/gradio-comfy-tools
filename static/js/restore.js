@@ -85,9 +85,16 @@ function restoreTabResult(tab) {
   }
 }
 
-// Restore the ACTIVE tab on load (lazy — only what is visible).
+// Restore on load: the ACTIVE tab (what the user sees) AND the Video tab if
+// it has generated videos — so a video as the last generation shows in its
+// pane right after a refresh (the active tab is usually Generate). The
+// other tabs restore lazily when they become active.
 function restoreActiveTabResult() {
   if (currentTab) restoreTabResult(currentTab);
+  // If the user last generated a video, show it in the Video pane too.
+  if (currentTab !== 'video' && window.galleryVideos && window.galleryVideos.length) {
+    restoreTabResult('video');
+  }
 }
 
 // ── Trash (🗑️): clear the current tool's gallery + refresh its pane ──
