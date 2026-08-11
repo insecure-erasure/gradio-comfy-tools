@@ -17,33 +17,38 @@ window.addEventListener('DOMContentLoaded', () => {
   onModelFamilyChange();     // auto-steps + recalc for the family
   applyPersistedParams();    // re-apply persisted field values (they win over auto-steps)
   initSourceFields();        // select-all on click for the source URL fields
-  loadSettings();
   relayoutPrompt();
   updateActionButtons();
   savePersistedState();      // normalize the stored shape after applying
-  // Restore lastGeneratedUrl for chaining (🔗) — the most recent result of
-  // ANY tool, from the persisted galleries (in-memory only otherwise, so a
-  // refresh would lose it and 🔗 would say 'No previous generation'). The
-  // galleries have no shared timestamp, so prefer the last generated image
-  // (the primary chaining flow), falling back to the last video.
-  const gen = window.galleryGenerated;
-  const vids = window.galleryVideos;
-  const lastGen = gen && gen.length ? gen[gen.length - 1] : null;
-  const lastVid = vids && vids.length ? vids[vids.length - 1] : null;
-  const lastEntry = lastGen || lastVid;
-  if (lastEntry) {
-    // Prefer the stored direct URL; older persisted entries only carry the
-    // /media display src — rebuild the full {base}/view URL from it.
-    lastGeneratedUrl = lastEntry.url
-      || (typeof fullComfyUrl === 'function' ? fullComfyUrl(lastEntry) : (lastEntry.src || ''));
-  }
   // Restore the ACTIVE tab's last result into its pane (lazy — the other
   // tabs restore when they become active).
   restoreActiveTabResult();
   // Validate persisted galleries against the server (async, non-blocking):
   // drop entries whose file no longer exists, then persist the pruned set.
   verifyStoredGalleries();
+  // Restore lastGeneratedUrl for chaining (🔗) AFTER the media base is
+  // loaded: fullComfyUrl() rebuilds the {base}/view URL from a /media src,
+  // which requires baseUrl. Running it before loadSettings() resolved would
+  // leave the source field with '/media/...' (→ backend 400, since that is
+  // not a valid source).
+  loadSettings().then(() => restoreLastGeneratedUrl());
 });
+
+// Rebuild lastGeneratedUrl from the persisted galleries (the most recent
+// result of any tool). Called after baseUrl is known so older entries that
+// only carry the /media display src can be expanded to a full {base}/view
+// URL. In a live session lastGeneratedUrl is set by the generators; this
+// only matters after a refresh.
+function restoreLastGeneratedUrl() {
+  const gen = window.galleryGenerated;
+  const vids = window.galleryVideos;
+  const lastGen = gen && gen.length ? gen[gen.length - 1] : null;
+  const lastVid = vids && vids.length ? vids[vids.length - 1] : null;
+  const lastEntry = lastGen || lastVid;
+  if (!lastEntry) return;
+  lastGeneratedUrl = lastEntry.url
+    || (typeof fullComfyUrl === 'function' ? fullComfyUrl(lastEntry) : (lastEntry.src || ''));
+}
 
 // Each tab has its OWN textarea (.prompt-input). Typing updates the action
 // buttons (from the ACTIVE field) and keeps that tab's prompt + localStorage

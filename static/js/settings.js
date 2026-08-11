@@ -64,7 +64,9 @@ function updateSettingsDisplay(s) {
 }
 
 function loadSettings() {
-  fetch('/api/settings')
+  // Returns the promise so callers can restore baseUrl-dependent state
+  // (e.g. lastGeneratedUrl for 🔗 chaining) AFTER the media base is known.
+  return fetch('/api/settings')
     .then(r => r.json())
     .then(s => {
       baseUrl = s.media_base_url || s.comfyui_base_url;
