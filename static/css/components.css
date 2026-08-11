@@ -1272,26 +1272,41 @@
     cursor: pointer;
   }
   /* Drill-down mode (portrait / narrow screens — JS adds .drill): the
-     speed submenu REPLACES the main menu — the wrap stops being the
-     positioning ancestor (static) so the submenu insets over the MENU
-     itself (same position/size), the title/row/loop are hidden, the back
-     header appears, and choosing a speed (or ←) returns to the main menu. */
+     speed submenu REPLACES the main menu and the whole drill panel is
+     CENTERED on screen (position: fixed — inside the fullscreen gallery
+     the fullscreen element acts as the viewport, so it centers over the
+     overlay too). max-height + overflow-y guarantee every option is
+     reachable on short screens. The title/row/loop are hidden; the back
+     header appears; choosing a speed (or ←) returns to the main menu. */
+  .video-menu.drill {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
   .video-menu.drill .video-menu-title,
   .video-menu.drill .video-menu-speed-row,
   .video-menu.drill .video-menu-loop { display: none; }
   .video-menu.drill .video-menu-speed-wrap { position: static; }
   .video-menu.drill .video-menu-speed-sub {
-    position: absolute;
-    inset: 0;                   /* fills the menu exactly */
+    position: static;           /* flows inside the menu — the menu scrolls */
+    left: auto;
+    top: auto;
+    right: auto;
     display: block;
     min-width: 0;
     margin: 0;
-    padding: 12px;              /* same as the menu's padding */
+    padding: 0;                 /* the menu's own padding applies */
     border: none;
-    border-radius: 12px;        /* same as the menu */
-    background: var(--surface);
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
   }
+  /* Touch-friendly: taller options in the drill panel. */
+  .video-menu.drill .video-menu-speed-option { padding: 10px 8px; }
   .video-menu.drill .video-menu-back { display: flex; }
   /* Taller mobile controls (54px, bottom:18px) — the menu floats higher. */
   @media (max-width: 1023px) {

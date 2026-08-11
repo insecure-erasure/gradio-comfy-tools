@@ -225,8 +225,10 @@ empty and the prompt fills it; see also deviation 14):
   (the submenu is a DOM descendant, so crossing from menu to submenu never
   fires it — only leaving everything does, same grace timer). On PORTRAIT / narrow screens (<1024px) there is no room
   beside the menu, so the Speed click switches to **drill-down mode**: the
-  submenu REPLACES the main menu in place (same position/size, with a
-  `← Speed` back header); choosing a speed (or ←) closes the submenu and
+  submenu REPLACES the main menu and the whole panel is CENTERED on screen
+  (`position: fixed`, `max-height` + scroll so every option is reachable
+  on short screens; the `← Speed` back header returns to the main menu);
+  choosing a speed (or ←) closes the submenu and
   the main menu reappears. The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
