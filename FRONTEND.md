@@ -224,6 +224,11 @@ empty and the prompt fills it; see also deviation 14):
   double click toggles fullscreen** (controls excluded); **leaving the
   Video tab pauses a playing video** (`pauseActiveVideo()`, called from
   `switchTab`) so it doesn't keep consuming resources in the background.
+  The player is created with `noFullscreenBtn=true` in the pane (the
+  pane's own top-right ⛶ opens the VIDEO GALLERY) AND in the gallery
+  overlay's video mode (the overlay is already fullscreen and the
+  gallery's ✕ occupies the same top-right corner) — the ⛶ button only
+  exists where there is no competing button.
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
 - **Params**: two chips over the prompt textarea — **🎞️ Frames** (shows
   the frame count, popover with the 81–161 stepper, step 4, 4n+1 snap) and

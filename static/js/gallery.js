@@ -360,7 +360,11 @@ function renderGalleryItem() {
     // Custom player for the current video entry (autoplay muted loop; the
     // player is rebuilt per navigation so the src is always fresh).
     galleryVideoWrap.innerHTML = '';
-    galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url));
+    // noFullscreenBtn=true: the overlay is ALREADY fullscreen (openVideoGallery
+    // fullscreens #galleryOverlay) and the gallery's own ✕ (top-right) sits
+    // exactly where the player's ⛶ would (top:12px/right:12px) — two buttons
+    // stacked in the same corner, so the player's is dropped here too.
+    galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url, true));
     galleryBadge.classList.remove('show');
     galleryBadge.textContent = '';
     // NO Show-prompt button in the video gallery: the player fills the

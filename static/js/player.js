@@ -40,11 +40,11 @@ function pauseActiveVideo() {
 }
 
 // noFullscreenBtn: when true, the player does NOT create its own ⛶
-// fullscreen button — used in the Video pane, where the pane's top-right
-// ⛶ already opens the VIDEO GALLERY (having both at top:12px/right:12px
-// stacked the player's button over the gallery one, so the click opened
-// the <video> fullscreen instead of the gallery). The gallery overlay has
-// no competing button, so it keeps the player's ⛶.
+// fullscreen button — used in the Video pane (the pane's top-right ⛶
+// opens the VIDEO GALLERY, so having both stacked in the same corner made
+// the click fullscreen the <video> instead) AND in the gallery overlay's
+// video mode (the overlay is already fullscreen and the gallery's own ✕
+// sits in the same top-right corner).
 function createVideoPlayer(src, noFullscreenBtn) {
   const wrap = document.createElement('div');
   wrap.className = 'video-player';
