@@ -210,7 +210,7 @@ empty and the prompt fills it; see also deviation 14):
   `›` caret) and a **Loop checkbox** (ON by default; unchecked
   the video stops at the end — the ▶/⏸ icon re-syncs via `ended`). The
   Speed entry is styled like a native menu row and sits ABOVE the Loop
-  checkbox. Hovering it (desktop) or clicking it (touch) opens a submenu
+  checkbox. On DESKTOP LANDSCAPE, hovering it opens a submenu
   to the RIGHT of the menu — like native submenus — with NATIVE radio
   buttons for the standard player speeds (`2× 1.75× 1.5× 1.25× 1× 0.75×
   0.5× 0.25×`, largest first, significant decimals; `1×` checked by
@@ -221,7 +221,11 @@ empty and the prompt fills it; see also deviation 14):
   it would overflow the window. Row + submenu form one hover zone: leaving
   either starts a 150ms grace timer (like the gallery prompt panel) so
   crossing the seam between them never closes the submenu; entering either
-  cancels it. The menu is styled like the
+  cancels it. On PORTRAIT / narrow screens (<1024px) there is no room
+  beside the menu, so the Speed click switches to **drill-down mode**: the
+  submenu REPLACES the main menu in place (same position/size, with a
+  `← Speed` back header); choosing a speed (or ←) closes the submenu and
+  the main menu reappears. The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
   controls and closes on outside click / Escape (Escape closes ONLY the

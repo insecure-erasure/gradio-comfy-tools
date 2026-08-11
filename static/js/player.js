@@ -44,6 +44,9 @@ const formatSpeed = v => String(v);
 // the same keystroke (menu first, gallery second).
 function closeAllVideoMenus() {
   document.querySelectorAll('.video-menu.show').forEach(m => m.classList.remove('show'));
+  // A drill-down session (the speed submenu replacing the main menu) must
+  // not survive the menu closing — the next open starts from the main menu.
+  document.querySelectorAll('.video-menu.drill').forEach(m => m.classList.remove('drill'));
 }
 document.addEventListener('click', e => {
   if (e.target.closest('.video-menu') || e.target.closest('.video-more-btn')) return;
@@ -252,6 +255,12 @@ function createVideoPlayer(src, noFullscreenBtn) {
   // fullscreened overlay). Session-only per player (design decision): every
   // NEW player starts with loop ON and 1× — navigating the gallery rebuilds
   // the player, resetting the options.
+  // Drill-down mode (PORTRAIT / narrow screens): there is no room beside
+  // the menu for a side submenu, so the Speed click REPLACES the main menu
+  // with the speed submenu (same position/size, with a ← back button);
+  // choosing a speed returns to the main menu. Landscape keeps the
+  // native-style side submenu.
+  const drillDown = window.matchMedia('(max-width: 1023px)').matches;
   const menu = document.createElement('div');
   menu.className = 'video-menu';
   const menuTitle = document.createElement('div');
@@ -291,26 +300,39 @@ function createVideoPlayer(src, noFullscreenBtn) {
   speedSub.setAttribute('role', 'menu');
   speedSub.setAttribute('aria-label', 'Playback speed');
   // One radio group shared by all players would couple them; each player's
-  // submenu gets its own group (a wrapper div with the radios inside).
+  // submenu gets its own group. The name is generated ONCE (outside the
+  // loop) so ALL radios of THIS player share it — the browser then
+  // enforces the radio contract: checking one unchecks the previous,
+  // only the last selected stays checked.
+  const speedGroupName = 'video-speed-' + Math.random().toString(36).slice(2, 8);
   const speedRadios = document.createElement('div');
   VIDEO_SPEEDS.forEach((s, i) => {
     const lab = document.createElement('label');
     lab.className = 'video-menu-speed-option';
     const radio = document.createElement('input');
     radio.type = 'radio';
-    radio.name = 'video-speed-' + Math.random().toString(36).slice(2, 8); // per-player group
+    radio.name = speedGroupName; // the SAME group for every speed of this player
     radio.value = String(s);
     radio.checked = s === v.playbackRate;
     radio.addEventListener('change', () => {
       if (!radio.checked) return;
       v.playbackRate = s;
       speedValue.textContent = formatSpeed(s) + '×';
+      if (drillDown) closeSub(); // choosing a speed returns to the main menu
     });
     lab.appendChild(radio);
     lab.appendChild(document.createTextNode(formatSpeed(s) + '×'));
     speedRadios.appendChild(lab);
   });
   speedSub.appendChild(speedRadios);
+  // ← Back header (drill-down only — hidden in the side-submenu mode):
+  // returns to the main menu without choosing.
+  const speedBack = document.createElement('button');
+  speedBack.type = 'button';
+  speedBack.className = 'video-menu-back';
+  speedBack.textContent = '← Speed';
+  speedBack.addEventListener('click', e => { e.stopPropagation(); closeSub(); });
+  speedSub.insertBefore(speedBack, speedRadios);
   // Row + submenu share a wrapper: the desktop hover "zone" covers BOTH
   // (the submenu opens to the RIGHT of the menu, so moving from the row to
   // the submenu never closes it); leaving the zone closes it, like native
@@ -327,6 +349,13 @@ function createVideoPlayer(src, noFullscreenBtn) {
     if (subOpen) return;
     subOpen = true;
     speedSub.classList.add('show');
+    if (drillDown) {
+      // The submenu fills the main menu (CSS .video-menu.drill hides the
+      // title/row/loop and insets the submenu over the menu) — no side
+      // positioning to measure.
+      menu.classList.add('drill');
+      return;
+    }
     // Position the submenu to the RIGHT, aligned so the "1×" entry sits at
     // the SAME HEIGHT as the Speed row (native submenus align their current
     // entry; here 1× is the fixed reference even when another speed is
@@ -356,11 +385,17 @@ function createVideoPlayer(src, noFullscreenBtn) {
     if (!subOpen) return;
     subOpen = false;
     speedSub.classList.remove('show');
+    menu.classList.remove('drill'); // back to the main menu (drill-down mode)
     speedSub.style.top = '';
     speedSub.style.left = '';
     speedSub.style.right = ''; // next open re-measures from the clean state
   };
-  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+  // Hover open/close only on DESKTOP LANDSCAPE: in drill-down mode (no
+  // side room) a click toggles the drill page — hover would close it
+  // mid-reading. In landscape touch (tablet) the click toggles the side
+  // submenu.
+  const useHover = !drillDown && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (useHover) {
     // Row + submenu form ONE hover zone (they TOUCH — the submenu's left
     // edge sits on the menu's right edge, no gap). Leaving either starts a
     // short grace timer (the same pattern as the gallery prompt panel) so
@@ -384,7 +419,9 @@ function createVideoPlayer(src, noFullscreenBtn) {
     const open = menu.classList.contains('show');
     closeAllVideoMenus(); // any other player's open menu closes first
     if (!open) {
-      // Reflect the CURRENT video state (a fresh player has the defaults).
+      // Reset any drill/side state left by a previous open, then reflect
+      // the CURRENT video state (a fresh player has the defaults).
+      closeSub();
       loopInput.checked = v.loop;
       const radios = speedRadios.querySelectorAll('input[type=radio]');
       radios.forEach(r => { r.checked = Math.abs(parseFloat(r.value) - v.playbackRate) < 1e-9; });
