@@ -411,30 +411,18 @@ async function openCompareFullscreen(kind) {
     const t = c.tab || (c.kind === 'upscale' ? 'upscale' : 'edit');
     return t === tab;
   });
-  if (comps.length) {
-    galleryMode = 'compare';
-    galleryEntries = comps;
-    galleryBig.style.display = 'none';
-    gallerySlider.style.display = '';
-    galleryVideoWrap.style.display = 'none';
-    const i = comps.findIndex(e => e.kind === kind);
-    galleryIdx = i >= 0 ? i : comps.length - 1;
-    renderGalleryItem();
-    openGalleryOverlay();
-    return;
-  }
-  // Fallback: transformed entries of this tool in the generated gallery.
-  const badgeMatch = kind === 'upscale' ? ['upscaled'] : ['edited', 'restored'];
-  const gen = (window.galleryGenerated || []).filter(e => badgeMatch.includes(e.badge));
-  if (!gen.length) {
+  if (!comps.length) {
+    // The tool has no comparisons — do NOT fall back to the generated-image
+    // gallery (that would open the wrong gallery); just say so.
     return showToast(kind === 'upscale' ? 'No upscaled image yet' : 'No edited image yet');
   }
-  galleryMode = 'lightbox';
-  galleryEntries = gen;
-  galleryBig.style.display = '';
-  gallerySlider.style.display = 'none';
+  galleryMode = 'compare';
+  galleryEntries = comps;
+  galleryBig.style.display = 'none';
+  gallerySlider.style.display = '';
   galleryVideoWrap.style.display = 'none';
-  galleryIdx = gen.length - 1;
+  const i = comps.findIndex(e => e.kind === kind);
+  galleryIdx = i >= 0 ? i : comps.length - 1;
   renderGalleryItem();
   openGalleryOverlay();
 }
