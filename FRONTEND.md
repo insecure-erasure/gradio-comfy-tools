@@ -296,8 +296,8 @@ warning toast.
 server-side via `POST /api/check-image` (the browser cannot read
 cross-origin headers — CORS is why this cannot be done client-side) and, if
 it is really an image, shows it as a **preview filling the output pane**
-(`source-preview`, dashed border + slightly dimmed to distinguish input
-from output) and **collapses the field back to 10%** (`.collapsed`;
+(`source-preview`, slightly dimmed to distinguish input from output —
+no frame) and **collapses the field back to 10%** (`.collapsed`;
 re-focusing the input expands it again). On failure it toasts the error
 (HTTP status, content-type mismatch, unreachable URL…). The preview is
 **also shown by 🔗** (`usePreviousSource` — which **flashes the field open
@@ -482,15 +482,16 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Prompt display**: the prompt is NOT a bottom caption anymore. A
     **Show prompt** button sits bottom-center, visible only when the entry
     has a prompt; **hovering it is enough** — the prompt appears as a
-    **bottom panel** (`#galleryPromptModal`) styled like the
-    original-prompt hover hint (`.gallery-badge-hint`): a grey translucent
-    pill (`rgba(96,96,96,.78)`, 12px radius, `0 8px 24px` shadow), 500-weight
-    text, no title and no ✕. The font stays modest and
-    device-adaptive (`font-size: clamp(12px, .4vw + .55vh, 16px)` — ~12px
-    phones, ~14px desktop mirroring the hint, capped ~16px on large
-    screens). The panel hugs its text (`width: fit-content`, padding
-    10px 14px — a short prompt never stretches the pill to the 560px cap)
-    and its text is CENTERED. The panel is anchored at the BOTTOM of the
+    **bottom panel** (`#galleryPromptModal`). **ALL gallery text boxes
+    share ONE unified family** (`.gallery-prompt-btn`, `.gallery-prompt-box`,
+    `.gallery-badge`, `.gallery-badge-hint`, `.gallery-counter` and the
+    compare-slider labels): system-ui, weight 400 (no bold anywhere),
+    13px/1.5, white on the dark translucent surface
+    (`rgba(28,28,28,.72)`), 1px light border, 10px radius, one box-shadow,
+    and the SAME fixed padding (8px 14px). Boxes hug their text
+    (`width: fit-content`) so the size adapts to the content. Alignment:
+    LEFT everywhere except the Show-prompt button, whose label is
+    CENTERED (it is a button). The panel is anchored at the BOTTOM of the
     gallery (where the old caption was) and its overlay layer is
     pointer-transparent, so the image and the gallery buttons stay usable.
     It hides when the pointer leaves (short grace delay), and closes on
@@ -499,12 +500,10 @@ Two separate session-scoped galleries (in-memory; not persisted):
     Click/tap still toggles it (touch devices have no hover; keyboard
     activation works too). The **badge hover hint** (the ORIGINAL source
     prompt of an appended edit/restore, under the Edited/Restored badge)
-    shares the same panel styling (fit-content + tight padding + clamp
-    font) but its text is LEFT-aligned, so a long source prompt reads as
-    normal paragraphs instead of a narrow centered column. In **portrait
-    (<1024px) the badge hint spans the full screen width** (left/right 0
-    with 12px margins) instead of the fitted pill — landscape keeps the
-    fitted centered pill.
+    shares the same panel styling (left-aligned prompt text, same family).
+    In **portrait (<1024px) the badge hint spans the full screen width**
+    (left/right 0 with 12px margins) instead of the fitted box —
+    landscape keeps the fitted box.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -539,7 +538,8 @@ These are intentional, user-driven changes over the original `mockup.html`:
 6. **Upscale**: special compact layouts (portrait: seed + 🔍 in the pane,
    no bottom bar; landscape: 🔍 above the URL row in the pane).
 7. **Output fills the pane**: `width/height:100%` + `object-fit:contain`,
-   8px padding.
+   no padding, no border-radius/shadow — the generation is edge to edge
+   in the pane (no frame, no dashed border).
 8. **Source URL field**: collapsible 10%/50%, fades while generating.
 9. **Buttons disabled with empty prompt** + click-catcher feedback.
 10. **Random seed shown** in the field (client-generated, sent explicitly).
@@ -547,7 +547,7 @@ These are intentional, user-driven changes over the original `mockup.html`:
 12. Default image model is **Krea 2** (was Z-Image Turbo).
 13. **Source preview**: the ✓ button next to the source URL field validates
 the value and shows the image in the output pane; 🔗/📁 also preview the
-source (dashed-border `.source-preview`). Added over the mockup.
+source (`.source-preview`, dimmed, no frame). Added over the mockup.
 14. **Parameter + action chips (all tools)**: the per-tab parameter
 controls moved
 out of the params panes into chips overlaid on the prompt textarea (each

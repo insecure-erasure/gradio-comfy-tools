@@ -32,7 +32,19 @@
     </div>
   </div>
   <div class="gallery-badge" id="galleryBadge"></div>
-  <div class="gallery-badge-hint" id="galleryBadgeHint"></div>
+  <!-- Prompt stack shown when the badge is CLICKED: the badge hides and
+       this takes over — the transformation's prompt (edited/restored/
+       upscaled) on TOP, the ORIGINAL generation prompt BELOW. Hidden by
+       default; only appears on badge click. -->
+  <div class="gallery-prompt-stack" id="galleryPromptStack">
+    <div class="gallery-prompt-box">
+      <div class="gallery-stack-label" id="galleryStackLabel"></div>
+      <div class="gallery-prompt-text" id="galleryStackText"></div>
+    </div>
+    <div class="gallery-prompt-box" id="galleryStackOriginalBox">
+      <div class="gallery-prompt-text" id="galleryStackOriginalText"></div>
+    </div>
+  </div>
   <button class="gallery-btn gallery-close" id="galleryClose" title="Close" aria-label="Close">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
   </button>

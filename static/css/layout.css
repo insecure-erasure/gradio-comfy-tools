@@ -294,7 +294,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 8px;              /* minimal — the result fills the pane */
+    padding: 0;               /* no frame — the result fills the whole pane */
     background: #111122;
     overflow: hidden;
     min-width: 0;
@@ -318,9 +318,7 @@
     width: 100%;
     height: 100%;
     margin: auto;
-    border-radius: var(--radius);
-    object-fit: contain;
-    box-shadow: var(--shadow);
+    object-fit: contain;      /* no radius/shadow — edge to edge in the pane */
   }
   /* Live per-step latent preview (Generate): painted while the job runs,
      under the .gen-spinner (z-index 10) so the spinner stays on top. Same
@@ -331,22 +329,18 @@
     width: 100%;
     height: 100%;
     margin: auto;
-    border-radius: var(--radius);
     object-fit: contain;
     opacity: .9;
-    border: 1px dashed rgba(255,255,255,.22);
   }
   /* Source image preview (✓ confirm / 🔗 / 📁): fills the available area,
-     same treatment as a generated result, but visually distinct (dashed
-     border + slightly dimmed) so it is clear it is the *input*, not output. */
+     same treatment as a generated result, but slightly dimmed so it is
+     clear it is the *input*, not output (no dashed frame — edge to edge). */
   .source-preview {
     width: 100%;
     height: 100%;
     margin: auto;
-    border-radius: var(--radius);
     object-fit: contain;
-    opacity: .85;
-    border: 1px dashed rgba(255,255,255,.25);
+    opacity: .85;   /* no dashed frame — input vs output is told by the opacity */
   }
   /* While a generation runs the source preview recedes behind the loading
      overlay (the .gen-spinner, z-index 10, sits above it) — the Video tab
@@ -357,8 +351,6 @@
   .result-video {
     width: 100%;
     height: 100%;
-    border-radius: var(--radius);
-    box-shadow: var(--shadow);
   }
   .output-pane.busy { background: #101020; }
 

@@ -282,24 +282,20 @@
     #tab-upscale .params-pane .result-url-row {
       flex-basis: 100%;
     }
-    /* Gallery — edited/restored original-prompt hint (vertical): a centered
-       fitted pill looked cramped between the ‹ › controls. Span the FULL
-       screen width (with small side margins) instead of hugging the text;
-       landscape keeps the fitted centered pill. */
-    .gallery-badge-hint {
-      left: 0;
-      right: 0;
-      transform: none;
-      width: auto;
+    /* Gallery — prompt stack boxes (vertical): a centered fitted box looked
+       cramped between the ‹ › controls. Span the FULL screen width (with
+       small side margins) instead of hugging the text; landscape keeps the
+       fitted box. */
+    .gallery-prompt-stack .gallery-prompt-box {
       max-width: none;
-      margin: 0 12px;
+      width: calc(100% - 24px);
     }
   }
   @media (max-width: 767px) {
     .tabs-output-zone { padding-left: 4px; }
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
-    .output-pane { padding: 8px; }
+    .output-pane { padding: 0; }
     .source-url-field { bottom: 10px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
     /* Mobile: the source URL fields are COLLAPSED by default — the idle
