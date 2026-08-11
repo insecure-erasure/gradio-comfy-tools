@@ -329,9 +329,9 @@ mockup directly.
 > WebSocket listener (same clientId) and exposes `GET /api/progress`; the
 > frontend polls it and paints the stage in the result URL row (`⏳ Queued…` →
 > `⚙️ SamplerCustomAdvanced 4/8` → URL). Verified live against the server
-> (ComfyUI 0.27.0). **Remaining from B5**: queue position, live *previews*,
-> and true concurrent tabs (each tab still blocks on its own `fetch()`; the
-> polling endpoint is single-user "most recent job").
+> (ComfyUI 0.27.0). **Remaining from B5**: queue position and true
+> concurrent tabs (the polling endpoint is single-user "most recent job").
+> Live per-step previews are DONE (see "What remains from B5" below).
 
 ### ComfyUI state API (verified 2026-08-07, ComfyUI 0.29.1)
 
@@ -545,21 +545,21 @@ this repo's workflows; the per-step emission is inferred from the node design.)
       click action (an upscale has no original prompt to show).
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
-  - **Video**: still NOT navigable in the gallery (deferred decision; the
-    player is now the custom one, `player.js` — but gallery navigation
-    remains out of scope); the result carries a `data-video-gallery="1"`
-    marker and its URL is collected in `window.galleryVideos` for a
-    **future video gallery — revisit later**.
-- **FIX (2026-08-08)**: **LoRA modals broken on Windows (dual-boot)** — the
+  - **Video**: now NAVIGABLE in the gallery — `openVideoGallery` (⛶ on
+    the Video tab) shows `window.galleryVideos` in the overlay with the
+    custom player edge-to-edge: ‹ › navigates, 🗑️ deletes the shown entry,
+    N/M counter bottom-right. The badge AND Show-prompt button are NOT
+    shown in video mode (the player fills the overlay). The result still
+    carries a `data-video-gallery="1"` marker; videos are collected in
+    `window.galleryVideos` and persisted like the images (see FRONTEND.md §7.1).
+- **FIX (2026-08-08, superseded 2026-08-11)**: **LoRA modals broken on Windows (dual-boot)** — the
   server (`http://akari.home`, now booted into Windows) returns LoRA names
   with `\` separators (`flux2\...`), but `loraOptionsForContext()` matched
   with a `/` prefix, so every dropdown came up empty: "＋ Add LoRA" added a
   row with an empty name that was then saved as a phantom "loaded" LoRA.
   Fixes in `modal.js`:
-  - `loraOptionsForContext()` is **separator-agnostic** and no longer
-    excludes anything: LoRAs whose directory matches the current model
-    context come first, every other LoRA after (ComfyUI resolves unique
-    names without the dir); the value is the full name as returned.
+  - `loraOptionsForContext()` became **separator-agnostic** (no more empty
+    dropdowns); the value is the full name as returned.
   - `renderModalLoraRows()` preselects saved rows **separator-agnostically**
     (a Linux-style saved name restores on Windows and vice versa); a saved
     LoRA that no longer exists shows "— not available —" instead of
@@ -569,6 +569,20 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     has no LoRAs. Verified against the live endpoint (54 LoRAs, all `\`)
     and in jsdom (dropdown listing, default empty state, separator
     normalization, not-available placeholder, wan22 HIGH/LOW editors).
+- **FIX (2026-08-11)**: **LoRA dropdowns STRICTLY filtered to the model's
+  directory** — `loraOptionsForContext()` previously SORTED (matching dir
+  first, every other LoRA after); now it FILTERS, so only LoRAs under the
+  current model's directory appear (`zit/` zimage, `krea2/` krea2,
+  `flux2/` flux2 + Edit, `wan21/`/`wan22/` video) — incompatible LoRAs
+  are excluded entirely. Separator handling upgraded to a **PurePosixPath
+  shim** (`purePath` in `modal.js`): it normalizes any run of `/` and `\`
+  to `/`, handling the JSON-escaped `\\` backslashes Windows paths
+  arrive as, so the filter works identically on both OSes. `check_env.py`
+  uses `pathlib.PurePosixPath` for the same canonicalization.
+  - **(superseded 2026-08-11)** the "every other LoRA after" ordering was
+    replaced by a **STRICT filter** to the model's directory (see the
+    FIX below), and path parsing now uses a PurePosixPath shim that
+    handles the JSON-escaped `\\` backslashes of Windows paths.
 - **FIX (2026-08-08, superseded 2026-08-11)**: **per-tab prompts independent
   per tool** — originally the `#promptInput` textarea was a single shared
   element relocated between tabs (saved/restored via `promptsByTab`), which

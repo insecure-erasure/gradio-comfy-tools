@@ -126,6 +126,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `scripts/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
 | `scripts/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
 | `scripts/probe_previews.py` | Documents the raw ComfyUI per-step preview protocol (binary WS frames) — `python3 scripts/probe_previews.py [--family krea2|flux2|zimage] [--steps N]` |
+| `scripts/demo_chain_ws.py` | Dev/demo: a full generate → edit → upscale → video chain over the WS protocol |
+| `scripts/listen_ws.py` | Dev: raw WebSocket listener printing the events ComfyUI sends for a queued prompt |
 
 ### workflows/ contents
 

@@ -215,7 +215,10 @@ fields (model, LoRA/diffusion config):
 - The advanced modal persists its values per tab for the session.
 - Reset (↺) restores defaults, clears the tab's output and cancels any running job (see `cancelIfRunning`).
 - Each tab's result persists for the session (not lost on tab switch).
-- Session galleries (frontend): `window.galleryGenerated` (generations + transformations) and `window.galleryComparisons` (edited/restored/upscaled before/after pairs) — see FRONTEND.md §7.
+- Session galleries (frontend), **persisted to localStorage**:
+  `window.galleryGenerated` (generations + transformations),
+  `window.galleryComparisons` (edited/restored/upscaled before/after pairs)
+  and `window.galleryVideos` (generated videos) — see FRONTEND.md §7.
 
 ## 9. Implementation notes
 

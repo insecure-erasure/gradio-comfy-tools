@@ -513,19 +513,22 @@ and re-transforms the trigger button).
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
   state, storage, api, player, refine, source, tabs, generate, edit, upscale,
-  video, gallery, settings, modal, main.
+  video, gallery, restore, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
-  selections, theme. Saved on field change / modal save / theme toggle /
-  toolbar change; restored on load.
+  selections, per-tab prompts, theme AND the galleries (`generated` /
+  `videos` / `comparisons`). Saved on field change / modal save / theme toggle /
+  toolbar change / gallery mutation; restored on load.
 
 ## 6. Backend endpoints used by the UI
 
 | Endpoint | Purpose |
 |---|---|
 | `GET /` | renders the UI |
+| `GET /health` | server + ComfyUI health (version, base URL) |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
 | `GET /api/progress` | live progress of the most recent job (`{active: {stage, node, node_title, value, max, preview?} | null}` — `preview` is the latest per-step latent decode as a `data:image/jpeg;base64,…` URL, only while the job runs) |
+| `GET /api/last-result` | URL of the last COMPLETED job (recovery when the frontend's in-flight fetch was aborted — background tab) |
 | `POST /api/cancel` | cancel the most recent job (interrupt running + delete pending) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
@@ -534,6 +537,7 @@ and re-transforms the trigger button).
 | `POST /api/refine-prompt` | 🪄 refine a prompt via the llama-server refiner (OpenAI-compatible; `stream:true` → SSE of deltas, `system_prompt` override) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
+| `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (persisted gallery pruning) |
 | `GET /media/{filename}` | same-origin **streaming** proxy of results (honors the `Range` header — the `<video>` element can seek/buffer progressively; returns 206 for partials) |
 
 ## 7. Session state
@@ -543,10 +547,23 @@ and re-transforms the trigger button).
 - `lastGeneratedUrl` persists for chaining (🔗).
 - `advancedValues` (per-tab advanced config) persists across modal opens and
   reloads (localStorage).
+- **Pane restoration after reload** (`restore.js`): each tab's LAST result is
+  restored into its pane lazily (only the active tab + the Video tab on
+  load; the others when they become active, and only if the pane is still
+  empty — a live session wins). Restores the entry the pane was navigating
+  (`paneCurrentEntry`) and keeps the URL row in sync.
+- **Lost-job recovery** (`api.js` `registerRecoverHandler` /
+  `tryRecoverResult`): if the in-flight fetch is aborted (background tab /
+  suspension) the backend keeps running; on refocus the app polls
+  `GET /api/last-result` and finishes the job, painting the result into the
+  pane as if the fetch had completed.
 
 ### 7.1 Galleries (`gallery.js`)
 
-Two separate session-scoped galleries (in-memory; not persisted):
+Three session-scoped galleries, **persisted to localStorage** (`storage.js`
+saves them under `comfyTools.userConfig.galleries`; on load they are
+restored and validated against the server — dead files are dropped,
+never shown):
 
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
