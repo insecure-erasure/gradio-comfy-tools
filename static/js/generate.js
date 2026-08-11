@@ -35,29 +35,46 @@ function generateImage() {
   startProgressPolling();
   setGeneratingUi(true, 'btnGenerate');
 
-  api('/api/generate', {
-    family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
-    steps: parseInt(steps), seed, lora_config: loraConfig, model,
-  }).then(res => {
+  // Shared finalize (normal fetch OR focus-recovery of a lost job).
+  function finalizeGenerate(res) {
     showResult('genOutputPane', res, false);
-    // Generated history (B5): the result joins the lightbox gallery with
-    // its generation prompt; the history is session-scoped, so it survives
-    // the pane only showing the last result.
+    // Generated history: the result joins the lightbox gallery with its
+    // generation prompt; session-scoped, survives the pane.
     addGeneratedEntry(res, prompt);
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('✨ Generated');
-  }).catch(err => {
-    document.getElementById('resultUrl').textContent = '';
-    showToast('❌ ' + (err && err.name === 'AbortError' ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
-  }).finally(() => {
-    userCancelled = false;
     stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGeneratingUi(false);
+  }
+  registerRecoverHandler(finalizeGenerate);
+
+  api('/api/generate', {
+    family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
+    steps: parseInt(steps), seed, lora_config: loraConfig, model,
+  }).then(res => {
+    finalizeGenerate(res);
+  }).catch(err => {
+    const isAbort = err && err.name === 'AbortError';
+    if (isAbort && !userCancelled) {
+      recoverPending = true; // job still running — resolve on completion
+      return;
+    }
+    document.getElementById('resultUrl').textContent = '';
+    showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
+  }).finally(() => {
+    userCancelled = false;
+    if (!recoverPending) {
+      stopProgressPolling();
+      if (btn) btn.disabled = false;
+      pane.classList.remove('busy');
+      spinner.classList.remove('show');
+      setGeneratingUi(false);
+    }
   });
 }
 

@@ -103,6 +103,7 @@ function addGeneratedEntry(res, prompt) {
     src, url: res.url || '', prompt: prompt || '', badge: '', filename: filenameFromUrl(src),
     originalPrompt: '',
   });
+  savePersistedState(); // galleries are persisted — persist immediately
 }
 
 // An UPScale of sourceSrc -> new result src: REPLACES the source entry in
@@ -123,6 +124,7 @@ function addTransformedEntry(res, prompt, badge, sourceSrc) {
       entry.badge = badge;
       entry.filename = filenameFromUrl(src);
       entry.originalPrompt = '';
+      savePersistedState();
       return;
     }
   }
@@ -130,6 +132,7 @@ function addTransformedEntry(res, prompt, badge, sourceSrc) {
     src, url, prompt: prompt || '', badge, filename: filenameFromUrl(src),
     originalPrompt: '',
   });
+  savePersistedState();
 }
 
 // An edit/restore of sourceSrc -> new result src: APPENDS a new entry (the
@@ -152,6 +155,7 @@ function appendTransformedEntry(res, prompt, badge, sourceSrc) {
     src, url, prompt: prompt || '', badge, filename: filenameFromUrl(src),
     originalPrompt,
   });
+  savePersistedState();
 }
 
 // ── Compare entries (Edit/Upscale) ─────────
@@ -182,6 +186,7 @@ function addCompareEntry(entry) {
     kind: entry.kind || 'edit',
     tab: entry.tab || '',
   });
+  savePersistedState();
 }
 
 // The compare gallery collects the session registry (never generated
@@ -231,6 +236,7 @@ function addGeneratedVideo(result, prompt) {
     prompt: prompt || '',
     filename: filenameFromUrl(display),  // null for non-generated sources (defensive)
   });
+  savePersistedState(); // persist immediately so a refresh keeps it
 }
 
 // ── Open / close ───────────────────────────

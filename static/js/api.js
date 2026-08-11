@@ -276,6 +276,32 @@ function randomSeed() {
 let progressTimer = null;
 let userCancelled = false;
 
+// Per-tool handler to finalize a result whose fetch was lost (background
+// tab / focus loss): called with the result {url, display} recovered from
+// the backend after the job completed. Each tool registers its own.
+let recoverHandler = null;
+let recoverPending = false;  // a job's fetch died; backend still running
+function registerRecoverHandler(fn) { recoverHandler = fn; }
+async function tryRecoverResult() {
+  if (!recoverHandler || progressTimer === null) return; // no job / no handler
+  try {
+    const r = await fetch('/api/last-result');
+    const j = await r.json();
+    if (!j.url) { recoverPending = false; return; } // nothing to recover
+    // Build the same-origin display URL from the recovered {base}/view URL.
+    const q = (j.url.split('?')[1] || '');
+    const params = new URLSearchParams(q);
+    const fn = params.get('filename');
+    const type = params.get('type') || 'output';
+    if (fn) {
+      recoverPending = false;
+      recoverHandler({ url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type });
+    } else {
+      recoverPending = false;
+    }
+  } catch (e) { /* ignore */ }
+}
+
 // ⏹ Cancel (the transformed action button): stop the backend job (POST
 // /api/cancel — interrupt running + delete pending) and abort the in-flight
 // fetch so the UI settles now.
@@ -316,53 +342,75 @@ function startProgressPolling() {
   liveJobTab = currentTab; // tab that initiated the generation
   const copy = document.getElementById('btnCopyUrl');
   if (copy) copy.style.display = 'none'; // the row shows progress while generating
-  const paint = async () => {
-    try {
-      const resp = await fetch('/api/progress');
-      const j = await resp.json();
-      const el = document.getElementById('resultUrl');
-      if (!el) return;
-      const a = j.active;
-      if (!a) return; // no active job — leave the last painted text until the request settles
-      let txt;
-      if (a.stage === 'queued') {
-        txt = '⏳ Queued…';
-      } else if (a.stage === 'running') {
-        txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
-        if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
-      } else {
-        txt = '⚙️ ' + (a.node_title || '');
-      }
-      el.textContent = txt;
-      // Live per-step preview (any tab): paint the latest latent decode in
-      // the output pane of the tab that started the job, and ONLY while the
-      // user is on that tab (switching away pauses the painting; coming
-      // back resumes it with the latest frame). The spinner stays on top.
-      if (a.preview && liveJobTab && liveJobTab === currentTab) {
-        const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
-        if (pane) {
-          let pv = pane.querySelector('.preview-live');
-          if (!pv) {
-            // The preview must fill the pane and stay centered: hide (not
-            // remove) whatever competes for space — placeholder, previous
-            // result, source preview, compare slider, video mock. Overlays
-            // (spinner, buttons) stay. liveHidden is restored by
-            // stopProgressPolling on cancel.
-            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
-            liveHidden.forEach(el => { el.style.display = 'none'; });
-            pv = document.createElement('img');
-            pv.className = 'preview-live';
-            pv.alt = 'Live preview';
-            pane.appendChild(pv);
-          }
-          pv.src = a.preview;
-        }
-      }
-    } catch (e) { /* server busy — ignore */ }
-  };
-  paint();
-  progressTimer = setInterval(paint, 1000);
+  paintProgress();
+  progressTimer = setInterval(paintProgress, 1000);
 }
+
+// Paint the current job stage into the result URL row (and the live
+// per-step preview). Named so visibilitychange can re-paint immediately
+// when the tab regains focus — background tabs get their setInterval
+// throttled/suspended by the browser, which froze the last progress line.
+async function paintProgress() {
+  try {
+    const resp = await fetch('/api/progress');
+    const j = await resp.json();
+    const el = document.getElementById('resultUrl');
+    if (!el) return;
+    const a = j.active;
+    if (!a) {
+      // The job finished (active:null). If a fetch was lost and the result
+      // was never shown, recover it now (also fires on focus return).
+      if (recoverPending) tryRecoverResult();
+      return; // no active job — leave the last painted text until the request settles
+    }
+    let txt;
+    if (a.stage === 'queued') {
+      txt = '⏳ Queued…';
+    } else if (a.stage === 'running') {
+      txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
+      if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
+    } else {
+      txt = '⚙️ ' + (a.node_title || '');
+    }
+    el.textContent = txt;
+    // Live per-step preview (any tab): paint the latest latent decode in
+    // the output pane of the tab that started the job, and ONLY while the
+    // user is on that tab (switching away pauses the painting; coming
+    // back resumes it with the latest frame). The spinner stays on top.
+    if (a.preview && liveJobTab && liveJobTab === currentTab) {
+      const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
+      if (pane) {
+        let pv = pane.querySelector('.preview-live');
+        if (!pv) {
+          // The preview must fill the pane and stay centered: hide (not
+          // remove) whatever competes for space — placeholder, previous
+          // result, source preview, compare slider, video mock. Overlays
+          // (spinner, buttons) stay. liveHidden is restored by
+          // stopProgressPolling on cancel.
+          liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
+          liveHidden.forEach(el => { el.style.display = 'none'; });
+          pv = document.createElement('img');
+          pv.className = 'preview-live';
+          pv.alt = 'Live preview';
+          pane.appendChild(pv);
+        }
+        pv.src = a.preview;
+      }
+    }
+  } catch (e) { /* server busy — ignore */ }
+}
+
+// When the tab regains focus, re-paint immediately (setInterval is
+// throttled/suspended in background tabs, which left the progress line
+// frozen). Also re-assert the generation lock UI (a switch mid-job already
+// handles the buttons; this covers the focus-loss case).
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (progressTimer) {
+    paintProgress();          // re-sync the progress line immediately
+    tryRecoverResult();       // recover a result whose fetch died in background
+  }
+});
 
 function stopProgressPolling() {
   if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }

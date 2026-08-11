@@ -27,7 +27,8 @@ function generateUpscale() {
   startProgressPolling();
   setGeneratingUi(true, window.matchMedia('(max-width: 1023px)').matches ? 'btnUpscalePane' : 'btnUpscaleLandscape');
 
-  api('/api/upscale', { image: src, seed }).then(res => {
+  // Shared finalize (normal fetch OR focus-recovery of a lost job).
+  function finalizeUpscale(res) {
     // Compare slider: original vs upscaled — this IS the result.
     const beforeEl = document.getElementById('upscaleBefore');
     const afterEl = document.getElementById('upscaleAfter');
@@ -42,14 +43,11 @@ function generateUpscale() {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
-      // Gallery marker (B5): the upscaled result joins the compare gallery
+      // Gallery marker: the upscaled result joins the compare gallery
       // (identity = AFTER image); no prompt caption for upscale.
       cmp.dataset.gallery = '1';
       cmp.dataset.kind = 'upscale';
-      // Compare gallery (B5): register the comparison in the session
-      // registry too — the DOM only holds ONE slider per tab (reused), so
-      // without this registry earlier upscales would vanish from the ⛶
-      // compare gallery.
+      // Compare gallery: register the comparison in the session registry.
       addCompareEntry({
         src: res.display,
         before: beforeSrc,
@@ -57,7 +55,7 @@ function generateUpscale() {
         kind: 'upscale',
         tab: 'upscale',
       });
-      // Generated history (B5): an upscale REPLACES the source entry in the
+      // Generated history: an upscale REPLACES the source entry in the
       // lightbox gallery (keeping its generation prompt, badge = upscaled);
       // non-generated sources are appended.
       addTransformedEntry(res, '', 'upscaled', src);
@@ -68,17 +66,35 @@ function generateUpscale() {
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('🔍 Upscaled');
-  }).catch(err => {
-    document.getElementById('resultUrl').textContent = '';
-    showToast('❌ ' + (err && err.name === 'AbortError' ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
-  }).finally(() => {
-    userCancelled = false;
     stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
     setGeneratingUi(false);
+  }
+  registerRecoverHandler(finalizeUpscale);
+
+  api('/api/upscale', { image: src, seed }).then(res => {
+    finalizeUpscale(res);
+  }).catch(err => {
+    const isAbort = err && err.name === 'AbortError';
+    if (isAbort && !userCancelled) {
+      recoverPending = true; // job still running — resolve on completion
+      return;
+    }
+    document.getElementById('resultUrl').textContent = '';
+    showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
+  }).finally(() => {
+    userCancelled = false;
+    if (!recoverPending) {
+      stopProgressPolling();
+      if (btn) btn.disabled = false;
+      pane.classList.remove('busy');
+      spinner.classList.remove('show');
+      setGenerating(pane, false);
+      setGeneratingUi(false);
+    }
   });
 }
 

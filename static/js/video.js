@@ -51,10 +51,10 @@ function generateVideo() {
   startProgressPolling();
   setGeneratingUi(true, 'btnVideo');
 
-  api('/api/video', {
-    image: src, model_version: mv, prompt, negative_prompt: negative,
-    frames, steps, seed, lora_config: loraConfig, diffusion,
-  }).then(res => {
+  // Shared finalize: called with the finished result — from the normal
+  // fetch OR from the recover handler when the fetch died in a background
+  // tab (the backend kept running and finished the job).
+  function finalizeVideo(res) {
     // Remove the mock player from the DOM (not just hide it): it is a
     // flex block with width:100%, so leaving it (even display:none inline)
     // gets restored by stopProgressPolling and pushes the real <video> to
@@ -68,9 +68,8 @@ function generateVideo() {
     if (typeof currentTab !== 'undefined' && currentTab !== 'video') {
       pauseActiveVideo();
     }
-    // Video gallery (B5): mark the element + register the video in the
-    // session registry (analogous to the generated images) for the future
-    // video gallery. Native controls don't mix with navigation.
+    // Video gallery: mark the element + register the video in the session
+    // registry (analogous to the generated images).
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
     addGeneratedVideo(res, prompt);
@@ -78,17 +77,48 @@ function generateVideo() {
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('🎬 Video ready');
-  }).catch(err => {
-    document.getElementById('resultUrl').textContent = '';
-    showToast('❌ ' + (err && err.name === 'AbortError' ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
-  }).finally(() => {
-    userCancelled = false;
+    // Release the UI lock (the .finally below also runs, but after a
+    // recovered result the fetch already settled — keep it idempotent).
     stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
     setGeneratingUi(false);
+  }
+  // Let the focus-recovery machinery complete a lost job's result.
+  registerRecoverHandler(finalizeVideo);
+
+  api('/api/video', {
+    image: src, model_version: mv, prompt, negative_prompt: negative,
+    frames, steps, seed, lora_config: loraConfig, diffusion,
+  }).then(res => {
+    finalizeVideo(res);
+  }).catch(err => {
+    const isAbort = err && err.name === 'AbortError';
+    if (isAbort && !userCancelled) {
+      // The fetch died (timeout / browser suspended the background tab) but
+      // the backend job is still running — keep the UI in "generating" and
+      // let the focus-recovery machinery resolve the result when it lands.
+      // Do NOT clear the polling here (finalizeVideo or a later visibility
+      // change will).
+      recoverPending = true;
+      return;
+    }
+    document.getElementById('resultUrl').textContent = '';
+    showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
+  }).finally(() => {
+    userCancelled = false;
+    // If the fetch aborted but the job is still running (recover pending),
+    // keep the polling + lock so tryRecoverResult can complete the flow.
+    if (!recoverPending) {
+      stopProgressPolling();
+      if (btn) btn.disabled = false;
+      pane.classList.remove('busy');
+      spinner.classList.remove('show');
+      setGenerating(pane, false);
+      setGeneratingUi(false);
+    }
   });
 }
 

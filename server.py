@@ -313,6 +313,22 @@ def api_progress() -> dict:
     return {"active": active}
 
 
+@app.get("/api/last-result")
+def api_last_result() -> dict:
+    """URL of the last COMPLETED job (single-user app).
+
+    Used to recover a result when the browser suspended/throttled the
+    frontend (background tab) and the in-flight fetch was aborted: the
+    backend keeps running and finishes the job, so the frontend can poll
+    this after regaining focus and resolve the result URL it missed.
+    Returns ``{"url": ...}`` or ``{"url": null}``.
+    """
+    job = _latest_job()
+    if job is None or not job.get("done"):
+        return {"url": None}
+    return {"url": job.get("url") or None}
+
+
 @app.post("/api/cancel")
 def api_cancel() -> dict:
     """Cancel the most recent job: interrupt what is running and remove it

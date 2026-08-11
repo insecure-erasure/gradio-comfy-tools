@@ -32,16 +32,14 @@ function generateEdit(forceMode) {
   startProgressPolling();
   setGeneratingUi(true, mode === 'restore' ? 'btnRestore' : 'btnEdit');
 
-  api('/api/edit', {
-    image: src, mode, prompt, steps, seed, lora_config: loraConfig,
-  }).then(res => {
+  // Shared finalize (normal fetch OR focus-recovery of a lost job).
+  function finalizeEdit(res) {
     // Compare slider: source (before) vs edited (after) — this IS the result.
     const beforeEl = document.getElementById('editBefore');
     const afterEl = document.getElementById('editAfter');
     const cmp = document.getElementById('editCompare');
     if (beforeEl && afterEl) {
-      // The AFTER label follows the mode (Edit / Restore) — it is not a
-      // hardcoded "Edited".
+      // The AFTER label follows the mode (Edit / Restore) — not hardcoded.
       const afterLabel = document.getElementById('editCompareAfterLabel');
       if (afterLabel) afterLabel.textContent = mode === 'restore' ? 'Restored' : 'Edited';
       // Resolve the source through the SAME-ORIGIN proxy (/media) — the
@@ -53,16 +51,12 @@ function generateEdit(forceMode) {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
-      // Gallery marker (B5): the edited/restored result joins the compare
-      // gallery (identity = AFTER image); its kind is the actual mode, and
-      // the prompt is the edit/restore text shown in the fullscreen.
+      // Gallery marker: the edited/restored result joins the compare
+      // gallery (identity = AFTER image); kind is the actual mode.
       cmp.dataset.gallery = '1';
       cmp.dataset.kind = mode; // 'edit' | 'restore'
       cmp.dataset.prompt = prompt;
-      // Compare gallery (B5): register the comparison in the session
-      // registry too — the DOM only holds ONE slider per tab (reused), so
-      // without this registry earlier edits would vanish from the ⛶
-      // compare gallery.
+      // Compare gallery: register the comparison in the session registry.
       addCompareEntry({
         src: res.display,
         before: beforeSrc,
@@ -70,7 +64,7 @@ function generateEdit(forceMode) {
         kind: mode, // 'edit' | 'restore'
         tab: 'edit',
       });
-      // Generated history (B5): an edit/restore APPENDS a new entry — the
+      // Generated history: an edit/restore APPENDS a new entry — the
       // original generation stays in the gallery (the edited image is a new
       // image). The edit/restore text is the bottom caption; if the source
       // was a gallery image, its prompt becomes the badge hover hint.
@@ -82,17 +76,37 @@ function generateEdit(forceMode) {
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;
     showToast('✨ Edited');
-  }).catch(err => {
-    document.getElementById('resultUrl').textContent = '';
-    showToast('❌ ' + (err && err.name === 'AbortError' ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
-  }).finally(() => {
-    userCancelled = false;
     stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
     setGenerating(pane, false);
     setGeneratingUi(false);
+  }
+  registerRecoverHandler(finalizeEdit);
+
+  api('/api/edit', {
+    image: src, mode, prompt, steps, seed, lora_config: loraConfig,
+  }).then(res => {
+    finalizeEdit(res);
+  }).catch(err => {
+    const isAbort = err && err.name === 'AbortError';
+    if (isAbort && !userCancelled) {
+      recoverPending = true; // job still running — resolve on completion
+      return;
+    }
+    document.getElementById('resultUrl').textContent = '';
+    showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
+  }).finally(() => {
+    userCancelled = false;
+    if (!recoverPending) {
+      stopProgressPolling();
+      if (btn) btn.disabled = false;
+      pane.classList.remove('busy');
+      spinner.classList.remove('show');
+      setGenerating(pane, false);
+      setGeneratingUi(false);
+    }
   });
 }
 
