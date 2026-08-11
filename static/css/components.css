@@ -1026,7 +1026,7 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 3px;              /* the visible line — doubles on hover/drag */
+    height: 2px;              /* the visible line — doubles on hover/drag */
     background: rgba(255,255,255,.14);
     border-radius: 2px;
     pointer-events: none;     /* events belong to .video-progress */
@@ -1034,7 +1034,7 @@
   }
   .video-progress:hover .video-progress-track,
   .video-progress.scrubbing .video-progress-track {
-    height: 6px;              /* doubled while interacting */
+    height: 4px;              /* doubled while interacting */
   }
   .video-progress-fill {
     height: 100%;
