@@ -21,6 +21,9 @@ window.addEventListener('DOMContentLoaded', () => {
   relayoutPrompt();
   updateActionButtons();
   savePersistedState();      // normalize the stored shape after applying
+  // Restore the ACTIVE tab's last result into its pane (lazy — the other
+  // tabs restore when they become active).
+  restoreActiveTabResult();
   // Validate persisted galleries against the server (async, non-blocking):
   // drop entries whose file no longer exists, then persist the pruned set.
   verifyStoredGalleries();

@@ -121,6 +121,9 @@ function switchTab(name) {
   closeTabsDropdown();
   // A chip popover left open on the old tab must not survive the switch.
   closeChipPopover();
+  // Lazy-restore the incoming tab's last result (only if its pane is empty
+  // — a live session wins over persisted state).
+  restoreTabResult(name);
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the
