@@ -435,14 +435,17 @@ function loraDirForContext() {
   }
 }
 
-// LoRA names available for the current context. ComfyUI returns subfolder
-// paths with the OS separator (/ on Linux/macOS, \ on Windows — the user
-// runs dual-boot), so all matching is separator-agnostic. A LoRA whose
-// directory matches the current model context is listed first (label
-// without the dir); every other LoRA is still listed after it (label
-// without any dir) — ComfyUI can resolve a unique name even without its
-// directory. The FULL name as returned by ComfyUI is kept as the value so
-// the backend passes it through unchanged.
+// LoRA names available for the current context — STRICTLY FILTERED to the
+// compatible ones. ComfyUI returns subfolder paths with the OS separator
+// (/ on Linux/macOS, \ on Windows — the user runs dual-boot), so all
+// matching is separator-agnostic. Only LoRAs whose directory matches the
+// current model context are shown (`zit/`, `krea2/`, `flux2/`, `wan21/`,
+// `wan22/`); everything else is EXCLUDED — injecting a LoRA trained for
+// another model family into a workflow would silently produce garbage, so
+// incompatible LoRAs never even appear in the dropdown. The label shows
+// the name without the dir (all are in the same dir); the FULL name as
+// returned by ComfyUI is kept as the value so the backend passes it
+// through unchanged.
 function loraOptionsForContext() {
   const dir = loraDirForContext();
   const parse = n => {
@@ -452,9 +455,8 @@ function loraOptionsForContext() {
   const items = loraNames.map(parse);
   if (!dir) return items.map(({ value, label }) => ({ value, label }));
   const target = dir.toLowerCase();
-  const inDir = items.filter(i => i.dir === target);
-  const rest = items.filter(i => i.dir !== target);
-  return [...inDir, ...rest].map(({ value, label }) => ({ value, label }));
+  // Strict: only the LoRAs under the model's directory are compatible.
+  return items.filter(i => i.dir === target).map(({ value, label }) => ({ value, label }));
 }
 
 function esc(s) {

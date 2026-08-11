@@ -398,13 +398,15 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 - **LoRA editor** (`modal.js`): inline rows of (LoRA name dropdown +
   strength text stepper ±0.05, default 1.0, up to 4) + "＋ Add LoRA". The
   JSON is derived on save (`advancedValues.lora` / `loraSets[path]`).
-  Dropdowns list the LoRAs **whose directory matches the model context
-  first** (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/` via
-  `loraDirForContext()`) and **every other LoRA after** — ComfyUI can
-  resolve a unique name without its directory, so nothing is excluded. All
+  Dropdowns list ONLY the LoRAs **whose directory matches the model
+  context** (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/` via
+  `loraDirForContext()`) — a STRICT filter, not a priority sort: LoRAs
+  trained for another model family are excluded entirely (injecting them
+  would silently produce garbage). All
   matching is **separator-agnostic** (`/` and `\` — the server runs
   dual-boot Windows/Linux, so names arrive with either), the label shows
-  the name **without** any dir prefix, and the value keeps the full path
+  the name **without** any dir prefix (all listed are in the same dir),
+  and the value keeps the full path
   exactly as returned. A saved LoRA whose name no longer matches any
   available file shows a "— not available —" placeholder instead of
   silently becoming a different LoRA. By default **no LoRA is loaded**:
