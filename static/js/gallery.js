@@ -253,24 +253,12 @@ function closeBadgeBox() {
 function closeTextBoxes() {
   let changed = false;
   if (galleryPromptModal.classList.contains('show')) { closeGalleryPrompt(); changed = true; }
-  if (galleryBadgeBox.classList.contains('show')) {
-    closeBadgeBox();
-    const entry = galleryEntries[galleryIdx];
-    if (entry && entry.badge) {
-      galleryBadge.textContent = entry.badge;
-      galleryBadge.classList.add('show');
-    }
-    changed = true;
-  }
-  // The Show-prompt button comes back whenever nothing is open and the
-  // entry has a prompt — it may have been hidden by a click on itself or
-  // by the badge box.
-  const entry = galleryEntries[galleryIdx];
-  if (entry && entry.prompt &&
-      !galleryPromptModal.classList.contains('show') &&
-      !galleryBadgeBox.classList.contains('show')) {
-    galleryPromptBtn.classList.add('show');
-  }
+  if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); changed = true; }
+  // Re-render the CURRENT item from its data so the badge AND the
+  // Show-prompt button always come back to their proper state (a badge
+  // hidden by click must never stay gone — the render derives the
+  // visibility from the entry, not from accumulated classList toggles).
+  if (changed) renderGalleryItem();
   return changed;
 }
 
@@ -579,11 +567,9 @@ function galleryDeleteCurrent() {
 // Click/tap still toggles it (touch devices have no hover; keyboard
 // activation works too) and Escape / navigation (‹ › / ←/→ — which also
 // navigate) / gallery close always close it.
-let promptHideTimer = null;
 let promptPinned = false;   // the Show-prompt panel was opened by CLICK (button hidden)
 
 function openGalleryPrompt() {
-  clearTimeout(promptHideTimer);
   const e = galleryEntries[galleryIdx];
   if (!e || !e.prompt) return;
   galleryPromptText.textContent = e.prompt; // textContent — never innerHTML
@@ -591,15 +577,8 @@ function openGalleryPrompt() {
 }
 
 function closeGalleryPrompt() {
-  clearTimeout(promptHideTimer);
   promptPinned = false;
   galleryPromptModal.classList.remove('show');
-}
-
-// Hide after a short grace period: smooths the hover peek without flicker.
-function scheduleCloseGalleryPrompt() {
-  clearTimeout(promptHideTimer);
-  promptHideTimer = setTimeout(closeGalleryPrompt, 150);
 }
 
 // ── Wiring ─────────────────────────────────
@@ -612,80 +591,34 @@ galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDel
 galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
 galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
 // Badge click/tap: HIDE the badge and show a single box with ONLY the
-// ORIGINAL generation prompt (the prompt of the image the edit/restore/
-// upscale was made from). No label, no transformation text. If the entry
-// has no original prompt, nothing is shown. Navigating, Escape or closing
-// the gallery hides the box and the badge returns.
-// Badge click/tap: HIDE the badge and show a single box with ONLY the
 // ORIGINAL generation prompt. Individual hide — the bottom Show-prompt
-// button is NOT touched (only the badge that was clicked hides).
+// button is NOT touched (only the badge that was clicked hides). Clicking
+// again (or closing via click-outside/navigation) re-renders from the data,
+// so the badge ALWAYS comes back.
 galleryBadge.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries[galleryIdx];
   if (!e2 || !e2.badge) return;
-  // The "Upscaled" badge has no action: an upscale replaces the source
-  // entry and has no original prompt to show (the generation prompt stays
-  // available via the Show-prompt button). Keep it visible, open nothing.
-  if (e2.badge === 'upscaled') return;
+  if (e2.badge === 'upscaled') return; // informational only
   if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); renderGalleryItem(); return; }
-  galleryBadge.classList.remove('show');
-  galleryBadge.textContent = '';
   closeGalleryPrompt();
-  if (!e2.originalPrompt) return; // only the original prompt is ever shown
-  galleryBadgeBoxText.textContent = e2.originalPrompt;
-  galleryBadgeBox.classList.add('show');
-});
-// Badge HOVER (mouse only): same as click — the badge hides itself and its
-// box opens. On leave, restore the badge and close the box. The two badges
-// are independent: hovering the top badge never touches the bottom one.
-let badgeHideTimer = null;
-galleryBadge.addEventListener('pointerenter', e => {
-  if (e.pointerType !== 'mouse') return;
-  const e2 = galleryEntries[galleryIdx];
-  if (!e2 || !e2.badge || e2.badge === 'upscaled') return;
   if (!e2.originalPrompt) return; // nothing to show
-  clearTimeout(badgeHideTimer);
+  galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadge.classList.remove('show');
   galleryBadge.textContent = '';
-  closeGalleryPrompt();
-  galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadgeBox.classList.add('show');
 });
-galleryBadge.addEventListener('pointerleave', e => {
-  if (e.pointerType !== 'mouse') return;
-  // Short grace so moving within the badge/box does not flicker.
-  badgeHideTimer = setTimeout(() => {
-    if (galleryBadgeBox.classList.contains('show')) {
-      closeBadgeBox();
-      const entry = galleryEntries[galleryIdx];
-      if (entry && entry.badge) {
-        galleryBadge.textContent = entry.badge;
-        galleryBadge.classList.add('show');
-      }
-    }
-  }, 150);
-});
-// Hover reveals the prompt — no click needed. Only for real mouse pointers
-// (pointerenter/pointerleave do not fire on touch). Click/tap toggles as a
-// fallback for touch/keyboard.
-galleryPromptBtn.addEventListener('pointerenter', e => {
-  if (e.pointerType !== 'mouse') return;
-  // Individual hide: the button hides itself while its panel is open (the
-  // top badge is untouched).
-  galleryPromptBtn.classList.remove('show');
-  openGalleryPrompt();
-});
-galleryPromptBtn.addEventListener('pointerleave', e => {
-  if (e.pointerType !== 'mouse') return;
-  if (promptPinned) return; // click-pinned — stays open, button stays hidden
-  scheduleCloseGalleryPrompt();
-});
+// CLICK only (no hover — hover timers were fragile). The two badges are
+// independent: clicking the top badge never touches the bottom one.
 galleryPromptBtn.addEventListener('click', e => {
   e.stopPropagation();
-  // Symmetric with the top badge: the button hides itself and the panel
-  // stays open, pinned (the pointerleave fired when the button disappears
-  // must not close it). Clicking anywhere else closes it and restores the
-  // button (closeTextBoxes).
+  // Toggle: if the panel is already open, close it and restore the button
+  // (render from data); otherwise hide the button and pin the panel open.
+  if (galleryPromptModal.classList.contains('show')) {
+    closeGalleryPrompt();
+    renderGalleryItem();
+    return;
+  }
   promptPinned = true;
   galleryPromptBtn.classList.remove('show');
   openGalleryPrompt();
