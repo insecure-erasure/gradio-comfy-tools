@@ -42,19 +42,41 @@ const formatSpeed = v => String(v);
 // menus / ⋮ buttons and Escape close them; on Escape the event is stopped
 // so the gallery's own Escape handler does not ALSO close the overlay in
 // the same keystroke (menu first, gallery second).
+//
+// PROGRESSIVE dismiss (native menus): clicking/escaping OUTSIDE the menus
+// closes the TOP open level — an open speed submenu first (the main menu
+// stays), then the whole menu on the next dismiss. The register holds each
+// open menu's handlers; it is pruned of detached players on every call.
+const _openVideoMenus = new Set();
+
+function _liveMenuHandlers() {
+  const live = [];
+  _openVideoMenus.forEach(h => { if (h.isConnected()) live.push(h); else _openVideoMenus.delete(h); });
+  return live;
+}
+
+function closeTopVideoMenu() {
+  const live = _liveMenuHandlers();
+  if (!live.length) return;
+  if (live.some(h => h.isSubOpen())) {
+    // An open submenu is the top level: close ONLY the submenus — the main
+    // menus stay (the next outside dismiss closes them).
+    live.forEach(h => h.isSubOpen() && h.closeSub());
+  } else {
+    live.forEach(h => h.closeMenu());
+  }
+}
+
 function closeAllVideoMenus() {
-  document.querySelectorAll('.video-menu.show').forEach(m => m.classList.remove('show'));
-  // A drill-down session (the speed submenu replacing the main menu) must
-  // not survive the menu closing — the next open starts from the main menu.
-  document.querySelectorAll('.video-menu.drill').forEach(m => m.classList.remove('drill'));
+  _liveMenuHandlers().forEach(h => h.closeMenu());
 }
 document.addEventListener('click', e => {
   if (e.target.closest('.video-menu') || e.target.closest('.video-more-btn')) return;
-  closeAllVideoMenus();
+  closeTopVideoMenu();
 });
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || !document.querySelector('.video-menu.show')) return;
-  closeAllVideoMenus();
+  closeTopVideoMenu();
   e.stopImmediatePropagation(); // menu only — the gallery/modal Esc handlers skip this keystroke
 });
 
@@ -391,11 +413,16 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedSub.style.right = ''; // next open re-measures from the clean state
   };
   // Close the WHOLE menu (submenu + main) — used by the hover-close when
-  // the pointer leaves the entire set (desktop).
+  // the pointer leaves the entire set (desktop) and by the progressive
+  // outside-dismiss (top level with no open submenu).
   const closeMenu = () => {
     closeSub();
     menu.classList.remove('show');
+    _openVideoMenus.delete(menuHandlers);
   };
+  // Registered in _openVideoMenus while this menu is open — progressive
+  // dismiss needs to know whether the submenu is the open top level.
+  const menuHandlers = { isConnected: () => menu.isConnected, isSubOpen: () => subOpen, closeSub, closeMenu };
   // Hover open/close only on DESKTOP LANDSCAPE: in drill-down mode (no
   // side room) a click toggles the drill page — hover would close it
   // mid-reading. In landscape touch (tablet) the click toggles the side
@@ -440,6 +467,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
       radios.forEach(r => { r.checked = Math.abs(parseFloat(r.value) - v.playbackRate) < 1e-9; });
       speedValue.textContent = formatSpeed(v.playbackRate) + '×';
       menu.classList.add('show');
+      _openVideoMenus.add(menuHandlers);
     }
   };
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleVideoMenu(); });
@@ -499,13 +527,13 @@ function createVideoPlayer(src, noFullscreenBtn) {
   let clickTimer = null;
   wrap.addEventListener('click', (e) => {
     if (isControl(e.target)) return;
-    // A menu (any player's) is open: this click is OUTSIDE it — close the
-    // menus WITHOUT toggling play/pause. The user closed a menu, not
-    // clicked the video (the global click-outside listener would otherwise
-    // close the menu AND this handler would toggle playback in the same
-    // click).
-    if (document.querySelector('.video-menu.show')) {
-      closeAllVideoMenus();
+    // A menu (any player's) is open: this click is OUTSIDE it — dismiss
+    // the TOP open level ONLY (an open submenu first; the main menu next),
+    // WITHOUT toggling play/pause, and stop the event so the global
+    // outside-click handler does not double-dismiss in the same click.
+    if (_openVideoMenus.size) {
+      e.stopPropagation();
+      closeTopVideoMenu();
       return;
     }
     if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; } // second click of a dblclick — dblclick handler owns it

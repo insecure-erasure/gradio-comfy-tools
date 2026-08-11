@@ -233,10 +233,13 @@ empty and the prompt fills it; see also deviation 14):
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
   controls and closes on outside click / Escape (Escape closes ONLY the
-  menu first — the gallery overlay closes on the NEXT Escape). With a menu
-  open, clicking on the video itself (outside the menus) closes them
-  WITHOUT toggling play/pause — the click is treated as dismissing the
-  menu, not as a video interaction.
+  menu first — the gallery overlay closes on the NEXT Escape) with
+  PROGRESSIVE dismiss, like native menus: an open speed submenu is the
+  TOP level, so an outside click/Escape closes ONLY it (the main menu
+  stays); the next outside click/Escape closes the main menu. With a menu
+  open, clicking on the video itself (outside the menus) dismisses the
+  top level WITHOUT toggling play/pause — the click is treated as
+  dismissing the menu, not as a video interaction.
   Session-only per player: every new player starts with loop ON and 1×
   (navigating the gallery rebuilds the player, resetting the options); a
   thin accent progress line at the very bottom edge
