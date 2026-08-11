@@ -363,8 +363,10 @@ function renderGalleryItem() {
     galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url));
     galleryBadge.classList.remove('show');
     galleryBadge.textContent = '';
-    if (e.prompt) galleryPromptBtn.classList.add('show');
-    else { galleryPromptBtn.classList.remove('show'); closeGalleryPrompt(); }
+    // NO Show-prompt button in the video gallery: the player fills the
+    // overlay edge-to-edge and the button would overlap the controls.
+    galleryPromptBtn.classList.remove('show');
+    closeGalleryPrompt();
   } else {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;

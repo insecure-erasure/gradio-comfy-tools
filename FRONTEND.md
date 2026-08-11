@@ -568,8 +568,12 @@ Two separate session-scoped galleries (in-memory; not persisted):
   cycles `galleryVideos` (player rebuilt). The nav index resets to the most
   recent when a new result lands or the gallery drops to ≤1 entry
   (`syncPaneNav`), and stays in sync on delete/trash/restore/prune.
-- Video results are only COLLECTED (`window.galleryVideos`) for a future
-  video gallery — not navigable yet.
+- **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
+  `window.galleryVideos` in the overlay with the custom player (edge to
+  edge) — ‹ › navigates, the 🗑️ deletes the shown entry, the N/M counter
+  is bottom-right. The badge AND the Show-prompt button are NOT shown in
+  video mode (the player fills the overlay; the prompt would overlap the
+  controls).
 
 ## 8. Deviations from the mockup (code is source of truth)
 
