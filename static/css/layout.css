@@ -232,6 +232,10 @@
   }
   .settings-dropdown .menu-item:hover { background: var(--surface-hover); }
   .settings-dropdown .menu-item .item-icon { font-size: 1rem; width: 20px; text-align: center; }
+  /* Destructive item (global reset): danger tint, red hover — visually
+     distinct from the rest of the menu. */
+  .settings-dropdown .menu-item-danger { color: #e5484d; }
+  .settings-dropdown .menu-item-danger:hover { background: rgba(229,72,77,.12); }
   .settings-dropdown .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
   /* Prompt refiner system prompt: an editable textarea inside the menu. */
   .settings-dropdown .menu-textarea {

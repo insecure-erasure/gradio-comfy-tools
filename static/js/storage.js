@@ -214,3 +214,31 @@ function applyPersistedParams() {
 
 // currentTheme is managed here (settings.js reads it) — default 'dark'.
 let currentTheme = 'dark';
+
+// ── Global reset (🗑️ in the ☰ menu) ────────
+// Deletes EVERYTHING the app saved in this browser: settings, prompts,
+// history and galleries. The confirmation message is written for regular
+// users — it never mentions localStorage or other internal jargon. After
+// the wipe the page reloads so the UI starts clean with the defaults.
+function resetAllUserData() {
+  const msg =
+    'This will permanently delete everything saved on this device:\n\n' +
+    '• Your settings (server connection, theme, advanced options)\n' +
+    '• Your prompts and parameter values\n' +
+    '• Your generation history and galleries\n\n' +
+    'This cannot be undone. Continue?';
+  if (!window.confirm(msg)) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* disabled */ }
+  // Reset the in-memory registries too (a reload below is the safety net,
+  // but keep the state consistent even if the reload is blocked).
+  window.galleryGenerated = [];
+  window.galleryVideos = [];
+  window.galleryComparisons = [];
+  toolbarValues = { genFamily: 'krea2', vidVersion: 'wan21' };
+  promptsByTab = { generate: '', edit: '', video: '' };
+  window.advancedValues = {};
+  currentTheme = 'dark';
+  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
+  // Reload so every field, pane and control returns to its default state.
+  window.location.reload();
+}

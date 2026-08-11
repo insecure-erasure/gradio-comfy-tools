@@ -26,4 +26,11 @@
     <textarea class="menu-textarea" id="refinerSystemPromptInput" rows="3"
       placeholder="Instructions for refining prompts…"
       onchange="onRefinerSystemPromptChange()"></textarea>
+    <div class="menu-sep"></div>
+    <!-- Global reset — bottom of the menu. Deletes ALL user data stored in
+         the browser (settings, prompts, history, galleries) and reloads.
+         The confirmation message is user-facing, no internal jargon. -->
+    <button class="menu-item menu-item-danger" onclick="resetAllUserData(); hideSettingsMenu();">
+      <span class="item-icon">🗑️</span> Reset everything
+    </button>
   </div>

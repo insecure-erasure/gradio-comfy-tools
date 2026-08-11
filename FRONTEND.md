@@ -382,6 +382,12 @@ a ComfyUI temp filename, checked against `{media_base}/view?type=temp`
   localStorage (`currentTheme` / `applyTheme` in `settings.js`).
 - **ComfyUI Connection**: `🔌 Server URL` · `🖼️ Media base URL` — global
   settings, `GET/POST /api/settings`, persisted to `~/.gradio-comfy-tools.json`.
+- **Reset everything** (🗑️, bottom of the menu): wipes ALL user data the
+  app saved in this browser — settings, prompts, parameter values, history
+  and galleries — after a confirmation dialog written in plain language
+  (no internal jargon), then reloads the page so the UI starts clean.
+  `resetAllUserData()` in `storage.js` (removes the localStorage key,
+  resets the in-memory registries and reloads).
 
 ### 4.7 Advanced modal (⚙️)
 
