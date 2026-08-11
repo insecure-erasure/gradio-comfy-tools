@@ -1418,18 +1418,22 @@
      as normal text, not a centered column). */
   .gallery-prompt-modal {
     position: absolute;
-    left: 0; right: 0; bottom: 16px;
+    left: 50%;                   /* SAME container as the badge box above:
+                                    centered via translateX, no side padding */
+    bottom: 16px;
+    transform: translateX(-50%);
     z-index: 1100;               /* above every gallery button */
     display: none;
+    align-items: center;         /* same as the badge box */
     justify-content: center;
-    padding: 0 20px;
+    padding: 0;
     background: transparent;     /* no dim: the panel is the modal */
     pointer-events: none;        /* image + gallery buttons stay clickable */
   }
   .gallery-prompt-modal.show { display: flex; }
   .gallery-prompt-box {
     width: fit-content;            /* hugs the text — never wider than needed */
-    max-width: min(560px, 92vw);
+    max-width: min(560px, 86vw);   /* SAME max-width as the badge box */
     max-height: 60vh;
     overflow-y: auto;
     white-space: pre-wrap;
@@ -1479,7 +1483,6 @@
     pointer-events: none;
   }
   .gallery-badge-box.show { display: flex; }
-  .gallery-badge-box .gallery-prompt-box { max-width: min(560px, 86vw); }
   .gallery-btn {
     position: absolute;
     z-index: 1000;
