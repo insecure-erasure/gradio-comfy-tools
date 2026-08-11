@@ -207,8 +207,9 @@ empty and the prompt fills it; see also deviation 14):
   browser-blocked autoplay shows play from the start), stop (pauses and
   resets the video to the beginning) and more options (⋮ placeholder for
   the options menu); a thin accent progress line at the very bottom edge
-  (rAF-driven, always visible) that is also a **scrubber**: hover (or
-  touch on mobile) doubles the line height and reveals a circular accent
+  (**2px**, rAF-driven, always visible) that is also a **scrubber**:
+  hover (or touch on mobile) doubles the line height (2→**4px**) and
+  reveals a circular accent
   thumb + a shaded tooltip with the position in tenths of a second
   (seconds, e.g. `3.4s`); dragging (or tapping) the bar **seeks the video,
   playing or
@@ -266,9 +267,19 @@ step 4 with 4n+1 snap and 81–161 clamp.
 
 Two stacked `<img>` with `clip-path` via `--p`, draggable divider, labels
 Original/Edited (or Upscaled) — ported from the reference compare_images.
-The slider **fills the output pane** (width/height 100%) and the images use
-`object-fit: contain` (like the Generate result) so both sides are fully
-visible without cropping; the divider/handle follow `--p`.
+The slider **fills the output pane** (width/height 100%, `min-height: 200px`
+so it never collapses in portrait; the portrait pane also gets
+`min-height: 40vh`) and the images use `object-fit: contain` (like the
+Generate result) so both sides are fully visible without cropping; the
+divider/handle follow `--p`. **The BEFORE image goes through the same
+same-origin `/media` proxy as the results** (`beforeProxyUrl()` in
+`source.js` resolves any source — external URL, `/media/..`, `{base}/view?..`,
+bare temp filename — to a `/media` URL; the raw ComfyUI host is never fed
+to an `<img>`, which is what left the original black on devices that cannot
+reach that hostname). **Drag is delegated** (`setupCompareSlider` in
+`main.js`) and works for the pane sliders AND the fullscreen gallery
+slider (`#gallerySlider`). The AFTER label follows the mode
+(Edited/Restored) — not hardcoded.
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
@@ -469,41 +480,44 @@ Two separate session-scoped galleries (in-memory; not persisted):
   - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
     (the original image stays): the transformation's own text is what the
     Show prompt panel shows; if the source was a gallery image, its
-    prompt is kept as `originalPrompt` and shown by the badge
-    ("Edited"/"Restored" → `#galleryBadgeHint`, a grey translucent panel
-    below the badge) — on **hover AND on click/tap** (the badge toggles it;
-    touch has no hover). Restore may have no prompt — the
-    Show prompt button is hidden, but the badge still shows the source's
-    prompt. Edits of non-gallery sources (uploads / external URLs) append
-    with no badge hint.
+    prompt is kept as `originalPrompt`. **Clicking the "Edited"/"Restored"
+    badge hides it and shows a single box (`#galleryBadgeBox`) with ONLY
+    the ORIGINAL generation prompt** (no label, no transformation text;
+    nothing appears when the entry has no original prompt). Restore may
+    have no prompt — the Show prompt button is hidden, but the badge
+    still opens the original-prompt box when there is one. Edits of
+    non-gallery sources (uploads / external URLs) have no original
+    prompt, so the badge click shows nothing.
   - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
     place: the generation prompt stays as the Show prompt content, badge
-    "Upscaled", no hover hint (an upscale has no transformation prompt).
+    "Upscaled" — **informational only, no click action** (`.no-action`,
+    default cursor; an upscale has no original prompt to show).
   - **Prompt display**: the prompt is NOT a bottom caption anymore. A
     **Show prompt** button sits bottom-center, visible only when the entry
     has a prompt; **hovering it is enough** — the prompt appears as a
-    **bottom panel** (`#galleryPromptModal`). **ALL gallery text boxes
-    share ONE unified family** (`.gallery-prompt-btn`, `.gallery-prompt-box`,
-    `.gallery-badge`, `.gallery-badge-hint`, `.gallery-counter` and the
+    **bottom panel** (`#galleryPromptModal`). **Clicking the button hides
+    it and PINNS the panel open** (`promptPinned` — the pointerleave fired
+    when the button disappears does not close it); clicking anywhere else
+    (or Escape) closes the panel and restores the button. **ALL gallery
+    text boxes share ONE unified family** (`.gallery-prompt-btn`,
+    `.gallery-prompt-box`, `.gallery-badge`, `.gallery-counter` and the
     compare-slider labels): system-ui, weight 400 (no bold anywhere),
     13px/1.5, white on the dark translucent surface
     (`rgba(28,28,28,.72)`), 1px light border, 10px radius, one box-shadow,
     and the SAME fixed padding (8px 14px). Boxes hug their text
-    (`width: fit-content`) so the size adapts to the content. Alignment:
-    LEFT everywhere except the Show-prompt button, whose label is
-    CENTERED (it is a button). The panel is anchored at the BOTTOM of the
-    gallery (where the old caption was) and its overlay layer is
-    pointer-transparent, so the image and the gallery buttons stay usable.
-    It hides when the pointer leaves (short grace delay), and closes on
-    Escape, gallery navigation (‹ › / ←/→ — the click/key navigates AND
-    closes, so the shown prompt never goes stale) and gallery close.
-    Click/tap still toggles it (touch devices have no hover; keyboard
-    activation works too). The **badge hover hint** (the ORIGINAL source
-    prompt of an appended edit/restore, under the Edited/Restored badge)
-    shares the same panel styling (left-aligned prompt text, same family).
-    In **portrait (<1024px) the badge hint spans the full screen width**
-    (left/right 0 with 12px margins) instead of the fitted box —
-    landscape keeps the fitted box.
+    (`width: fit-content`) so the size adapts to the content, with the
+    SAME max-width (`min(560px, 86vw)`). Alignment: LEFT everywhere except
+    the Show-prompt button, whose label is CENTERED (it is a button).
+    **The Show-prompt panel and the badge box use the SAME container**
+    (centered via `left:50% + translateX(-50%)`, `padding:0`) and in
+    **portrait (<1024px) BOTH expand to the full screen width** (margins
+    0 12px, box width 100%) — landscape keeps the fitted box.
+    The panel's overlay layer is pointer-transparent, so the image and
+    the gallery buttons stay usable. It hides on pointer leave (grace
+    delay), Escape, gallery navigation (‹ › / ←/→) and gallery close;
+    navigation also closes the badge box. **Any open text box closes on a
+    click anywhere** (image, box, backdrop) via `closeTextBoxes()`, which
+    restores the badge and the Show-prompt button.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -511,11 +525,12 @@ Two separate session-scoped galleries (in-memory; not persisted):
   the AFTER image URL). `collectCompareEntries()` merges the registry with
   any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
-  (big image + Show prompt button + badge/hover + ‹ › + N/M counter
+  (big image **edge to edge — `100vw/100vh`, no frame/radius** + Show
+  prompt button + badge (click → original-prompt box) + ‹ › + N/M counter
   bottom-right + download top-left + close ✕ top-right), compare slider for
-  Edit/Upscale (interactive before/after). The N/M counter is always
-  visible; ‹ › only with more than one entry. Escape/✕/backdrop close;
-  ←/→ navigate.
+  Edit/Upscale (interactive before/after, also maximized to the viewport).
+  The N/M counter is always visible; ‹ › only with more than one entry.
+  Escape/✕/backdrop close; ←/→ navigate.
 - Video results are only COLLECTED (`window.galleryVideos`) for a future
   video gallery — not navigable yet.
 
@@ -585,6 +600,8 @@ the click-catcher overlay no longer sits on top of it (`.btn-col.generating
 catcher. **Tap outside the prompt field** closes the portrait prompt modal
 (header / modal padding); taps on the textarea and its overlay buttons
 keep working.
-16. **Gallery badge hint reachable by tap**: the Edited/Restored badge
-toggles its original-prompt hint on click/tap (not just hover), and in
-portrait the hint spans the full screen width — see §7.1.
+16. **Gallery badge box (click-only)**: the Edited/Restored badge hides
+itself on click and shows a single box with ONLY the original prompt
+(`#galleryBadgeBox`); the Upscaled badge is informational only (no
+action); the Show-prompt button also hides itself on click (pinned
+panel); in portrait BOTH prompt boxes expand to full width — see §7.1.

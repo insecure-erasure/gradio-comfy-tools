@@ -511,32 +511,38 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     its own interactive slider; the gallery there **ONLY navigates the
     edited/restored/upscaled comparisons** (never generated images), the
     AFTER image being the identity (like the reference's #thumb).
-  - **Prompt display (2026-08-08)**: the prompt is **no longer a bottom
-    caption**. A **Show prompt** button sits bottom-center (only when the
-    entry has a prompt) and **hovering it is enough** — the prompt appears
-    as a **bottom panel** styled exactly like the original-prompt hover
-    hint (`.gallery-badge-hint`): grey translucent pill, centered 500-weight
-    text, no title/✕, font `clamp(12px, .4vw + .55vh, 16px)` (~12px phones,
-    ~14px desktop, capped ~16px). The panel is anchored at the bottom (where
-    the old caption was), its overlay is pointer-transparent (image +
-    gallery buttons stay usable), it hides when the pointer leaves (short
-    grace delay), and it closes on Escape / navigation (which also
-    navigates) / gallery close. Click/tap still toggles it for touch/keyboard.
+  - **Prompt display (updated 2026-08-11)**: the prompt is **no longer a
+    bottom caption**. A **Show prompt** button sits bottom-center (only when
+    the entry has a prompt) and **hovering it is enough** — the prompt
+    appears as a **bottom panel**; **clicking the button hides it and PINNS
+    the panel open** (`promptPinned`). ALL gallery text boxes share ONE
+    unified family (`.gallery-prompt-btn`, `.gallery-prompt-box`,
+    `.gallery-badge`, `.gallery-counter`, compare-slider labels): system-ui
+    weight 400 (no bold), 13px/1.5, `rgba(28,28,28,.72)` surface, 1px
+    border, 10px radius, `8px 14px` padding, same shadow, `text-align:
+    left` (the button is centered). Both prompt boxes use the same
+    container (`left:50% + translateX(-50%)`) and max-width
+    (`min(560px, 86vw)`); in portrait they expand to full width (margins
+    0 12px). The panel is pointer-transparent; it hides on pointer leave,
+    Escape, navigation and gallery close; **any open box closes on a click
+    anywhere** (`closeTextBoxes()` restores the badge + button).
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
     - **Edit ✏️ / Restore 🩹**: the appended entry's own text is what the
       Show prompt modal shows; if the source was itself a gallery
-      image, its prompt is kept as `originalPrompt` and shown on **badge
-      hover** ("Edited"/"Restored", `#galleryBadge` → `#galleryBadgeHint`
-      grey translucent panel, `.gallery-badge.show:hover +
-      .gallery-badge-hint:not(.empty)`). Restore may have no prompt — then
-      the Show prompt button is hidden but the hover still shows the
-      source's prompt. Edits of non-gallery sources (uploads / external
-      URLs) are appended with the edit text and no hover hint.
+      image, its prompt is kept as `originalPrompt`. **Clicking the
+      "Edited"/"Restored" badge hides it and shows a single box
+      (`#galleryBadgeBox`) with ONLY the ORIGINAL prompt** (no label, no
+      transformation text; nothing if there is no original prompt).
+      Restore may have no prompt — the Show prompt button is hidden but
+      the badge still opens the original-prompt box. Edits of non-gallery
+      sources (uploads / external URLs) have no original prompt, so the
+      badge click shows nothing.
     - **Upscale 🔍**: **replaces** the source entry in place — the
       generation prompt stays as the Show prompt content, badge "Upscaled"
-      top-center, no hover hint (an upscale has no transformation prompt).
+      top-center, **informational only (`.no-action`, default cursor)** — no
+      click action (an upscale has no original prompt to show).
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
   - **Video**: still NOT navigable in the gallery (deferred decision; the
@@ -563,14 +569,15 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     has no LoRAs. Verified against the live endpoint (54 LoRAs, all `\`)
     and in jsdom (dropdown listing, default empty state, separator
     normalization, not-available placeholder, wan22 HIGH/LOW editors).
-- **FIX (2026-08-08)**: **per-tab prompts independent per tool** — the
-  `#promptInput` textarea is a single shared element relocated between tabs,
-  so switching tools used to mix/overwrite the prompt. `state.js` now holds
-  `promptsByTab` (one prompt per generate/edit/video; Upscale has none);
-  `switchTab()` saves the outgoing tab's text before switching and restores
-  the incoming tab's after, `clearPrompt` (✕) clears only the active tab's
-  stored value, typing keeps the store up to date, and the prompts are
-  persisted to localStorage (storage.js) and restored on reload. Verified in
+- **FIX (2026-08-08, superseded 2026-08-11)**: **per-tab prompts independent
+  per tool** — originally the `#promptInput` textarea was a single shared
+  element relocated between tabs (saved/restored via `promptsByTab`), which
+  could mix values. **Now each tab has its OWN textarea**
+  (`#promptInputGenerate/Edit/Video`, class `.prompt-input`, `data-tab`) —
+  values can never mix; `switchTab()` only toggles which field is visible
+  (`.prompt-input.active`), `clearPrompt` (✕) clears only the active tab's
+  field, typing keeps the per-tab store (`promptsByTab`) + localStorage in
+  sync, restored once at startup. Verified in
   jsdom: switching generate → edit → generate preserves both prompts,
   passing through Upscale (no prompt) loses nothing, ✕ clears only the
   active tab, and reload restores each tab's text.
@@ -640,13 +647,13 @@ fix):**
 - **Gallery in a live session (not stubbed)**: generate 2+ images, open the
   lightbox (click the result or ⛶) and verify the history navigates all of
   them (counter n/N, ‹ ›, ←/→); then edit/restore one of them and verify it
-  APPENDS a new entry (Show prompt = edit text, badge hover = original
-  prompt) while the original stays; upscale one and verify it REPLACES its
-  entry (Show prompt = generation prompt, badge "Upscaled"). Also verify
-  the Show prompt panel (semi-transparent, font size scales with the
-  device) appears on hover over the button (no click needed; click/tap
-  toggles for touch) and closes on pointer leave / ✕ / Escape /
-  navigation. Confirm the ⛶ compare
+  APPENDS a new entry (Show prompt = edit text, badge click = original
+  prompt box) while the original stays; upscale one and verify it REPLACES
+  its entry (Show prompt = generation prompt, badge "Upscaled" — no click
+  action). Also verify the Show prompt panel appears on hover over the
+  button and that clicking the button pins it open (button hides); a click
+  anywhere closes it and restores the badge + button; Escape / navigation
+  also close. Confirm the ⛶ compare
   overlay in Edit/Upscale only lists edited/restored/upscaled comparisons
   **and that several edits/restores/upscales done on the same tab all stay
   in the gallery** (regression: the first edit used to vanish once the
