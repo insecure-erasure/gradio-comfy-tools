@@ -207,11 +207,13 @@ empty and the prompt fills it; see also deviation 14):
   browser-blocked autoplay shows play from the start), stop (pauses and
   resets the video to the beginning) and more options (⋮ — opens the
   per-player options menu: a **Loop checkbox** (ON by default; unchecked
-  the video stops at the end — the ▶/⏸ icon re-syncs via `ended`) and
-  **playback speed buttons** (`2× 1.75× 1.5× 1.25× 1× 0.75× 0.5×
-  0.25×`, largest first, the standard player set — significant decimals,
-  `1×` highlighted by
-  default; selects apply `v.playbackRate`). The menu is styled like the
+  the video stops at the end — the ▶/⏸ icon re-syncs via `ended`) and a
+  **Speed entry** styled like a native menu row (label + current value +
+  `›` caret). Hovering it (desktop) or clicking it (touch) opens a
+  submenu of NATIVE radio buttons with the standard player speeds
+  (`2× 1.75× 1.5× 1.25× 1× 0.75× 0.5× 0.25×`, largest first, significant
+  decimals; `1×` checked by default; selecting applies `v.playbackRate`
+  and updates the row's value). The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
   controls and closes on outside click / Escape (Escape closes ONLY the

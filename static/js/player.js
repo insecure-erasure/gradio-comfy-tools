@@ -265,28 +265,74 @@ function createVideoPlayer(src, noFullscreenBtn) {
   loopInput.addEventListener('change', () => { v.loop = loopInput.checked; });
   loopLabel.appendChild(loopInput);
   loopLabel.appendChild(document.createTextNode('Loop'));
-  const speedTitle = document.createElement('div');
-  speedTitle.className = 'video-menu-title video-menu-speed-title';
-  speedTitle.textContent = 'Speed';
-  const speedsBox = document.createElement('div');
-  speedsBox.className = 'video-menu-speeds';
-  VIDEO_SPEEDS.forEach(s => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'video-menu-speed';
-    b.dataset.speed = String(s);
-    b.textContent = formatSpeed(s) + '×';
-    b.addEventListener('click', () => {
+  // Speed entry: a menu row with the current speed as its value, like the
+  // native browser video menu. On desktop HOVERING it opens the submenu of
+  // native radio buttons; on touch a CLICK toggles it (no hover). The
+  // submenu lists the speeds with NATIVE <input type=radio> — no glyph
+  // hacks.
+  const speedRow = document.createElement('div');
+  speedRow.className = 'video-menu-speed-row';
+  speedRow.setAttribute('role', 'menuitem');
+  speedRow.setAttribute('aria-haspopup', 'true');
+  const speedLabel = document.createElement('span');
+  speedLabel.className = 'video-menu-speed-label';
+  speedLabel.textContent = 'Speed';
+  const speedValue = document.createElement('span');
+  speedValue.className = 'video-menu-speed-value';
+  speedValue.textContent = formatSpeed(v.playbackRate) + '×';
+  const speedCaret = document.createElement('span');
+  speedCaret.className = 'video-menu-caret';
+  speedCaret.textContent = '›'; // disclosure caret, like native menus
+  speedRow.appendChild(speedLabel);
+  speedRow.appendChild(speedValue);
+  speedRow.appendChild(speedCaret);
+  const speedSub = document.createElement('div');
+  speedSub.className = 'video-menu-speed-sub';
+  speedSub.setAttribute('role', 'menu');
+  speedSub.setAttribute('aria-label', 'Playback speed');
+  // One radio group shared by all players would couple them; each player's
+  // submenu gets its own group (a wrapper div with the radios inside).
+  const speedRadios = document.createElement('div');
+  VIDEO_SPEEDS.forEach((s, i) => {
+    const lab = document.createElement('label');
+    lab.className = 'video-menu-speed-option';
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.name = 'video-speed-' + Math.random().toString(36).slice(2, 8); // per-player group
+    radio.value = String(s);
+    radio.checked = s === v.playbackRate;
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
       v.playbackRate = s;
-      speedsBox.querySelectorAll('.video-menu-speed').forEach(x => x.classList.toggle('active', x === b));
+      speedValue.textContent = formatSpeed(s) + '×';
     });
-    if (s === 1) b.classList.add('active'); // 1× highlighted by default
-    speedsBox.appendChild(b);
+    lab.appendChild(radio);
+    lab.appendChild(document.createTextNode(formatSpeed(s) + '×'));
+    speedRadios.appendChild(lab);
   });
+  speedSub.appendChild(speedRadios);
+  // Desktop: hovering the Speed row opens the submenu; leaving the whole
+  // speed area closes it. Touch: a click toggles it (there is no hover).
+  let subOpen = false;
+  const openSub = () => { if (!subOpen) { subOpen = true; speedSub.classList.add('show'); } };
+  const closeSub = () => { if (subOpen) { subOpen = false; speedSub.classList.remove('show'); } };
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    speedRow.addEventListener('mouseenter', openSub);
+    speedSub.addEventListener('mouseleave', closeSub);
+    speedRow.addEventListener('mouseleave', e => {
+      // Only close when the pointer left toward outside the submenu.
+      if (!e.relatedTarget || !speedSub.contains(e.relatedTarget)) closeSub();
+    });
+  } else {
+    speedRow.addEventListener('click', e => {
+      e.stopPropagation();
+      if (subOpen) closeSub(); else openSub();
+    });
+  }
   menu.appendChild(menuTitle);
   menu.appendChild(loopLabel);
-  menu.appendChild(speedTitle);
-  menu.appendChild(speedsBox);
+  menu.appendChild(speedRow);
+  menu.appendChild(speedSub);
   wrap.appendChild(menu);
   const toggleVideoMenu = () => {
     const open = menu.classList.contains('show');
@@ -294,8 +340,9 @@ function createVideoPlayer(src, noFullscreenBtn) {
     if (!open) {
       // Reflect the CURRENT video state (a fresh player has the defaults).
       loopInput.checked = v.loop;
-      speedsBox.querySelectorAll('.video-menu-speed').forEach(x =>
-        x.classList.toggle('active', Math.abs(parseFloat(x.dataset.speed) - v.playbackRate) < 1e-9));
+      const radios = speedRadios.querySelectorAll('input[type=radio]');
+      radios.forEach(r => { r.checked = Math.abs(parseFloat(r.value) - v.playbackRate) < 1e-9; });
+      speedValue.textContent = formatSpeed(v.playbackRate) + '×';
       menu.classList.add('show');
     }
   };

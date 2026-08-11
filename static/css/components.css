@@ -1181,29 +1181,68 @@
   }
   .video-menu-speed-title { margin-top: 10px; }
   .video-menu-loop { margin-bottom: 0; }
-  .video-menu-speeds {
+  /* Speed entry — a native-style menu row (label + current value + caret);
+     hovering it (desktop) or clicking it (touch) opens the submenu of
+     native radio buttons below the row. */
+  .video-menu-speed-row {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin: 10px -10px 0;   /* bleed to the menu padding — a full-width row */
+    border-radius: 8px;
+    cursor: default;
+    user-select: none;
   }
-  .video-menu-speed {
-    flex: 1 1 auto;
-    min-width: 40px;
-    padding: 4px 8px;
+  .video-menu-speed-row:hover { background: var(--surface-hover); }
+  .video-menu-speed-label { font-size: .8rem; color: var(--text); }
+  .video-menu-speed-value {
+    margin-left: auto;
     font-size: .72rem;
     font-weight: 600;
-    color: var(--text);
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    transition: .15s;
+    color: var(--text-secondary);
   }
-  .video-menu-speed:hover { border-color: var(--accent); background: var(--surface-hover); }
-  .video-menu-speed.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
+  .video-menu-caret {
+    font-size: .8rem;
+    color: var(--text-secondary);
+    line-height: 1;
+  }
+  /* The submenu: native radios stacked under the Speed row, same surface
+     style as the parent menu. Positioned inside the menu (which is a child
+     of the player wrap — no overflow clipping), so it just flows below the
+     row. */
+  .video-menu-speed-sub {
+    display: none;
+    margin: 2px -10px 0;    /* same full-width bleed as the row */
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(0,0,0,.25);
+  }
+  .video-menu-speed-sub.show { display: block; }
+  .video-menu-speed-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: .8rem;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+  .video-menu-speed-option:hover { background: var(--surface-hover); }
+  /* NATIVE radio inputs (no glyph hacks): the browser's own radio look,
+     accent-colored. */
+  .video-menu-speed-option input[type="radio"] {
+    appearance: auto;
+    accent-color: var(--accent);
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    flex-shrink: 0;
+    cursor: pointer;
   }
   /* Taller mobile controls (54px, bottom:18px) — the menu floats higher. */
   @media (max-width: 1023px) {
