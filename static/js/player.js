@@ -311,18 +311,56 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedRadios.appendChild(lab);
   });
   speedSub.appendChild(speedRadios);
-  // Desktop: hovering the Speed row opens the submenu; leaving the whole
-  // speed area closes it. Touch: a click toggles it (there is no hover).
+  // Row + submenu share a wrapper: the desktop hover "zone" covers BOTH
+  // (the submenu opens to the RIGHT of the menu, so moving from the row to
+  // the submenu never closes it); leaving the zone closes it, like native
+  // submenus. Touch: a click on the row toggles it (there is no hover).
+  const speedWrap = document.createElement('div');
+  speedWrap.className = 'video-menu-speed-wrap';
+  speedWrap.appendChild(speedRow);
+  speedWrap.appendChild(speedSub);
   let subOpen = false;
-  const openSub = () => { if (!subOpen) { subOpen = true; speedSub.classList.add('show'); } };
-  const closeSub = () => { if (subOpen) { subOpen = false; speedSub.classList.remove('show'); } };
-  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    speedRow.addEventListener('mouseenter', openSub);
-    speedSub.addEventListener('mouseleave', closeSub);
-    speedRow.addEventListener('mouseleave', e => {
-      // Only close when the pointer left toward outside the submenu.
-      if (!e.relatedTarget || !speedSub.contains(e.relatedTarget)) closeSub();
+  const openSub = () => {
+    if (subOpen) return;
+    subOpen = true;
+    speedSub.classList.add('show');
+    // Position the submenu to the RIGHT, aligned so the "1×" entry sits at
+    // the SAME HEIGHT as the Speed row (native submenus align their current
+    // entry; here 1× is the fixed reference even when another speed is
+    // selected). requestAnimationFrame so the rects are measurable after
+    // the submenu is rendered (top:0 / left:100% initial state).
+    requestAnimationFrame(() => {
+      const refRadio = speedRadios.querySelector('input[value="1"]');
+      const refOpt = refRadio && refRadio.closest('.video-menu-speed-option');
+      if (!refOpt) return;
+      const wRect = speedWrap.getBoundingClientRect();
+      const rRect = speedRow.getBoundingClientRect();
+      const sRect = speedSub.getBoundingClientRect();
+      const oRect = refOpt.getBoundingClientRect();
+      // top (relative to the wrap) that puts the CENTER of the 1× option at
+      // the CENTER of the Speed row.
+      speedSub.style.top =
+        (rRect.top - wRect.top) + (rRect.height - oRect.height) / 2 - (oRect.top - sRect.top) + 'px';
+      // If it would overflow the right edge of the window, open to the LEFT.
+      if (wRect.right + speedSub.offsetWidth + 8 > window.innerWidth - 8) {
+        speedSub.style.left = 'auto';
+        speedSub.style.right = 'calc(100% + 10px)';
+        speedSub.style.marginRight = '8px';
+      }
     });
+  };
+  const closeSub = () => {
+    if (!subOpen) return;
+    subOpen = false;
+    speedSub.classList.remove('show');
+    speedSub.style.top = '';
+    speedSub.style.left = '';
+    speedSub.style.right = '';
+    speedSub.style.marginRight = ''; // next open re-measures from the clean state
+  };
+  if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    speedWrap.addEventListener('mouseenter', openSub);
+    speedWrap.addEventListener('mouseleave', closeSub);
   } else {
     speedRow.addEventListener('click', e => {
       e.stopPropagation();
@@ -331,8 +369,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
   }
   menu.appendChild(menuTitle);
   menu.appendChild(loopLabel);
-  menu.appendChild(speedRow);
-  menu.appendChild(speedSub);
+  menu.appendChild(speedWrap);
   wrap.appendChild(menu);
   const toggleVideoMenu = () => {
     const open = menu.classList.contains('show');

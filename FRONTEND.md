@@ -209,11 +209,16 @@ empty and the prompt fills it; see also deviation 14):
   per-player options menu: a **Loop checkbox** (ON by default; unchecked
   the video stops at the end — the ▶/⏸ icon re-syncs via `ended`) and a
   **Speed entry** styled like a native menu row (label + current value +
-  `›` caret). Hovering it (desktop) or clicking it (touch) opens a
-  submenu of NATIVE radio buttons with the standard player speeds
-  (`2× 1.75× 1.5× 1.25× 1× 0.75× 0.5× 0.25×`, largest first, significant
-  decimals; `1×` checked by default; selecting applies `v.playbackRate`
-  and updates the row's value). The menu is styled like the
+  `›` caret). Hovering it (desktop) or clicking it (touch) opens a submenu
+  to the RIGHT of the menu — like native submenus — with NATIVE radio
+  buttons for the standard player speeds (`2× 1.75× 1.5× 1.25× 1× 0.75×
+  0.5× 0.25×`, largest first, significant decimals; `1×` checked by
+  default; selecting applies `v.playbackRate` and updates the row's value).
+  The submenu is aligned so the **1× entry sits at the same height as the
+  Speed row** (the fixed reference even when another speed is selected),
+  and falls back to the LEFT when it would overflow the window. Row +
+  submenu share one hover zone (moving from the row to the submenu keeps
+  it open; leaving the zone closes it). The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
   controls and closes on outside click / Escape (Escape closes ONLY the
