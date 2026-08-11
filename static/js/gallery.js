@@ -158,7 +158,16 @@ function appendTransformedEntry(res, prompt, badge, sourceSrc) {
   const fn = filenameFromUrl(sourceSrc);
   if (fn) {
     const i = window.galleryGenerated.findIndex(e => e.filename === fn);
-    if (i >= 0) originalPrompt = window.galleryGenerated[i].prompt || '';
+    if (i >= 0) {
+      const srcEntry = window.galleryGenerated[i];
+      // The badge box must show the TRUE ORIGINAL generation prompt of the
+      // image before the edit. For a DIRECT edit that is the source entry's
+      // own prompt; for a CHAINED edit (source is itself a transformation)
+      // the source's originalPrompt already holds the true original — never
+      // fall back to the intermediate edit prompt (the bottom Show-prompt
+      // box already carries the transformation text).
+      originalPrompt = srcEntry.originalPrompt || srcEntry.prompt || '';
+    }
   }
   window.galleryGenerated.push({
     src, url, prompt: prompt || '', badge, filename: filenameFromUrl(src),
@@ -412,7 +421,19 @@ async function openGenerateLightbox(img) {
   if (galleryVideoWrap) galleryVideoWrap.style.display = 'none';
   let idx = all.length - 1; // default: most recent
   if (img && img.src) {
-    const i = all.findIndex(e => e.src === img.src);
+    // Position on the CLICKED image. e.src is stored RELATIVE
+    // ('/media/x.png?type=temp') while the DOM img.src is ABSOLUTE
+    // ('http://host/media/...') — a bare string comparison never matches,
+    // silently opening the lightbox on the LAST entry instead (visible
+    // since the pane ‹ › nav can land on older entries). Match by ComfyUI
+    // filename first, then by normalized absolute URL.
+    let i = -1;
+    const fn = filenameFromUrl(img.src);
+    if (fn) i = all.findIndex(e => (e.filename || '') === fn);
+    if (i < 0) {
+      const abs = absUrl(img.src);
+      i = all.findIndex(e => absUrl(e.src) === abs);
+    }
     if (i >= 0) idx = i;
   }
   galleryIdx = idx;
@@ -666,11 +687,11 @@ galleryNextBtn.addEventListener('click', e => {
   closeGalleryPrompt();
   galleryNav(1);
 });
-// Badge click/tap: HIDE the badge and show a single box with ONLY the
-// ORIGINAL generation prompt. Individual hide — the bottom Show-prompt
-// button is NOT touched (only the badge that was clicked hides). Clicking
-// again (or closing via click-outside/navigation) re-renders from the data,
-// so the badge ALWAYS comes back.
+// Badge click/tap: HIDE the badge and show ONE box with ONLY the ORIGINAL
+// generation prompt (and hide the bottom Show-prompt button meanwhile — one
+// box at a time). Clicking again (or closing via click-outside/navigation)
+// re-renders from the data, so the badge AND the bottom button always come
+// back.
 galleryBadge.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries[galleryIdx];
@@ -682,6 +703,11 @@ galleryBadge.addEventListener('click', e => {
   galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadge.classList.remove('show');
   galleryBadge.textContent = '';
+  // ONE box at a time: hide the bottom Show-prompt button too while the
+  // badge box is open (its panel would overlap the original prompt with the
+  // transformation text). renderGalleryItem re-derives its visibility from
+  // the entry on close/navigate, so it always comes back.
+  galleryPromptBtn.classList.remove('show');
   galleryBadgeBox.classList.add('show');
 });
 // CLICK only (no hover — hover timers were fragile). The two badges are

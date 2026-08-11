@@ -483,7 +483,14 @@ Two separate session-scoped galleries (in-memory; not persisted):
     prompt is kept as `originalPrompt`. **Clicking the "Edited"/"Restored"
     badge hides it and shows a single box (`#galleryBadgeBox`) with ONLY
     the ORIGINAL generation prompt** (no label, no transformation text;
-    nothing appears when the entry has no original prompt). Restore may
+    nothing appears when the entry has no original prompt). The box always
+    carries the TRUE original generation prompt: for a CHAINED edit/restore
+    (the source is itself a transformation) the source entry's
+    `originalPrompt` is inherited, never the intermediate transformation
+    text (the bottom Show-prompt box holds that). While the badge box is
+    open the bottom Show-prompt button is hidden too (one box at a time) —
+    both always come back on close/navigate (renderGalleryItem re-derives
+    them from the entry). Restore may
     have no prompt — the Show prompt button is hidden, but the badge
     still opens the original-prompt box when there is one. Edits of
     non-gallery sources (uploads / external URLs) have no original
