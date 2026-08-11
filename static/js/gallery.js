@@ -633,6 +633,45 @@ function paneGalleryCount(tab) {
   }
 }
 
+// The gallery entry the pane is CURRENTLY showing for a tab: paneIdx[tab]
+// when the user navigated with ‹ ›, otherwise the most recent entry. Used
+// both to render the pane and to keep the result-URL hint in sync.
+function paneCurrentEntry(tab) {
+  if (tab === 'generate') {
+    const all = window.galleryGenerated || [];
+    return all[paneIdx.generate === -1 ? all.length - 1 : paneIdx.generate] || null;
+  }
+  if (tab === 'edit' || tab === 'upscale') {
+    const comps = (window.galleryComparisons || []).filter(c => c.tab === tab);
+    return comps[paneIdx[tab] === -1 ? comps.length - 1 : paneIdx[tab]] || null;
+  }
+  if (tab === 'video') {
+    const all = window.galleryVideos || [];
+    return all[paneIdx.video === -1 ? all.length - 1 : paneIdx.video] || null;
+  }
+  return null;
+}
+
+// The result-URL hint row always reflects the image/video currently shown in
+// the pane. Paints only when ``tab`` is the ACTIVE one (the row is shared
+// across tabs — a tab switch clears it and the incoming tab's restore
+// re-syncs it). ``entry`` carries the direct URL when available; otherwise
+// fullComfyUrl rebuilds {base}/view?... from the display src (restore.js).
+function syncResultUrl(tab, entry) {
+  if (currentTab !== tab) return;
+  const el = document.getElementById('resultUrl');
+  const copy = document.getElementById('btnCopyUrl');
+  if (!el || !copy) return;
+  const url = entry && (entry.url || (typeof fullComfyUrl === 'function' ? fullComfyUrl(entry) : ''));
+  if (url) {
+    el.textContent = url;
+    copy.disabled = false;
+  } else {
+    el.textContent = '';
+    copy.disabled = true;
+  }
+}
+
 // Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
 // supports navigation the index resets to -1 (show the most recent).
 function syncPaneNav(tab) {
@@ -644,19 +683,19 @@ function syncPaneNav(tab) {
 }
 
 // Render the pane at its current nav index (called by paneNav only — the
-// generators paint the pane themselves when a NEW result lands).
+// generators paint the pane themselves when a NEW result lands). Keeps the
+// result-URL hint in sync with the entry being shown.
 function renderPane(tab) {
+  const e = paneCurrentEntry(tab);
+  if (!e) { syncResultUrl(tab, null); return; }
   if (tab === 'generate') {
-    const e = (window.galleryGenerated || [])[paneIdx.generate];
-    if (e) showResult('genOutputPane', { display: e.src }, false);
+    showResult('genOutputPane', { display: e.src }, false);
   } else if (tab === 'edit' || tab === 'upscale') {
-    const comps = (window.galleryComparisons || []).filter(c => c.tab === tab);
-    const e = comps[paneIdx[tab]];
-    if (e) restoreCompareSlider(tab, tab === 'edit' ? 'editOutputPane' : 'upscaleOutputPane', e);
+    restoreCompareSlider(tab, tab === 'edit' ? 'editOutputPane' : 'upscaleOutputPane', e);
   } else if (tab === 'video') {
-    const e = (window.galleryVideos || [])[paneIdx.video];
-    if (e) showResult('videoOutputPane', { display: e.src || e.display || e.url }, true);
+    showResult('videoOutputPane', { display: e.src || e.display || e.url }, true);
   }
+  syncResultUrl(tab, e);
 }
 
 // Navigate a tool's pane by delta (wrap around). No-op with <2 entries.

@@ -387,7 +387,18 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 ### 4.9 Result URL + live progress
 
 Shown in the URL row below the prompt (params pane in landscape, bottom bar
-in portrait) with a 📋 copy button (disabled until a result exists).
+in portrait) with a 📋 copy button (disabled until a result exists). The row
+**always reflects the image/video currently shown in the pane** — also when
+navigating with the pane ‹ › arrows or switching tabs: every render path
+(finalize of a generation, `paneNav`/`renderPane`, `restoreTabResult`,
+reset/trash) calls `syncResultUrl(tab, entry)` (gallery.js), which paints the
+entry's direct URL (or rebuilds it from the display src via `fullComfyUrl`
+for compare entries) and clears the row when the pane is empty. It only
+paints when the tab is the ACTIVE one — the row is shared across tabs.
+
+The ↺ resets restore parameters and clear the pane (and the URL row), but
+**never touch the galleries** — emptying those is exclusively the 🗑️ trash
+button (the old clearPane registry-drop was removed).
 
 **While a generation runs**, the same row shows **live progress** instead of
 the URL (`startProgressPolling` in `api.js`): it polls `GET /api/progress`

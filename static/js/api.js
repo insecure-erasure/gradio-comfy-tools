@@ -69,7 +69,11 @@ function showResult(paneId, result, isVideo) {
 }
 
 // Reset an output pane: drop results, hide compare sliders, restore the
-// video mock placeholder. Used by the ↺ resets.
+// video mock placeholder. Used by the ↺ resets. NOTE: this clears only the
+// PANE — the galleries (registries + localStorage) are NEVER touched here;
+// emptying those is exclusively the 🗑️ trash button's job (clearTabGallery
+// in restore.js removes the entries explicitly, and the gallery delete
+// removes the single entry).
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
@@ -82,12 +86,6 @@ function clearPane(paneId) {
     delete el.dataset.kind;
     delete el.dataset.prompt;
   });
-  // Drop the tab's comparisons from the session registry too, so a ↺ reset
-  // also clears that tab's history in the ⛶ compare gallery.
-  if (window.galleryComparisons) {
-    const tab = paneId.replace(/OutputPane$/, '');
-    window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== tab);
-  }
   const mock = pane.querySelector('.video-mock');
   if (mock) mock.style.display = '';
 }

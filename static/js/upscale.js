@@ -63,8 +63,7 @@ function generateUpscale() {
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
-    document.getElementById('resultUrl').textContent = res.url;
-    document.getElementById('btnCopyUrl').disabled = false;
+    syncResultUrl('upscale', { url: res.url });
     showToast('🔍 Upscaled');
     stopProgressPolling();
     if (btn) btn.disabled = false;
@@ -83,7 +82,7 @@ function generateUpscale() {
       recoverPending = true; // job still running — resolve on completion
       return;
     }
-    document.getElementById('resultUrl').textContent = '';
+    syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {
     userCancelled = false;
@@ -119,5 +118,6 @@ function resetUpscale() {
   document.getElementById('upscaleSeedRandom').checked = true;
   document.getElementById('upscaleSeed').disabled = true;
   clearPane('upscaleOutputPane');
+  syncResultUrl('upscale', null); // no image shown — no URL hint
   showToast('Upscale parameters reset');
 }

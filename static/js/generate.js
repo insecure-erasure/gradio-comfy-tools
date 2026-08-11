@@ -42,8 +42,7 @@ function generateImage() {
     // generation prompt; session-scoped, survives the pane.
     addGeneratedEntry(res, prompt);
     lastGeneratedUrl = res.url;
-    document.getElementById('resultUrl').textContent = res.url;
-    document.getElementById('btnCopyUrl').disabled = false;
+    syncResultUrl('generate', { url: res.url });
     showToast('✨ Generated');
     stopProgressPolling();
     if (btn) btn.disabled = false;
@@ -64,7 +63,7 @@ function generateImage() {
       recoverPending = true; // job still running — resolve on completion
       return;
     }
-    document.getElementById('resultUrl').textContent = '';
+    syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {
     userCancelled = false;
@@ -207,6 +206,7 @@ function resetGenerate() {
   // Clear output and restore the placeholder
   const pane = document.getElementById('genOutputPane');
   clearPane('genOutputPane');
+  syncResultUrl('generate', null); // no image shown — no URL hint
   const ph = document.createElement('div');
   ph.className = 'output-placeholder';
   ph.innerHTML = '<div class="icon">🖼️</div><p>Your generated image<br>will appear here</p>' +

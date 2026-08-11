@@ -74,8 +74,7 @@ function generateVideo() {
     if (vid) vid.dataset.videoGallery = '1';
     addGeneratedVideo(res, prompt);
     lastGeneratedUrl = res.url;
-    document.getElementById('resultUrl').textContent = res.url;
-    document.getElementById('btnCopyUrl').disabled = false;
+    syncResultUrl('video', { url: res.url });
     showToast('🎬 Video ready');
     // Release the UI lock (the .finally below also runs, but after a
     // recovered result the fetch already settled — keep it idempotent).
@@ -105,7 +104,7 @@ function generateVideo() {
       recoverPending = true;
       return;
     }
-    document.getElementById('resultUrl').textContent = '';
+    syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {
     userCancelled = false;
@@ -176,6 +175,7 @@ function resetVideo() {
     }
   }
   clearPane('videoOutputPane');
+  syncResultUrl('video', null); // no image shown — no URL hint
   updatePromptChips();
   showToast('Video parameters reset');
 }

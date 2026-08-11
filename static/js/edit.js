@@ -73,8 +73,7 @@ function generateEdit(forceMode) {
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
-    document.getElementById('resultUrl').textContent = res.url;
-    document.getElementById('btnCopyUrl').disabled = false;
+    syncResultUrl('edit', { url: res.url });
     showToast('✨ Edited');
     stopProgressPolling();
     if (btn) btn.disabled = false;
@@ -95,7 +94,7 @@ function generateEdit(forceMode) {
       recoverPending = true; // job still running — resolve on completion
       return;
     }
-    document.getElementById('resultUrl').textContent = '';
+    syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {
     userCancelled = false;
@@ -142,6 +141,7 @@ function resetEdit() {
   document.getElementById('editSeedRandom').checked = true;
   document.getElementById('editSeed').disabled = true;
   clearPane('editOutputPane');
+  syncResultUrl('edit', null); // no image shown — no URL hint
   updatePromptChips();
   showToast('Edit parameters reset');
 }

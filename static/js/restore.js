@@ -51,33 +51,35 @@ function restoreCompareSlider(tab, paneId, cmp) {
 }
 
 // Restore the last result of a tab into its pane. No-op when the pane
-// already has content (a live session wins over persisted state).
+// already has content (a live session wins over persisted state) — but the
+// result-URL hint is still synced to what the pane shows. Restores the
+// entry the pane was navigating (paneCurrentEntry: paneIdx[tab], or the
+// most recent when the user never navigated).
 function restoreTabResult(tab) {
   const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
   const paneId = paneIds[tab];
   if (!paneId) return;
-  if (paneHasContent(paneId)) return; // already showing something — keep it
+  const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
+  if (paneHasContent(paneId)) {
+    // Already showing something — just keep the URL hint in sync.
+    if (typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
+    return;
+  }
 
   switch (tab) {
     case 'generate': {
-      const all = window.galleryGenerated;
-      const last = all && all.length ? all[all.length - 1] : null;
-      if (last && last.src) {
-        showResult(paneId, { display: last.src }, false);
+      if (entry && entry.src) {
+        showResult(paneId, { display: entry.src }, false);
       }
       break;
     }
     case 'edit':
     case 'upscale': {
-      const comps = (window.galleryComparisons || []).filter(c => c.tab === tab);
-      const last = comps.length ? comps[comps.length - 1] : null;
-      if (last) restoreCompareSlider(tab, paneId, last);
+      if (entry) restoreCompareSlider(tab, paneId, entry);
       break;
     }
     case 'video': {
-      const all = window.galleryVideos;
-      const last = all && all.length ? all[all.length - 1] : null;
-      const src = last && (last.src || last.display || last.url);
+      const src = entry && (entry.src || entry.display || entry.url);
       if (src) {
         showResult(paneId, { display: src }, true);
       }
@@ -86,6 +88,7 @@ function restoreTabResult(tab) {
   }
   // Keep the pane ‹ › nav in sync with the (possibly restored) gallery.
   if (typeof syncPaneNav === 'function') syncPaneNav(tab);
+  if (typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
 }
 
 // Restore on load: the ACTIVE tab (what the user sees) AND the Video tab if
