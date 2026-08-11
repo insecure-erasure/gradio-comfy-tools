@@ -21,6 +21,22 @@ window.addEventListener('DOMContentLoaded', () => {
   relayoutPrompt();
   updateActionButtons();
   savePersistedState();      // normalize the stored shape after applying
+  // Restore lastGeneratedUrl for chaining (🔗) — the most recent result of
+  // ANY tool, from the persisted galleries (in-memory only otherwise, so a
+  // refresh would lose it and 🔗 would say 'No previous generation'). The
+  // galleries have no shared timestamp, so prefer the last generated image
+  // (the primary chaining flow), falling back to the last video.
+  const gen = window.galleryGenerated;
+  const vids = window.galleryVideos;
+  const lastGen = gen && gen.length ? gen[gen.length - 1] : null;
+  const lastVid = vids && vids.length ? vids[vids.length - 1] : null;
+  const lastEntry = lastGen || lastVid;
+  if (lastEntry) {
+    // Prefer the stored direct URL; older persisted entries only carry the
+    // /media display src — rebuild the full {base}/view URL from it.
+    lastGeneratedUrl = lastEntry.url
+      || (typeof fullComfyUrl === 'function' ? fullComfyUrl(lastEntry) : (lastEntry.src || ''));
+  }
   // Restore the ACTIVE tab's last result into its pane (lazy — the other
   // tabs restore when they become active).
   restoreActiveTabResult();

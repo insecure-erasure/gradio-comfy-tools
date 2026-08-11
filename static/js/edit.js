@@ -74,7 +74,7 @@ function generateEdit(forceMode) {
       // original generation stays in the gallery (the edited image is a new
       // image). The edit/restore text is the bottom caption; if the source
       // was a gallery image, its prompt becomes the badge hover hint.
-      appendTransformedEntry(res.display, prompt, mode === 'restore' ? 'restored' : 'edited', src);
+      appendTransformedEntry(res, prompt, mode === 'restore' ? 'restored' : 'edited', src);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

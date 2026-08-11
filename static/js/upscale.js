@@ -60,7 +60,7 @@ function generateUpscale() {
       // Generated history (B5): an upscale REPLACES the source entry in the
       // lightbox gallery (keeping its generation prompt, badge = upscaled);
       // non-generated sources are appended.
-      addTransformedEntry(res.display, '', 'upscaled', src);
+      addTransformedEntry(res, '', 'upscaled', src);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());

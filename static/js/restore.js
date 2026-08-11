@@ -141,3 +141,24 @@ function clearTabGallery(tab) {
 function trashCurrentTab() {
   if (currentTab) clearTabGallery(currentTab);
 }
+
+// Rebuild the direct ComfyUI URL of a gallery entry for chaining (🔗).
+// Entries store the same-origin display src (/media/x?type=..) — the
+// backend's `image` input expects the full {base}/view?filename=..&type=..
+// URL. Older persisted entries lack the `url` field, so it is rebuilt from
+// src/filename + the configured media base.
+function fullComfyUrl(entry) {
+  if (!entry) return '';
+  if (entry.url) return entry.url;
+  const src = entry.src || '';
+  // /media/FILENAME?type=X -> {base}/view?filename=FILENAME&type=X
+  const m = src.match(/\/media\/([^?]+)(?:\?type=([^&]+))?/);
+  if (m && baseUrl) {
+    const fn = decodeURIComponent(m[1]);
+    const type = m[2] || 'output';
+    return `${baseUrl}/view?filename=${encodeURIComponent(fn)}&type=${type}`;
+  }
+  // Already a full http(s) URL (external) — as-is.
+  if (/^https?:\/\//i.test(src)) return src;
+  return src;
+}

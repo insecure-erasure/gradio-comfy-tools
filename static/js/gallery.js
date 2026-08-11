@@ -94,10 +94,13 @@ function fileTypeFromUrl(url) {
   return 'output';
 }
 
-// A newly generated image joins the history at the end.
-function addGeneratedEntry(src, prompt) {
+// A newly generated image joins the history at the end. ``res`` is the
+// full API result {url, display} — url (direct ComfyUI) is kept for
+// chaining (🔗), src is the same-origin display URL.
+function addGeneratedEntry(res, prompt) {
+  const src = res.display || res.src || res.url;
   window.galleryGenerated.push({
-    src, prompt: prompt || '', badge: '', filename: filenameFromUrl(src),
+    src, url: res.url || '', prompt: prompt || '', badge: '', filename: filenameFromUrl(src),
     originalPrompt: '',
   });
 }
@@ -107,13 +110,16 @@ function addGeneratedEntry(src, prompt) {
 // bottom caption, updating src + badge "upscaled"; no hover hint, since an
 // upscale has no transformation prompt). Non-generated sources are
 // appended as new entries (empty prompt).
-function addTransformedEntry(src, prompt, badge, sourceSrc) {
+function addTransformedEntry(res, prompt, badge, sourceSrc) {
+  const src = res.display || res.src || res.url;
+  const url = res.url || '';
   const fn = filenameFromUrl(sourceSrc);
   if (fn) {
     const i = window.galleryGenerated.findIndex(e => e.filename === fn);
     if (i >= 0) {
       const entry = window.galleryGenerated[i];
       entry.src = src;
+      entry.url = url;
       entry.badge = badge;
       entry.filename = filenameFromUrl(src);
       entry.originalPrompt = '';
@@ -121,7 +127,7 @@ function addTransformedEntry(src, prompt, badge, sourceSrc) {
     }
   }
   window.galleryGenerated.push({
-    src, prompt: prompt || '', badge, filename: filenameFromUrl(src),
+    src, url, prompt: prompt || '', badge, filename: filenameFromUrl(src),
     originalPrompt: '',
   });
 }
@@ -133,7 +139,9 @@ function addTransformedEntry(src, prompt, badge, sourceSrc) {
 // its prompt is preserved as originalPrompt for the badge hover hint.
 // Restore may have no prompt — then the caption is empty but the hover
 // still shows the source's prompt when the source was a gallery image.
-function appendTransformedEntry(src, prompt, badge, sourceSrc) {
+function appendTransformedEntry(res, prompt, badge, sourceSrc) {
+  const src = res.display || res.src || res.url;
+  const url = res.url || '';
   let originalPrompt = '';
   const fn = filenameFromUrl(sourceSrc);
   if (fn) {
@@ -141,7 +149,7 @@ function appendTransformedEntry(src, prompt, badge, sourceSrc) {
     if (i >= 0) originalPrompt = window.galleryGenerated[i].prompt || '';
   }
   window.galleryGenerated.push({
-    src, prompt: prompt || '', badge, filename: filenameFromUrl(src),
+    src, url, prompt: prompt || '', badge, filename: filenameFromUrl(src),
     originalPrompt,
   });
 }
@@ -348,8 +356,11 @@ function renderGalleryItem() {
       e.kind === 'edit' ? 'Edited' : e.kind === 'restore' ? 'Restored'
         : e.kind === 'upscale' ? 'Upscaled' : 'Result';
     galleryBadge.classList.remove('show');
-    galleryPromptBtn.classList.remove('show'); // compare mode has no prompt button
-    closeGalleryPrompt();
+    // Compare mode: the Show-prompt button is visible by DEFAULT when the
+    // comparison has a prompt (no click on the slider needed) — same rule
+    // as the lightbox and video modes.
+    if (e.prompt) galleryPromptBtn.classList.add('show');
+    else { galleryPromptBtn.classList.remove('show'); closeGalleryPrompt(); }
     fitGallerySlider();
   }
   // N/M paginator (bottom-right): always visible in the gallery; prev/next

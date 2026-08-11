@@ -43,7 +43,7 @@ function generateImage() {
     // Generated history (B5): the result joins the lightbox gallery with
     // its generation prompt; the history is session-scoped, so it survives
     // the pane only showing the last result.
-    addGeneratedEntry(res.display, prompt);
+    addGeneratedEntry(res, prompt);
     lastGeneratedUrl = res.url;
     document.getElementById('resultUrl').textContent = res.url;
     document.getElementById('btnCopyUrl').disabled = false;
