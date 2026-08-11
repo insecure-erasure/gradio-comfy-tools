@@ -499,6 +499,15 @@ function createVideoPlayer(src, noFullscreenBtn) {
   let clickTimer = null;
   wrap.addEventListener('click', (e) => {
     if (isControl(e.target)) return;
+    // A menu (any player's) is open: this click is OUTSIDE it — close the
+    // menus WITHOUT toggling play/pause. The user closed a menu, not
+    // clicked the video (the global click-outside listener would otherwise
+    // close the menu AND this handler would toggle playback in the same
+    // click).
+    if (document.querySelector('.video-menu.show')) {
+      closeAllVideoMenus();
+      return;
+    }
     if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; } // second click of a dblclick — dblclick handler owns it
     clickTimer = setTimeout(() => { clickTimer = null; togglePlay(); }, 250);
   });
