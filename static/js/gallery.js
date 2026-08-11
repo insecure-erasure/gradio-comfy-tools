@@ -56,6 +56,9 @@ const galleryNextBtn = document.getElementById('galleryNext');
 let galleryMode = null;     // 'lightbox' | 'compare'
 let galleryEntries = [];    // collected on open
 let galleryIdx = -1;
+// Pane navigation (normal view): which gallery entry each tool's output
+// pane shows. -1 = "show the most recent"; paneNav materializes it.
+const paneIdx = { generate: -1, edit: -1, upscale: -1, video: -1 };
 
 // ── Generated history ──────────────────────
 // Session-scoped registry of generated images + their transformations.
@@ -104,6 +107,8 @@ function addGeneratedEntry(res, prompt) {
     originalPrompt: '',
   });
   savePersistedState(); // galleries are persisted — persist immediately
+  paneIdx.generate = -1; // a new generation — the pane shows the most recent again
+  syncPaneNav('generate');
 }
 
 // An UPScale of sourceSrc -> new result src: REPLACES the source entry in
@@ -125,6 +130,8 @@ function addTransformedEntry(res, prompt, badge, sourceSrc) {
       entry.filename = filenameFromUrl(src);
       entry.originalPrompt = '';
       savePersistedState();
+      paneIdx.upscale = -1;
+      syncPaneNav('upscale');
       return;
     }
   }
@@ -133,6 +140,8 @@ function addTransformedEntry(res, prompt, badge, sourceSrc) {
     originalPrompt: '',
   });
   savePersistedState();
+  paneIdx.upscale = -1;
+  syncPaneNav('upscale');
 }
 
 // An edit/restore of sourceSrc -> new result src: APPENDS a new entry (the
@@ -156,6 +165,8 @@ function appendTransformedEntry(res, prompt, badge, sourceSrc) {
     originalPrompt,
   });
   savePersistedState();
+  paneIdx.edit = -1;
+  syncPaneNav('edit');
 }
 
 // ── Compare entries (Edit/Upscale) ─────────
@@ -187,6 +198,7 @@ function addCompareEntry(entry) {
     tab: entry.tab || '',
   });
   savePersistedState();
+  if (entry.tab) { paneIdx[entry.tab] = -1; syncPaneNav(entry.tab); }
 }
 
 // The compare gallery collects the session registry (never generated
@@ -237,6 +249,8 @@ function addGeneratedVideo(result, prompt) {
     filename: filenameFromUrl(display),  // null for non-generated sources (defensive)
   });
   savePersistedState(); // persist immediately so a refresh keeps it
+  paneIdx.video = -1;
+  syncPaneNav('video');
 }
 
 // ── Open / close ───────────────────────────
@@ -547,12 +561,14 @@ function galleryDeleteCurrent() {
   if (galleryEntries.length === 0) {
     closeGallery(); // nothing left — close the overlay
     if (typeof savePersistedState === 'function') savePersistedState();
+    if (currentTab) syncPaneNav(currentTab);
     return;
   }
   // Navigate to the next entry (wrap), or clamp to the new last.
   if (galleryIdx >= galleryEntries.length) galleryIdx = galleryEntries.length - 1;
   renderGalleryItem();
   if (typeof savePersistedState === 'function') savePersistedState();
+  if (currentTab) syncPaneNav(currentTab);
 }
 
 // ── Prompt panel (Show prompt) ─────────────
@@ -579,6 +595,56 @@ function openGalleryPrompt() {
 function closeGalleryPrompt() {
   promptPinned = false;
   galleryPromptModal.classList.remove('show');
+}
+
+// ── Pane navigation ‹ › (normal view) ──────
+// Each tool's output pane shows its gallery's most recent entry. The ‹ ›
+// buttons on the pane (visible when the tool's gallery holds more than one
+// entry) navigate the SAME session registries as the fullscreen gallery —
+// without leaving the normal view (see paneIdx above).
+function paneGalleryCount(tab) {
+  switch (tab) {
+    case 'generate': return (window.galleryGenerated || []).length;
+    case 'edit':
+    case 'upscale': return (window.galleryComparisons || []).filter(c => c.tab === tab).length;
+    case 'video': return (window.galleryVideos || []).length;
+    default: return 0;
+  }
+}
+
+// Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
+// supports navigation the index resets to -1 (show the most recent).
+function syncPaneNav(tab) {
+  const multi = paneGalleryCount(tab) > 1;
+  document.querySelectorAll(`#tab-${tab} .pane-nav`).forEach(btn => {
+    btn.style.display = multi ? 'flex' : 'none';
+  });
+  if (!multi) paneIdx[tab] = -1;
+}
+
+// Render the pane at its current nav index (called by paneNav only — the
+// generators paint the pane themselves when a NEW result lands).
+function renderPane(tab) {
+  if (tab === 'generate') {
+    const e = (window.galleryGenerated || [])[paneIdx.generate];
+    if (e) showResult('genOutputPane', { display: e.src }, false);
+  } else if (tab === 'edit' || tab === 'upscale') {
+    const comps = (window.galleryComparisons || []).filter(c => c.tab === tab);
+    const e = comps[paneIdx[tab]];
+    if (e) restoreCompareSlider(tab, tab === 'edit' ? 'editOutputPane' : 'upscaleOutputPane', e);
+  } else if (tab === 'video') {
+    const e = (window.galleryVideos || [])[paneIdx.video];
+    if (e) showResult('videoOutputPane', { display: e.src || e.display || e.url }, true);
+  }
+}
+
+// Navigate a tool's pane by delta (wrap around). No-op with <2 entries.
+function paneNav(tab, delta) {
+  const count = paneGalleryCount(tab);
+  if (count < 2) return;
+  if (paneIdx[tab] === -1) paneIdx[tab] = count - 1; // start from the most recent
+  paneIdx[tab] = (paneIdx[tab] + delta + count) % count;
+  renderPane(tab);
 }
 
 // ── Wiring ─────────────────────────────────

@@ -532,6 +532,17 @@ Two separate session-scoped galleries (in-memory; not persisted):
   The N/M counter and the ‹ › buttons are always visible; with a single
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate.
+- **Pane ‹ › navigation (normal view)**: each tool's output pane shows its
+  gallery's most recent entry; when the tool's gallery holds more than one
+  entry, ‹ › buttons appear vertically centered on the pane's sides
+  (`.output-overlay-btn.pane-nav`, hidden with a single entry). They
+  navigate the SAME session registries as the fullscreen gallery — without
+  leaving the app: Generate cycles `galleryGenerated` (pane shows a plain
+  result image), Edit/Upscale cycle their `galleryComparisons` (the
+  before/after slider is re-rendered via `restoreCompareSlider`), Video
+  cycles `galleryVideos` (player rebuilt). The nav index resets to the most
+  recent when a new result lands or the gallery drops to ≤1 entry
+  (`syncPaneNav`), and stays in sync on delete/trash/restore/prune.
 - Video results are only COLLECTED (`window.galleryVideos`) for a future
   video gallery — not navigable yet.
 

@@ -29,6 +29,13 @@
      just to its LEFT (right: 48px = 30px button + 12px gap + 6px space). */
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
   .output-overlay-btn.bottom-right-left { bottom: 12px; right: 48px; }
+  /* Pane navigation ‹ › (normal view): vertically-centered side buttons
+     on the output pane — the same navigation as the fullscreen gallery
+     but without leaving the app. Visible when the tool's gallery holds
+     more than one entry (syncPaneNav toggles the inline display; the
+     inline display:none in the markup wins until then). */
+  .output-overlay-btn.pane-nav.prev { top: 50%; left: 12px; transform: translateY(-50%); }
+  .output-overlay-btn.pane-nav.next { top: 50%; right: 12px; transform: translateY(-50%); }
 
   /* Source image URL field — transparent overlay, bottom-LEFT of the
      output pane (Edit/Upscale/Video); paste an external URL here. The

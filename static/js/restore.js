@@ -84,6 +84,8 @@ function restoreTabResult(tab) {
       break;
     }
   }
+  // Keep the pane ‹ › nav in sync with the (possibly restored) gallery.
+  if (typeof syncPaneNav === 'function') syncPaneNav(tab);
 }
 
 // Restore on load: the ACTIVE tab (what the user sees) AND the Video tab if
@@ -140,6 +142,7 @@ function clearTabGallery(tab) {
     document.getElementById('btnCopyUrl').disabled = true;
   }
   savePersistedState();
+  if (typeof syncPaneNav === 'function') syncPaneNav(tab);
   showToast(tab === 'generate' ? '🗑️ Generated images cleared'
     : tab === 'video' ? '🗑️ Videos cleared'
     : tab === 'edit' ? '🗑️ Edits cleared' : '🗑️ Upscales cleared');

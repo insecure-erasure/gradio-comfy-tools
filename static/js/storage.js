@@ -190,6 +190,8 @@ async function verifyStoredGalleries(force) {
   }
   await Promise.all(jobs);
   savePersistedState(); // persist the (possibly pruned) set
+  // The prune may have changed entry counts — keep the pane ‹ › nav in sync.
+  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
 }
 
 // Re-apply persisted per-tab params AFTER onModelFamilyChange ran, so the
