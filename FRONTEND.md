@@ -206,10 +206,11 @@ empty and the prompt fills it; see also deviation 14):
   play while paused, synced via `play`/`pause`/`ended`, so a
   browser-blocked autoplay shows play from the start), stop (pauses and
   resets the video to the beginning) and more options (⋮ — opens the
-  per-player options menu: a **Loop checkbox** (ON by default; unchecked
-  the video stops at the end — the ▶/⏸ icon re-syncs via `ended`) and a
-  **Speed entry** styled like a native menu row (label + current value +
-  `›` caret). Hovering it (desktop) or clicking it (touch) opens a submenu
+  per-player options menu: a **Speed entry** (label + current value +
+  `›` caret) and a **Loop checkbox** (ON by default; unchecked
+  the video stops at the end — the ▶/⏸ icon re-syncs via `ended`). The
+  Speed entry is styled like a native menu row and sits ABOVE the Loop
+  checkbox. Hovering it (desktop) or clicking it (touch) opens a submenu
   to the RIGHT of the menu — like native submenus — with NATIVE radio
   buttons for the standard player speeds (`2× 1.75× 1.5× 1.25× 1× 0.75×
   0.5× 0.25×`, largest first, significant decimals; `1×` checked by

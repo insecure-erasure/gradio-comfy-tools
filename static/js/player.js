@@ -344,8 +344,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
       // If it would overflow the right edge of the window, open to the LEFT.
       if (wRect.right + speedSub.offsetWidth + 8 > window.innerWidth - 8) {
         speedSub.style.left = 'auto';
-        speedSub.style.right = 'calc(100% + 10px)';
-        speedSub.style.marginRight = '8px';
+        speedSub.style.right = 'calc(100% + 18px)';
       }
     });
   };
@@ -355,8 +354,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedSub.classList.remove('show');
     speedSub.style.top = '';
     speedSub.style.left = '';
-    speedSub.style.right = '';
-    speedSub.style.marginRight = ''; // next open re-measures from the clean state
+    speedSub.style.right = ''; // next open re-measures from the clean state
   };
   if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
     speedWrap.addEventListener('mouseenter', openSub);
@@ -368,8 +366,8 @@ function createVideoPlayer(src, noFullscreenBtn) {
     });
   }
   menu.appendChild(menuTitle);
+  menu.appendChild(speedWrap);   // Speed first, then Loop (per request)
   menu.appendChild(loopLabel);
-  menu.appendChild(speedWrap);
   wrap.appendChild(menu);
   const toggleVideoMenu = () => {
     const open = menu.classList.contains('show');

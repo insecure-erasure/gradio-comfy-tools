@@ -1179,8 +1179,7 @@
     color: var(--text-secondary);
     margin-bottom: 8px;
   }
-  .video-menu-speed-title { margin-top: 10px; }
-  .video-menu-loop { margin-bottom: 0; }
+  .video-menu-loop { margin: 10px 0 0; }  /* below the Speed entry now */
   /* Row + submenu share a relative wrapper: the desktop hover zone covers
      both, and the submenu is positioned against it. */
   .video-menu-speed-wrap { position: relative; }
@@ -1191,7 +1190,7 @@
     align-items: center;
     gap: 8px;
     padding: 8px 10px;
-    margin: 10px -10px 0;   /* bleed to the menu padding — a full-width row */
+    margin: 2px -10px 0;    /* bleed to the menu padding — a full-width row */
     border-radius: 8px;
     cursor: default;
     user-select: none;
@@ -1212,11 +1211,11 @@
   /* The submenu opens to the RIGHT of the Speed row (native-menu style).
      JS aligns its "1×" entry vertically with the row on open (top is set
      inline); falls back to the left when it would overflow the window.
-     The row bleeds -10px past the wrap, so left/right are calc(100%+10px)
-     to align with the ROW's edge. */
+     left/right clear the MENU's right edge (12px padding + 6px gap = 18px)
+     so the submenu never overlaps the menu horizontally. */
   .video-menu-speed-sub {
     position: absolute;
-    left: calc(100% + 10px);
+    left: calc(100% + 18px);
     top: 0;                    /* set by JS when opened (1× alignment) */
     display: none;
     min-width: 110px;
