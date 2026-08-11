@@ -31,9 +31,9 @@
 let activeVideoEl = null;
 
 // Playback speeds offered by the ⋮ menu, LARGEST first (the menu renders
-// top-to-bottom). Values are the literal numbers — formatting keeps only
-// the significant decimals (String(v): 0.4, 0.5, 1, 1.25…).
-const VIDEO_SPEEDS = [2, 1.5, 1.25, 1, 0.75, 0.5, 0.4, 0.25, 0.15, 0.1];
+// top-to-bottom). The STANDARD player set (YouTube-style), significant
+// decimals via String(v).
+const VIDEO_SPEEDS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
 const formatSpeed = v => String(v);
 
 // ── ⋮ Options menu: shared close helpers ──

@@ -208,8 +208,9 @@ empty and the prompt fills it; see also deviation 14):
   resets the video to the beginning) and more options (⋮ — opens the
   per-player options menu: a **Loop checkbox** (ON by default; unchecked
   the video stops at the end — the ▶/⏸ icon re-syncs via `ended`) and
-  **playback speed buttons** (`2× 1.5× 1.25× 1× 0.75× 0.5× 0.4× 0.25×
-  0.15× 0.1×`, largest first, significant decimals, `1×` highlighted by
+  **playback speed buttons** (`2× 1.75× 1.5× 1.25× 1× 0.75× 0.5×
+  0.25×`, largest first, the standard player set — significant decimals,
+  `1×` highlighted by
   default; selects apply `v.playbackRate`). The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
