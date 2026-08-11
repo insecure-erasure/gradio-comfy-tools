@@ -102,16 +102,17 @@ function restorePersistedState() {
 // without a filename (external URLs) are kept as-is.
 const _mediaExistsCache = new Map();
 
-async function _mediaExists(filename, force) {
-  if (!force && _mediaExistsCache.has(filename)) return _mediaExistsCache.get(filename);
+async function _mediaExists(filename, type, force) {
+  const cacheKey = filename + '|' + type;
+  if (!force && _mediaExistsCache.has(cacheKey)) return _mediaExistsCache.get(cacheKey);
   try {
-    const r = await fetch('/api/media-exists?filename=' + encodeURIComponent(filename) + '&type=output');
+    const r = await fetch('/api/media-exists?filename=' + encodeURIComponent(filename) + '&type=' + encodeURIComponent(type));
     const j = await r.json();
     const exists = !!j.exists;
-    _mediaExistsCache.set(filename, exists);
+    _mediaExistsCache.set(cacheKey, exists);
     return exists;
   } catch (e) {
-    _mediaExistsCache.set(filename, true); // transport hiccup → keep
+    _mediaExistsCache.set(cacheKey, true); // transport hiccup → keep
     return true;
   }
 }
@@ -120,28 +121,33 @@ async function _mediaExists(filename, force) {
 // unique filename once (via the cache) with limited concurrency; preserves
 // order. Returns a Promise of the filtered array.
 async function _pruneDeadEntries(entries, force) {
-  const out = [];
-  const uniqFns = [];
+  // Unique (filename, type) pairs to probe — a temp file is NOT found under
+  // type=output, so the type embedded in the display URL must be used.
+  const uniq = [];
   const seen = new Set();
   for (const e of entries) {
     const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-    if (!fn) { out.push(e); continue; }          // external/no-name → keep
-    if (!seen.has(fn)) { seen.add(fn); uniqFns.push(fn); }
+    if (!fn) continue; // external/no-name → keep, nothing to probe
+    const type = e.type || (e.src && typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(e.src) : 'output');
+    const key = fn + '|' + type;
+    if (!seen.has(key)) { seen.add(key); uniq.push({ fn, type }); }
   }
   // Probe with limited concurrency (5 at a time). force=true bypasses the
   // per-session cache so a file deleted mid-session is caught on open.
   const existsMap = new Map();
   let i = 0;
   async function worker() {
-    while (i < uniqFns.length) {
-      const fn = uniqFns[i++];
-      existsMap.set(fn, await _mediaExists(fn, force));
+    while (i < uniq.length) {
+      const { fn, type } = uniq[i++];
+      existsMap.set(fn + '|' + type, await _mediaExists(fn, type, force));
     }
   }
-  await Promise.all(Array.from({ length: Math.min(5, uniqFns.length) }, worker));
+  await Promise.all(Array.from({ length: Math.min(5, uniq.length) }, worker));
   return entries.filter(e => {
     const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-    return !fn || existsMap.get(fn) !== false;
+    if (!fn) return true;
+    const type = e.type || (e.src && typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(e.src) : 'output');
+    return existsMap.get(fn + '|' + type) !== false;
   });
 }
 

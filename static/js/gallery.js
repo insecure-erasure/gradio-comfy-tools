@@ -79,6 +79,19 @@ function filenameFromUrl(url) {
   return null;
 }
 
+// The ComfyUI type ('output' | 'temp') embedded in a display URL like
+// /media/FILENAME?type=temp — needed when probing existence (a temp result
+// is NOT found under type=output).
+function fileTypeFromUrl(url) {
+  if (!url) return 'output';
+  try {
+    const u = new URL(url, window.location.origin);
+    if (u.searchParams.has('type')) return u.searchParams.get('type') || 'output';
+    if (u.pathname.endsWith('/view') && u.searchParams.has('type')) return u.searchParams.get('type');
+  } catch (e) {}
+  return 'output';
+}
+
 // A newly generated image joins the history at the end.
 function addGeneratedEntry(src, prompt) {
   window.galleryGenerated.push({
