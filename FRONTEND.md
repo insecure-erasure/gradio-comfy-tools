@@ -199,11 +199,14 @@ empty and the prompt fills it; see also deviation 14):
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
   **custom video player** (`static/js/player.js`, replaces the native
-  controls): autoplay muted loop; bottom-centered ▶/⏸ + ⋮ controls (⋮
-  placeholder for the options menu) with optically centered glyphs that
-  **follow the playback state** (⏸ while playing, ▶ while paused — synced
-  via `play`/`pause`/`ended`, so a browser-blocked autoplay shows ▶ from
-  the start); a thin accent progress line at the very bottom edge
+  controls): autoplay muted loop; bottom-centered **three identical
+  circular buttons** (same size + style, hover accent — the icons are
+  inline SVG, so no emoji/font-glyph differences across platforms):
+  play/pause (icon **follows the playback state** — pause while playing,
+  play while paused, synced via `play`/`pause`/`ended`, so a
+  browser-blocked autoplay shows play from the start), stop (pauses and
+  resets the video to the beginning) and more options (⋮ placeholder for
+  the options menu); a thin accent progress line at the very bottom edge
   (rAF-driven, always visible) that is also a **scrubber**: hover (or
   touch on mobile) doubles the line height and reveals a circular accent
   thumb + a shaded tooltip with the position in tenths of a second
@@ -213,8 +216,9 @@ empty and the prompt fills it; see also deviation 14):
   overlay buttons so they stay fully clickable; the drag uses pointer
   events + capture with `touch-action: none` (no page scroll); a
   **fullscreen overlay button ⛶ top-right** (same style as the
-  compare sliders' button — `.output-overlay-btn.top-right`) that toggles
-  real browser fullscreen and becomes ✕ in the same spot while in
+  compare sliders' button — `.output-overlay-btn.top-right`, SVG icon)
+  that toggles real browser fullscreen and shows the exit icon in the
+  same spot while in
   fullscreen; **single click anywhere on the video toggles play/pause,
   double click toggles fullscreen** (controls excluded); **leaving the
   Video tab pauses a playing video** (`pauseActiveVideo()`, called from

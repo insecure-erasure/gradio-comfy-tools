@@ -7,8 +7,10 @@
 // Design (agreed):
 //   - autoplay muted + loop stays (the video starts playing on render)
 //   - bottom-CENTERED control cluster (never vertically centered):
-//       ▶/⏸ play-pause (always visible) + ⋮ more options (placeholder
-//       for now — the dropdown menu comes later)
+//       play/pause (always visible) + stop (resets to the start) + more
+//       options (placeholder for now — the dropdown menu comes later);
+//       ALL buttons are identical circles with inline SVG icons (no
+//       emoji/font glyphs — those render differently per platform)
 //   - a thin ACCENT progress line at the very BOTTOM edge of the video,
 //     ALWAYS visible (feedback while it plays / loops) — also a
 //     SCRUBBER: hover doubles the line height and reveals a circular
@@ -19,9 +21,9 @@
 //     bottom-centered
 //   - single click anywhere on the video toggles play/pause; double click
 //     toggles browser fullscreen
-//   - fullscreen overlay button (⛶) top-right, same style as the compare
-//     sliders' button (.output-overlay-btn.top-right); in fullscreen it
-//     becomes ✕ exit in the same spot
+//   - fullscreen overlay button (SVG icon) top-right, same style as the
+//     compare sliders' button (.output-overlay-btn.top-right); in
+//     fullscreen it becomes the exit icon in the same spot
 //
 // The current result video is tracked so the app can pause it when leaving
 // the Video tab (switchTab → pauseActiveVideo): a playing video hidden
@@ -160,54 +162,26 @@ function createVideoPlayer(src) {
   playBtn.type = 'button';
   playBtn.className = 'video-play-btn';
   playBtn.addEventListener('click', (e) => { e.stopPropagation(); togglePlay(); });
-  const setGlyph = (b, glyph) => {
-    b.textContent = glyph;
-    // The ▶/⏸/⋮ glyphs are not optically centered in their em box (each
-    // font carries its own metrics), so the bare glyph looks off-center in
-    // the round button. Measure the actual ink box of the rendered glyph
-    // with a hidden canvas and nudge its position so it IS centered. The
-    // measure uses the button's own font/size, so it adapts to any font or
-    // platform (no magic CSS numbers). Cheap: runs once per glyph swap.
-    centerGlyph(b);
+  // Icons are inline SVG (never emoji/font glyphs — those render
+  // differently per platform/font). fill=currentColor inherits the
+  // button's CSS color; the svg is sized via CSS (width/height), so all
+  // buttons stay pixel-identical and the icons center perfectly.
+  const ICONS = {
+    play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l11-6.86a1 1 0 0 0 0-1.7l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>',
+    stop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+    fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
+    fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
   };
-  const centerGlyph = (b) => {
-    const cs = getComputedStyle(b);
-    const size = parseFloat(cs.fontSize) || 16;
-    const canvas = centerGlyph._canvas || (centerGlyph._canvas = document.createElement('canvas'));
-    canvas.width = Math.ceil(size * 2);
-    canvas.height = Math.ceil(size * 2);
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#000';
-    ctx.font = `${cs.fontWeight || 400} ${size}px ${cs.fontFamily || 'sans-serif'}`;
-    ctx.textBaseline = 'middle';
-    const cx = canvas.width / 2;
-    ctx.fillText(b.textContent, cx, canvas.height / 2);
-    const d = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    let minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        if (d[(y * canvas.width + x) * 4 + 3] > 20) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
-        }
-      }
-    }
-    if (maxX < 0) return;
-    const inkCX = (minX + maxX) / 2;
-    const inkCY = (minY + maxY) / 2;
-    b.style.transform = `translate(${Math.round(cx - inkCX)}px, ${Math.round(canvas.height / 2 - inkCY)}px)`;
-  };
-  // The ▶/⏸ glyph must FOLLOW the playback state: ⏸ while playing, ▶ while
-  // paused. The video autoplays muted, but autoplay can be blocked by the
-  // browser — so the initial state is read from v.paused, not assumed, and
-  // re-synced on every play/pause/ended (previously setGlyph was called
-  // only once at creation, so the button kept the ⏸ glyph forever).
+  const setIcon = (b, name) => { b.innerHTML = ICONS[name] || ''; };
+  // The play/pause icon must FOLLOW the playback state: pause while playing,
+  // play while paused. The video autoplays muted, but autoplay can be
+  // blocked by the browser — so the initial state is read from v.paused,
+  // not assumed, and re-synced on every play/pause/ended.
   const syncPlayState = () => {
     const paused = v.paused;
-    setGlyph(playBtn, paused ? '▶' : '⏸');
+    setIcon(playBtn, paused ? 'play' : 'pause');
     playBtn.title = paused ? 'Play' : 'Pause';
     playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
   };
@@ -216,33 +190,52 @@ function createVideoPlayer(src) {
   v.addEventListener('ended', syncPlayState); // no-loop end: paused again
   syncPlayState();
 
+  // Stop: pause and reset the video to the beginning. The 'pause' event
+  // re-syncs the play/pause icon to 'play' and stops the rAF progress loop;
+  // the 'seeked' listener repaints the fill, so after a stop the bar is
+  // back at zero (setFill(0) makes it immediate instead of waiting for
+  // seeked).
+  const stopVideo = () => {
+    v.pause();
+    v.currentTime = 0;
+    setFill(0);
+  };
+  const stopBtn = document.createElement('button');
+  stopBtn.type = 'button';
+  stopBtn.className = 'video-stop-btn';
+  setIcon(stopBtn, 'stop');
+  stopBtn.title = 'Stop';
+  stopBtn.setAttribute('aria-label', 'Stop');
+  stopBtn.addEventListener('click', (e) => { e.stopPropagation(); stopVideo(); });
+
   const moreBtn = document.createElement('button');
   moreBtn.type = 'button';
   moreBtn.className = 'video-more-btn';
-  setGlyph(moreBtn, '⋮');
+  setIcon(moreBtn, 'more');
   moreBtn.title = 'More options';
   moreBtn.setAttribute('aria-label', 'More options');
   // Placeholder: the options menu (speed/loop/download/…) comes later.
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); showToast('More options coming soon'); });
 
   ctrl.appendChild(playBtn);
+  ctrl.appendChild(stopBtn);
   ctrl.appendChild(moreBtn);
   wrap.appendChild(ctrl);
 
   // Fullscreen overlay button — top-right, SAME style as the compare
-  // sliders' ⛶ (.output-overlay-btn.top-right). Toggles real browser
-  // fullscreen of the whole player; in fullscreen it becomes the ✕ exit
-  // button in the SAME spot (fullscreenchange keeps it in sync, so Esc
-  // also updates it).
+  // sliders' button (.output-overlay-btn.top-right). Toggles real browser
+  // fullscreen of the whole player; in fullscreen it becomes the exit icon
+  // in the SAME spot (fullscreenchange keeps it in sync, so Esc also
+  // updates it).
   const fsBtn = document.createElement('button');
   fsBtn.type = 'button';
   fsBtn.className = 'output-overlay-btn top-right video-fs-btn';
-  fsBtn.textContent = '⛶';
+  setIcon(fsBtn, 'fullscreen');
   fsBtn.title = 'Fullscreen';
   fsBtn.setAttribute('aria-label', 'Fullscreen');
   const syncFsBtn = () => {
     const fs = document.fullscreenElement === wrap;
-    fsBtn.textContent = fs ? '✕' : '⛶';
+    setIcon(fsBtn, fs ? 'fullscreenExit' : 'fullscreen');
     fsBtn.title = fs ? 'Exit fullscreen' : 'Fullscreen';
     fsBtn.setAttribute('aria-label', fs ? 'Exit fullscreen' : 'Fullscreen');
   };
@@ -266,7 +259,7 @@ function createVideoPlayer(src) {
   // excluded (their own handlers + stopPropagation). The single-click is
   // deferred ~250ms so the first click of a double-click doesn't also
   // toggle play/pause.
-  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-more-btn, .video-fs-btn, .video-progress'));
+  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-stop-btn, .video-more-btn, .video-fs-btn, .video-progress'));
   let clickTimer = null;
   wrap.addEventListener('click', (e) => {
     if (isControl(e.target)) return;
