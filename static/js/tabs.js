@@ -4,6 +4,13 @@
 // lastGeneratedUrl persist for chaining.
 
 function switchTab(name) {
+  // Leaving the Video tab pauses a playing video: hidden behind another tab
+  // it would keep consuming resources (CPU/decoding) for nothing. No-op
+  // when re-selecting Video itself (Ctrl+4 while already on Video).
+  if (currentTab === 'video' && currentTab !== name) {
+    pauseActiveVideo();
+  }
+
   // Save the prompt of the tab we're leaving into the per-tab store BEFORE
   // the shared textarea's value changes (the #promptInput element is a
   // single instance relocated between tabs). Upscale has no prompt — its

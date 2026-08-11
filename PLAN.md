@@ -283,10 +283,11 @@ mockup directly.
 - 🎨 settings menu (theme + server/media base URL) → `GET/POST /api/settings`
   persisted to `~/.gradio-comfy-tools.json`; values shown in the menu.
 - Modular structure: `templates/index.html` + `templates/partials/*.html`
-  (Jinja2 includes), `static/js/{state,api,source,tabs,generate,edit,upscale,
-  video,settings,modal,main}.js`, `static/css/{base,layout,components,
-  responsive}.css`. Smoke-tested in a DOM (jsdom): all tab flows, resets,
-  settings and modal wiring verified — 24/24 checks, no JS errors.
+  (Jinja2 includes), `static/js/{state,storage,api,player,refine,source,tabs,
+  generate,edit,upscale,video,gallery,settings,modal,main}.js`,
+  `static/css/{base,layout,components,responsive}.css`. Smoke-tested in a
+  DOM (jsdom): all tab flows, resets, settings and modal wiring verified —
+  24/24 checks, no JS errors.
 
 ## B4. Settings + polish ✅ (done — pending manual validation)
 
@@ -301,7 +302,9 @@ mockup directly.
   config store** (`advancedValues.video.wan21|wan22`) and a wider modal.
 - **localStorage persistence** (`storage.js`): per-tab params, advanced
   values, toolbar selections and theme survive page reloads.
-- Video tab: real player (`<video>` from `/media`), Wan 2.1/2.2 selector,
+- Video tab: **custom player** (`static/js/player.js` — bottom-centered
+  ▶/⏸ + ⋮ controls, accent progress line, click/dblclick + fullscreen ⛶
+  button; see FRONTEND.md §3.4), Wan 2.1/2.2 selector,
   frames/steps/seed wired to `/api/video`; negative prompt in the modal.
 - Upscale tab: special compact layouts (portrait seed+🔍 in pane; landscape
   🔍 above URL row).
@@ -465,6 +468,32 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 - **FIX (2026-08-09)**: **gallery badge original-prompt hint** — reachable
   by click/tap (not just hover; touch has no hover) and full-screen-width
   in portrait (was a cramped fitted pill).
+- **DONE (2026-08-09, `feat/video-player-controls`)**: **custom video player
+  controls** — replaces the native browser controls (their full-width bar
+  collided with the pane's overlay buttons 🔗/📁 and the source URL field):
+  bottom-centered ▶/⏸ + ⋮ (glyphs optically centered; ⋮ is a placeholder
+  for the options menu), a thin ACCENT progress line at the video's bottom
+  edge (rAF-driven, always visible), a fullscreen ⛶ overlay button
+  top-right (same style as the compare sliders' button; becomes ✕ in
+  fullscreen, kept in sync by `fullscreenchange`), **single click toggles
+  play/pause, double click toggles fullscreen** (controls excluded),
+  portrait uses larger touch targets. Autoplay muted loop kept. See
+  FRONTEND.md §3.4.
+- **DONE (2026-08-10)**: video player polish — the ▶/⏸ button now **follows
+  the playback state** (⏸ playing / ▶ paused, synced via `play`/`pause`/
+  `ended`; previously the glyph froze on ⏸ because `setGlyph` was only
+  called at creation); **leaving the Video tab pauses a playing video**
+  (`pauseActiveVideo()` in `player.js`, called from `switchTab`) so it
+  doesn't keep consuming resources in the background.
+- **DONE (2026-08-10)**: **progress bar is now a scrubber** — hover (or
+  touch on mobile) doubles the line height (3→6px) and reveals a circular
+  accent thumb + shaded tooltip with the position in tenths of a second
+  (seconds, e.g. `3.4s`); dragging or tapping **seeks the video, playing or paused**
+  (pointer events + capture, `touch-action: none` so the drag never scrolls
+  the page). The 12px hit area is flush with the pane's bottom overlay
+  buttons (📁/🔗, URL field — bottom:12px) so they stay fully clickable.
+  `role=slider` + aria attrs on the bar; a `seeked` listener repaints the
+  fill when paused. See FRONTEND.md §3.4.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +
@@ -510,10 +539,11 @@ this repo's workflows; the per-step emission is inferred from the node design.)
       top-center, no hover hint (an upscale has no transformation prompt).
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
-  - **Video**: left as-is (native controls don't mix with gallery
-    navigation); the result now carries a `data-video-gallery="1"` marker and
-    its URL is collected in `window.galleryVideos` for a **future video
-    gallery — revisit later**.
+  - **Video**: still NOT navigable in the gallery (deferred decision; the
+    player is now the custom one, `player.js` — but gallery navigation
+    remains out of scope); the result carries a `data-video-gallery="1"`
+    marker and its URL is collected in `window.galleryVideos` for a
+    **future video gallery — revisit later**.
 - **FIX (2026-08-08)**: **LoRA modals broken on Windows (dual-boot)** — the
   server (`http://akari.home`, now booted into Windows) returns LoRA names
   with `\` separators (`flux2\...`), but `loraOptionsForContext()` matched

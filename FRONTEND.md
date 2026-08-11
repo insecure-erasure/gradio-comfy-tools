@@ -198,7 +198,31 @@ empty and the prompt fills it; see also deviation 14):
 ### 3.4 Video 🎬
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
-  real `<video>` player.
+  **custom video player** (`static/js/player.js`, replaces the native
+  controls): autoplay muted loop; bottom-centered **three identical
+  circular buttons** (same size + style, hover accent — the icons are
+  inline SVG, so no emoji/font-glyph differences across platforms):
+  play/pause (icon **follows the playback state** — pause while playing,
+  play while paused, synced via `play`/`pause`/`ended`, so a
+  browser-blocked autoplay shows play from the start), stop (pauses and
+  resets the video to the beginning) and more options (⋮ placeholder for
+  the options menu); a thin accent progress line at the very bottom edge
+  (rAF-driven, always visible) that is also a **scrubber**: hover (or
+  touch on mobile) doubles the line height and reveals a circular accent
+  thumb + a shaded tooltip with the position in tenths of a second
+  (seconds, e.g. `3.4s`); dragging (or tapping) the bar **seeks the video,
+  playing or
+  paused** — the hit area is 12px tall, flush with the pane's bottom
+  overlay buttons so they stay fully clickable; the drag uses pointer
+  events + capture with `touch-action: none` (no page scroll); a
+  **fullscreen overlay button ⛶ top-right** (same style as the
+  compare sliders' button — `.output-overlay-btn.top-right`, SVG icon)
+  that toggles real browser fullscreen and shows the exit icon in the
+  same spot while in
+  fullscreen; **single click anywhere on the video toggles play/pause,
+  double click toggles fullscreen** (controls excluded); **leaving the
+  Video tab pauses a playing video** (`pauseActiveVideo()`, called from
+  `switchTab`) so it doesn't keep consuming resources in the background.
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
 - **Params**: two chips over the prompt textarea — **🎞️ Frames** (shows
   the frame count, popover with the 81–161 stepper, step 4, 4n+1 snap) and
@@ -368,8 +392,8 @@ inside the output pane of the tab that started the generation, and ONLY
 while that tab is active — switching tabs mid-generation keeps capturing
 server-side but stops painting; coming back resumes with the latest frame.
 While painted it hides (and restores on cancel) the placeholder / previous
-result / source preview / compare slider / video mock so it fills the pane
-and stays centered; the spinner stays on top (`.busy` z-index).
+result / source preview / compare slider / video mock / video player so it
+fills the pane and stays centered; the spinner stays on top (`.busy` z-index).
 `stopProgressPolling` removes it, and `showResult`/`clearPane` drop it too so
 the final result replaces the preview. The preview is ephemeral: it is
 intentionally lost on cancel and never shown after the job settles.
@@ -404,8 +428,8 @@ and re-transforms the trigger button).
   tab_upscale, tab_video, bottom_bar, modal, gallery_overlay, toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, storage, api, refine, source, tabs, generate, edit, upscale, video,
-  gallery, settings, modal, main.
+  state, storage, api, player, refine, source, tabs, generate, edit, upscale,
+  video, gallery, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, theme. Saved on field change / modal save / theme toggle /

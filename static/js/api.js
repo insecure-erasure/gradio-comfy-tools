@@ -51,16 +51,12 @@ function showToast(msg) {
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   if (isVideo) {
-    const v = document.createElement('video');
-    v.className = 'result-video';
-    v.src = result.display;
-    v.controls = true;
-    v.autoplay = true;
-    v.loop = true;
-    v.muted = true;
-    pane.appendChild(v);
+    // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
+    // always-visible accent progress line — replaces the native controls
+    // (which overlapped the pane's overlay buttons). Autoplay muted loop.
+    pane.appendChild(createVideoPlayer(result.display));
   } else {
     const img = document.createElement('img');
     img.className = 'result-img';
@@ -74,7 +70,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';
     // Drop the gallery markers so a cleared result no longer appears in the
@@ -352,7 +348,7 @@ function startProgressPolling() {
             // result, source preview, compare slider, video mock. Overlays
             // (spinner, buttons) stay. liveHidden is restored by
             // stopProgressPolling on cancel.
-            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
+            liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
             liveHidden.forEach(el => { el.style.display = 'none'; });
             pv = document.createElement('img');
             pv.className = 'preview-live';

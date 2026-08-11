@@ -19,9 +19,12 @@
     color: #fff;
     border-color: var(--accent);
   }
-  /* Top-right: the ⛶ fullscreen/maximize buttons (gallery B5). Re-added
+  /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
+  /* The video player's fullscreen button renders an SVG icon (no emoji
+     glyph — see player.js ICONS). */
+  .video-fs-btn svg { width: 16px; height: 16px; }
   /* Bottom-right cluster: 🔗 (use previous) at the corner, 📁 (upload)
      just to its LEFT (right: 48px = 30px button + 12px gap + 6px space). */
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
@@ -972,6 +975,168 @@
     width: 35%;
     background: var(--accent);
     border-radius: 2px;
+  }
+
+  /* ── Generated video player (custom controls) ── */
+  /* Wrapper fills the pane like a result image; the video keeps its aspect
+     ratio (object-fit: contain — the previous full-bleed stretch distorted
+     480p portrait videos). Replaces the native browser controls, whose bar
+     spanned the full video width and overlapped the pane's bottom-right
+     buttons (🔗/📁) and the source URL field. */
+  .video-player {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .video-player video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: var(--radius);
+  }
+  /* Interactive progress/seek bar: the thin ACCENT line at the very BOTTOM
+     edge stays always visible (feedback while it plays / loops). The bar is
+     a 12px-tall hit area (full width) so it can be hovered/dragged/tapped
+     to seek — playing or paused. 12px keeps it FLUSH with the pane's bottom
+     overlay buttons (📁/🔗 and the URL field sit at bottom:12px) so they
+     stay fully clickable above it.
+     Hover (or touch on mobile) doubles the line height (3→6px) and reveals
+     a circular accent thumb + a shaded tooltip with the position in tenths
+     of a second. */
+  .video-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 12px;             /* hit area — taller than the visible line */
+    cursor: pointer;
+    touch-action: none;       /* dragging must not scroll/zoom the page */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    z-index: 6;
+  }
+  .video-progress-track {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;              /* the visible line — doubles on hover/drag */
+    background: rgba(255,255,255,.14);
+    border-radius: 2px;
+    pointer-events: none;     /* events belong to .video-progress */
+    transition: height .15s;
+  }
+  .video-progress:hover .video-progress-track,
+  .video-progress.scrubbing .video-progress-track {
+    height: 4px;              /* doubled while interacting */
+  }
+  .video-progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    border-radius: 2px;
+    /* no transition: the fill is repainted every frame by requestAnimationFrame
+       (player.js) — a CSS transition would only add lag chasing the playhead */
+  }
+  /* Circular accent thumb — follows the pointer on hover/drag. */
+  .video-progress-thumb {
+    position: absolute;
+    bottom: 1px;              /* centered on the 3px line */
+    left: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,.5);
+    transform: translateX(-50%) translateY(50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .video-progress-thumb.show { opacity: 1; }
+  /* Shaded tooltip with the position (tenths of a second), above the thumb. */
+  .video-progress-tip {
+    position: absolute;
+    bottom: 20px;             /* above the thumb */
+    left: 0;
+    padding: 3px 7px;
+    background: rgba(0,0,0,.78);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 6px;
+    color: #fff;
+    font: 600 11px/1 system-ui, sans-serif;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,.9);      /* shaded text */
+    box-shadow: 0 2px 8px rgba(0,0,0,.45);      /* shaded tooltip */
+    transform: translateX(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .video-progress-tip.show { opacity: 1; }
+  /* Bottom-CENTERED control cluster (play/pause, stop, more). Never vertically centered. */
+  .video-controls {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 6;
+  }
+  /* The three circular control buttons (play/pause, stop, more) are
+     IDENTICAL: same size, same dark translucent style, same hover. The
+     only difference is the SVG icon (fill=currentColor, so the white
+     color comes from here). No font-size: icons are sized via CSS
+     below. */
+  .video-play-btn,
+  .video-stop-btn,
+  .video-more-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,.4);
+    transition: .15s;
+  }
+  .video-play-btn:hover,
+  .video-stop-btn:hover,
+  .video-more-btn:hover {
+    background: rgba(0,0,0,.75);
+    border-color: var(--accent);
+  }
+  .video-play-btn svg,
+  .video-stop-btn svg,
+  .video-more-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+  /* Portrait: bigger touch targets, STILL bottom-centered. */
+  @media (max-width: 1023px) {
+    .video-play-btn,
+    .video-stop-btn,
+    .video-more-btn { width: 54px; height: 54px; }
+    .video-play-btn svg,
+    .video-stop-btn svg,
+    .video-more-btn svg { width: 18px; height: 18px; }
+    .video-controls { bottom: 18px; gap: 12px; }
+    /* Touch: bigger thumb + tooltip on the scrubber. */
+    .video-progress-thumb { width: 14px; height: 14px; }
+    .video-progress-tip { bottom: 22px; font-size: 12px; padding: 4px 8px; }
   }
 
   /* ── Toast / status ────────────────────────── */
