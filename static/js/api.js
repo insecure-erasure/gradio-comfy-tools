@@ -56,7 +56,10 @@ function showResult(paneId, result, isVideo) {
     // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
     // always-visible accent progress line — replaces the native controls
     // (which overlapped the pane's overlay buttons). Autoplay muted loop.
-    pane.appendChild(createVideoPlayer(result.display));
+    // Pane player: NO own ⛶ button — the pane's top-right ⛶ is the
+    // gallery opener (two buttons in the same spot stacked the player's
+    // over the gallery's). The gallery overlay keeps its own ⛶.
+    pane.appendChild(createVideoPlayer(result.display, true));
   } else {
     const img = document.createElement('img');
     img.className = 'result-img';

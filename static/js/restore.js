@@ -77,8 +77,9 @@ function restoreTabResult(tab) {
     case 'video': {
       const all = window.galleryVideos;
       const last = all && all.length ? all[all.length - 1] : null;
-      if (last && last.src) {
-        showResult(paneId, { display: last.src }, true);
+      const src = last && (last.src || last.display || last.url);
+      if (src) {
+        showResult(paneId, { display: src }, true);
       }
       break;
     }
@@ -157,7 +158,7 @@ function trashCurrentTab() {
 function fullComfyUrl(entry) {
   if (!entry) return '';
   if (entry.url) return entry.url;
-  const src = entry.src || '';
+  const src = entry.src || entry.display || '';
   // /media/FILENAME?type=X -> {base}/view?filename=FILENAME&type=X
   const m = src.match(/\/media\/([^?]+)(?:\?type=([^&]+))?/);
   if (m && baseUrl) {

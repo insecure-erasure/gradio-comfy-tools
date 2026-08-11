@@ -85,11 +85,28 @@ function restorePersistedState() {
   // heavy part is async, so the UI is not blocked; see verifyStoredGalleries)
   if (data.galleries) {
     if (Array.isArray(data.galleries.generated)) window.galleryGenerated = data.galleries.generated;
-    if (Array.isArray(data.galleries.videos)) window.galleryVideos = data.galleries.videos;
+    if (Array.isArray(data.galleries.videos)) {
+      window.galleryVideos = data.galleries.videos.map(normalizeVideoEntry);
+    }
     if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
   }
   // keep params to re-apply after the auto-steps recalc (applyPersistedParams)
   window.__persistedParams = data.params || null;
+}
+
+// Older persisted video entries (collectVideoUrl era) carried {url,
+// display} but no src/filename; the current code reads e.src. Normalize so
+// entries from any version work in the gallery/player.
+function normalizeVideoEntry(e) {
+  if (!e || typeof e !== 'object') return e;
+  const display = e.src || e.display || e.url || '';
+  return {
+    src: display,
+    url: e.url || e.src || e.display || '',
+    prompt: e.prompt || '',
+    filename: e.filename !== undefined ? e.filename
+      : (typeof filenameFromUrl === 'function' ? filenameFromUrl(display) : null),
+  };
 }
 
 // ── Gallery existence validation (lightweight) ──

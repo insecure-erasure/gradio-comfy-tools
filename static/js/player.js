@@ -39,7 +39,13 @@ function pauseActiveVideo() {
   activeVideoEl.pause();
 }
 
-function createVideoPlayer(src) {
+// noFullscreenBtn: when true, the player does NOT create its own ⛶
+// fullscreen button — used in the Video pane, where the pane's top-right
+// ⛶ already opens the VIDEO GALLERY (having both at top:12px/right:12px
+// stacked the player's button over the gallery one, so the click opened
+// the <video> fullscreen instead of the gallery). The gallery overlay has
+// no competing button, so it keeps the player's ⛶.
+function createVideoPlayer(src, noFullscreenBtn) {
   const wrap = document.createElement('div');
   wrap.className = 'video-player';
 
@@ -227,32 +233,41 @@ function createVideoPlayer(src) {
   // fullscreen of the whole player; in fullscreen it becomes the exit icon
   // in the SAME spot (fullscreenchange keeps it in sync, so Esc also
   // updates it).
-  const fsBtn = document.createElement('button');
-  fsBtn.type = 'button';
-  fsBtn.className = 'output-overlay-btn top-right video-fs-btn';
-  setIcon(fsBtn, 'fullscreen');
-  fsBtn.title = 'Fullscreen';
-  fsBtn.setAttribute('aria-label', 'Fullscreen');
-  const syncFsBtn = () => {
-    const fs = document.fullscreenElement === wrap;
-    setIcon(fsBtn, fs ? 'fullscreenExit' : 'fullscreen');
-    fsBtn.title = fs ? 'Exit fullscreen' : 'Fullscreen';
-    fsBtn.setAttribute('aria-label', fs ? 'Exit fullscreen' : 'Fullscreen');
-  };
-  document.addEventListener('fullscreenchange', syncFsBtn);
-  document.addEventListener('webkitfullscreenchange', syncFsBtn); // Safari
-  const toggleFullscreen = () => {
-    if (document.fullscreenElement || document.webkitFullscreenElement) {
-      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
-      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-    } else if (wrap.requestFullscreen) {
-      wrap.requestFullscreen().catch(() => {});
-    } else if (wrap.webkitRequestFullscreen) {
-      wrap.webkitRequestFullscreen();
-    }
-  };
-  fsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
-  wrap.appendChild(fsBtn);
+  //
+  // SKIPPED when noFullscreenBtn is true (the Video pane): the pane's own
+  // top-right ⛶ opens the VIDEO GALLERY — having the player's button in the
+  // same spot (top:12px/right:12px, same .output-overlay-btn class) stacked
+  // it OVER the gallery button, so the click did fullscreen of the <video>
+  // instead of opening the gallery. The gallery overlay has no competing
+  // button, so it keeps the player's ⛶.
+  if (!noFullscreenBtn) {
+    const fsBtn = document.createElement('button');
+    fsBtn.type = 'button';
+    fsBtn.className = 'output-overlay-btn top-right video-fs-btn';
+    setIcon(fsBtn, 'fullscreen');
+    fsBtn.title = 'Fullscreen';
+    fsBtn.setAttribute('aria-label', 'Fullscreen');
+    const syncFsBtn = () => {
+      const fs = document.fullscreenElement === wrap;
+      setIcon(fsBtn, fs ? 'fullscreenExit' : 'fullscreen');
+      fsBtn.title = fs ? 'Exit fullscreen' : 'Fullscreen';
+      fsBtn.setAttribute('aria-label', fs ? 'Exit fullscreen' : 'Fullscreen');
+    };
+    document.addEventListener('fullscreenchange', syncFsBtn);
+    document.addEventListener('webkitfullscreenchange', syncFsBtn); // Safari
+    const toggleFullscreen = () => {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } else if (wrap.requestFullscreen) {
+        wrap.requestFullscreen().catch(() => {});
+      } else if (wrap.webkitRequestFullscreen) {
+        wrap.webkitRequestFullscreen();
+      }
+    };
+    fsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleFullscreen(); });
+    wrap.appendChild(fsBtn);
+  }
 
   // Single click anywhere on the video area toggles play/pause; a double
   // click goes fullscreen. The controls (play/more/fullscreen buttons) are

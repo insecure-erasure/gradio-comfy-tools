@@ -337,7 +337,7 @@ function renderGalleryItem() {
     // Custom player for the current video entry (autoplay muted loop; the
     // player is rebuilt per navigation so the src is always fresh).
     galleryVideoWrap.innerHTML = '';
-    galleryVideoWrap.appendChild(createVideoPlayer(e.src));
+    galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url));
     galleryBadge.classList.remove('show');
     galleryBadge.textContent = '';
     if (e.prompt) galleryPromptBtn.classList.add('show');
@@ -474,7 +474,7 @@ async function galleryDownload() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
   const src = galleryMode === 'lightbox' ? galleryBig.src
-    : galleryMode === 'video' ? (e.src || e.url)
+    : galleryMode === 'video' ? (e.src || e.display || e.url)
     : galleryAfter.src;
   try {
     const r = await fetch(src);
@@ -534,7 +534,7 @@ function galleryDeleteCurrent() {
     const vid = pane.querySelector('.video-player video');
     const cmpAfter = pane.querySelector('.compare-slider img.side.after');
     const shownSrc = (img && img.src) || (vid && vid.src) || (cmpAfter && cmpAfter.src) || null;
-    const entrySrc = galleryMode === 'video' ? (e.src || e.url) : e.src;
+    const entrySrc = galleryMode === 'video' ? (e.src || e.display || e.url) : e.src;
     if (shownSrc && entrySrc && shownSrc === entrySrc) clearPane(pane.id);
   }
 
