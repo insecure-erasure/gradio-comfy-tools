@@ -32,17 +32,13 @@
     </div>
   </div>
   <div class="gallery-badge" id="galleryBadge"></div>
-  <!-- Prompt stack shown when the badge is CLICKED: the badge hides and
-       this takes over — the transformation's prompt (edited/restored/
-       upscaled) on TOP, the ORIGINAL generation prompt BELOW. Hidden by
-       default; only appears on badge click. -->
-  <div class="gallery-prompt-stack" id="galleryPromptStack">
+  <!-- Prompt box shown when the badge is CLICKED: the badge hides and this
+       box appears with ONLY the ORIGINAL generation prompt (the prompt of
+       the image the edit/restore/upscale was made from). Hidden by default;
+       only appears on badge click. -->
+  <div class="gallery-badge-box" id="galleryBadgeBox">
     <div class="gallery-prompt-box">
-      <div class="gallery-stack-label" id="galleryStackLabel"></div>
-      <div class="gallery-prompt-text" id="galleryStackText"></div>
-    </div>
-    <div class="gallery-prompt-box" id="galleryStackOriginalBox">
-      <div class="gallery-prompt-text" id="galleryStackOriginalText"></div>
+      <div class="gallery-prompt-text" id="galleryBadgeBoxText"></div>
     </div>
   </div>
   <button class="gallery-btn gallery-close" id="galleryClose" title="Close" aria-label="Close">

@@ -282,11 +282,11 @@
     #tab-upscale .params-pane .result-url-row {
       flex-basis: 100%;
     }
-    /* Gallery — prompt stack boxes (vertical): a centered fitted box looked
+    /* Gallery — prompt box (vertical): a centered fitted box looked
        cramped between the ‹ › controls. Span the FULL screen width (with
        small side margins) instead of hugging the text; landscape keeps the
        fitted box. */
-    .gallery-prompt-stack .gallery-prompt-box {
+    .gallery-badge-box .gallery-prompt-box {
       max-width: none;
       width: calc(100% - 24px);
     }

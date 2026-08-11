@@ -44,11 +44,8 @@ const galleryPromptText = document.getElementById('galleryPromptText');
 const galleryCounter = document.getElementById('galleryCounter');
 const galleryLabelAfter = document.getElementById('galleryLabelAfter');
 const galleryBadge = document.getElementById('galleryBadge');
-const galleryPromptStack = document.getElementById('galleryPromptStack');
-const galleryStackLabel = document.getElementById('galleryStackLabel');
-const galleryStackText = document.getElementById('galleryStackText');
-const galleryStackOriginalBox = document.getElementById('galleryStackOriginalBox');
-const galleryStackOriginalText = document.getElementById('galleryStackOriginalText');
+const galleryBadgeBox = document.getElementById('galleryBadgeBox');
+const galleryBadgeBoxText = document.getElementById('galleryBadgeBoxText');
 const galleryCloseBtn = document.getElementById('galleryClose');
 const galleryDlBtn = document.getElementById('galleryDl');
 const galleryPrevBtn = document.getElementById('galleryPrev');
@@ -215,13 +212,13 @@ function openGalleryOverlay() {
   try { galleryOverlay.webkitRequestFullscreen && galleryOverlay.webkitRequestFullscreen(); } catch (e) {}
 }
 
-function closeGalleryStack() {
-  if (galleryPromptStack) galleryPromptStack.classList.remove('show');
+function closeBadgeBox() {
+  if (galleryBadgeBox) galleryBadgeBox.classList.remove('show');
 }
 
 function closeGallery() {
   closeGalleryPrompt();
-  closeGalleryStack(); // a stack opened by badge click must not survive the close
+  closeBadgeBox(); // a badge box opened by click must not survive the close
   if (document.fullscreenElement || document.webkitFullscreenElement) {
     try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
     try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
@@ -237,7 +234,7 @@ function closeGallery() {
       galleryOverlay.classList.remove('show');
       galleryMode = null;
       closeGalleryPrompt();
-      closeGalleryStack();
+      closeBadgeBox();
     }
   })
 );
@@ -246,9 +243,9 @@ function closeGallery() {
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
-  // Start clean: a stack opened by badge click must not linger when
+  // Start clean: a badge box opened by click must not linger when
   // navigating to another entry.
-  closeGalleryStack();
+  closeBadgeBox();
   if (galleryMode === 'lightbox') {
     galleryBig.src = e.src;
     // Show prompt: visible only when the entry has a prompt. The prompt
@@ -295,7 +292,7 @@ function renderGalleryItem() {
 function galleryNav(delta) {
   if (!galleryMode || galleryEntries.length < 2) return;
   closeGalleryPrompt(); // a new entry — don't leave the old prompt open
-  closeGalleryStack();
+  closeBadgeBox();
   galleryIdx = ((galleryIdx + delta) % galleryEntries.length + galleryEntries.length) % galleryEntries.length;
   renderGalleryItem();
 }
@@ -413,29 +410,20 @@ galleryDlBtn.addEventListener('click', galleryDownload);
 galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
 galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
 galleryBig.addEventListener('click', e => e.stopPropagation());
-// Badge click/tap: HIDE the badge and show the prompt stack — the
-// transformation's prompt (the entry's own text, labelled "Edited"/
-// "Restored"/"Upscaled") on TOP and the ORIGINAL generation prompt BELOW
-// (only when the entry has one). The badge stays hidden while the stack is
-// open; navigating, Escape or closing the gallery hides the stack and the
-// badge returns.
+// Badge click/tap: HIDE the badge and show a single box with ONLY the
+// ORIGINAL generation prompt (the prompt of the image the edit/restore/
+// upscale was made from). No label, no transformation text. If the entry
+// has no original prompt, nothing is shown. Navigating, Escape or closing
+// the gallery hides the box and the badge returns.
 galleryBadge.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries[galleryIdx];
   if (!e2 || !e2.badge) return;
   galleryBadge.classList.remove('show');
   galleryBadge.textContent = '';
-  // Top box: label (capitalized) + the transformation's own prompt.
-  galleryStackLabel.textContent = e2.badge.charAt(0).toUpperCase() + e2.badge.slice(1);
-  galleryStackText.textContent = e2.prompt || '';
-  // Bottom box: the ORIGINAL prompt (only when the entry has one).
-  if (e2.originalPrompt) {
-    galleryStackOriginalText.textContent = e2.originalPrompt;
-    galleryStackOriginalBox.style.display = '';
-  } else {
-    galleryStackOriginalBox.style.display = 'none';
-  }
-  galleryPromptStack.classList.add('show');
+  if (!e2.originalPrompt) return; // only the original prompt is ever shown
+  galleryBadgeBoxText.textContent = e2.originalPrompt;
+  galleryBadgeBox.classList.add('show');
 });
 // Hover reveals the prompt — no click needed. Only for real mouse pointers
 // (pointerenter/pointerleave do not fire on touch). Click/tap toggles as a
@@ -458,8 +446,8 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeGalleryPrompt();
     return;
   }
-  if (galleryPromptStack.classList.contains('show')) {
-    if (e.key === 'Escape') { closeGalleryStack(); renderGalleryItem(); }
+  if (galleryBadgeBox.classList.contains('show')) {
+    if (e.key === 'Escape') { closeBadgeBox(); renderGalleryItem(); }
     return;
   }
   if (e.key === 'Escape') closeGallery();
