@@ -51,7 +51,7 @@ function showToast(msg) {
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .video-mock').forEach(el => el.remove());
   if (isVideo) {
     // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
     // always-visible accent progress line — replaces the native controls
