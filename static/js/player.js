@@ -365,7 +365,9 @@ function createVideoPlayer(src, noFullscreenBtn) {
   speedWrap.appendChild(speedSub);
   let subOpen = false;
   let closeTimer = null;
+  let menuCloseTimer = null;
   const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
+  const cancelMenuClose = () => { if (menuCloseTimer) { clearTimeout(menuCloseTimer); menuCloseTimer = null; } };
   const openSub = () => {
     cancelClose();
     if (subOpen) return;
@@ -416,6 +418,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
   // the pointer leaves the entire set (desktop) and by the progressive
   // outside-dismiss (top level with no open submenu).
   const closeMenu = () => {
+    cancelMenuClose(); // stop any pending menu-close timer (idempotent)
     closeSub();
     menu.classList.remove('show');
     _openVideoMenus.delete(menuHandlers);
@@ -434,17 +437,18 @@ function createVideoPlayer(src, noFullscreenBtn) {
     // short grace timer (the same pattern as the gallery prompt panel) so
     // crossing the 1px seam between them never closes the submenu;
     // entering either cancels it.
-    speedWrap.addEventListener('mouseenter', openSub);
-    speedSub.addEventListener('mouseenter', openSub);
+    speedWrap.addEventListener('mouseenter', () => { cancelClose(); openSub(); });
+    speedSub.addEventListener('mouseenter', () => { cancelClose(); openSub(); });
     speedWrap.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
     speedSub.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
     // Leaving the WHOLE set (main menu + side submenu) closes BOTH. The
     // submenu is a DOM descendant of the menu, so crossing from the menu
     // to the submenu never fires this — it only fires when the pointer
-    // leaves everything (same grace timer; entering the menu again cancels
-    // it).
-    menu.addEventListener('mouseenter', cancelClose);
-    menu.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeMenu, 150); });
+    // leaves everything. Uses its OWN timer so the 150ms submenu grace
+    // does not interfere; closeMenu cancels it, so the close is immediate
+    // once the grace expires.
+    menu.addEventListener('mouseenter', () => { cancelClose(); cancelMenuClose(); });
+    menu.addEventListener('mouseleave', () => { menuCloseTimer = setTimeout(closeMenu, 150); });
   } else {
     speedRow.addEventListener('click', e => {
       e.stopPropagation();
