@@ -78,9 +78,10 @@
     .bottom-bar .prompt-input-wrap:not(.modal-mode) textarea {
       flex: 1;
       width: 100%;
-      height: 42px;               /* a bit taller — room for the chips */
-      min-height: 42px;
-      padding: 8px 12px;
+      height: 56px;               /* taller field in portrait — uses the free
+                                     vertical space; single visual line */
+      min-height: 56px;
+      padding: 8px 12px;         /* text aligned TOP, not centered */
       overflow: hidden;           /* single visual line — the modal shows it all */
       border: none;
       background: transparent;
