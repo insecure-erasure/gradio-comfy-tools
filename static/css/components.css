@@ -1149,6 +1149,67 @@
     .video-progress-tip { bottom: 22px; font-size: 12px; padding: 4px 8px; }
   }
 
+  /* ⋮ Video options menu (loop + playback speed) — same visual family as
+     the prompt chips popover (.chip-popover): surface bg, border, 12px
+     radius, big shadow, 12px padding. PER-PLAYER (a child of the player
+     wrap) so it stays visible inside the fullscreen video gallery; opens
+     UPWARD from the bottom-centered controls. Session-only per player:
+     every new player starts with loop ON and 1×. */
+  .video-menu {
+    position: absolute;
+    bottom: 70px;               /* above the bottom-centered controls (44px + 14px + gap) */
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;                 /* above the controls (6) and the progress bar */
+    display: none;
+    width: 210px;
+    max-width: calc(100vw - 16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.4);
+    padding: 12px;
+  }
+  .video-menu.show { display: block; }
+  .video-menu-title {
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+  .video-menu-speed-title { margin-top: 10px; }
+  .video-menu-loop { margin-bottom: 0; }
+  .video-menu-speeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .video-menu-speed {
+    flex: 1 1 auto;
+    min-width: 40px;
+    padding: 4px 8px;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .video-menu-speed:hover { border-color: var(--accent); background: var(--surface-hover); }
+  .video-menu-speed.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  /* Taller mobile controls (54px, bottom:18px) — the menu floats higher. */
+  @media (max-width: 1023px) {
+    .video-menu { bottom: 80px; }
+  }
+
   /* ── Toast / status ────────────────────────── */
   .toast {
     position: fixed;

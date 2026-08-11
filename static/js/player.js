@@ -30,6 +30,31 @@
 // behind another tab would keep consuming CPU/decoding resources.
 let activeVideoEl = null;
 
+// Playback speeds offered by the ⋮ menu, LARGEST first (the menu renders
+// top-to-bottom). Values are the literal numbers — formatting keeps only
+// the significant decimals (String(v): 0.4, 0.5, 1, 1.25…).
+const VIDEO_SPEEDS = [2, 1.5, 1.25, 1, 0.75, 0.5, 0.4, 0.25, 0.15, 0.1];
+const formatSpeed = v => String(v);
+
+// ── ⋮ Options menu: shared close helpers ──
+// Each player owns its menu (a child of its wrap — see createVideoPlayer),
+// so closeAllVideoMenus closes ANY player's open menu. A click outside the
+// menus / ⋮ buttons and Escape close them; on Escape the event is stopped
+// so the gallery's own Escape handler does not ALSO close the overlay in
+// the same keystroke (menu first, gallery second).
+function closeAllVideoMenus() {
+  document.querySelectorAll('.video-menu.show').forEach(m => m.classList.remove('show'));
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('.video-menu') || e.target.closest('.video-more-btn')) return;
+  closeAllVideoMenus();
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || !document.querySelector('.video-menu.show')) return;
+  closeAllVideoMenus();
+  e.stopImmediatePropagation(); // menu only — the gallery/modal Esc handlers skip this keystroke
+});
+
 // Pause the current result video if it is playing. No-op when there is no
 // video, it is already paused, or it was removed from the DOM (clearPane /
 // source preview replaced it). The ▶/⏸ button re-syncs itself through the
@@ -46,6 +71,7 @@ function pauseActiveVideo() {
 // video mode (the overlay is already fullscreen and the gallery's own ✕
 // sits in the same top-right corner).
 function createVideoPlayer(src, noFullscreenBtn) {
+  closeAllVideoMenus(); // a new player — never leave an open menu bound to a destroyed one
   const wrap = document.createElement('div');
   wrap.className = 'video-player';
 
@@ -220,8 +246,60 @@ function createVideoPlayer(src, noFullscreenBtn) {
   setIcon(moreBtn, 'more');
   moreBtn.title = 'More options';
   moreBtn.setAttribute('aria-label', 'More options');
-  // Placeholder: the options menu (speed/loop/download/…) comes later.
-  moreBtn.addEventListener('click', (e) => { e.stopPropagation(); showToast('More options coming soon'); });
+  // ⋮ opens the per-player options menu (loop + playback speed). The menu
+  // is a CHILD of the wrap so it stays visible inside the fullscreen video
+  // gallery (a menu on document.body would be hidden outside the
+  // fullscreened overlay). Session-only per player (design decision): every
+  // NEW player starts with loop ON and 1× — navigating the gallery rebuilds
+  // the player, resetting the options.
+  const menu = document.createElement('div');
+  menu.className = 'video-menu';
+  const menuTitle = document.createElement('div');
+  menuTitle.className = 'video-menu-title';
+  menuTitle.textContent = 'Video';
+  const loopLabel = document.createElement('label');
+  loopLabel.className = 'check-label video-menu-loop';
+  const loopInput = document.createElement('input');
+  loopInput.type = 'checkbox';
+  loopInput.checked = v.loop; // true by default (loop ON)
+  loopInput.addEventListener('change', () => { v.loop = loopInput.checked; });
+  loopLabel.appendChild(loopInput);
+  loopLabel.appendChild(document.createTextNode('Loop'));
+  const speedTitle = document.createElement('div');
+  speedTitle.className = 'video-menu-title video-menu-speed-title';
+  speedTitle.textContent = 'Speed';
+  const speedsBox = document.createElement('div');
+  speedsBox.className = 'video-menu-speeds';
+  VIDEO_SPEEDS.forEach(s => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'video-menu-speed';
+    b.dataset.speed = String(s);
+    b.textContent = formatSpeed(s) + '×';
+    b.addEventListener('click', () => {
+      v.playbackRate = s;
+      speedsBox.querySelectorAll('.video-menu-speed').forEach(x => x.classList.toggle('active', x === b));
+    });
+    if (s === 1) b.classList.add('active'); // 1× highlighted by default
+    speedsBox.appendChild(b);
+  });
+  menu.appendChild(menuTitle);
+  menu.appendChild(loopLabel);
+  menu.appendChild(speedTitle);
+  menu.appendChild(speedsBox);
+  wrap.appendChild(menu);
+  const toggleVideoMenu = () => {
+    const open = menu.classList.contains('show');
+    closeAllVideoMenus(); // any other player's open menu closes first
+    if (!open) {
+      // Reflect the CURRENT video state (a fresh player has the defaults).
+      loopInput.checked = v.loop;
+      speedsBox.querySelectorAll('.video-menu-speed').forEach(x =>
+        x.classList.toggle('active', Math.abs(parseFloat(x.dataset.speed) - v.playbackRate) < 1e-9));
+      menu.classList.add('show');
+    }
+  };
+  moreBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleVideoMenu(); });
 
   ctrl.appendChild(playBtn);
   ctrl.appendChild(stopBtn);
@@ -274,7 +352,7 @@ function createVideoPlayer(src, noFullscreenBtn) {
   // excluded (their own handlers + stopPropagation). The single-click is
   // deferred ~250ms so the first click of a double-click doesn't also
   // toggle play/pause.
-  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-stop-btn, .video-more-btn, .video-fs-btn, .video-progress'));
+  const isControl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-stop-btn, .video-more-btn, .video-fs-btn, .video-progress, .video-menu'));
   let clickTimer = null;
   wrap.addEventListener('click', (e) => {
     if (isControl(e.target)) return;
