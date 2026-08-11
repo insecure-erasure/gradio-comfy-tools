@@ -1509,6 +1509,8 @@
     transition: .15s;
   }
   .gallery-btn:hover { background: rgba(70,70,80,.9); color: #fff; }
+  .gallery-btn:disabled { opacity: .35; cursor: default; }
+  .gallery-btn:disabled:hover { background: rgba(28,28,28,.72); color: #f5f5f5; } /* no hover paint when disabled */
   .gallery-btn svg { display: block; }
   .gallery-close { top: 14px; right: 14px; }
   .gallery-dl { top: 14px; left: 14px; }

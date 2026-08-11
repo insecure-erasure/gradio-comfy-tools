@@ -357,13 +357,17 @@ function renderGalleryItem() {
     else { galleryPromptBtn.classList.remove('show'); closeGalleryPrompt(); }
     fitGallerySlider();
   }
-  // N/M paginator (bottom-right): always visible in the gallery; prev/next
-  // buttons only when there is more than one entry. NB: the counter uses an
-  // explicit 'flex' (its CSS base is display:none — '' would clear the
-  // inline style and the counter would never show).
+  // N/M paginator (bottom-right): always visible in the gallery. The ‹ ›
+  // buttons are ALWAYS visible too — a gallery implies navigation, so they
+  // render DISABLED (greyed, no action) with a single entry instead of
+  // disappearing. NB: all three use an explicit 'flex' (their CSS base is
+  // display:none — '' would clear the inline style and they would never
+  // show).
   const multi = galleryEntries.length > 1;
-  galleryPrevBtn.style.display = multi ? 'flex' : 'none';
-  galleryNextBtn.style.display = multi ? 'flex' : 'none';
+  galleryPrevBtn.style.display = 'flex';
+  galleryNextBtn.style.display = 'flex';
+  galleryPrevBtn.disabled = !multi;
+  galleryNextBtn.disabled = !multi;
   galleryCounter.style.display = 'flex';
   galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
 }
@@ -584,8 +588,18 @@ galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDel
 // ‹ › while the prompt panel is open: close it and navigate (one action —
 // the shown prompt never goes stale). The overlay is pointer-transparent,
 // so these buttons stay clickable under it.
-galleryPrevBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(-1); });
-galleryNextBtn.addEventListener('click', e => { e.stopPropagation(); closeGalleryPrompt(); galleryNav(1); });
+galleryPrevBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  if (galleryPrevBtn.disabled) return; // single entry — nothing to navigate
+  closeGalleryPrompt();
+  galleryNav(-1);
+});
+galleryNextBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  if (galleryNextBtn.disabled) return; // single entry — nothing to navigate
+  closeGalleryPrompt();
+  galleryNav(1);
+});
 // Badge click/tap: HIDE the badge and show a single box with ONLY the
 // ORIGINAL generation prompt. Individual hide — the bottom Show-prompt
 // button is NOT touched (only the badge that was clicked hides). Clicking

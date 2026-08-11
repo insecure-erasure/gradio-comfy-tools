@@ -529,7 +529,8 @@ Two separate session-scoped galleries (in-memory; not persisted):
   prompt button + badge (click → original-prompt box) + ‹ › + N/M counter
   bottom-right + download top-left + close ✕ top-right), compare slider for
   Edit/Upscale (interactive before/after, also maximized to the viewport).
-  The N/M counter is always visible; ‹ › only with more than one entry.
+  The N/M counter and the ‹ › buttons are always visible; with a single
+  entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate.
 - Video results are only COLLECTED (`window.galleryVideos`) for a future
   video gallery — not navigable yet.
