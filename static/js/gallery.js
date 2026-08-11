@@ -665,9 +665,11 @@ function syncResultUrl(tab, entry) {
   const url = entry && (entry.url || (typeof fullComfyUrl === 'function' ? fullComfyUrl(entry) : ''));
   if (url) {
     el.textContent = url;
+    el.title = url; // full URL on hover — the row truncates with ellipsis
     copy.disabled = false;
   } else {
     el.textContent = '';
+    el.title = '';
     copy.disabled = true;
   }
 }

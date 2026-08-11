@@ -99,9 +99,34 @@ function setResultUrl(filename) {
 function copyResultUrl() {
   const url = document.getElementById('resultUrl').textContent;
   if (!url) return;
-  navigator.clipboard.writeText(url).then(() => {
-    showToast('URL copied');
-  }).catch(() => showToast('Copy failed'));
+  // navigator.clipboard only exists in SECURE contexts (https / localhost).
+  // Served over plain-http LAN (the typical ComfyUI setup) it is undefined,
+  // and the old code threw synchronously (TypeError — never reaching the
+  // .catch), so NOTHING was copied: the user pasted the previous clipboard
+  // content — a stale URL that is not the one shown in the hint. Fall back
+  // to the legacy textarea + execCommand('copy') path, which works on any
+  // origin, and always give explicit feedback.
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(
+      () => showToast('URL copied'),
+      () => showToast(fallback() ? 'URL copied' : 'Copy failed')
+    );
+  } else {
+    showToast(fallback() ? 'URL copied' : 'Copy failed');
+  }
 }
 
 // ✕ clears the ACTIVE tab's prompt textarea (each tab has its own field,
@@ -374,6 +399,7 @@ async function paintProgress() {
       txt = '⚙️ ' + (a.node_title || '');
     }
     el.textContent = txt;
+    el.title = ''; // progress text is not a URL — no stale tooltip from a previous result
     // Live per-step preview (any tab): paint the latest latent decode in
     // the output pane of the tab that started the job, and ONLY while the
     // user is on that tab (switching away pauses the painting; coming

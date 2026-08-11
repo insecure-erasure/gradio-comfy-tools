@@ -142,6 +142,7 @@ function clearTabGallery(tab) {
   // current tab is the one being cleared).
   if (currentTab === tab) {
     document.getElementById('resultUrl').textContent = '';
+    document.getElementById('resultUrl').title = '';
     document.getElementById('btnCopyUrl').disabled = true;
   }
   savePersistedState();

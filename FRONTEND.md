@@ -395,6 +395,13 @@ reset/trash) calls `syncResultUrl(tab, entry)` (gallery.js), which paints the
 entry's direct URL (or rebuilds it from the display src via `fullComfyUrl`
 for compare entries) and clears the row when the pane is empty. It only
 paints when the tab is the ACTIVE one — the row is shared across tabs.
+The row truncates long URLs with ellipsis; the **full URL is always the
+one copied** by 📋 (it reads the row's exact text) and is also available
+on hover (the row carries it as `title`). `copyResultUrl` (api.js) is
+robust on plain-http LAN (where `navigator.clipboard` does not exist): it
+falls back to a hidden textarea + `execCommand('copy')` and always shows
+explicit feedback (previously a missing API threw silently and the user
+pasted a STALE clipboard URL — not the one shown).
 
 The ↺ resets restore parameters and clear the pane (and the URL row), but
 **never touch the galleries** — emptying those is exclusively the 🗑️ trash

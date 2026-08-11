@@ -40,6 +40,7 @@ function switchTab(name) {
   // image URL fields (Edit/Upscale/Video) keep their values and
   // lastGeneratedUrl persists for chaining (🔗 fills the source field).
   document.getElementById('resultUrl').textContent = '';
+  document.getElementById('resultUrl').title = '';
   document.getElementById('btnCopyUrl').disabled = true;
 
   switch (name) {
