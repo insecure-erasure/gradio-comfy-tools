@@ -320,7 +320,10 @@ function createVideoPlayer(src, noFullscreenBtn) {
   speedWrap.appendChild(speedRow);
   speedWrap.appendChild(speedSub);
   let subOpen = false;
+  let closeTimer = null;
+  const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
   const openSub = () => {
+    cancelClose();
     if (subOpen) return;
     subOpen = true;
     speedSub.classList.add('show');
@@ -344,11 +347,12 @@ function createVideoPlayer(src, noFullscreenBtn) {
       // If it would overflow the right edge of the window, open to the LEFT.
       if (wRect.right + speedSub.offsetWidth + 8 > window.innerWidth - 8) {
         speedSub.style.left = 'auto';
-        speedSub.style.right = 'calc(100% + 18px)';
+        speedSub.style.right = 'calc(100% + 12px)';
       }
     });
   };
   const closeSub = () => {
+    cancelClose();
     if (!subOpen) return;
     subOpen = false;
     speedSub.classList.remove('show');
@@ -357,8 +361,15 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedSub.style.right = ''; // next open re-measures from the clean state
   };
   if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    // Row + submenu form ONE hover zone (they TOUCH — the submenu's left
+    // edge sits on the menu's right edge, no gap). Leaving either starts a
+    // short grace timer (the same pattern as the gallery prompt panel) so
+    // crossing the 1px seam between them never closes the submenu;
+    // entering either cancels it.
     speedWrap.addEventListener('mouseenter', openSub);
-    speedWrap.addEventListener('mouseleave', closeSub);
+    speedSub.addEventListener('mouseenter', openSub);
+    speedWrap.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
+    speedSub.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
   } else {
     speedRow.addEventListener('click', e => {
       e.stopPropagation();

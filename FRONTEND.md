@@ -217,9 +217,11 @@ empty and the prompt fills it; see also deviation 14):
   default; selecting applies `v.playbackRate` and updates the row's value).
   The submenu is aligned so the **1× entry sits at the same height as the
   Speed row** (the fixed reference even when another speed is selected),
-  and falls back to the LEFT when it would overflow the window. Row +
-  submenu share one hover zone (moving from the row to the submenu keeps
-  it open; leaving the zone closes it). The menu is styled like the
+  TOUCHING the menu's right edge (no gap), and falls back to the LEFT when
+  it would overflow the window. Row + submenu form one hover zone: leaving
+  either starts a 150ms grace timer (like the gallery prompt panel) so
+  crossing the seam between them never closes the submenu; entering either
+  cancels it. The menu is styled like the
   prompt chips popover and is a CHILD of the player wrap, so it stays
   visible inside the fullscreen video gallery; it opens upward from the
   controls and closes on outside click / Escape (Escape closes ONLY the

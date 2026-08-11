@@ -1208,14 +1208,16 @@
     color: var(--text-secondary);
     line-height: 1;
   }
-  /* The submenu opens to the RIGHT of the Speed row (native-menu style).
-     JS aligns its "1×" entry vertically with the row on open (top is set
-     inline); falls back to the left when it would overflow the window.
-     left/right clear the MENU's right edge (12px padding + 6px gap = 18px)
-     so the submenu never overlaps the menu horizontally. */
+  /* The submenu opens to the RIGHT of the Speed row (native-menu style),
+     TOUCHING the menu's right edge (no gap — a gap would make the submenu
+     close when the pointer crosses it; the 150ms grace timer covers the
+     1px seam). JS aligns its "1×" entry vertically with the row on open
+     (top is set inline); falls back to the left when it would overflow the
+     window. wrap.right = menu content right = menu border-box right − 12px
+     padding, so calc(100% + 12px) = the menu's right edge. */
   .video-menu-speed-sub {
     position: absolute;
-    left: calc(100% + 18px);
+    left: calc(100% + 12px);
     top: 0;                    /* set by JS when opened (1× alignment) */
     display: none;
     min-width: 110px;
