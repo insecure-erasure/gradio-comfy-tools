@@ -314,7 +314,10 @@ cross-origin headers — CORS is why this cannot be done client-side) and, if
 it is really an image, shows it as a **preview filling the output pane**
 (`source-preview`, slightly dimmed to distinguish input from output —
 no frame) and **collapses the field back to 10%** (`.collapsed`;
-re-focusing the input expands it again). On failure it toasts the error
+re-focusing the input expands it again). **Pressing Enter inside the field
+does the same as clicking ✓** (same `confirmSourceUrl`, with the same
+in-flight guard: a second Enter while the check runs is ignored). On
+failure it toasts the error
 (HTTP status, content-type mismatch, unreachable URL…). The preview is
 **also shown by 🔗** (`usePreviousSource` — which **flashes the field open
 ~1.5s then auto-collapses**, unless the user is editing the value) and by

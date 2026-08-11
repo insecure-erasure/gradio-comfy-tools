@@ -78,8 +78,20 @@ function selectAllOnFocus(input) {
 // above the keyboard.
 function initSourceFields() {
   ['edit', 'upscale', 'video'].forEach(tab => {
-    selectAllOnFocus(document.getElementById(`${tab}SourceUrl`));
-    keepSourceFieldVisible(document.getElementById(`${tab}SourceUrl`));
+    const input = document.getElementById(`${tab}SourceUrl`);
+    selectAllOnFocus(input);
+    keepSourceFieldVisible(input);
+    // Enter in the field = confirm, exactly like the ✓ button (validate
+    // server-side + show the preview + collapse). No-op while a check is
+    // already running (the ✓ button is busy).
+    if (input) input.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault(); // a plain text input — no submit; keep it explicit
+      const field = sourceUrlField(tab);
+      const btn = field && field.querySelector('.source-url-confirm');
+      if (btn && btn.disabled) return; // a check is already in flight
+      confirmSourceUrl(tab);
+    });
   });
 }
 
