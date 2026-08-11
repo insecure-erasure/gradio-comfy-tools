@@ -143,12 +143,18 @@ async function _pruneDeadEntries(entries, force) {
     }
   }
   await Promise.all(Array.from({ length: Math.min(5, uniq.length) }, worker));
-  return entries.filter(e => {
+  // In-place removal of confirmed-dead entries. `entries` is the LIVE
+  // reference the caller passed (window.galleryGenerated / ...), so any
+  // entry added while the probes were in flight is preserved — only the
+  // ones the server explicitly says do not exist are spliced out. Never
+  // reassign the global from a stale captured array.
+  for (let j = entries.length - 1; j >= 0; j--) {
+    const e = entries[j];
     const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-    if (!fn) return true;
+    if (!fn) continue;
     const type = e.type || (e.src && typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(e.src) : 'output');
-    return existsMap.get(fn + '|' + type) !== false;
-  });
+    if (existsMap.get(fn + '|' + type) === false) entries.splice(j, 1);
+  }
 }
 
 // Kick off the async validation of all persisted galleries after load;
@@ -156,22 +162,17 @@ async function _pruneDeadEntries(entries, force) {
 async function verifyStoredGalleries(force) {
   const jobs = [];
   if (Array.isArray(window.galleryGenerated)) {
-    jobs.push(_pruneDeadEntries(window.galleryGenerated, force).then(ok => {
-      if (ok.length !== window.galleryGenerated.length) window.galleryGenerated = ok;
-    }));
+    jobs.push(_pruneDeadEntries(window.galleryGenerated, force));
   }
-  if (Array.isArray(window.galleryVideos)) {
-    jobs.push(_pruneDeadEntries(window.galleryVideos, force).then(ok => {
-      if (ok.length !== window.galleryVideos.length) window.galleryVideos = ok;
-    }));
-  }
+  // Videos are deliberately NOT pruned: ComfyUI stores them as temp files
+  // that are cleaned on server restart, and the gallery must keep showing
+  // every entry from the session/localStorage (a missing file just won't
+  // play). See openVideoGallery.
   if (Array.isArray(window.galleryComparisons)) {
-    jobs.push(_pruneDeadEntries(window.galleryComparisons, force).then(ok => {
-      if (ok.length !== window.galleryComparisons.length) window.galleryComparisons = ok;
-    }));
+    jobs.push(_pruneDeadEntries(window.galleryComparisons, force));
   }
   await Promise.all(jobs);
-  savePersistedState(); // persist the pruned set
+  savePersistedState(); // persist the (possibly pruned) set
 }
 
 // Re-apply persisted per-tab params AFTER onModelFamilyChange ran, so the

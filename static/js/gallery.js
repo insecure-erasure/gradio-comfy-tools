@@ -438,7 +438,9 @@ async function openCompareFullscreen(kind) {
 // overlay, ‹› navigates, the 🗑️ deletes the shown entry, Show prompt
 // reveals its prompt.
 async function openVideoGallery() {
-  await verifyStoredGalleries(true); // drop dead files before showing
+  // NO existence verification here: videos are ComfyUI temp files that get
+  // cleaned on server restart, and the user wants the gallery to show every
+  // entry from the session/localStorage — a missing file just won't play.
   const all = window.galleryVideos;
   if (!all.length) return showToast('No video to show yet');
   galleryMode = 'video';
