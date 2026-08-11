@@ -221,7 +221,9 @@ empty and the prompt fills it; see also deviation 14):
   it would overflow the window. Row + submenu form one hover zone: leaving
   either starts a 150ms grace timer (like the gallery prompt panel) so
   crossing the seam between them never closes the submenu; entering either
-  cancels it. On PORTRAIT / narrow screens (<1024px) there is no room
+  cancels it. Leaving the WHOLE set (main menu + submenu) closes BOTH
+  (the submenu is a DOM descendant, so crossing from menu to submenu never
+  fires it — only leaving everything does, same grace timer). On PORTRAIT / narrow screens (<1024px) there is no room
   beside the menu, so the Speed click switches to **drill-down mode**: the
   submenu REPLACES the main menu in place (same position/size, with a
   `← Speed` back header); choosing a speed (or ←) closes the submenu and

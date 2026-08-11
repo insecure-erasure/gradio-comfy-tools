@@ -390,6 +390,12 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedSub.style.left = '';
     speedSub.style.right = ''; // next open re-measures from the clean state
   };
+  // Close the WHOLE menu (submenu + main) — used by the hover-close when
+  // the pointer leaves the entire set (desktop).
+  const closeMenu = () => {
+    closeSub();
+    menu.classList.remove('show');
+  };
   // Hover open/close only on DESKTOP LANDSCAPE: in drill-down mode (no
   // side room) a click toggles the drill page — hover would close it
   // mid-reading. In landscape touch (tablet) the click toggles the side
@@ -405,6 +411,13 @@ function createVideoPlayer(src, noFullscreenBtn) {
     speedSub.addEventListener('mouseenter', openSub);
     speedWrap.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
     speedSub.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeSub, 150); });
+    // Leaving the WHOLE set (main menu + side submenu) closes BOTH. The
+    // submenu is a DOM descendant of the menu, so crossing from the menu
+    // to the submenu never fires this — it only fires when the pointer
+    // leaves everything (same grace timer; entering the menu again cancels
+    // it).
+    menu.addEventListener('mouseenter', cancelClose);
+    menu.addEventListener('mouseleave', () => { closeTimer = setTimeout(closeMenu, 150); });
   } else {
     speedRow.addEventListener('click', e => {
       e.stopPropagation();
