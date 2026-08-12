@@ -622,6 +622,84 @@ def test_api_progress_active_then_done(client, tmp_config, monkeypatch):
             server._jobs.clear()
 
 
+# --------------------------------------------------------------------------- #
+# /ws/progress (live progress push)
+# --------------------------------------------------------------------------- #
+def test_ws_progress_snapshot_and_broadcast(client, tmp_config):
+    """/ws/progress pushes a snapshot on connect and every job update as it
+    happens — the frontend no longer needs to poll /api/progress.
+    """
+    # No job -> the connect snapshot is idle.
+    with client.websocket_connect("/ws/progress") as ws:
+        assert ws.receive_json() == {"active": None}
+
+    # A running job: the snapshot carries it, updates are pushed live.
+    with client.websocket_connect("/ws/progress") as ws:
+        assert ws.receive_json() == {"active": None}
+        with server._jobs_lock:
+            server._jobs["pidws"] = {
+                "prompt_id": "pidws", "started": 1.0, "stage": "queued",
+                "node": None, "node_title": None, "value": None, "max": None,
+                "done": False, "error": None,
+            }
+        server._broadcast_progress(server._jobs["pidws"])
+        msg = ws.receive_json()
+        assert msg == {"active": {
+            "prompt_id": "pidws", "stage": "queued", "node": None,
+            "node_title": None, "value": None, "max": None,
+        }}
+        # stage update pushed
+        with server._jobs_lock:
+            server._jobs["pidws"].update(
+                stage="running", node="5", node_title="KSampler", value=3, max=9
+            )
+        server._broadcast_progress(server._jobs["pidws"])
+        msg = ws.receive_json()
+        assert msg["active"]["stage"] == "running"
+        assert msg["active"]["node_title"] == "KSampler"
+        assert msg["active"]["value"] == 3
+        assert msg["active"]["max"] == 9
+        # per-step preview pushed as a data URL
+        with server._jobs_lock:
+            server._jobs["pidws"]["preview"] = b"\xff\xd8\xfffake"
+        server._broadcast_progress(server._jobs["pidws"])
+        msg = ws.receive_json()
+        assert msg["active"]["preview"].startswith("data:image/jpeg;base64,")
+        # completion pushed as active:null
+        server._mark_job_result("pidws", "http://x/view?filename=a.png&type=output")
+        assert ws.receive_json() == {"active": None}
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
+def test_ws_progress_job_listener_broadcasts(client, tmp_config, monkeypatch):
+    """The per-job ComfyUI listener thread pushes its updates (and the job
+    start pushes the "queued" state) — simulated through the real mutators.
+    """
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    with client.websocket_connect("/ws/progress") as ws:
+        assert ws.receive_json() == {"active": None}
+        # starting a job broadcasts "queued"
+        server._start_job_listener(
+            "cid", "pidq", {"1": {"class_type": "X", "_meta": {"title": "T"}}}
+        )
+        msg = ws.receive_json()
+        assert msg["active"]["prompt_id"] == "pidq"
+        assert msg["active"]["stage"] == "queued"
+        # a binary preview frame broadcast via the handler
+        import struct
+        meta = json.dumps({"node_id": "1", "prompt_id": "pidq"})
+        frame = struct.pack(">I", 4) + struct.pack(">I", len(meta)) + meta.encode() + b"jpeg"
+        server._handle_ws_binary(frame, "pidq")
+        msg = ws.receive_json()
+        assert msg["active"]["preview"].startswith("data:image/jpeg;base64,")
+        # done via the marker -> active:null
+        server._mark_job_result("pidq", "http://x/view?filename=a.png&type=output")
+        assert ws.receive_json() == {"active": None}
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
 def test_preview_binary_with_metadata_stored_and_served(client, tmp_config, monkeypatch):
     """A PREVIEW_IMAGE_WITH_METADATA (event 4) frame stores the JPEG in the
     job, /api/progress serves it as a data URL while active, and the preview

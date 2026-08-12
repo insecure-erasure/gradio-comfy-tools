@@ -17,12 +17,14 @@ Endpoints:
     GET  /media/{filename}?type=  proxy a result file from ComfyUI
     POST /api/check-image         validate that a URL/filename is an image
     GET/POST /api/settings        global settings (for the 🎨 menu)
+    WS   /ws/progress             live generation progress push (frontend no longer polls)
 
 Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 """
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import struct
@@ -31,7 +33,7 @@ import time
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+from fastapi import FastAPI, File, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response, StreamingResponse
 from starlette.background import BackgroundTask
 from fastapi.staticfiles import StaticFiles
@@ -83,14 +85,16 @@ def _filename_from_url(url: str) -> tuple[str, str]:
 
 
 # --------------------------------------------------------------------------- #
-# Live progress (B5-lite)
+# Live progress (B5-lite) — pushed over WebSocket, /api/progress as fallback
 #
 # Every queue_prompt fires a hook (see comfy_client.register_prompt_hook) that
 # spawns a daemon thread: it opens a WebSocket to ComfyUI with the SAME
 # clientId used for POST /prompt, follows that prompt's events (executing /
 # progress / executed / execution_success) and updates an in-memory job store.
-# GET /api/progress exposes the most recent active job; the frontend polls it
-# while a generation runs and paints the stage into the result URL row.
+# Every mutation of the store (stage, step value/max, per-step preview,
+# completion) is PUSHED to the browser over /ws/progress (see _broadcast_progress),
+# so the frontend no longer polls. GET /api/progress remains as the payload
+# source for the polling fallback (WS down) and for the tests.
 # --------------------------------------------------------------------------- #
 _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
@@ -140,6 +144,8 @@ def _handle_ws_binary(raw: bytes, prompt_id: str) -> None:
             job = _jobs.get(prompt_id)
             if job is not None:
                 job["preview"] = jpg
+        if job is not None:
+            _broadcast_progress(job)  # push the new preview frame to the UI
     except Exception:
         pass  # best-effort: never let a malformed frame kill the listener
 
@@ -189,11 +195,12 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
                         job["max"] = data.get("max")
                     elif t == "execution_success":
                         job["done"] = True
-                        break
                     elif t == "execution_error":
                         job["done"] = True
                         job["error"] = str(data.get("exception_message", "execution error"))[:300]
-                        break
+                _broadcast_progress(job)  # push the stage/value/preview update
+                if t in ("execution_success", "execution_error"):
+                    break
     except Exception as e:  # WS is best-effort — polling still finishes the job
         with _jobs_lock:
             job = _jobs.get(prompt_id)
@@ -224,6 +231,8 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
         args=(base, client_id, prompt_id, _node_titles(workflow)),
         daemon=True,
     ).start()
+    with _jobs_lock:
+        _broadcast_progress(_jobs.get(prompt_id))  # push the "queued" state
 
 
 def _mark_job_result(prompt_id: str, url: str) -> None:
@@ -239,6 +248,106 @@ def _mark_job_result(prompt_id: str, url: str) -> None:
             job["done"] = True
             job["url"] = url
             job.pop("preview", None)
+    if job is not None:
+        _broadcast_progress(job)  # push "active: null" — the job settled
+
+
+# --------------------------------------------------------------------------- #
+# Live progress push (WebSocket)
+#
+# The frontend used to poll GET /api/progress every second; instead the
+# backend now PUSHES every job update over /ws/progress. The push channel is
+# fed from the same places that mutate _jobs — the per-job ComfyUI WS
+# listener threads, the binary preview handler and the result marker — via
+# loop.call_soon_threadsafe, so updates from any thread land on the event
+# loop and are fanned out to every connected client. The frontend keeps the
+# 1s polling as an automatic fallback when the WS fails (proxy/old server).
+# --------------------------------------------------------------------------- #
+_progress_clients: dict[WebSocket, asyncio.Queue] = {}
+_progress_clients_lock = threading.Lock()
+_ws_loop: asyncio.AbstractEventLoop | None = None
+_WS_SENTINEL = object()
+
+
+def _progress_payload(job: dict | None) -> dict:
+    """The wire payload for one job state, shared by GET /api/progress and
+    the /ws/progress push: {"active": {...}} while a job runs (the per-step
+    preview included when the job requested previews), {"active": None}
+    otherwise."""
+    if job is None or job.get("done"):
+        return {"active": None}
+    active = {k: job.get(k) for k in ("prompt_id", "stage", "node", "node_title", "value", "max")}
+    pv = job.get("preview")
+    if pv:
+        active["preview"] = "data:image/jpeg;base64," + base64.b64encode(pv).decode("ascii")
+    return {"active": active}
+
+
+def _broadcast_progress(job: dict | None) -> None:
+    """Push the current job state to every connected /ws/progress client.
+
+    Safe to call from ANY thread (the per-job ComfyUI listener threads call
+    it): the payload is queued onto the event loop via call_soon_threadsafe
+    and each client's sender task serializes the sends, so concurrent
+    updates can never interleave on one socket.
+    """
+    if not _progress_clients:
+        return
+    loop = _ws_loop
+    if loop is None:
+        return
+    payload = _progress_payload(job)
+    with _progress_clients_lock:
+        clients = list(_progress_clients.values())
+    for q in clients:
+        loop.call_soon_threadsafe(q.put_nowait, payload)
+
+
+@app.websocket("/ws/progress")
+async def ws_progress(ws: WebSocket) -> None:
+    """Push channel for live generation progress.
+
+    On connect the client immediately receives the current job snapshot
+    ({"active": {...}} or {"active": null}); every subsequent job update
+    (stage, step value/max, per-step preview, completion) is pushed as it
+    happens — the frontend no longer needs to poll. The connection stays
+    open until the client disconnects; if it drops, the frontend falls back
+    to polling and reconnects on the next job.
+    """
+    global _ws_loop
+    await ws.accept()
+    _ws_loop = asyncio.get_running_loop()
+    q: asyncio.Queue = asyncio.Queue()
+    with _progress_clients_lock:
+        _progress_clients[ws] = q
+    # Snapshot immediately so the client does not wait for the next update.
+    try:
+        await ws.send_json(_progress_payload(_latest_job()))
+    except Exception:
+        pass
+
+    async def sender() -> None:
+        while True:
+            payload = await q.get()
+            if payload is _WS_SENTINEL:
+                break
+            try:
+                await ws.send_json(payload)
+            except Exception:
+                break
+
+    task = asyncio.create_task(sender())
+    try:
+        while True:
+            await ws.receive_text()  # client sends nothing — wait for disconnect
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        task.cancel()
+        with _progress_clients_lock:
+            _progress_clients.pop(ws, None)
 
 
 def _latest_job() -> dict | None:
@@ -299,18 +408,12 @@ def api_progress() -> dict:
     requested previews (Generate / Edit / Video) — the frontend shows it
     only in the tab that started the generation. The preview is dropped as
     soon as the job finishes, so it is never served stale.
+
+    The primary channel for the frontend is the /ws/progress push; this
+    endpoint stays as the payload source for the polling fallback (WS
+    unavailable) and the tests.
     """
-    job = _latest_job()
-    if job is None or job.get("done"):
-        return {"active": None}
-    active = {
-        k: job.get(k)
-        for k in ("prompt_id", "stage", "node", "node_title", "value", "max")
-    }
-    pv = job.get("preview")
-    if pv:
-        active["preview"] = "data:image/jpeg;base64," + base64.b64encode(pv).decode("ascii")
-    return {"active": active}
+    return _progress_payload(_latest_job())
 
 
 @app.get("/api/last-result")
