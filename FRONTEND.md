@@ -404,6 +404,11 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 - **LoRA editor** (`modal.js`): inline rows of (LoRA name dropdown +
   strength text stepper ±0.05, default 1.0, up to 4) + "＋ Add LoRA". The
   JSON is derived on save (`advancedValues.lora` / `loraSets[path]`).
+  In **portrait (<1024px)** the row narrows the dropdown (`max-width: 60%`,
+  name truncates visually, full value kept) and locks the stepper + remove
+  to their own widths — the native `<select>` won't shrink below its
+  content width and the modal-wide `input[type=text] { width: 100% }`
+  would otherwise expand the strength field, overlapping the −/+ buttons.
   Dropdowns list ONLY the LoRAs **whose directory matches the model
   context** (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/` via
   `loraDirForContext()`) — a STRICT filter, not a priority sort: LoRAs

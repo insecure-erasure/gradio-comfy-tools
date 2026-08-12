@@ -284,6 +284,33 @@
     #tab-upscale .params-pane .result-url-row {
       flex-basis: 100%;
     }
+    /* LoRA editor (portrait): the native <select> refuses to shrink below
+       its content width (long filenames), so it stole space from the
+       strength stepper and the −/+ buttons ended up overlapped. Narrow the
+       select (the name truncates visually — the full value stays in the
+       option value) and lock the stepper + remove to their own widths.
+       No auto margins: an auto margin would eat the free space before
+       flex-grow and shove the remove button past the row edge. */
+    .lora-select {
+      flex: 1 1 0;
+      max-width: 60%;
+      min-width: 0;
+    }
+    .lora-strength {
+      flex: 0 0 auto;
+    }
+    /* Specificity 0,3,0 beats the modal-wide .modal-body .field
+       input[type=text] { width:100% } (0,2,1) and the global .stepper
+       input (0,1,1): the strength input must keep its own compact width
+       and stop growing, or the stepper expands and shoves the remove
+       button past the row edge. */
+    .modal-body .lora-row .lora-strength-input {
+      flex: 0 0 auto;
+      width: 48px;
+    }
+    .lora-row .btn-remove-lora {
+      flex: 0 0 auto;
+    }
     /* Gallery — prompt boxes (vertical): BOTH the badge box (top) and the
        Show-prompt panel (bottom) span the FULL width (small side margins),
        never narrowed — landscape keeps the fitted centered box. */
