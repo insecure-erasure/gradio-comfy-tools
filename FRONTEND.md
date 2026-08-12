@@ -712,7 +712,10 @@ the click-catcher overlay no longer sits on top of it (`.btn-col.generating
 — a click on the ⏹ cancels directly instead of hitting the invisible
 catcher. **Tap outside the prompt field** closes the portrait prompt modal
 (header / modal padding); taps on the textarea and its overlay buttons
-keep working.
+keep working — and so do the prompt-chip popovers (#chipPopover is a
+top-level element OUTSIDE .prompt-input-wrap, so the modal's outside-click
+dismiss exempts it explicitly: the 📐 select and the +/− steppers inside it
+must not close the dialog).
 16. **Gallery badge box (click-only)**: the Edited/Restored badge hides
 itself on click and shows a single box with ONLY the original prompt
 (`#galleryBadgeBox`); the Upscaled badge is informational only (no

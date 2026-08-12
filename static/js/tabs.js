@@ -351,11 +351,16 @@ function closePromptModal() {
 // Dismiss the portrait prompt modal when tapping OUTSIDE the prompt field:
 // a click on the modal's backdrop (header, empty box space) closes it, while
 // clicks on the textarea and its overlay buttons/chips (all inside
-// .prompt-input-wrap) keep working.
+// .prompt-input-wrap) keep working. The chip popover (#chipPopover) is a
+// TOP-LEVEL element (outside the wrap) but only opens from a chip inside it
+// — without this exemption, tapping the popover's own controls (📐 select,
+// the +/− steppers) would close the whole modal: the AR picker got dismissed
+// mid-selection (value never persisted) and the steppers killed the dialog
+// instantly. Portrait-only: in landscape the modal is never shown.
 document.addEventListener('click', e => {
   const modal = document.getElementById('promptModal');
   if (!modal || !modal.classList.contains('show')) return;
-  if (!e.target.closest('.prompt-input-wrap')) closePromptModal();
+  if (!e.target.closest('.prompt-input-wrap, #chipPopover')) closePromptModal();
 });
 
 // ── Prompt modal direct actions ────────────
