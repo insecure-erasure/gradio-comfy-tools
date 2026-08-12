@@ -49,7 +49,7 @@ from tools.video import MODEL_VERSIONS, generate_video
 
 REPO = Path(__file__).resolve().parent
 
-# Modular frontend: mockup.html stays as the design template/spec, the
+# Modular frontend: docs/mockup.html stays as the design template/spec, the
 # working copy is split into Jinja2 partials (templates/) + static assets.
 TEMPLATES = Jinja2Templates(directory=REPO / "templates")
 STATIC_DIR = REPO / "static"

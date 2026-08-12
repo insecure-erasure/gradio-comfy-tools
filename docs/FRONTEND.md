@@ -1,11 +1,11 @@
 # Frontend Design — Comfy Tools
 
-> **Source of truth: the code** (`templates/` + `static/`). `mockup.html` is the
+> **Source of truth: the code** (`templates/` + `static/`). `docs/mockup.html` is the
 > historical design template/spec and is **never edited for functionality**;
 > the working UI has evolved beyond it (see the deviations listed in §8).
 > If this document conflicts with the code, the code wins.
 >
-> Backend spec in `BACKEND.md`, implementation plan in `PLAN.md`.
+> Backend spec in `docs/BACKEND.md`, implementation plan in `docs/PLAN.md`.
 
 ## 1. Layout
 
@@ -341,7 +341,7 @@ kept above the keyboard**: when it is focused, `keepSourceFieldVisible`
 the keyboard — only the visual one does, so the field at the bottom of
 output pane would otherwise be covered). Only on <768px and only for the
 focused field. The value feeds the tool's `image` input
-(filename-vs-URL auto-detection, BACKEND.md §6); empty on generate →
+(filename-vs-URL auto-detection, docs/BACKEND.md §6); empty on generate →
 warning toast.
 
 **✓ Confirm** (`confirmSourceUrl` in `source.js`): validates the field value
@@ -371,7 +371,7 @@ the result lands, so it cannot be resurrected by `stopProgressPolling` and
 push the `<video>` aside. In the other tabs the preview behaves as before.
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
-BACKEND.md §6): external URL → checked directly; anything else → treated as
+docs/BACKEND.md §6): external URL → checked directly; anything else → treated as
 a ComfyUI temp filename, checked against `{media_base}/view?type=temp`
 (the same `source="temp"` decision `configure_image_node` makes).
 
@@ -666,7 +666,7 @@ never shown):
 
 ## 8. Deviations from the mockup (code is source of truth)
 
-These are intentional, user-driven changes over the original `mockup.html`:
+These are intentional, user-driven changes over the original `docs/mockup.html`:
 
 1. **Nav**: ☰ hamburger settings at top-left (was "🎨 Comfy Tools ▾" at
    right); per-tab model/gear/reset toolbar at right (was in the params

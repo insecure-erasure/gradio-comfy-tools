@@ -1,6 +1,6 @@
 """Sync ComfyUI REST client (no Gradio dependency).
 
-Contract validated against ComfyUI 0.29.1 — see PLAN.md §A0:
+Contract validated against ComfyUI 0.29.1 — see docs/PLAN.md §A0:
 
     GET  /system_stats                health
     POST /upload/image                multipart upload -> temp filename

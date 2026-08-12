@@ -72,10 +72,11 @@ Web application with four image and video tools powered by ComfyUI:
 
 ## Technical documentation
 
-- `BACKEND.md` — architecture and ComfyUI integration.
-- `FRONTEND.md` — interface specification.
-- `DESIGN.md` — design overview.
-- `PLAN.md` — implementation plan status.
+- `docs/BACKEND.md` — architecture and ComfyUI integration.
+- `docs/FRONTEND.md` — interface specification.
+- `docs/DESIGN.md` — design overview.
+- `docs/PLAN.md` — implementation plan status.
+- `docs/mockup.html` — design template/spec (never edited for functionality).
 
 ## License
 

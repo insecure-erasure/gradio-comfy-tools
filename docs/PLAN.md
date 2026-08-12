@@ -1,7 +1,7 @@
 # PLAN — gradio-comfy-tools
 
-Phase-based implementation of the project (spec in `FRONTEND.md` / `BACKEND.md`,
-UI in `mockup.html`, workflows in `workflows/`). The plan has **two parts**:
+Phase-based implementation of the project (spec in `docs/FRONTEND.md` / `docs/BACKEND.md`,
+UI in `docs/mockup.html`, workflows in `workflows/`). The plan has **two parts**:
 
 - **Part A — Backend** (this document, §A0–A6): ComfyUI infrastructure + one
   tool per tab. **DONE + validated manually.**
@@ -214,7 +214,7 @@ filenames between steps; green apple rotating video confirmed.
 2. `pytest` green (55 tests, MockTransport) ✅
 3. Smoke + CLI of the 4 tabs manually validated (A1–A4) ✅
 4. Full chain A5 validated ✅
-5. All of BACKEND.md §5–§6 implemented ✅
+5. All of docs/BACKEND.md §5–§6 implemented ✅
 
 ---
 
@@ -228,7 +228,7 @@ source of truth per FRONTEND.md). A Gradio experiment lived on branch
 puppeteer it still felt crude, so it was abandoned in favor of serving the
 mockup directly.
 
-- **`mockup.html`** = the design template/spec — **never edited for functionality**.
+- **`docs/mockup.html`** = the design template/spec — **never edited for functionality**.
 - **`templates/` + `static/`** = a modular working copy of the mockup (Jinja2
   partials per tab + one JS module per concern + CSS split by role). The fake
   buttons call the real backend. This is the page served at `/`.
@@ -277,7 +277,7 @@ mockup directly.
   (`switchTab` rebuilds `#btnCol` with fresh buttons); released in each
   tool's `.finally()`.
 - `showResult()` removes only previous result/placeholder, keeps overlays.
-- Compare slider ported from `../open-webui-comfy-tools/compare_images`
+- Compare slider ported from `../../open-webui-comfy-tools/compare_images`
   (two stacked `<img>`, `clip-path` via `--p`, pointer drag/hover).
 - Upload via hidden `<input type=file>` → `POST /api/upload`.
 - 🎨 settings menu (theme + server/media base URL) → `GET/POST /api/settings`
@@ -304,7 +304,7 @@ mockup directly.
   values, toolbar selections and theme survive page reloads.
 - Video tab: **custom player** (`static/js/player.js` — bottom-centered
   ▶/⏸ + ⋮ controls, accent progress line, click/dblclick + fullscreen ⛶
-  button; see FRONTEND.md §3.4), Wan 2.1/2.2 selector,
+  button; see docs/FRONTEND.md §3.4), Wan 2.1/2.2 selector,
   frames/steps/seed wired to `/api/video`; negative prompt in the modal.
 - Upscale tab: special compact layouts (portrait seed+🔍 in pane; landscape
   🔍 above URL row).
@@ -468,7 +468,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   pane; portrait: the compact bar field holds the action chips (generate
   without the modal), and the fullscreen prompt modal shows the ✕ + big
   pills (🪄/🩹/✨). Upscale (no prompt) keeps its seed control in the
-  params pane. See FRONTEND.md §8.14–8.16.
+  params pane. See docs/FRONTEND.md §8.14–8.16.
 - **FIX (2026-08-09)**: **videos unplayable in portrait** — the `/media`
   proxy buffered the whole file before responding, so `<video>` (which
   issues Range requests) couldn't play until the full Wan MP4 downloaded.
@@ -487,7 +487,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   fullscreen, kept in sync by `fullscreenchange`), **single click toggles
   play/pause, double click toggles fullscreen** (controls excluded),
   portrait uses larger touch targets. Autoplay muted loop kept. See
-  FRONTEND.md §3.4.
+  docs/FRONTEND.md §3.4.
 - **DONE (2026-08-10)**: video player polish — the ▶/⏸ button now **follows
   the playback state** (⏸ playing / ▶ paused, synced via `play`/`pause`/
   `ended`; previously the glyph froze on ⏸ because `setGlyph` was only
@@ -502,7 +502,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   the page). The 12px hit area is flush with the pane's bottom overlay
   buttons (📁/🔗, URL field — bottom:12px) so they stay fully clickable.
   `role=slider` + aria attrs on the bar; a `seeked` listener repaints the
-  fill when paused. See FRONTEND.md §3.4.
+  fill when paused. See docs/FRONTEND.md §3.4.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +
@@ -560,7 +560,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     N/M counter bottom-right. The badge AND Show-prompt button are NOT
     shown in video mode (the player fills the overlay). The result still
     carries a `data-video-gallery="1"` marker; videos are collected in
-    `window.galleryVideos` and persisted like the images (see FRONTEND.md §7.1).
+    `window.galleryVideos` and persisted like the images (see docs/FRONTEND.md §7.1).
 - **FIX (2026-08-08, superseded 2026-08-11)**: **LoRA modals broken on Windows (dual-boot)** — the
   server (`http://akari.home`, now booted into Windows) returns LoRA names
   with `\` separators (`flux2\...`), but `loraOptionsForContext()` matched

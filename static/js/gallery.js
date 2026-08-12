@@ -31,7 +31,7 @@
 //
 // Close ✕ is top-RIGHT, download top-LEFT (inverted vs the reference —
 // project decision). Video results are only COLLECTED (data-video-gallery
-// marker + window.galleryVideos) for a future video gallery — see PLAN.md.
+// marker + window.galleryVideos) for a future video gallery — see docs/PLAN.md.
 
 const galleryOverlay = document.getElementById('galleryOverlay');
 const galleryBig = document.getElementById('galleryBig');

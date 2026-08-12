@@ -1,8 +1,8 @@
 # Backend Design — Comfy Tools
 
-> **Implementation reference: the tools in `../open-webui-comfy-tools`** (`smart_generate_image/`, `edit_image/`, `upscale_image/`, `generate_video/`). Our backend reimplements their behavior (workflow injection, parameter semantics, ComfyUI REST) without Open WebUI plumbing.
+> **Implementation reference: the tools in `../../open-webui-comfy-tools`** (`smart_generate_image/`, `edit_image/`, `upscale_image/`, `generate_video/`). Our backend reimplements their behavior (workflow injection, parameter semantics, ComfyUI REST) without Open WebUI plumbing.
 >
-> The contract with the UI is `FRONTEND.md`; here every UI control maps to a backend parameter and a workflow node.
+> The contract with the UI is `docs/FRONTEND.md`; here every UI control maps to a backend parameter and a workflow node.
 
 ## 1. Architecture
 
@@ -11,7 +11,7 @@
 | `server.py` | FastAPI app: renders the modular UI (`templates/` + `static/`) + the REST API that calls `tools/`; proxies results via `/media` |
 | `comfy_client.py` | ComfyUI REST client: queue, polling, upload, output URLs |
 | `tools/` | One module per tool: workflow JSON loading + parameter injection by node title |
-| `workflows/` | The workflow JSONs imported from `../open-webui-comfy-tools` |
+| `workflows/` | The workflow JSONs imported from `../../open-webui-comfy-tools` |
 
 ## 2. ComfyUI integration (comfy_client.py)
 
@@ -96,9 +96,9 @@
 
 ## 3. Workflow injection pattern (tools/)
 
-Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../open-webui-comfy-tools` (listed in the contract tables of §5).
+Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../../open-webui-comfy-tools` (listed in the contract tables of §5).
 
-Workflow JSONs are copied from `../open-webui-comfy-tools/<tool>/` into `workflows/` (unmodified unless documented).
+Workflow JSONs are copied from `../../open-webui-comfy-tools/<tool>/` into `workflows/` (unmodified unless documented).
 
 ## 4. Configuration model
 
@@ -227,7 +227,7 @@ fields (model, LoRA/diffusion config):
 - Session galleries (frontend), **persisted to localStorage**:
   `window.galleryGenerated` (generations + transformations),
   `window.galleryComparisons` (edited/restored/upscaled before/after pairs)
-  and `window.galleryVideos` (generated videos) — see FRONTEND.md §7.
+  and `window.galleryVideos` (generated videos) — see docs/FRONTEND.md §7.
 
 ## 9. Implementation notes
 

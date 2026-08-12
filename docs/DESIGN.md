@@ -2,8 +2,8 @@
 
 > **This document is the architecture overview.** The detailed specifications live in:
 >
-> - **`FRONTEND.md`** — UI specification. **Source of truth: the code** (`templates/` + `static/`); the mockup is the historical design template.
-> - **`BACKEND.md`** — Service layer specification. **Implementation reference: the tools in `../open-webui-comfy-tools`** (workflows, injection pattern, parameter semantics).
+> - **`docs/FRONTEND.md`** — UI specification. **Source of truth: the code** (`templates/` + `static/`); the mockup is the historical design template.
+> - **`docs/BACKEND.md`** — Service layer specification. **Implementation reference: the tools in `../../open-webui-comfy-tools`** (workflows, injection pattern, parameter semantics).
 
 ## Overview
 
@@ -12,7 +12,7 @@ single multi-tab web application. Each tool occupies its own tab, sharing a
 consistent layout: generation output on the left, parameters on the right,
 and a full-width prompt bar at the bottom.
 
-| Tab | Tool | Workflow(s) | Reference (../open-webui-comfy-tools) |
+| Tab | Tool | Workflow(s) | Reference (../../open-webui-comfy-tools) |
 |---|---|---|---|
 | 🖼️ Generate | smart_generate_image | `smart_generate_image.json` | `smart_generate_image/` |
 | ✏️ Edit | edit_image | `edit_image.json` | `edit_image/` |
@@ -22,10 +22,10 @@ and a full-width prompt bar at the bottom.
 ## Sources of truth
 
 - **UI**: the **code** (`templates/` + `static/`) is the source of truth for
-  the frontend. `mockup.html` is the historical design template/spec (never
-  edited for functionality); `FRONTEND.md` documents the current behavior and
+  the frontend. `docs/mockup.html` is the historical design template/spec (never
+  edited for functionality); `docs/FRONTEND.md` documents the current behavior and
   the deviations from the mockup.
-- **Backend**: the Open WebUI tools in `../open-webui-comfy-tools` are the reference for workflow injection, parameter semantics (seed, steps, frames, LoRAs) and ComfyUI REST API interaction. Our backend reimplements the same behavior without Open WebUI-specific plumbing (valves, embeds, HTMLResponse).
+- **Backend**: the Open WebUI tools in `../../open-webui-comfy-tools` are the reference for workflow injection, parameter semantics (seed, steps, frames, LoRAs) and ComfyUI REST API interaction. Our backend reimplements the same behavior without Open WebUI-specific plumbing (valves, embeds, HTMLResponse).
 
 ## Architecture
 
@@ -48,7 +48,7 @@ and a full-width prompt bar at the bottom.
 └───────────────────────────────────────────────────────────────┘
 ```
 
-- **`mockup.html`** = the design template/spec (source of truth for the UI,
+- **`docs/mockup.html`** = the design template/spec (source of truth for the UI,
   never edited for functionality).
 - **`templates/` + `static/`** = a modular working copy of the mockup (Jinja2
   partials per tab, JS module per concern, CSS by role) where the fake buttons
@@ -93,7 +93,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
    Video), each opening a small popover with the controls; Upscale (no
    prompt) keeps its 🌱 seed control directly in the params pane. The
    prompt fills the whole params pane in landscape; in portrait the chips
-   live inside the fullscreen prompt modal (see FRONTEND.md §8.14).
+   live inside the fullscreen prompt modal (see docs/FRONTEND.md §8.14).
 9. **Theme via manual toggle** in the 🎨 dropdown (no `prefers-color-scheme`).
 10. **Global config, no override layers** — the app is single-user: no admin/user hierarchy, no "Override system LoRAs"; `COMFYUI_BASE_URL` and `COMFYUI_MEDIA_BASE_URL` are global settings in the 🎨 dropdown, not per-tool.
 11. **Source image URL field** — Edit/Upscale/Video have a transparent text
@@ -102,22 +102,22 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
     per tab. Added to the mockup (was not in the original design, which
     only had attachment buttons in the prompt bar).
 12. **Parameter chips + portrait prompt modal actions** — see the design
-    details in FRONTEND.md §3 and §8.14–8.16.
+    details in docs/FRONTEND.md §3 and §8.14–8.16.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `DESIGN.md` | This overview |
-| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; queue position + true concurrent tabs parked indefinitely (2026-08-12 decision) — see §B5 |
-| `FRONTEND.md` | UI specification — the **code** (`templates/` + `static/`) is the source of truth; `mockup.html` is the historical spec |
-| `BACKEND.md` | Service specification — the open-webui tools are the reference |
-| `mockup.html` | Design template/spec — never edited for functionality |
+| `docs/DESIGN.md` | This overview |
+| `docs/PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; queue position + true concurrent tabs parked indefinitely (2026-08-12 decision) — see §B5 |
+| `docs/FRONTEND.md` | UI specification — the **code** (`templates/` + `static/`) is the source of truth; `docs/mockup.html` is the historical spec |
+| `docs/BACKEND.md` | Service specification — the open-webui tools are the reference |
+| `docs/mockup.html` | Design template/spec — never edited for functionality |
 | `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |
 | `server.py` | FastAPI app — renders templates/ + serves static/ + the API (reuses tools/) |
-| `comfy_client.py` | ComfyUI REST client (implemented — see PLAN.md A0) |
+| `comfy_client.py` | ComfyUI REST client (implemented — see docs/PLAN.md A0) |
 | `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
-| `workflows/` | ComfyUI workflow JSON files (copied from `../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
+| `workflows/` | ComfyUI workflow JSON files (copied from `../../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
 | `scripts/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 scripts/check_env.py [BASE_URL]` |
 | `scripts/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
 | `scripts/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
