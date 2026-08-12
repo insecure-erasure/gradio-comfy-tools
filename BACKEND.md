@@ -51,8 +51,17 @@
   `execution_success`) and updates an in-memory `_jobs` store (stage, node,
   node_title, value/max, done, error). The WS is best-effort: if it fails,
   the existing `wait_for_output` polling still completes the job.
-- `GET /api/progress` exposes the most recent active job — the frontend
-  polls it and paints the stage in the result URL row.
+- `GET /api/progress` exposes the most recent active job — it is the payload
+  source for the /ws/progress push and stays as the polling fallback.
+- **Push to the browser**: every `_jobs` mutation (queued, stage, step
+  value/max, per-step preview, completion) is broadcast over **`/ws/progress`**
+  (`_broadcast_progress` + `_progress_payload` in `server.py`): the
+  broadcaster is thread-safe (updates from the ComfyUI listener threads land
+  on the event loop via `call_soon_threadsafe` into per-client queues, and a
+  sender task per connection serializes the sends). The frontend connects on
+  job start, receives a snapshot immediately and every update as it happens
+  — **no more 1s polling**; if the WS fails it falls back to polling
+  `/api/progress` (same payload shape, same painter).
 - **Live per-step previews** (Generate, Edit and Video) use the same
   mechanism the ComfyUI web UI uses — no preview node needed:
   - The tools queue with `extra_data={"preview_method": "auto"}` (the CLI

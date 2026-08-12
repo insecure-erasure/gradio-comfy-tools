@@ -324,14 +324,19 @@ mockup directly.
 
 ## B5. Live events + queue (partially implemented — progress painted in the URL row)
 
-> **Status 2026-08-08**: the **numeric stage progress is DONE** — `comfy_client`
+> **Status 2026-08-12**: the **numeric stage progress is DONE** — `comfy_client`
 > materializes the client_id + fires prompt hooks; `server.py` spawns a per-job
-> WebSocket listener (same clientId) and exposes `GET /api/progress`; the
-> frontend polls it and paints the stage in the result URL row (`⏳ Queued…` →
-> `⚙️ SamplerCustomAdvanced 4/8` → URL). Verified live against the server
-> (ComfyUI 0.27.0). **Remaining from B5**: queue position and true
-> concurrent tabs (the polling endpoint is single-user "most recent job").
-> Live per-step previews are DONE (see "What remains from B5" below).
+> WebSocket listener (same clientId) and PUSHES every `_jobs` update over
+> `/ws/progress` (`_broadcast_progress`, thread-safe via
+> `call_soon_threadsafe` + per-client queues); the frontend connects on job
+> start and paints the stage in the result URL row (`⏳ Queued…` →
+> `⚙️ SamplerCustomAdvanced 4/8` → URL) — the 1s polling of
+> `/api/progress` is now only a fallback when the WS fails. Verified live
+> against the server (ComfyUI 0.27.0): 9-step Z-Image Turbo pushed queued →
+> per-node stages → 34 preview frames 1/9..9/9 → `active: null`.
+> **Remaining from B5**: queue position and true concurrent tabs (the
+> store is single-user "most recent job"). Live per-step previews are DONE
+> (see "What remains from B5" below).
 
 ### ComfyUI state API (verified 2026-08-07, ComfyUI 0.29.1)
 
@@ -430,9 +435,11 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     a ~75KB data-URL preview mid-generation, job finished → `active: null`.
     Probe script `scripts/probe_previews.py` documents the raw protocol
     (4 previews per 4-step run for flux2 and krea2).
-- **DONE**: per-job WS listener (daemon thread, same clientId) + `GET
-  /api/progress` + the UI paints the stage/% in the result URL row
-  (polling; the blocking `wait_for_output` stays as the completion fallback).
+- **DONE**: per-job WS listener (daemon thread, same clientId) + `/ws/progress`
+  push (`_broadcast_progress`, thread-safe) + the UI paints the stage/% in
+  the result URL row (the 1s polling of `/api/progress` remains only as a
+  fallback when the WS fails; the blocking `wait_for_output` stays as the
+  completion fallback).
 - **DONE**: **⏹ Cancel (by transformation)** — while a generation runs the
   action button that started it (✨/🖌️/🩹/🔍/🎬) transforms into the ⏹
   stop button (like 🪄→⏹; `makeStopButton`/`restoreStopButton` in api.js);

@@ -468,15 +468,20 @@ The ↺ resets restore parameters and clear the pane (and the URL row), but
 button (the old clearPane registry-drop was removed).
 
 **While a generation runs**, the same row shows **live progress** instead of
-the URL (`startProgressPolling` in `api.js`): it polls `GET /api/progress`
-every second and paints the current stage — `⏳ Queued…`, then `⚙️ <node
-_title> <value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI
-moves node to node. On success the URL replaces the progress text; on error
-the row is cleared (the error toast appears as before).
+the URL (`startProgressPolling` in `api.js`): the backend PUSHES every job
+update over the **`/ws/progress` WebSocket** (opened on job start) and the
+page paints the current stage — `⏳ Queued…`, then `⚙️ <node_title>
+<value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI moves node
+to node. The classic 1s polling of `GET /api/progress` is kept ONLY as an
+automatic fallback when the WS is unavailable (`wsProgressFailed` in
+api.js) — same payload shape, same painter. On success the URL replaces the
+progress text; on error the row is cleared (the error toast appears as
+before).
 
 **Live per-step preview** (Generate, Edit and Video): while the job runs,
-`/api/progress` also carries the latest latent decode (`active.preview`, a
-JPEG data URL). `startProgressPolling` paints it as an `<img class="preview-live">`
+the `/ws/progress` push also carries the latest latent decode
+(`active.preview`, a JPEG data URL). `startProgressPolling` paints it as an
+`<img class="preview-live">`
 inside the output pane of the tab that started the generation, and ONLY
 while that tab is active — switching tabs mid-generation keeps capturing
 server-side but stops painting; coming back resumes with the latest frame.

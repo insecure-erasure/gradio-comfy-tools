@@ -289,17 +289,21 @@ function randomSeed() {
   return Math.floor(Math.random() * 4294967296);
 }
 
-// ── Live progress (B5-lite) ────────────────
-// While a generation runs, poll GET /api/progress and paint the current
-// stage into the result URL row (the same area that shows the generation
-// URL on completion). The URL replaces the progress text on success; on
-// error the row is cleared. Polling stops when the request settles.
+// ── Live progress (pushed over WebSocket, polling fallback) ──
+// While a generation runs, the backend PUSHES every job update over
+// /ws/progress (stage, step value/max, per-step preview, completion) and
+// this paints them into the result URL row (the same area that shows the
+// generation URL on completion). The old 1s polling of GET /api/progress
+// is kept ONLY as an automatic fallback when the WS fails to connect
+// (proxy / old server) — same payload shape, same painter, so the UI never
+// notices which channel delivered the update.
 //
 // During the generation the 📋 copy button (disabled) is HIDDEN — the row
 // shows the live progress text; when the generation settles the copy
 // button comes back (enabled once a result URL is shown). The stop button
 // is the action button itself transformed into ⏹ (see makeStopButton).
-let progressTimer = null;
+let progressTimer = null;   // polling fallback interval — ALSO the "job running" marker
+let progressWs = null;      // the live progress WebSocket (null when closed/failed)
 let userCancelled = false;
 
 // Per-tool handler to finalize a result whose fetch was lost (background
@@ -368,62 +372,99 @@ function startProgressPolling() {
   liveJobTab = currentTab; // tab that initiated the generation
   const copy = document.getElementById('btnCopyUrl');
   if (copy) copy.style.display = 'none'; // the row shows progress while generating
-  paintProgress();
+  progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
+  openProgressWs();   // push channel — falls back to polling if it fails
+  paintProgress();    // immediate paint (the WS snapshot arrives on connect too)
+}
+
+// Connect the live progress WebSocket. The backend pushes each job update
+// (same payload as /api/progress); on any failure the job falls back to the
+// classic 1s polling (wsProgressFailed) — the painter is shared, so the UI
+// never notices which channel delivered the update.
+function openProgressWs() {
+  let ws;
+  try {
+    const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host + '/ws/progress');
+  } catch (e) { wsProgressFailed(); return; }
+  progressWs = ws;
+  ws.onopen = () => {};
+  ws.onmessage = ev => {
+    let j;
+    try { j = JSON.parse(ev.data); } catch (e) { return; }
+    applyProgress(j);
+  };
+  ws.onerror = () => wsProgressFailed();
+  ws.onclose = () => wsProgressFailed();
+}
+
+// The WS died (connect failure or mid-job drop): fall back to polling for
+// the rest of this job. stopProgressPolling nulls progressWs FIRST, so a
+// deliberate close never triggers this.
+function wsProgressFailed() {
+  if (!progressWs) return;
+  progressWs = null;
+  clearInterval(progressTimer);
   progressTimer = setInterval(paintProgress, 1000);
 }
 
-// Paint the current job stage into the result URL row (and the live
-// per-step preview). Named so visibilitychange can re-paint immediately
-// when the tab regains focus — background tabs get their setInterval
-// throttled/suspended by the browser, which froze the last progress line.
+// Paint one progress payload (shared by the WS push and the polling
+// fallback) into the result URL row + the live per-step preview. Named so
+// visibilitychange can re-paint immediately when the tab regains focus.
+function applyProgress(j) {
+  const el = document.getElementById('resultUrl');
+  if (!el) return;
+  const a = j && j.active;
+  if (!a) {
+    // The job finished (active:null). If a fetch was lost and the result
+    // was never shown, recover it now (also fires on focus return).
+    if (recoverPending) tryRecoverResult();
+    return; // no active job — leave the last painted text until the request settles
+  }
+  let txt;
+  if (a.stage === 'queued') {
+    txt = '⏳ Queued…';
+  } else if (a.stage === 'running') {
+    txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
+    if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
+  } else {
+    txt = '⚙️ ' + (a.node_title || '');
+  }
+  el.textContent = txt;
+  el.title = ''; // progress text is not a URL — no stale tooltip from a previous result
+  // Live per-step preview (any tab): paint the latest latent decode in
+  // the output pane of the tab that started the job, and ONLY while the
+  // user is on that tab (switching away pauses the painting; coming
+  // back resumes it with the latest frame). The spinner stays on top.
+  if (a.preview && liveJobTab && liveJobTab === currentTab) {
+    const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
+    if (pane) {
+      let pv = pane.querySelector('.preview-live');
+      if (!pv) {
+        // The preview must fill the pane and stay centered: hide (not
+        // remove) whatever competes for space — placeholder, previous
+        // result, source preview, compare slider, video mock. Overlays
+        // (spinner, buttons) stay. liveHidden is restored by
+        // stopProgressPolling on cancel.
+        liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
+        liveHidden.forEach(el => { el.style.display = 'none'; });
+        pv = document.createElement('img');
+        pv.className = 'preview-live';
+        pv.alt = 'Live preview';
+        pane.appendChild(pv);
+      }
+      pv.src = a.preview;
+    }
+  }
+}
+
+// Polling fallback: fetch the current job state and paint it. Only active
+// when the WebSocket is unavailable (wsProgressFailed).
 async function paintProgress() {
   try {
     const resp = await fetch('/api/progress');
     const j = await resp.json();
-    const el = document.getElementById('resultUrl');
-    if (!el) return;
-    const a = j.active;
-    if (!a) {
-      // The job finished (active:null). If a fetch was lost and the result
-      // was never shown, recover it now (also fires on focus return).
-      if (recoverPending) tryRecoverResult();
-      return; // no active job — leave the last painted text until the request settles
-    }
-    let txt;
-    if (a.stage === 'queued') {
-      txt = '⏳ Queued…';
-    } else if (a.stage === 'running') {
-      txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
-      if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
-    } else {
-      txt = '⚙️ ' + (a.node_title || '');
-    }
-    el.textContent = txt;
-    el.title = ''; // progress text is not a URL — no stale tooltip from a previous result
-    // Live per-step preview (any tab): paint the latest latent decode in
-    // the output pane of the tab that started the job, and ONLY while the
-    // user is on that tab (switching away pauses the painting; coming
-    // back resumes it with the latest frame). The spinner stays on top.
-    if (a.preview && liveJobTab && liveJobTab === currentTab) {
-      const pane = document.getElementById(TAB_PANE_IDS[liveJobTab]);
-      if (pane) {
-        let pv = pane.querySelector('.preview-live');
-        if (!pv) {
-          // The preview must fill the pane and stay centered: hide (not
-          // remove) whatever competes for space — placeholder, previous
-          // result, source preview, compare slider, video mock. Overlays
-          // (spinner, buttons) stay. liveHidden is restored by
-          // stopProgressPolling on cancel.
-          liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
-          liveHidden.forEach(el => { el.style.display = 'none'; });
-          pv = document.createElement('img');
-          pv.className = 'preview-live';
-          pv.alt = 'Live preview';
-          pane.appendChild(pv);
-        }
-        pv.src = a.preview;
-      }
-    }
+    applyProgress(j);
   } catch (e) { /* server busy — ignore */ }
 }
 
@@ -440,7 +481,11 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function stopProgressPolling() {
-  if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
+  clearInterval(progressTimer);
+  progressTimer = null;
+  // Close the live WS (if any). Null it FIRST so its onclose handler never
+  // triggers the polling fallback.
+  if (progressWs) { const w = progressWs; progressWs = null; try { w.close(); } catch (e) {} }
   const copy = document.getElementById('btnCopyUrl');
   if (copy) copy.style.display = ''; // restore the copy button (enabled once a result URL shows)
   liveJobTab = null;
