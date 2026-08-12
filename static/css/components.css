@@ -1689,10 +1689,11 @@
   .gallery-badge-box.show { display: flex; }
   .gallery-btn {
     position: absolute;
-    /* Above the prompt boxes (z 1100): the boxes are now scrollable and
-       capture pointer events, so the corner/nav buttons must stay on top
-       to remain clickable where the box overlaps them. */
-    z-index: 1200;
+    /* BELOW the prompt boxes (z 1100): an open box must stay on top of
+       every other overlay control. Where the box covers a button, the
+       first tap closes the box (tap-anywhere contract) and the button
+       works on the next tap — deliberate progressive dismiss. */
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1720,7 +1721,7 @@
   .gallery-counter {
     position: absolute;
     bottom: 14px; right: 14px;
-    z-index: 1200;              /* above the prompt boxes (z 1100) — see .gallery-btn */
+    z-index: 1000;              /* below the prompt boxes (z 1100) — see .gallery-btn */
     display: none;
     align-items: center;
     justify-content: flex-start;   /* left-aligned text (family rule) */

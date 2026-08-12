@@ -613,7 +613,11 @@ never shown):
     **portrait (<1024px) BOTH expand to the full screen width** (margins
     0 12px, box width 100%) — landscape keeps the fitted box.
     The panel's overlay layer is pointer-transparent, so the image and
-    the gallery buttons stay usable. It hides on pointer leave (grace
+    the gallery buttons stay usable. An open box renders ABOVE the
+    overlay controls (✕, ⬇, ‹ ›, 🗑️, counter): where the box covers a
+    button, the first tap closes the box (tap-anywhere) and the button
+    works on the next tap — deliberate progressive dismiss. It hides on
+    pointer leave (grace
     delay), Escape, gallery navigation (‹ › / ←/→) and gallery close;
     navigation also closes the badge box. **Any open text box closes on a
     click anywhere** (image, box, backdrop) via `closeTextBoxes()`, which
