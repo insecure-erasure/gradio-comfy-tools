@@ -82,6 +82,13 @@ function generateUpscale() {
       recoverPending = true; // job still running — resolve on completion
       return;
     }
+    if (!userCancelled) {
+      // Transport error — the backend still polls ComfyUI and records the
+      // result on completion; enter recovery (see video.js catch).
+      recoverPending = true;
+      showToast('⚠️ Connection lost — waiting for the result…');
+      return;
+    }
     syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {

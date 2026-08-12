@@ -104,6 +104,15 @@ function generateVideo() {
       recoverPending = true;
       return;
     }
+    if (!userCancelled) {
+      // A transport error (proxy reset, network blip, backend restart) is
+      // NOT a job failure — the backend keeps polling ComfyUI and records
+      // the result on completion. Enter recovery instead of giving up; the
+      // UI stays locked until the result lands (or the safety net fires).
+      recoverPending = true;
+      showToast('⚠️ Connection lost — waiting for the result…');
+      return;
+    }
     syncResultUrl('w+', null);
     showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
   }).finally(() => {

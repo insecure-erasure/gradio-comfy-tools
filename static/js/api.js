@@ -342,7 +342,7 @@ async function tryRecoverResult() {
     // but before the URL was recorded — permanently lost the result.)
     if (!j.url) {
       clearTimeout(_recoverRetryTimer);
-      _recoverRetryTimer = setTimeout(tryRecoverResult, 2000);
+      _recoverRetryTimer = setTimeout(tryRecoverResult, 500);
       return;
     }
     // Build the same-origin display URL from the recovered {base}/view URL.
@@ -528,13 +528,16 @@ async function paintProgress() {
 // When the tab regains focus, re-paint immediately (setInterval is
 // throttled/suspended in background tabs, which left the progress line
 // frozen). Also re-assert the generation lock UI (a switch mid-job already
-// handles the buttons; this covers the focus-loss case).
+// handles the buttons; this covers the focus-loss case) and re-sync the
+// galleries from the on-disk history (a backgrounded tab may have missed
+// completions).
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) return;
   if (progressTimer) {
     paintProgress();          // re-sync the progress line immediately
     tryRecoverResult();       // recover a result whose fetch died in background
   }
+  backfillGalleries();        // the session may have missed completions
 });
 
 function stopProgressPolling() {
@@ -615,6 +618,67 @@ function finalizeRecoveredJob(tool, res) {
   showToast('✅ Generation finished');
 }
 
+// Backfill the persisted galleries (window.galleryVideos / galleryGenerated /
+// galleryComparisons) from the backend's on-disk history (/api/history).
+// Used when the current session may have missed results — the original tab
+// was closed/discarded, the browser or device changed, or a fetch was lost.
+// Each history entry becomes a gallery entry IF it is not already present
+// (matched by filename) and IF the file still exists on the ComfyUI host
+// (videos are temp files that get cleaned on restart — a missing file is
+// skipped, matching the gallery's own video behavior). Then the panes + nav
+// re-sync so the result is actually viewable.
+async function backfillGalleries() {
+  let entries = [];
+  try {
+    const r = await fetch('/api/history');
+    const j = await r.json();
+    entries = (j && j.entries) || [];
+  } catch (e) { return; }
+  if (!entries.length) return;
+  const display = (h) => '/media/' + encodeURIComponent(h.filename) + '?type=' + (h.type || 'output');
+  const present = (arr, fn) => {
+    if (!Array.isArray(arr)) return false;
+    return arr.some(e => (e.filename || '') === fn);
+  };
+  for (const h of entries) {
+    if (!h.filename) continue;
+    if (h.tool === 'video') {
+      if (!present(window.galleryVideos, h.filename)) {
+        window.galleryVideos.push({
+          src: display(h),
+          url: h.url,
+          prompt: h.prompt || '',
+          filename: h.filename,
+        });
+      }
+    } else if (h.tool === 'generate') {
+      if (!present(window.galleryGenerated, h.filename)) {
+        window.galleryGenerated.push({
+          src: display(h),
+          url: h.url,
+          prompt: h.prompt || '',
+          filename: h.filename,
+        });
+      }
+    } else if (h.tool === 'edit' || h.tool === 'upscale') {
+      if (!present(window.galleryComparisons, h.filename)) {
+        window.galleryComparisons.push({
+          src: display(h),
+          url: h.url,
+          prompt: h.prompt || '',
+          kind: h.tool,
+          tab: h.tool,
+        });
+      }
+    }
+  }
+  if (entries.length) {
+    savePersistedState();
+    if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
+    if (typeof restoreActiveTabResult === 'function') restoreActiveTabResult();
+  }
+}
+
 // Adopt a generation that was running when the page (re)loaded: the browser
 // can discard a backgrounded tab under memory pressure (reloading it on
 // focus), or the user may reload mid-generation. sessionStorage remembers
@@ -624,6 +688,10 @@ function finalizeRecoveredJob(tool, res) {
 // backend records the result URL on completion, so /api/last-result always
 // resolves it). Called from main.js after startup.
 async function adoptRunningJob() {
+  // Even with no marker, the on-disk history may hold results this session
+  // missed (closed tab, other browser/device) — backfill the galleries so
+  // the user can view them with the tool.
+  backfillGalleries();
   let marker = null;
   try { marker = JSON.parse(sessionStorage.getItem(JOB_MARKER_KEY) || 'null'); } catch (e) {}
   if (!marker || !marker.tool) return;

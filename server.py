@@ -100,6 +100,68 @@ _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 _MAX_JOBS = 20
 
+# ── Persisted result history ──────────────────────
+# The in-memory job store dies with the server process; this on-disk JSON
+# survives page reloads, browser/device changes and server restarts, so a
+# generation finished (or still running) can be recovered and shown in the
+# gallery from ANY client. Written on every job completion.
+_HISTORY_FILE = REPO / "job_history.json"
+_HISTORY_LOCK = threading.Lock()
+_MAX_HISTORY = 50
+
+
+def _load_history() -> list[dict]:
+    try:
+        data = json.loads(_HISTORY_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def _save_history(entries: list[dict]) -> None:
+    try:
+        _HISTORY_FILE.write_text(
+            json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+    except Exception:
+        pass  # best-effort — losing the on-disk copy is not fatal
+
+
+def _record_history(entry: dict) -> None:
+    """Append a completed job to the on-disk history (bounded)."""
+    with _HISTORY_LOCK:
+        entries = _load_history()
+        entries = [e for e in entries if e.get("prompt_id") != entry.get("prompt_id")]
+        entries.append(entry)
+        _save_history(entries[-_MAX_HISTORY:])
+
+
+def _history_entry(prompt_id: str, url: str, tool: str, prompt: str) -> dict:
+    """Build the on-disk history entry for a completed job."""
+    filename, type_ = _filename_from_url(url)
+    return {
+        "prompt_id": prompt_id,
+        "tool": tool,
+        "url": url,
+        "filename": filename,
+        "type": type_,
+        "prompt": prompt,
+        "done_at": time.time(),
+    }
+
+
+# Which tool/prompt is about to be queued — set by the API handlers BEFORE
+# calling the generate_* tool (which queues the workflow and fires the hook).
+# The hook reads these to tag the resulting prompt_id with its tool/prompt
+# (the result is then recorded with the right tool/prompt in history).
+# Thread-safe (GIL-atomic dict ops); the single-user app has one request at a
+# time, and the value is consumed by the hook synchronously.
+_pending_tool: str = ""
+_pending_prompt: str = ""
+
+live_job_tool: dict[str, str] = {}
+live_job_prompt: dict[str, str] = {}
+
 
 def _node_titles(workflow: dict) -> dict[str, str]:
     """node_id -> _meta.title (or class_type) for readable progress labels."""
@@ -209,7 +271,10 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
                 # loop (keepalive pings) or the done broadcast below.
                 if t == "execution_success":
                     threading.Thread(
-                        target=_record_job_output, args=(prompt_id,), daemon=True
+                        target=_record_job_output,
+                        args=(prompt_id, live_job_tool.get(prompt_id, "")),
+                        kwargs={"prompt": live_job_prompt.get(prompt_id, "")},
+                        daemon=True,
                     ).start()
                 _broadcast_progress(job)  # push the stage/value/preview update
                 if t in ("execution_success", "execution_error"):
@@ -238,6 +303,8 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
             "max": None,
             "done": False,
             "error": None,
+            "tool": live_job_tool.get(prompt_id, ""),
+            "prompt": live_job_prompt.get(prompt_id, ""),
         }
     threading.Thread(
         target=_listen_job_ws,
@@ -248,7 +315,7 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
         _broadcast_progress(_jobs.get(prompt_id))  # push the "queued" state
 
 
-def _record_job_output(prompt_id: str) -> None:
+def _record_job_output(prompt_id: str, tool: str = "", prompt: str = "") -> None:
     """Best-effort: record a completed job's result URL from ComfyUI history.
 
     Called from a dedicated thread spawned by the job's WS listener on
@@ -276,24 +343,31 @@ def _record_job_output(prompt_id: str) -> None:
             except _common.WorkflowError:
                 rec = _common.find_output_video(outputs)
             url = c.result_url(rec["filename"], rec.get("type", "output"))
-        _mark_job_result(prompt_id, url)
+        _mark_job_result(prompt_id, url, tool=tool, prompt=prompt)
     except Exception:
         pass  # best-effort — the handler's _mark_latest_done is the fallback
 
 
-def _mark_job_result(prompt_id: str, url: str) -> None:
+def _mark_job_result(prompt_id: str, url: str, tool: str = "", prompt: str = "") -> None:
     """Mark a job done and attach its result URL.
 
     The per-step preview is dropped here (and on cancel, where url=None):
     previews are ephemeral — once the real result is ready (or the job was
-    cancelled) keeping them would only hold memory.
+    cancelled) keeping them would only hold memory. When a result URL is
+    attached for the first time, the job is also appended to the on-disk
+    history (so an abandoned browser/device can recover it via /api/history);
+    later calls are idempotent.
     """
+    new_result = False
     with _jobs_lock:
         job = _jobs.get(prompt_id)
         if job is not None:
+            new_result = bool(url) and not job.get("url")
             job["done"] = True
             job["url"] = url
             job.pop("preview", None)
+    if job is not None and url:
+        _record_history(_history_entry(prompt_id, url, tool or job.get("tool", ""), prompt or job.get("prompt", "")))
     if job is not None:
         _broadcast_progress(job)  # push "active: null" — the job settled
 
@@ -403,14 +477,19 @@ def _latest_job() -> dict | None:
         return max(_jobs.values(), key=lambda j: j.get("started", 0))
 
 
-def _mark_latest_done(url: str) -> None:
+def _mark_latest_done(url: str, tool: str = "", prompt: str = "") -> None:
     """Attach the result URL to the most recent job (single-user app)."""
     job = _latest_job()
     if job is not None:
-        _mark_job_result(job["prompt_id"], url)
+        _mark_job_result(job["prompt_id"], url, tool=tool, prompt=prompt)
 
 
 def _on_prompt_queued(client_id: str, prompt_id: str, workflow: dict) -> None:
+    # Tag the job with the tool/prompt that queued it (set by the API
+    # handler just before calling the generate_* tool). The result is then
+    # recorded in history with the right tool/prompt.
+    live_job_tool[prompt_id] = _pending_tool
+    live_job_prompt[prompt_id] = _pending_prompt
     _start_job_listener(client_id, prompt_id, workflow)
 
 
@@ -476,6 +555,20 @@ def api_last_result() -> dict:
     if job is None or not job.get("done"):
         return {"url": None}
     return {"url": job.get("url") or None}
+
+
+@app.get("/api/history")
+def api_history() -> dict:
+    """Completed jobs, persisted on disk (survives restarts / other devices).
+
+    Returns ``{"entries": [{prompt_id, tool, url, filename, type, prompt,
+    done_at}, ...]}`` (newest first, bounded). The frontend uses it to
+    restore/backfill galleries and recover generations when the original
+    tab/browser is gone — see frontend adoptRunningJob / backfillGalleries.
+    """
+    with _HISTORY_LOCK:
+        entries = _load_history()
+    return {"entries": list(reversed(entries))}
 
 
 @app.post("/api/cancel")
@@ -552,6 +645,9 @@ def _tool_response(url: str) -> dict:
 def api_generate(body: dict) -> dict:
     s = _settings()
     try:
+        global _pending_tool, _pending_prompt
+        _pending_tool = "generate"
+        _pending_prompt = str(body.get("prompt", ""))
         url = generate_image(
             s,
             family=str(body.get("family", "zimage")),
@@ -563,7 +659,7 @@ def api_generate(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
             model=str(body.get("model", "")),
         )
-        _mark_latest_done(url)
+        _mark_latest_done(url, tool="generate", prompt=str(body.get("prompt", "")))
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -573,6 +669,9 @@ def api_generate(body: dict) -> dict:
 def api_edit(body: dict) -> dict:
     s = _settings()
     try:
+        global _pending_tool, _pending_prompt
+        _pending_tool = "edit"
+        _pending_prompt = str(body.get("prompt", ""))
         url = edit_image(
             s,
             image=str(body.get("image", "")),
@@ -582,7 +681,7 @@ def api_edit(body: dict) -> dict:
             seed=int(body.get("seed", -1)),
             lora_config=str(body.get("lora_config", "[]")),
         )
-        _mark_latest_done(url)
+        _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -592,12 +691,15 @@ def api_edit(body: dict) -> dict:
 def api_upscale(body: dict) -> dict:
     s = _settings()
     try:
+        global _pending_tool, _pending_prompt
+        _pending_tool = "upscale"
+        _pending_prompt = ""
         url = upscale_image(
             s,
             image=str(body.get("image", "")),
             seed=int(body.get("seed", -1)),
         )
-        _mark_latest_done(url)
+        _mark_latest_done(url, tool="upscale")
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -607,6 +709,9 @@ def api_upscale(body: dict) -> dict:
 def api_video(body: dict) -> dict:
     s = _settings()
     try:
+        global _pending_tool, _pending_prompt
+        _pending_tool = "video"
+        _pending_prompt = str(body.get("prompt", ""))
         url = generate_video(
             s,
             image=str(body.get("image", "")),
@@ -619,11 +724,10 @@ def api_video(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
             diffusion=str(body.get("diffusion", "")),
         )
-        _mark_latest_done(url)
+        _mark_latest_done(url, tool="video", prompt=str(body.get("prompt", "")))
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
-
 
 # --------------------------------------------------------------------------- #
 # Upload + media proxy + image validation

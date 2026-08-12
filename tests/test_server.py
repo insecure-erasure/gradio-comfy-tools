@@ -773,12 +773,16 @@ def test_listener_records_output_without_deadlock(client, tmp_config, monkeypatc
             server._jobs_lock.release()
 
 
-def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
+def test_record_job_output_sets_url(client, tmp_config, monkeypatch, tmp_path):
     """The WS listener records the result URL on completion (server-side
     recovery path): even when the HTTP handler's wait_for_output timed out
-    (long videos) or the client is gone, /api/last-result resolves the job.
+    (long videos) or the client is gone, /api/last-result resolves the job
+    and the on-disk history records it for the galleries.
     """
     import comfy_client as cc
+    from server import _HISTORY_FILE
+
+    monkeypatch.setattr(server, "_HISTORY_FILE", tmp_path / "history.json")
 
     class FakeClient:
         def __init__(self, settings=None):
@@ -802,7 +806,7 @@ def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
     )
     try:
         # Simulate the listener thread completing the job: done + URL recorded.
-        server._record_job_output("pidrec")
+        server._record_job_output("pidrec", tool="video", prompt="a cat")
         with server._jobs_lock:
             job = server._jobs["pidrec"]
             assert job["done"] is True
@@ -813,9 +817,75 @@ def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
         }
         # And /api/progress is idle (job settled).
         assert client.get("/api/progress").json() == {"active": None}
+        # The on-disk history records it (tool + prompt for the gallery).
+        hist = client.get("/api/history").json()["entries"]
+        assert len(hist) == 1
+        assert hist[0]["filename"] == "out.mp4"
+        assert hist[0]["tool"] == "video"
+        assert hist[0]["prompt"] == "a cat"
     finally:
         with server._jobs_lock:
             server._jobs.clear()
+
+
+def test_api_generate_records_history(client, tmp_config, monkeypatch, tmp_path):
+    """A completed /api/generate records its result in the on-disk history
+    with the right tool + prompt (backfill source for the galleries)."""
+    import comfy_client as cc
+    from server import _HISTORY_FILE
+
+    monkeypatch.setattr(server, "_HISTORY_FILE", tmp_path / "history.json")
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            from comfy_client import _prompt_hooks
+
+            for hook in _prompt_hooks:
+                hook("cid", "pidgen", wf)
+            return "pidgen"
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"6": {"images": [{"filename": "out.png", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://x/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+
+    def fake_generate(settings, **kwargs):
+        from comfy_client import ComfyClient as C
+
+        with C(settings=settings) as c:
+            c.queue_prompt({}, extra_data={"preview_method": "auto"})
+            c.wait_for_output("pidgen")
+            return c.result_url("out.png")
+
+    monkeypatch.setattr(server, "generate_image", fake_generate)
+    # Keep the WS listener from opening a real socket, but still register
+    # the job (the prompt hook calls _start_job_listener, which creates the
+    # in-memory job that _mark_latest_done attaches the URL to).
+    real_start = server._start_job_listener
+    monkeypatch.setattr(server, "_listen_job_ws", lambda *a, **k: None)
+    monkeypatch.setattr(
+        server, "_start_job_listener",
+        lambda cid, pid, wf: real_start(cid, pid, wf),
+    )
+    resp = client.post("/api/generate", json={"prompt": "a sunset"})
+    assert resp.status_code == 200
+    hist = client.get("/api/history").json()["entries"]
+    assert len(hist) == 1
+    assert hist[0]["tool"] == "generate"
+    assert hist[0]["prompt"] == "a sunset"
+    assert hist[0]["filename"] == "out.png"
 
 
 def test_preview_binary_with_metadata_stored_and_served(client, tmp_config, monkeypatch):

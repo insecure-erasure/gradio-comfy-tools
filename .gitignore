@@ -57,3 +57,10 @@ tmp_uploads/
 
 # Server launch logs (nohup) — never commit
 nohup.out
+
+# Node test deps + runtime
+node_modules/
+package-lock.json
+
+# Backend job history (runtime state)
+job_history.json
