@@ -6,7 +6,7 @@ Validates the full REST contract end to end:
            -> poll history -> result URL (verifies it serves 200)
 
 Usage:
-    python3 scripts/smoke_client.py [BASE_URL]
+    python3 dev/smoke_client.py [BASE_URL]
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import struct
 import zlib
 from pathlib import Path
 
-# make repo root importable when run as `python3 scripts/smoke_client.py`
+# make repo root importable when run as `python3 dev/smoke_client.py`
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import httpx  # noqa: E402

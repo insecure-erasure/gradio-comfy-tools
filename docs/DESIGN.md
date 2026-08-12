@@ -118,16 +118,16 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `comfy_client.py` | ComfyUI REST client (implemented — see docs/PLAN.md A0) |
 | `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
 | `workflows/` | ComfyUI workflow JSON files (copied from `../../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
-| `scripts/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 scripts/check_env.py [BASE_URL]` |
-| `scripts/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
-| `scripts/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
-| `scripts/run_edit.py` | A2 Edit CLI — `--image <filename|URL> --mode edit|restore [--prompt] [--steps] [--seed] [--loras]` |
-| `scripts/run_upscale.py` | A3 Upscale CLI — `--image <filename|URL> [--seed]` |
-| `scripts/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
-| `scripts/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
-| `scripts/probe_previews.py` | Documents the raw ComfyUI per-step preview protocol (binary WS frames) — `python3 scripts/probe_previews.py [--family krea2|flux2|zimage] [--steps N]` |
-| `scripts/demo_chain_ws.py` | Dev/demo: a full generate → edit → upscale → video chain over the WS protocol |
-| `scripts/listen_ws.py` | Dev: raw WebSocket listener printing the events ComfyUI sends for a queued prompt |
+| `dev/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 dev/check_env.py [BASE_URL]` |
+| `dev/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
+| `dev/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
+| `dev/run_edit.py` | A2 Edit CLI — `--image <filename|URL> --mode edit|restore [--prompt] [--steps] [--seed] [--loras]` |
+| `dev/run_upscale.py` | A3 Upscale CLI — `--image <filename|URL> [--seed]` |
+| `dev/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
+| `dev/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
+| `dev/probe_previews.py` | Documents the raw ComfyUI per-step preview protocol (binary WS frames) — `python3 dev/probe_previews.py [--family krea2|flux2|zimage] [--steps N]` |
+| `dev/demo_chain_ws.py` | Dev/demo: a full generate → edit → upscale → video chain over the WS protocol |
+| `dev/listen_ws.py` | Dev: raw WebSocket listener printing the events ComfyUI sends for a queued prompt |
 
 ### workflows/ contents
 

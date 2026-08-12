@@ -17,12 +17,12 @@ expected result. Do not move to the next phase until the user validates it.
 
 | Phase | What | Status |
 |---|---|---|
-| A0 | Foundations: `config.py`, `comfy_client.py`, `tools/_common.py`, tests (MockTransport), `scripts/smoke_client.py` | ✅ |
-| A1 | Generate: `tools/generate.py` + `scripts/run_generate.py` | ✅ |
-| A2 | Edit: `tools/edit.py` + `scripts/run_edit.py` | ✅ |
-| A3 | Upscale: `tools/upscale.py` + `scripts/run_upscale.py` (seed uint32 fix) | ✅ |
-| A4 | Video: `tools/video.py` + `scripts/run_video.py` | ✅ |
-| A5 | Chaining: `scripts/run_chain.py` + `normalize_source` | ✅ |
+| A0 | Foundations: `config.py`, `comfy_client.py`, `tools/_common.py`, tests (MockTransport), `dev/smoke_client.py` | ✅ |
+| A1 | Generate: `tools/generate.py` + `dev/run_generate.py` | ✅ |
+| A2 | Edit: `tools/edit.py` + `dev/run_edit.py` | ✅ |
+| A3 | Upscale: `tools/upscale.py` + `dev/run_upscale.py` (seed uint32 fix) | ✅ |
+| A4 | Video: `tools/video.py` + `dev/run_video.py` | ✅ |
+| A5 | Chaining: `dev/run_chain.py` + `normalize_source` | ✅ |
 | A6 | Acceptance: `check_env.py` OK, 55 tests green, chains validated | ✅ |
 
 Details of each A-phase remain below as reference (input contracts, per-node
@@ -43,7 +43,7 @@ injection helpers. Delivered with tests and a real smoke test against the server
 | `comfy_client.py` | **Sync** REST client (`httpx.Client`), no web-framework dependency. |
 | `tools/_common.py` | `resolve_node(workflow, title)` (by unique `_meta.title`), injection helpers (seed, steps, lora_config, frames snap), filename-vs-URL auto-detection, `find_output_image/video`. |
 | `tests/test_comfy_client.py` | Tests with `httpx.MockTransport` (no server needed). |
-| `scripts/smoke_client.py` | Real smoke test: health → upload → queue a trivial workflow → poll → URL. |
+| `dev/smoke_client.py` | Real smoke test: health → upload → queue a trivial workflow → poll → URL. |
 
 ### REST contract (validated against ComfyUI 0.29.1 on 192.168.1.8)
 | Method/endpoint | Use | Response |
@@ -59,7 +59,7 @@ as the reference, no websocket dependency).
 
 ### Manual validation (A0) ✅
 ```
-python3 scripts/smoke_client.py            # uses COMFYUI_BASE_URL or the default
+python3 dev/smoke_client.py            # uses COMFYUI_BASE_URL or the default
 ```
 Expected: `health OK (ComfyUI 0.29.1)` → uploads a test image → queues a minimal
 workflow → prints the `/view?...` URL. The user opens the URL in the browser and
@@ -98,7 +98,7 @@ Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 | `Power Lora Loader (rgthree)` | activates `lora_1..4` from `lora_config` |
 
 ### Manual validation (A1) ✅
-CLI `scripts/run_generate.py --family zimage|krea2|flux2 --prompt "..."`.
+CLI `dev/run_generate.py --family zimage|krea2|flux2 --prompt "..."`.
 Done: zimage 2:3 seed42 (816×1216), krea2 16:9 (1336×752), flux2 3:2 (1216×832),
 flux2+LoRA restore — all 200 image/png, apple confirmed in browser.
 
@@ -203,14 +203,14 @@ steps5→6 (26MB mp4) — both 200 video/mp4, both videos confirmed.
 - `last_generated` per session: handled by the frontend.
 
 ### Manual validation (A5) ✅
-Done: `scripts/run_chain.py` — generate → edit → upscale → video passing
+Done: `dev/run_chain.py` — generate → edit → upscale → video passing
 filenames between steps; green apple rotating video confirmed.
 
 ---
 
 ## A6. Acceptance criteria (complete backend) ✅
 
-1. `python3 scripts/check_env.py` → TODO OK ✅
+1. `python3 dev/check_env.py` → TODO OK ✅
 2. `pytest` green (55 tests, MockTransport) ✅
 3. Smoke + CLI of the 4 tabs manually validated (A1–A4) ✅
 4. Full chain A5 validated ✅
@@ -435,7 +435,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     stays on top (`.busy` z-index).
   - Verified live against the server: flux2 8 steps → `/api/progress` served
     a ~75KB data-URL preview mid-generation, job finished → `active: null`.
-    Probe script `scripts/probe_previews.py` documents the raw protocol
+    Probe script `dev/probe_previews.py` documents the raw protocol
     (4 previews per 4-step run for flux2 and krea2).
 - **DONE**: per-job WS listener (daemon thread, same clientId) + `/ws/progress`
   push (`_broadcast_progress`, thread-safe) + the UI paints the stage/% in

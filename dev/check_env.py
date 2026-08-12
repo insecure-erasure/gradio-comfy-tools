@@ -2,7 +2,7 @@
 """Validate a live ComfyUI instance against this repo's workflows.
 
 Usage:
-    python3 scripts/check_env.py [BASE_URL]
+    python3 dev/check_env.py [BASE_URL]
 
 BASE_URL defaults to http://192.168.1.8 (the dev instance); use
 http://localhost:8188 for a local one.

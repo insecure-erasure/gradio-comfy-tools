@@ -2,13 +2,13 @@
 """A4 — run the Video tool from the CLI (manual validation).
 
 Usage:
-    python3 scripts/run_video.py --image <filename|URL> --model wan21|wan22 \
+    python3 dev/run_video.py --image <filename|URL> --model wan21|wan22 \
         --prompt \"...\" [--frames 81] [--steps 4] [--seed -1] [--negative \"...\"] [--loras '[...]'] [--base URL]
 
 Examples:
-    python3 scripts/run_video.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png \
+    python3 dev/run_video.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png \
         --model wan21 --prompt \"the apple slowly rotates on the table, soft studio light\"
-    python3 scripts/run_video.py --image <file> --model wan22 --prompt \"...\" --frames 100 --steps 5
+    python3 dev/run_video.py --image <file> --model wan22 --prompt \"...\" --frames 100 --steps 5
 """
 
 from __future__ import annotations

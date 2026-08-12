@@ -2,17 +2,17 @@
 """A2 — run the Edit tool from the CLI (manual validation).
 
 Usage:
-    python3 scripts/run_edit.py --image <filename|URL> --mode edit|restore \
+    python3 dev/run_edit.py --image <filename|URL> --mode edit|restore \
         [--prompt \"...\"] [--steps 6] [--seed -1] [--loras '[...]'] [--base URL]
 
 Examples:
     # edit an uploaded temp file (from a previous generation)
-    python3 scripts/run_edit.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png \
+    python3 dev/run_edit.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png \
         --mode edit --prompt \"make the apple green\" --seed 5
     # edit from an external URL
-    python3 scripts/run_edit.py --image https://example.com/img.png --mode edit --prompt \"...\"
+    python3 dev/run_edit.py --image https://example.com/img.png --mode edit --prompt \"...\"
     # restore mode
-    python3 scripts/run_edit.py --image <file> --mode restore
+    python3 dev/run_edit.py --image <file> --mode restore
 """
 
 from __future__ import annotations

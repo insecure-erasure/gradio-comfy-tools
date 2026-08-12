@@ -2,12 +2,12 @@
 """A1 — run the Generate tool from the CLI (manual validation).
 
 Usage:
-    python3 scripts/run_generate.py --family zimage|krea2|flux2 --prompt \"...\" \
+    python3 dev/run_generate.py --family zimage|krea2|flux2 --prompt \"...\" \
         [--ar 16:9] [--mp 1.0] [--steps 8] [--seed -1] [--loras '[...]'] [--base URL]
 
 Examples:
-    python3 scripts/run_generate.py --family zimage --prompt \"a red apple on a table\"
-    python3 scripts/run_generate.py --family krea2 --prompt \"a cat\" --ar 16:9 --seed 42
+    python3 dev/run_generate.py --family zimage --prompt \"a red apple on a table\"
+    python3 dev/run_generate.py --family krea2 --prompt \"a cat\" --ar 16:9 --seed 42
 """
 
 from __future__ import annotations

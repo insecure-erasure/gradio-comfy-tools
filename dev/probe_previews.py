@@ -12,7 +12,7 @@ message. To receive them a client must:
      NoPreviews, so without this the server generates no previews at all).
 
 Usage:
-  .venv/bin/python -u scripts/probe_previews.py [--family krea2|flux2|zimage] [--steps 4]
+  .venv/bin/python -u dev/probe_previews.py [--family krea2|flux2|zimage] [--steps 4]
 """
 
 from __future__ import annotations

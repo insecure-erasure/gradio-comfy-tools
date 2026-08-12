@@ -5,7 +5,7 @@ Passes **filenames** (not URLs) between steps — the same flow the frontend
 will use for 🔗 chaining (last_generated -> source field).
 
 Usage:
-    python3 scripts/run_chain.py [--prompt \"...\"] [--seed 42] [--base URL]
+    python3 dev/run_chain.py [--prompt \"...\"] [--seed 42] [--base URL]
 
 Steps:
   1. generate_image   -> image A (zimage, 2:3, seed)

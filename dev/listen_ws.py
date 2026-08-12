@@ -2,8 +2,8 @@
 """Subscribe to the ComfyUI WebSocket and log every event.
 
 Usage:
-  .venv/bin/python -u scripts/listen_ws.py [--base http://akari.home] [--seconds 300]
-  .venv/bin/python -u scripts/listen_ws.py --no-selftest   # don't queue the self-test prompt
+  .venv/bin/python -u dev/listen_ws.py [--base http://akari.home] [--seconds 300]
+  .venv/bin/python -u dev/listen_ws.py --no-selftest   # don't queue the self-test prompt
 
 Notes:
   - Per-node events (executing/progress/executed) are filtered by the

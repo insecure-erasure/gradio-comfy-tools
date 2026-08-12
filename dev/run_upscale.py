@@ -2,11 +2,11 @@
 """A3 — run the Upscale tool from the CLI (manual validation).
 
 Usage:
-    python3 scripts/run_upscale.py --image <filename|URL> [--seed -1] [--base URL]
+    python3 dev/run_upscale.py --image <filename|URL> [--seed -1] [--base URL]
 
 Examples:
-    python3 scripts/run_upscale.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png --seed 3
-    python3 scripts/run_upscale.py --image http://akari.home/view?filename=...png --seed -1
+    python3 dev/run_upscale.py --image ComfyUI_temp_20260806T230005_b9f8d29f4a4d.png --seed 3
+    python3 dev/run_upscale.py --image http://akari.home/view?filename=...png --seed -1
 """
 
 from __future__ import annotations

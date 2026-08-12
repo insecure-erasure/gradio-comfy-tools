@@ -5,7 +5,7 @@ clientId for POST /prompt and the WebSocket, logging every WS event per job.
 Shows per-node execution (executing node=N + title) and numeric progress
 (value/max) for each stage, like B5 would expose in the UI.
 
-Usage:  .venv/bin/python -u scripts/demo_chain_ws.py [--base http://akari.home]
+Usage:  .venv/bin/python -u dev/demo_chain_ws.py [--base http://akari.home]
 """
 
 from __future__ import annotations
