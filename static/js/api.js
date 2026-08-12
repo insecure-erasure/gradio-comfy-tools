@@ -93,12 +93,6 @@ function clearPane(paneId) {
   if (mock) mock.style.display = '';
 }
 
-function setResultUrl(filename) {
-  lastGeneratedUrl = `${baseUrl}/view?filename=${encodeURIComponent(filename)}&type=output`;
-  document.getElementById('resultUrl').textContent = lastGeneratedUrl;
-  document.getElementById('btnCopyUrl').disabled = false;
-}
-
 function copyResultUrl() {
   const url = document.getElementById('resultUrl').textContent;
   if (!url) return;

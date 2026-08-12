@@ -262,15 +262,3 @@ function uploadForTab(tab) {
   input.click();
 }
 
-// Base name of a source URL (filename without extension), used to build
-// readable fake result names in the mockup. Kept for reference/tooling.
-function baseNameFromUrl(url) {
-  try {
-    const u = new URL(url);
-    const filename = u.searchParams.get('filename');
-    if (filename) return filename.replace(/\.[a-z0-9]+$/i, '');
-    const seg = u.pathname.split('/').pop();
-    if (seg) return seg.replace(/\.[a-z0-9]+$/i, '');
-  } catch (e) { /* not a URL */ }
-  return 'source';
-}

@@ -616,8 +616,3 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeChipPopover();
 });
 
-// Radio group toggle (kept for the mockup's segmented controls)
-function selectRadio(btn) {
-  btn.parentElement.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}

@@ -77,9 +77,6 @@ function openAdvancedModal() {
 // carries data-key (used for prefill and save); generate/edit fields keep
 // the label-based fallback (no data-key) for backward compatibility.
 function renderField(f) {
-  if (f.type === 'toggle') {
-    return `<div class="toggle-row"><span>${f.label}</span><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>`;
-  }
   if (f.type === 'select') {
     // Model/diffusion dropdown, populated from ComfyUI /models/diffusion_models
     // Label sits BESIDE the dropdown (row) to save vertical space.
@@ -138,7 +135,6 @@ function openModal(tab) {
   // Saved state: for video, use the per-version store (wan21/wan22); for
   // other tabs, the tab's own object.
   const saved = (window.advancedValues && window.advancedValues[tab]) || {};
-  const cfg2 = saved;
   const store = (tab === 'video')
     ? (saved[toolbarValues.vidVersion] || {})
     : saved;
@@ -203,13 +199,11 @@ function saveAdvanced() {
   // Collect values per store key: data-key wins (fields inside the wan22
   // sections carry an explicit key), label fallback for legacy fields.
   const fields = document.querySelectorAll('#modalBody .field input, #modalBody .field textarea, #modalBody .modal-model-select');
-  const toggles = document.querySelectorAll('#modalBody .toggle-switch');
   const values = {};
   fields.forEach(f => {
     const key = f.getAttribute('data-key') || f.previousElementSibling?.textContent || 'field';
     values[key] = f.value;
   });
-  toggles.forEach(t => { values[t.previousElementSibling?.textContent || 'toggle'] = t.classList.contains('on'); });
   if (!window.advancedValues) window.advancedValues = {};
 
   let cfg = modalConfigs[currentModalTab];

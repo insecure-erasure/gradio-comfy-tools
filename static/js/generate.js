@@ -121,10 +121,6 @@ function onSeedRandomToggle() {
   document.getElementById('genSeed').disabled = document.getElementById('genSeedRandom').checked;
   updatePromptChips();
 }
-function onSeedInput() {
-  document.getElementById('genSeedRandom').checked = false;
-  updatePromptChips();
-}
 
 // ── Model family -> auto steps + W/H calc ──
 function onModelFamilyChange() {
