@@ -700,6 +700,124 @@ def test_ws_progress_job_listener_broadcasts(client, tmp_config, monkeypatch):
             server._jobs.clear()
 
 
+def test_listener_records_output_without_deadlock(client, tmp_config, monkeypatch):
+    """Regression: the WS listener records the result URL when the job
+    completes, WITHOUT deadlocking. Recording while holding _jobs_lock (a
+    non-reentrant threading.Lock) blocked the listener forever and froze
+    every API endpoint the moment a job finished. The listener runs in its
+    own thread here; if it deadlocks again the record never lands and the
+    assertion fails after a short timeout instead of hanging the suite.
+    """
+    import time as _time
+    import websockets.sync.client as wsclient
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"6": {"images": [{"filename": "out.mp4", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://x/view?filename={filename}&type={type_}"
+
+    class FakeWS:
+        """Yields one execution_success for our prompt, then ends."""
+        def __init__(self, prompt_id):
+            self.prompt_id = prompt_id
+            self.sent = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def send(self, msg):
+            self.sent.append(msg)
+
+        def __iter__(self):
+            yield json.dumps({"type": "execution_success", "data": {"prompt_id": self.prompt_id}})
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    monkeypatch.setattr(wsclient, "connect", lambda *a, **k: FakeWS("pidl"))
+    server._start_job_listener("cid", "pidl", {"1": {"class_type": "X", "_meta": {"title": "T"}}})
+    try:
+        # The record lands on a separate thread — poll briefly for it.
+        deadline = _time.monotonic() + 5
+        url = None
+        while _time.monotonic() < deadline:
+            with server._jobs_lock:
+                url = server._jobs.get("pidl", {}).get("url")
+            if url:
+                break
+            _time.sleep(0.05)
+        with server._jobs_lock:
+            job = server._jobs["pidl"]
+            assert job["done"] is True
+        assert url == "http://x/view?filename=out.mp4&type=output"
+    finally:
+        # If the (old, buggy) code deadlocked, the listener thread holds
+        # _jobs_lock forever — never block the suite on it.
+        if not server._jobs_lock.acquire(timeout=1):
+            server._jobs.clear()
+        else:
+            server._jobs.clear()
+            server._jobs_lock.release()
+
+
+def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
+    """The WS listener records the result URL on completion (server-side
+    recovery path): even when the HTTP handler's wait_for_output timed out
+    (long videos) or the client is gone, /api/last-result resolves the job.
+    """
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"6": {"images": [{"filename": "out.mp4", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://x/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    server._start_job_listener(
+        "cid", "pidrec", {"1": {"class_type": "X", "_meta": {"title": "T"}}}
+    )
+    try:
+        # Simulate the listener thread completing the job: done + URL recorded.
+        server._record_job_output("pidrec")
+        with server._jobs_lock:
+            job = server._jobs["pidrec"]
+            assert job["done"] is True
+            assert job["url"] == "http://x/view?filename=out.mp4&type=output"
+        # The recovery endpoint can now resolve it.
+        assert client.get("/api/last-result").json() == {
+            "url": "http://x/view?filename=out.mp4&type=output"
+        }
+        # And /api/progress is idle (job settled).
+        assert client.get("/api/progress").json() == {"active": None}
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
 def test_preview_binary_with_metadata_stored_and_served(client, tmp_config, monkeypatch):
     """A PREVIEW_IMAGE_WITH_METADATA (event 4) frame stores the JPEG in the
     job, /api/progress serves it as a data URL while active, and the preview

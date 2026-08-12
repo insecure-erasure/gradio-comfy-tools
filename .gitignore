@@ -54,3 +54,6 @@ tmp_uploads/
 *.swo
 *~
 .DS_Store
+
+# Server launch logs (nohup) — never commit
+nohup.out

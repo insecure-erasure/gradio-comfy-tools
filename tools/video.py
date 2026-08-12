@@ -296,9 +296,15 @@ def generate_video(
     seed: int = -1,
     lora_config: str = "[]",
     diffusion: str = "",
-    timeout: float = 300.0,
+    timeout: float = 1800.0,
 ) -> str:
-    """Run the Video workflow and return the output MP4 URL."""
+    """Run the Video workflow and return the output MP4 URL.
+
+    Long wait by design: Wan jobs routinely take several minutes; the default
+    is 30 minutes. Even if this polling outlives the client's patience, the
+    result URL is recorded by the job's WS listener on completion (see
+    server._record_job_output), so the frontend can still resolve it.
+    """
     workflow = load_workflow(model_version)
     wf, meta = build_workflow(
         workflow,

@@ -4,12 +4,15 @@
 // it (the backend job is cancelled separately via POST /api/cancel).
 let currentAbort = null;
 
-// POST JSON to a backend endpoint. Aborts after 240s so a hung request
-// never leaves the action button stuck.
+// POST JSON to a backend endpoint. Aborts after 5 minutes (300s) so a hung
+// request never leaves the action button stuck; Video passes a much larger
+// timeout explicitly (Wan jobs are long). A lost/aborted fetch never strands
+// the UI — the recovery path (tryRecoverResult) resolves the job once the
+// backend finishes and records the result.
 async function api(path, body, timeoutMs) {
   const ctrl = new AbortController();
   currentAbort = ctrl;
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 240000);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs || 300000);
   try {
     const resp = await fetch(path, {
       method: 'POST',
@@ -253,10 +256,19 @@ function restoreStopButton(el) {
 // (makeStopButton). Re-applied on tab switch mid-generation (switchTab
 // rebuilds #btnCol, so the fresh buttons need the lock re-asserted).
 function applyGenerationLock() {
+  let triggerFound = false;
   document.querySelectorAll('.btn-generate').forEach(b => {
-    if (genTriggerId && b.id === genTriggerId) makeStopButton(b);
+    if (genTriggerId && b.id === genTriggerId) { makeStopButton(b); triggerFound = true; }
     else b.disabled = true;
   });
+  if (!triggerFound) {
+    // No trigger button matched — the page reloaded mid-generation and the
+    // job was adopted (genTriggerId is null), or the trigger id is stale.
+    // Turn the current primary action into the ⏹ stop button so the user
+    // can always cancel the running job.
+    const primary = document.querySelector('#btnCol .btn-generate') || document.querySelector('.btn-generate');
+    if (primary) makeStopButton(primary);
+  }
   document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
   // The prompt-modal action button (portrait) matching the trigger also
   // becomes the ⏹ stop button (✨ for generate/video, 🖌️ for edit, 🩹 for
@@ -311,13 +323,28 @@ let userCancelled = false;
 // the backend after the job completed. Each tool registers its own.
 let recoverHandler = null;
 let recoverPending = false;  // a job's fetch died; backend still running
+let _recoverSettleTimer = null; // safety-net timer for a stuck recovery (see applyProgress)
+let _recoverRetryTimer = null;  // retry loop for a result not yet recorded (see tryRecoverResult)
 function registerRecoverHandler(fn) { recoverHandler = fn; }
 async function tryRecoverResult() {
-  if (!recoverHandler || progressTimer === null) return; // no job / no handler
+  // Only runs when the original fetch is CONFIRMED dead (recoverPending):
+  // while it is still in flight the normal .then() settles the result, and
+  // recovering here too would double-finalize (duplicate gallery entries).
+  if (!recoverPending || !recoverHandler || progressTimer === null) return;
   try {
     const r = await fetch('/api/last-result');
     const j = await r.json();
-    if (!j.url) { recoverPending = false; return; } // nothing to recover
+    // No URL yet → the job is still running or the backend hasn't recorded
+    // the result yet. KEEP recoverPending and retry shortly: the backend
+    // records the URL when the job completes (server._record_job_output),
+    // so the next attempt finds it. (The old code cleared recoverPending
+    // here, so a single early attempt — e.g. right after the job finished
+    // but before the URL was recorded — permanently lost the result.)
+    if (!j.url) {
+      clearTimeout(_recoverRetryTimer);
+      _recoverRetryTimer = setTimeout(tryRecoverResult, 2000);
+      return;
+    }
     // Build the same-origin display URL from the recovered {base}/view URL.
     const q = (j.url.split('?')[1] || '');
     const params = new URLSearchParams(q);
@@ -326,8 +353,6 @@ async function tryRecoverResult() {
     if (fn) {
       recoverPending = false;
       recoverHandler({ url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type });
-    } else {
-      recoverPending = false;
     }
   } catch (e) { /* ignore */ }
 }
@@ -340,6 +365,10 @@ function cancelGeneration() {
   stopProgressPolling();
   fetch('/api/cancel', { method: 'POST' }).catch(() => {});
   abortCurrentRequest();
+  // Normally the tool's .finally() releases the UI when the fetch settles;
+  // when the fetch already died (the 5min abort fired earlier) there is no
+  // .finally to run, so release the lock here — ⏹ must always restore the UI.
+  releaseGeneratingUi();
 }
 
 // ↺ Reset helper: if a generation is running (polling active), cancel the
@@ -349,8 +378,13 @@ function cancelGeneration() {
 function cancelIfRunning() {
   if (progressTimer) {
     fetch('/api/cancel', { method: 'POST' }).catch(() => {});
+    // The in-flight fetch won't settle promptly (the backend keeps polling
+    // ComfyUI until its own timeout) — release the lock now so the reset
+    // leaves the app usable, not stuck in "generating".
+    releaseGeneratingUi();
+  } else {
+    stopProgressPolling(); // idempotent no-op cleanup
   }
-  stopProgressPolling();
 }
 
 // The tab that started the current generation. The live per-step preview is
@@ -370,9 +404,11 @@ let liveHidden = [];
 function startProgressPolling() {
   stopProgressPolling();
   liveJobTab = currentTab; // tab that initiated the generation
+  recoverPending = false;  // fresh job — the in-flight fetch is the primary channel
   const copy = document.getElementById('btnCopyUrl');
   if (copy) copy.style.display = 'none'; // the row shows progress while generating
   progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
+  persistJobMarker(liveJobTab); // survives reloads / backgrounded-tab discards
   openProgressWs();   // push channel — falls back to polling if it fails
   paintProgress();    // immediate paint (the WS snapshot arrives on connect too)
 }
@@ -416,9 +452,30 @@ function applyProgress(j) {
   if (!el) return;
   const a = j && j.active;
   if (!a) {
-    // The job finished (active:null). If a fetch was lost and the result
-    // was never shown, recover it now (also fires on focus return).
-    if (recoverPending) tryRecoverResult();
+    // The job finished (active:null). If the original fetch was lost
+    // (aborted/timed out), recover the result now — and keep retrying on
+    // every poll until it is found (the backend records it on completion;
+    // see server._record_job_output). The safety net below releases the UI
+    // if the result genuinely cannot be found, so the user is never stuck
+    // in "generating" forever.
+    if (recoverPending) {
+      tryRecoverResult();
+      if (!_recoverSettleTimer) {
+        // Last-resort safety net: if the result genuinely cannot be found
+        // (backend never recorded it — e.g. both the HTTP handler and the
+        // WS listener died), release the UI so the user is never stuck in
+        // "generating" forever. 60s covers the backend's worst-case record
+        // time (the record thread polls history for up to 60s).
+        _recoverSettleTimer = setTimeout(() => {
+          _recoverSettleTimer = null;
+          if (recoverPending) {
+            recoverPending = false;
+            releaseGeneratingUi();
+            showToast('⚠️ Generation finished, but the result could not be retrieved');
+          }
+        }, 60000);
+      }
+    }
     return; // no active job — leave the last painted text until the request settles
   }
   let txt;
@@ -483,6 +540,15 @@ document.addEventListener('visibilitychange', () => {
 function stopProgressPolling() {
   clearInterval(progressTimer);
   progressTimer = null;
+  // The job settled (done / cancelled / reset): drop the recovery state and
+  // the settle safety net, and forget the sessionStorage job marker so a
+  // later reload does not try to adopt a job that no longer runs.
+  recoverPending = false;
+  clearTimeout(_recoverSettleTimer);
+  _recoverSettleTimer = null;
+  clearTimeout(_recoverRetryTimer);
+  _recoverRetryTimer = null;
+  clearJobMarker();
   // Close the live WS (if any). Null it FIRST so its onclose handler never
   // triggers the polling fallback.
   if (progressWs) { const w = progressWs; progressWs = null; try { w.close(); } catch (e) {} }
@@ -497,4 +563,84 @@ function stopProgressPolling() {
   // it was. Elements removed by showResult are simply gone from the DOM.
   liveHidden.forEach(el => { el.style.display = ''; });
   liveHidden = [];
+}
+
+// ── Job marker (sessionStorage) ────────────
+// Remembers that a generation is running and which tool started it, so a
+// reloaded or backgrounded-tab-discarded page can re-adopt the backend job
+// (adoptRunningJob) instead of losing track of it. sessionStorage (not
+// localStorage): it is only meaningful while the session lives.
+const JOB_MARKER_KEY = 'comfyTools.activeJob';
+
+function persistJobMarker(tool) {
+  try { sessionStorage.setItem(JOB_MARKER_KEY, JSON.stringify({ tool, startedAt: Date.now() })); } catch (e) {}
+}
+
+function clearJobMarker() {
+  try { sessionStorage.removeItem(JOB_MARKER_KEY); } catch (e) {}
+}
+
+// Generic "generation is over" release, tool-agnostic: stops the progress
+// tracking and restores every pane/button. Used by the recovery safety net
+// and the reload-adoption finalize (the per-tool finalize functions perform
+// their own release).
+function releaseGeneratingUi() {
+  stopProgressPolling();
+  ['genOutputPane', 'editOutputPane', 'upscaleOutputPane', 'videoOutputPane'].forEach(id => {
+    const p = document.getElementById(id);
+    if (p) { p.classList.remove('busy'); p.classList.remove('generating'); }
+  });
+  document.querySelectorAll('.gen-spinner').forEach(s => s.classList.remove('show'));
+  setGeneratingUi(false);
+}
+
+// Generic finalize for a job adopted after a page reload: shows the result
+// in the tool's pane (no gallery registration — the session registries were
+// rebuilt from localStorage) and releases the UI.
+function finalizeRecoveredJob(tool, res) {
+  const paneId = TAB_PANE_IDS[tool] || 'genOutputPane';
+  const pane = document.getElementById(paneId);
+  const mock = pane && pane.querySelector('.video-mock');
+  if (mock) mock.remove();
+  showResult(paneId, res, tool === 'video');
+  if (tool === 'video') {
+    const vid = pane && pane.querySelector('.result-video');
+    if (vid) vid.dataset.videoGallery = '1';
+    if (currentTab !== 'video') pauseActiveVideo();
+  }
+  lastGeneratedUrl = res.url;
+  syncResultUrl(tool, { url: res.url });
+  recoverPending = false;
+  releaseGeneratingUi();
+  showToast('✅ Generation finished');
+}
+
+// Adopt a generation that was running when the page (re)loaded: the browser
+// can discard a backgrounded tab under memory pressure (reloading it on
+// focus), or the user may reload mid-generation. sessionStorage remembers
+// that a job was running and which tool started it; /api/progress tells
+// whether the backend is still executing it. If so, re-establish the running
+// UI + progress tracking and resolve the result via the recovery path (the
+// backend records the result URL on completion, so /api/last-result always
+// resolves it). Called from main.js after startup.
+async function adoptRunningJob() {
+  let marker = null;
+  try { marker = JSON.parse(sessionStorage.getItem(JOB_MARKER_KEY) || 'null'); } catch (e) {}
+  if (!marker || !marker.tool) return;
+  try {
+    const r = await fetch('/api/progress');
+    const j = await r.json();
+    if (!j.active) { clearJobMarker(); return; } // settled while we were gone — galleries restore results
+    // The backend is still running that job: re-establish the tracking state.
+    liveJobTab = marker.tool;
+    recoverPending = true; // no in-flight fetch — resolve via recovery
+    const copy = document.getElementById('btnCopyUrl');
+    if (copy) copy.style.display = 'none';
+    progressTimer = {};
+    openProgressWs();
+    paintProgress();
+    setGeneratingUi(true, null); // lock the UI; the ⏹ fallback appears on the primary action
+    registerRecoverHandler(res => finalizeRecoveredJob(marker.tool, res));
+    showToast('⏳ Reconnected to a generation in progress…');
+  } catch (e) { /* ignore */ }
 }

@@ -198,6 +198,19 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
                     elif t == "execution_error":
                         job["done"] = True
                         job["error"] = str(data.get("exception_message", "execution error"))[:300]
+                # Record the result URL OUTSIDE the lock, in a SEPARATE
+                # thread. _record_job_output acquires _jobs_lock itself (via
+                # _mark_job_result) and threading.Lock is NOT reentrant —
+                # calling it while holding the lock deadlocked the listener
+                # thread (and every other thread that needed the lock,
+                # including the API handlers and the completion broadcast)
+                # the moment a job finished. A separate thread also keeps a
+                # slow history fetch (up to 60s) from stalling the WS recv
+                # loop (keepalive pings) or the done broadcast below.
+                if t == "execution_success":
+                    threading.Thread(
+                        target=_record_job_output, args=(prompt_id,), daemon=True
+                    ).start()
                 _broadcast_progress(job)  # push the stage/value/preview update
                 if t in ("execution_success", "execution_error"):
                     break
@@ -233,6 +246,39 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
     ).start()
     with _jobs_lock:
         _broadcast_progress(_jobs.get(prompt_id))  # push the "queued" state
+
+
+def _record_job_output(prompt_id: str) -> None:
+    """Best-effort: record a completed job's result URL from ComfyUI history.
+
+    Called from a dedicated thread spawned by the job's WS listener on
+    execution_success, so the result is recorded even when the HTTP handler's
+    wait_for_output timed out (videos can outlive it) or the client
+    disconnected mid-job. The handler's _mark_latest_done remains as a second,
+    idempotent record path — whichever runs first wins, and _mark_job_result
+    is safe to call twice.
+
+    WARNING: must never be called while holding _jobs_lock — it acquires the
+    lock itself (via _mark_job_result) and threading.Lock is not reentrant;
+    calling it under the lock deadlocks the whole backend (the caller holds
+    the lock forever and every other thread that needs it blocks).
+    """
+    try:
+        from comfy_client import ComfyClient
+        from tools import _common
+
+        with ComfyClient(settings=_settings()) as c:
+            # History is normally already populated when execution_success
+            # fires; the generous timeout covers any tiny write lag.
+            outputs = c.wait_for_output(prompt_id, timeout=60, poll=1)
+            try:
+                rec = _common.find_output_image(outputs)
+            except _common.WorkflowError:
+                rec = _common.find_output_video(outputs)
+            url = c.result_url(rec["filename"], rec.get("type", "output"))
+        _mark_job_result(prompt_id, url)
+    except Exception:
+        pass  # best-effort — the handler's _mark_latest_done is the fallback
 
 
 def _mark_job_result(prompt_id: str, url: str) -> None:

@@ -32,6 +32,11 @@ window.addEventListener('DOMContentLoaded', () => {
   // leave the source field with '/media/...' (→ backend 400, since that is
   // not a valid source).
   loadSettings().then(() => restoreLastGeneratedUrl());
+  // Re-adopt a generation that was still running when this page loaded
+  // (browser discarded/reloaded a backgrounded tab, or the user reloaded
+  // mid-job): re-establish the running UI and resolve the result when the
+  // backend finishes. Async + non-blocking.
+  adoptRunningJob();
 });
 
 // Rebuild lastGeneratedUrl from the persisted galleries (the most recent

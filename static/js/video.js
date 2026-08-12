@@ -91,7 +91,7 @@ function generateVideo() {
   api('/api/video', {
     image: src, model_version: mv, prompt, negative_prompt: negative,
     frames, steps, seed, lora_config: loraConfig, diffusion,
-  }).then(res => {
+  }, 1800000 /* 30 min: Wan jobs routinely outlive the default 5min abort */).then(res => {
     finalizeVideo(res);
   }).catch(err => {
     const isAbort = err && err.name === 'AbortError';
