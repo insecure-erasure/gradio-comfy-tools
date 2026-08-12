@@ -410,9 +410,26 @@ function galleryNav(delta) {
 }
 
 // ── Openers ────────────────────────────────
+// The index of the entry the pane is CURRENTLY showing (paneCurrentEntry —
+// paneIdx[tab] when the user navigated with ‹ ›, otherwise the most recent)
+// inside a gallery collection, or -1 when the pane shows nothing or the
+// entry is not in that collection. Used by the fullscreen openers so the
+// overlay opens on the image the user was looking at in the normal view —
+// not blindly on the most recent one. Matches by normalized src (robust
+// against the DOM fallback entries of collectCompareEntries, whose ordering
+// can differ from the registry).
+function indexOfPaneEntry(collection, tab) {
+  if (!tab || !collection || !collection.length) return -1;
+  const current = paneCurrentEntry(tab);
+  if (!current) return -1;
+  const target = absUrl(current.src || current.display || current.url);
+  return collection.findIndex(e => absUrl(e.src || e.display || e.url) === target);
+}
+
 // Generate lightbox: the GENERATED history (session), not the live DOM —
 // so the history survives the pane only showing the last result. Called with
-// the clicked img (to position on it) or nothing (⛶ → most recent).
+// the clicked img (to position on it) or nothing (⛶ → the entry the pane
+// is currently showing, or the most recent).
 async function openGenerateLightbox(img) {
   // Re-verify the persisted gallery against the server (cache-busted so a
   // file deleted mid-session is dropped before the overlay opens). Cheap:
@@ -441,6 +458,12 @@ async function openGenerateLightbox(img) {
       i = all.findIndex(e => absUrl(e.src) === abs);
     }
     if (i >= 0) idx = i;
+  } else {
+    // ⛶: the overlay opens on the entry the pane is showing right now (the
+    // user may have navigated the pane with ‹ › to an older entry) — falls
+    // back to the most recent when the pane shows nothing.
+    const pi = indexOfPaneEntry(all, 'generate');
+    if (pi >= 0) idx = pi;
   }
   galleryIdx = idx;
   renderGalleryItem();
@@ -472,7 +495,11 @@ async function openCompareFullscreen(kind) {
   galleryBig.style.display = 'none';
   gallerySlider.style.display = '';
   galleryVideoWrap.style.display = 'none';
-  const i = comps.findIndex(e => e.kind === kind);
+  // Position on the comparison the pane is currently showing (paneIdx[tab]
+  // via paneCurrentEntry), not on the first entry of this kind — the user
+  // may have navigated the pane with ‹ › to an older comparison. Falls back
+  // to the most recent one.
+  const i = indexOfPaneEntry(comps, tab);
   galleryIdx = i >= 0 ? i : comps.length - 1;
   renderGalleryItem();
   openGalleryOverlay();
@@ -493,7 +520,12 @@ async function openVideoGallery() {
   galleryBig.style.display = 'none';
   gallerySlider.style.display = 'none';
   galleryVideoWrap.style.display = '';
-  galleryIdx = all.length - 1;
+  // Position on the video the pane is currently showing (paneIdx.video via
+  // paneCurrentEntry), not always the most recent — the user may have
+  // navigated the pane with ‹ › to an older video. Falls back to the most
+  // recent one.
+  const i = indexOfPaneEntry(all, 'video');
+  galleryIdx = i >= 0 ? i : all.length - 1;
   renderGalleryItem();
   openGalleryOverlay();
 }
