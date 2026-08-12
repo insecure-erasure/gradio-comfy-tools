@@ -746,6 +746,10 @@ function galleryDeleteCurrent() {
   // If the deleted entry was what the ACTIVE tool's pane was showing, clear
   // the pane so closing the gallery restores the next/last generation (or
   // the idle placeholder) instead of leaving a ghost of the deleted file.
+  // The DOM src is an ABSOLUTE URL (the browser resolves /media/...) while
+  // the registry srcs are relative — compare by ComfyUI filename (filenameFromUrl
+  // handles both), not by raw strings (a raw === would never match and leave
+  // the ghost visible until a reload).
   const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
   const pane = document.getElementById(paneIds[currentTab]);
   if (pane) {
@@ -755,8 +759,8 @@ function galleryDeleteCurrent() {
     const vid = pane.querySelector('.video-player video');
     const cmpAfter = pane.querySelector('.compare-slider img.side.after');
     const shownSrc = (img && img.src) || (vid && vid.src) || (cmpAfter && cmpAfter.src) || null;
-    const entrySrc = galleryMode === 'video' ? (e.src || e.display || e.url) : e.src;
-    if (shownSrc && entrySrc && shownSrc === entrySrc) clearPane(pane.id);
+    const shownFn = shownSrc ? filenameFromUrl(shownSrc) : null;
+    if (shownFn && fn && shownFn === fn) clearPane(pane.id);
   }
 
   // 2) Remove from the live entries + navigate/clamp.
