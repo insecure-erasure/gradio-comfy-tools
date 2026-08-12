@@ -294,6 +294,7 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
+  resetGalleryZoom(); // a closed gallery must never keep a transform
   // Destroy the video player of the OVERLAY (stops playback) and hide the
   // wrap. The pane's own player/result is untouched — closing the gallery
   // must not destroy the tool's last generation.
@@ -320,11 +321,152 @@ function closeGallery() {
       galleryMode = null;
       closeGalleryPrompt();
       closeBadgeBox();
+      resetGalleryZoom();
       if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
       if (typeof restoreTabResult === 'function' && currentTab) restoreTabResult(currentTab);
     }
   })
 );
+
+// ── Pinch/wheel zoom (Generate lightbox only) ────
+// Two-finger pinch (touch) and the mouse wheel (desktop) zoom the fullscreen
+// generated image (scale 1x..8x), anchored so the content point under the
+// fingers/cursor stays put; with more than 1x zoom a one- or two-finger
+// drag pans (a mouse drag pans too). Navigation (‹ › / ←/→), opening a
+// different entry and closing always reset to 1x. Compare/video modes are
+// untouched (every handler is guarded by galleryMode === 'lightbox').
+let zoomScale = 1, zoomTx = 0, zoomTy = 0;
+const _ptrs = new Map(); // pointerId -> {x, y} (active pointers on the image)
+const _pinch = { active: false, startDist: 1, startScale: 1, startTx: 0, startTy: 0, m0x: 0, m0y: 0 };
+const _pan = { active: false, lastX: 0, lastY: 0 };
+const _ZOOM_MAX = 8;
+
+function _applyZoom() {
+  if (zoomScale <= 1.0001) {
+    // Snap back to a clean 1x — no transform, no will-change left behind.
+    zoomScale = 1; zoomTx = 0; zoomTy = 0;
+    galleryBig.style.transform = '';
+    galleryBig.style.willChange = '';
+  } else {
+    galleryBig.style.transform = `translate(${zoomTx}px, ${zoomTy}px) scale(${zoomScale})`;
+    galleryBig.style.willChange = 'transform';
+  }
+}
+
+// Keep the image inside its viewport-sized box: at scale s the pan may not
+// exceed (s-1)/2 of the box in either axis (the transform origin is the
+// center). Called after every zoom/pan change.
+function _clampZoom() {
+  const w = galleryBig.clientWidth || window.innerWidth;
+  const h = galleryBig.clientHeight || window.innerHeight;
+  const maxTx = (zoomScale - 1) * w / 2;
+  const maxTy = (zoomScale - 1) * h / 2;
+  zoomTx = Math.max(-maxTx, Math.min(maxTx, zoomTx));
+  zoomTy = Math.max(-maxTy, Math.min(maxTy, zoomTy));
+  _applyZoom();
+}
+
+function resetGalleryZoom() {
+  _ptrs.clear();
+  _pinch.active = false;
+  _pan.active = false;
+  zoomScale = 1; zoomTx = 0; zoomTy = 0;
+  _applyZoom();
+}
+
+// On touch the browser's own pinch/page-zoom is disabled by the
+// touch-action:none CSS on #galleryBig, so these handlers own the gesture.
+galleryBig.addEventListener('pointerdown', e => {
+  if (galleryMode !== 'lightbox') return;
+  _ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { galleryBig.setPointerCapture(e.pointerId); } catch (err) { /* synthetic */ }
+  if (_ptrs.size === 2) {
+    // Second finger down: begin the pinch from the CURRENT scale/pan.
+    _pinch.active = true;
+    _pan.active = false;
+    const [a, b] = [..._ptrs.values()];
+    _pinch.startDist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+    _pinch.startScale = zoomScale;
+    _pinch.startTx = zoomTx;
+    _pinch.startTy = zoomTy;
+    _pinch.m0x = (a.x + b.x) / 2;
+    _pinch.m0y = (a.y + b.y) / 2;
+  } else if (_ptrs.size === 1 && zoomScale > 1.0001) {
+    // First finger down while zoomed: pan.
+    _pan.active = true;
+    _pan.lastX = e.clientX;
+    _pan.lastY = e.clientY;
+  }
+});
+
+galleryBig.addEventListener('pointermove', e => {
+  if (galleryMode !== 'lightbox' || !_ptrs.has(e.pointerId)) return;
+  _ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (_pinch.active && _ptrs.size >= 2) {
+    const [a, b] = [..._ptrs.values()].slice(0, 2);
+    const dist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+    const s = Math.min(_ZOOM_MAX, Math.max(1, _pinch.startScale * dist / _pinch.startDist));
+    // Keep the content point that was under the pinch-start midpoint under
+    // the CURRENT midpoint: T1 = M1 - C - (s/s0)·(M0 - C - T0), C = element
+    // center (the transform origin).
+    const cx = galleryBig.clientWidth / 2 || window.innerWidth / 2;
+    const cy = galleryBig.clientHeight / 2 || window.innerHeight / 2;
+    const k = s / _pinch.startScale;
+    zoomScale = s;
+    zoomTx = (a.x + b.x) / 2 - cx - k * (_pinch.m0x - cx - _pinch.startTx);
+    zoomTy = (a.y + b.y) / 2 - cy - k * (_pinch.m0y - cy - _pinch.startTy);
+    _clampZoom();
+  } else if (_pan.active && _ptrs.size === 1) {
+    zoomTx += e.clientX - _pan.lastX;
+    zoomTy += e.clientY - _pan.lastY;
+    _pan.lastX = e.clientX;
+    _pan.lastY = e.clientY;
+    _clampZoom();
+  }
+});
+
+function _galleryPointerUp(e) {
+  if (galleryMode !== 'lightbox') return;
+  _ptrs.delete(e.pointerId);
+  if (_pinch.active && _ptrs.size < 2) {
+    // A finger lifted mid-pinch: hand the pan over to the remaining finger
+    // so the image does not jump when the user keeps dragging.
+    _pinch.active = false;
+    if (_ptrs.size === 1) {
+      const [p] = [..._ptrs.values()];
+      _pan.active = true;
+      _pan.lastX = p.x;
+      _pan.lastY = p.y;
+    }
+  }
+  if (_ptrs.size === 0) _pan.active = false;
+  _applyZoom(); // snap a nearly-1x scale back to a clean 1x
+}
+galleryBig.addEventListener('pointerup', _galleryPointerUp);
+galleryBig.addEventListener('pointercancel', _galleryPointerUp);
+
+// Mouse wheel (desktop): zoom toward the cursor. preventDefault stops the
+// page from scrolling and trackpad browser-gestures (back/forward) while
+// the cursor is over the image; passive:false is required for that.
+galleryBig.addEventListener('wheel', e => {
+  if (galleryMode !== 'lightbox') return;
+  e.preventDefault();
+  // ~1.16x per wheel notch (deltaY=100); trackpad deltas are smaller, so
+  // the same factor scales smoothly for them too.
+  const s = Math.min(_ZOOM_MAX, Math.max(1, zoomScale * Math.exp(-e.deltaY * 0.0015)));
+  if (s === zoomScale) { _applyZoom(); return; }
+  // Anchor: keep the content point that was under the cursor under the
+  // cursor — T1 = M - C - (s1/s0)·(M - C - T0), with M,C relative to the
+  // element center (the transform origin).
+  const rect = galleryBig.getBoundingClientRect();
+  const mx = e.clientX - rect.left - rect.width / 2;
+  const my = e.clientY - rect.top - rect.height / 2;
+  const k = s / zoomScale;
+  zoomScale = s;
+  zoomTx = mx - k * (mx - zoomTx);
+  zoomTy = my - k * (my - zoomTy);
+  _clampZoom();
+}, { passive: false });
 
 // ── Render the current gallery item ────────
 function renderGalleryItem() {
@@ -406,6 +548,7 @@ function galleryNav(delta) {
   closeGalleryPrompt(); // a new entry — don't leave the old prompt open
   closeBadgeBox();
   galleryIdx = ((galleryIdx + delta) % galleryEntries.length + galleryEntries.length) % galleryEntries.length;
+  resetGalleryZoom(); // a new entry always starts at 1x
   renderGalleryItem();
 }
 
@@ -466,6 +609,7 @@ async function openGenerateLightbox(img) {
     if (pi >= 0) idx = pi;
   }
   galleryIdx = idx;
+  resetGalleryZoom(); // opening always starts at 1x
   renderGalleryItem();
   openGalleryOverlay();
 }
@@ -599,6 +743,19 @@ function galleryDeleteCurrent() {
     );
   }
 
+  // 2) Tombstone the deleted entry's filename: the backend keeps an on-disk
+  // job history (/api/history) that backfillGalleries re-seeds from on every
+  // page load / visibilitychange — without a tombstone the deleted entry is
+  // silently resurrected (and re-persisted). The tombstone is persisted with
+  // the galleries (savePersistedState) and skipped by the backfill, so a
+  // deletion sticks across reloads. Only filenames matter here: backfill
+  // only ever re-adds by filename, and entries without one (external URLs)
+  // are never in the backend history.
+  if (fn) {
+    window.galleryDeleted = window.galleryDeleted || [];
+    if (!window.galleryDeleted.includes(fn)) window.galleryDeleted.push(fn);
+  }
+
   // If the deleted entry was what the ACTIVE tool's pane was showing, clear
   // the pane so closing the gallery restores the next/last generation (or
   // the idle placeholder) instead of leaving a ghost of the deleted file.
@@ -625,6 +782,7 @@ function galleryDeleteCurrent() {
   }
   // Navigate to the next entry (wrap), or clamp to the new last.
   if (galleryIdx >= galleryEntries.length) galleryIdx = galleryEntries.length - 1;
+  resetGalleryZoom(); // the shown entry changed — back to 1x
   renderGalleryItem();
   if (typeof savePersistedState === 'function') savePersistedState();
   if (currentTab) syncPaneNav(currentTab);

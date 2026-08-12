@@ -638,10 +638,23 @@ async function backfillGalleries() {
   const display = (h) => '/media/' + encodeURIComponent(h.filename) + '?type=' + (h.type || 'output');
   const present = (arr, fn) => {
     if (!Array.isArray(arr)) return false;
-    return arr.some(e => (e.filename || '') === fn);
+    return arr.some(e => {
+      if ((e.filename || '') === fn) return true;
+      // Registry entries (e.g. comparisons) may not carry .filename — match
+      // by the filename embedded in their display src as well, so a result
+      // that is already in the gallery is never duplicated by a re-backfill.
+      if (e.src && typeof filenameFromUrl === 'function' && filenameFromUrl(e.src) === fn) return true;
+      return false;
+    });
   };
+  // Filenames the user deleted from a gallery (see galleryDeleteCurrent):
+  // they are tombstoned in localStorage so the on-disk history can never
+  // resurrect them. Without this, every load/visibilitychange backfill
+  // would re-add the "deleted" entry and re-persist it.
+  const deleted = window.galleryDeleted || [];
   for (const h of entries) {
     if (!h.filename) continue;
+    if (deleted.includes(h.filename)) continue; // user deleted it — never bring it back
     if (h.tool === 'video') {
       if (!present(window.galleryVideos, h.filename)) {
         window.galleryVideos.push({

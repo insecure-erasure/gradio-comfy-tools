@@ -1535,6 +1535,14 @@
     width: 100vw;
     height: 100vh;
     object-fit: contain;   /* edge to edge — no frame, no rounded corners */
+    /* Pinch zoom (lightbox): JS owns the gesture — the browser must NOT
+       scroll the page or pinch-zoom it when touches start on the image.
+       The no-select/callout rules keep drags from triggering text
+       selection or the iOS long-press callout mid-gesture. */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   /* The compare slider inside the overlay: JS sizes w/h to the image aspect
      + viewport (fitGallerySlider); these are the fallbacks before/after fit. */
