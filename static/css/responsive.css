@@ -353,7 +353,6 @@
     .source-url-field:focus-within {
       width: 70%;
     }
-    .source-url-input { width: 100%; }
     .params-pane { padding: 6px 12px; gap: 0; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }

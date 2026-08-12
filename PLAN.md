@@ -334,9 +334,10 @@ mockup directly.
 > `/api/progress` is now only a fallback when the WS fails. Verified live
 > against the server (ComfyUI 0.27.0): 9-step Z-Image Turbo pushed queued →
 > per-node stages → 34 preview frames 1/9..9/9 → `active: null`.
-> **Remaining from B5**: queue position and true concurrent tabs (the
-> store is single-user "most recent job"). Live per-step previews are DONE
-> (see "What remains from B5" below).
+> **Deferred indefinitely (2026-08-12, by decision)**: queue position and
+> true concurrent tabs (the store is single-user "most recent job") —
+> parked, not planned. Live per-step previews are DONE (see "What remains
+> from B5" below).
 
 ### ComfyUI state API (verified 2026-08-07, ComfyUI 0.29.1)
 
@@ -348,6 +349,7 @@ mockup directly.
 | `GET /history/{prompt_id}` | status + outputs when done | already used by `comfy_client.wait_for_output` |
 
 > REST gives **counts, not percentages** — it says "1 running" but not how far.
+> *(Not consumed by the app: queue position was parked indefinitely 2026-08-12.)*
 
 **WebSocket `GET /ws?clientId=<uuid>`** (verified):
 | Event | Meaning |
@@ -651,19 +653,18 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   `window.visualViewport` resize/scroll and sets the modal's top+height
   to the real visible area (cleared on close), so the keyboard never
   covers the textarea.
-- **TODO (after fullscreen)**: **queueing** — see below.
-- **Remaining**: queue position and true concurrent tabs (each tab still
-  blocks on its own `fetch()`; `/api/progress` is single-user "most recent
-  job"). The per-step live previews are DONE (see "What remains from B5"
-  above — the ws `preview_method:auto` mechanism, no preview node needed).
+- **PARKED INDEFINITELY (2026-08-12, by decision)**: **queueing** — queue
+  position and true concurrent tabs (each tab still blocks on its own
+  `fetch()`; `/api/progress` is single-user "most recent job"). The per-step
+  live previews are DONE (see "What remains from B5" above — the ws
+  `preview_method:auto` mechanism, no preview node needed).
 
 ### Manual validation (B5)
 Launch a generation in the UI; verify the result URL row shows live progress
 (%, node stage) updating in real time (`⏳ Queued…` → `⚙️ SamplerCustomAdvanced
 4/8` → the result URL on completion).
 
-**PENDING manual validation (2026-08-08, after the gallery feature + cache
-fix):**
+**Manual validation (2026-08-08 — VALIDATED 2026-08-12 by the user):**
 
 - **Gallery in a live session (not stubbed)**: generate 2+ images, open the
   lightbox (click the result or ⛶) and verify the history navigates all of

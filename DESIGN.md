@@ -109,7 +109,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | File | Purpose |
 |------|---------|
 | `DESIGN.md` | This overview |
-| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; remaining: queue position + true concurrent tabs — see §B5 |
+| `PLAN.md` | Implementation plan — Part A (backend) done, Part B (frontend) done: live progress, per-step previews, stop/cancel, galleries; queue position + true concurrent tabs parked indefinitely (2026-08-12 decision) — see §B5 |
 | `FRONTEND.md` | UI specification — the **code** (`templates/` + `static/`) is the source of truth; `mockup.html` is the historical spec |
 | `BACKEND.md` | Service specification — the open-webui tools are the reference |
 | `mockup.html` | Design template/spec — never edited for functionality |
