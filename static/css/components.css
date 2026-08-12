@@ -1609,17 +1609,37 @@
     justify-content: center;
     padding: 0;
     background: transparent;     /* no dim: the panel is the modal */
+    /* wrapper stays pointer-transparent: the empty area around the text
+       box passes taps through (tap anywhere still closes); only the inner
+       .gallery-prompt-box captures events, to scroll long prompts. */
     pointer-events: none;        /* image + gallery buttons stay clickable */
   }
   .gallery-prompt-modal.show { display: flex; }
   .gallery-prompt-box {
     width: fit-content;            /* hugs the text — never wider than needed */
     max-width: min(560px, 86vw);   /* SAME max-width as the badge box */
-    max-height: 60vh;
+    /* Height adapts to the text (height: auto) — the box is exactly the
+       text + its padding, and the text anchors TOP (no centered air; when
+       the text exceeds the cap the scroll starts at the top, so long
+       prompts read from the beginning). */
+    max-height: calc(100dvh - 96px); /* show as much as fits; scroll if more */
     overflow-y: auto;
     white-space: pre-wrap;
     word-break: break-word;
-    pointer-events: none;
+    /* Compact vertical padding: the family uses 8px 14px, the box hugs
+       the text tighter (4px top/bottom) so long prompts don't waste
+       vertical space. */
+    padding: 4px 14px;
+    /* The BOX itself takes pointer events so long prompts can scroll
+       (touch drag + mouse wheel). touch-action: pan-y = native vertical
+       panning (a drag fires no click); overscroll-behavior: contain keeps
+       the gesture from scrolling the page behind. The WRAPPER stays
+       pointer-transparent (see below), so taps anywhere — including on
+       the box — still close it: a tap bubbles to the overlay's delegated
+       click listener (closeTextBoxes), while scrolling never does. */
+    pointer-events: auto;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
   }
   .gallery-prompt-text {
     font: inherit;
@@ -1661,12 +1681,18 @@
     align-items: center;
     justify-content: center;
     padding: 0;
+    /* wrapper stays pointer-transparent: the empty area around the text
+       box passes taps through (tap anywhere still closes); only the inner
+       .gallery-prompt-box captures events, to scroll long prompts. */
     pointer-events: none;
   }
   .gallery-badge-box.show { display: flex; }
   .gallery-btn {
     position: absolute;
-    z-index: 1000;
+    /* Above the prompt boxes (z 1100): the boxes are now scrollable and
+       capture pointer events, so the corner/nav buttons must stay on top
+       to remain clickable where the box overlaps them. */
+    z-index: 1200;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1694,7 +1720,7 @@
   .gallery-counter {
     position: absolute;
     bottom: 14px; right: 14px;
-    z-index: 1000;
+    z-index: 1200;              /* above the prompt boxes (z 1100) — see .gallery-btn */
     display: none;
     align-items: center;
     justify-content: flex-start;   /* left-aligned text (family rule) */

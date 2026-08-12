@@ -601,7 +601,10 @@ never shown):
     compare-slider labels): system-ui, weight 400 (no bold anywhere),
     13px/1.5, white on the dark translucent surface
     (`rgba(28,28,28,.72)`), 1px light border, 10px radius, one box-shadow,
-    and the SAME fixed padding (8px 14px). Boxes hug their text
+    and the SAME fixed padding (8px 14px) — the prompt BOXES reduce the
+    vertical part to 4px so they hug the text tightly (the height adapts
+    to the content; long text caps at `calc(100dvh - 96px)` and scrolls,
+    text anchored TOP). Boxes hug their text
     (`width: fit-content`) so the size adapts to the content, with the
     SAME max-width (`min(560px, 86vw)`). Alignment: LEFT everywhere except
     the Show-prompt button, whose label is CENTERED (it is a button).
