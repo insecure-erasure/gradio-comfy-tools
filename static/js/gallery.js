@@ -743,19 +743,6 @@ function galleryDeleteCurrent() {
     );
   }
 
-  // 2) Tombstone the deleted entry's filename: the backend keeps an on-disk
-  // job history (/api/history) that backfillGalleries re-seeds from on every
-  // page load / visibilitychange — without a tombstone the deleted entry is
-  // silently resurrected (and re-persisted). The tombstone is persisted with
-  // the galleries (savePersistedState) and skipped by the backfill, so a
-  // deletion sticks across reloads. Only filenames matter here: backfill
-  // only ever re-adds by filename, and entries without one (external URLs)
-  // are never in the backend history.
-  if (fn) {
-    window.galleryDeleted = window.galleryDeleted || [];
-    if (!window.galleryDeleted.includes(fn)) window.galleryDeleted.push(fn);
-  }
-
   // If the deleted entry was what the ACTIVE tool's pane was showing, clear
   // the pane so closing the gallery restores the next/last generation (or
   // the idle placeholder) instead of leaving a ghost of the deleted file.

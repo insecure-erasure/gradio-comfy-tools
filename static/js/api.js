@@ -531,7 +531,6 @@ document.addEventListener('visibilitychange', () => {
     paintProgress();          // re-sync the progress line immediately
     tryRecoverResult();       // recover a result whose fetch died in background
   }
-  backfillGalleries();        // the session may have missed completions
 });
 
 function stopProgressPolling() {
@@ -612,80 +611,6 @@ function finalizeRecoveredJob(tool, res) {
   showToast('✅ Generation finished');
 }
 
-// Backfill the persisted galleries (window.galleryVideos / galleryGenerated /
-// galleryComparisons) from the backend's on-disk history (/api/history).
-// Used when the current session may have missed results — the original tab
-// was closed/discarded, the browser or device changed, or a fetch was lost.
-// Each history entry becomes a gallery entry IF it is not already present
-// (matched by filename) and IF the file still exists on the ComfyUI host
-// (videos are temp files that get cleaned on restart — a missing file is
-// skipped, matching the gallery's own video behavior). Then the panes + nav
-// re-sync so the result is actually viewable.
-async function backfillGalleries() {
-  let entries = [];
-  try {
-    const r = await fetch('/api/history');
-    const j = await r.json();
-    entries = (j && j.entries) || [];
-  } catch (e) { return; }
-  if (!entries.length) return;
-  const display = (h) => '/media/' + encodeURIComponent(h.filename) + '?type=' + (h.type || 'output');
-  const present = (arr, fn) => {
-    if (!Array.isArray(arr)) return false;
-    return arr.some(e => {
-      if ((e.filename || '') === fn) return true;
-      // Registry entries (e.g. comparisons) may not carry .filename — match
-      // by the filename embedded in their display src as well, so a result
-      // that is already in the gallery is never duplicated by a re-backfill.
-      if (e.src && typeof filenameFromUrl === 'function' && filenameFromUrl(e.src) === fn) return true;
-      return false;
-    });
-  };
-  // Filenames the user deleted from a gallery (see galleryDeleteCurrent):
-  // they are tombstoned in localStorage so the on-disk history can never
-  // resurrect them. Without this, every load/visibilitychange backfill
-  // would re-add the "deleted" entry and re-persist it.
-  const deleted = window.galleryDeleted || [];
-  for (const h of entries) {
-    if (!h.filename) continue;
-    if (deleted.includes(h.filename)) continue; // user deleted it — never bring it back
-    if (h.tool === 'video') {
-      if (!present(window.galleryVideos, h.filename)) {
-        window.galleryVideos.push({
-          src: display(h),
-          url: h.url,
-          prompt: h.prompt || '',
-          filename: h.filename,
-        });
-      }
-    } else if (h.tool === 'generate') {
-      if (!present(window.galleryGenerated, h.filename)) {
-        window.galleryGenerated.push({
-          src: display(h),
-          url: h.url,
-          prompt: h.prompt || '',
-          filename: h.filename,
-        });
-      }
-    } else if (h.tool === 'edit' || h.tool === 'upscale') {
-      if (!present(window.galleryComparisons, h.filename)) {
-        window.galleryComparisons.push({
-          src: display(h),
-          url: h.url,
-          prompt: h.prompt || '',
-          kind: h.tool,
-          tab: h.tool,
-        });
-      }
-    }
-  }
-  if (entries.length) {
-    savePersistedState();
-    if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
-    if (typeof restoreActiveTabResult === 'function') restoreActiveTabResult();
-  }
-}
-
 // Adopt a generation that was running when the page (re)loaded: the browser
 // can discard a backgrounded tab under memory pressure (reloading it on
 // focus), or the user may reload mid-generation. sessionStorage remembers
@@ -695,10 +620,6 @@ async function backfillGalleries() {
 // backend records the result URL on completion, so /api/last-result always
 // resolves it). Called from main.js after startup.
 async function adoptRunningJob() {
-  // Even with no marker, the on-disk history may hold results this session
-  // missed (closed tab, other browser/device) — backfill the galleries so
-  // the user can view them with the tool.
-  backfillGalleries();
   let marker = null;
   try { marker = JSON.parse(sessionStorage.getItem(JOB_MARKER_KEY) || 'null'); } catch (e) {}
   if (!marker || !marker.tool) return;

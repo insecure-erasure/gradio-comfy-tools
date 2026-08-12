@@ -100,56 +100,6 @@ _jobs: dict[str, dict] = {}
 _jobs_lock = threading.Lock()
 _MAX_JOBS = 20
 
-# ── Persisted result history ──────────────────────
-# The in-memory job store dies with the server process; this on-disk JSON
-# survives page reloads, browser/device changes and server restarts, so a
-# generation finished (or still running) can be recovered and shown in the
-# gallery from ANY client. Written on every job completion.
-_HISTORY_FILE = REPO / "job_history.json"
-_HISTORY_LOCK = threading.Lock()
-_MAX_HISTORY = 50
-
-
-def _load_history() -> list[dict]:
-    try:
-        data = json.loads(_HISTORY_FILE.read_text(encoding="utf-8"))
-        return data if isinstance(data, list) else []
-    except Exception:
-        return []
-
-
-def _save_history(entries: list[dict]) -> None:
-    try:
-        _HISTORY_FILE.write_text(
-            json.dumps(entries, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
-    except Exception:
-        pass  # best-effort — losing the on-disk copy is not fatal
-
-
-def _record_history(entry: dict) -> None:
-    """Append a completed job to the on-disk history (bounded)."""
-    with _HISTORY_LOCK:
-        entries = _load_history()
-        entries = [e for e in entries if e.get("prompt_id") != entry.get("prompt_id")]
-        entries.append(entry)
-        _save_history(entries[-_MAX_HISTORY:])
-
-
-def _history_entry(prompt_id: str, url: str, tool: str, prompt: str) -> dict:
-    """Build the on-disk history entry for a completed job."""
-    filename, type_ = _filename_from_url(url)
-    return {
-        "prompt_id": prompt_id,
-        "tool": tool,
-        "url": url,
-        "filename": filename,
-        "type": type_,
-        "prompt": prompt,
-        "done_at": time.time(),
-    }
-
-
 # Which tool/prompt is about to be queued — set by the API handlers BEFORE
 # calling the generate_* tool (which queues the workflow and fires the hook).
 # The hook reads these to tag the resulting prompt_id with its tool/prompt
@@ -353,10 +303,8 @@ def _mark_job_result(prompt_id: str, url: str, tool: str = "", prompt: str = "")
 
     The per-step preview is dropped here (and on cancel, where url=None):
     previews are ephemeral — once the real result is ready (or the job was
-    cancelled) keeping them would only hold memory. When a result URL is
-    attached for the first time, the job is also appended to the on-disk
-    history (so an abandoned browser/device can recover it via /api/history);
-    later calls are idempotent.
+    cancelled) keeping them would only hold memory. Later calls are
+    idempotent.
     """
     new_result = False
     with _jobs_lock:
@@ -366,8 +314,6 @@ def _mark_job_result(prompt_id: str, url: str, tool: str = "", prompt: str = "")
             job["done"] = True
             job["url"] = url
             job.pop("preview", None)
-    if job is not None and url:
-        _record_history(_history_entry(prompt_id, url, tool or job.get("tool", ""), prompt or job.get("prompt", "")))
     if job is not None:
         _broadcast_progress(job)  # push "active: null" — the job settled
 
@@ -555,20 +501,6 @@ def api_last_result() -> dict:
     if job is None or not job.get("done"):
         return {"url": None}
     return {"url": job.get("url") or None}
-
-
-@app.get("/api/history")
-def api_history() -> dict:
-    """Completed jobs, persisted on disk (survives restarts / other devices).
-
-    Returns ``{"entries": [{prompt_id, tool, url, filename, type, prompt,
-    done_at}, ...]}`` (newest first, bounded). The frontend uses it to
-    restore/backfill galleries and recover generations when the original
-    tab/browser is gone — see frontend adoptRunningJob / backfillGalleries.
-    """
-    with _HISTORY_LOCK:
-        entries = _load_history()
-    return {"entries": list(reversed(entries))}
 
 
 @app.post("/api/cancel")

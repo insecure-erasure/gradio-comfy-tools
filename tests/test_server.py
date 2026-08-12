@@ -773,16 +773,13 @@ def test_listener_records_output_without_deadlock(client, tmp_config, monkeypatc
             server._jobs_lock.release()
 
 
-def test_record_job_output_sets_url(client, tmp_config, monkeypatch, tmp_path):
+def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
     """The WS listener records the result URL on completion (server-side
     recovery path): even when the HTTP handler's wait_for_output timed out
-    (long videos) or the client is gone, /api/last-result resolves the job
-    and the on-disk history records it for the galleries.
+    (long videos) or the client is gone, /api/last-result resolves the job.
+    The server keeps no on-disk user state.
     """
     import comfy_client as cc
-    from server import _HISTORY_FILE
-
-    monkeypatch.setattr(server, "_HISTORY_FILE", tmp_path / "history.json")
 
     class FakeClient:
         def __init__(self, settings=None):
@@ -817,24 +814,18 @@ def test_record_job_output_sets_url(client, tmp_config, monkeypatch, tmp_path):
         }
         # And /api/progress is idle (job settled).
         assert client.get("/api/progress").json() == {"active": None}
-        # The on-disk history records it (tool + prompt for the gallery).
-        hist = client.get("/api/history").json()["entries"]
-        assert len(hist) == 1
-        assert hist[0]["filename"] == "out.mp4"
-        assert hist[0]["tool"] == "video"
-        assert hist[0]["prompt"] == "a cat"
+        # No on-disk history — the server keeps no user state (galleries
+        # live in localStorage on the client).
+        assert client.get("/api/history").status_code == 404
     finally:
         with server._jobs_lock:
             server._jobs.clear()
 
 
-def test_api_generate_records_history(client, tmp_config, monkeypatch, tmp_path):
-    """A completed /api/generate records its result in the on-disk history
-    with the right tool + prompt (backfill source for the galleries)."""
+def test_api_generate_records_history(client, tmp_config, monkeypatch):
+    """A completed /api/generate resolves its result in memory (no on-disk
+    history — the server keeps no user state)."""
     import comfy_client as cc
-    from server import _HISTORY_FILE
-
-    monkeypatch.setattr(server, "_HISTORY_FILE", tmp_path / "history.json")
 
     class FakeClient:
         def __init__(self, settings=None):
@@ -881,11 +872,9 @@ def test_api_generate_records_history(client, tmp_config, monkeypatch, tmp_path)
     )
     resp = client.post("/api/generate", json={"prompt": "a sunset"})
     assert resp.status_code == 200
-    hist = client.get("/api/history").json()["entries"]
-    assert len(hist) == 1
-    assert hist[0]["tool"] == "generate"
-    assert hist[0]["prompt"] == "a sunset"
-    assert hist[0]["filename"] == "out.png"
+    # No on-disk history — the server keeps no user state (galleries live
+    # in localStorage on the client).
+    assert client.get("/api/history").status_code == 404
 
 
 def test_preview_binary_with_metadata_stored_and_served(client, tmp_config, monkeypatch):

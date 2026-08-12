@@ -1,8 +1,9 @@
 // Repro/verify: does fullscreen-gallery individual deletion REALLY persist?
-// 1. Load, let the backend-history backfill settle.
+// (No backend history anymore — galleries live purely in localStorage.)
+// 1. Load, let the persisted galleries settle.
 // 2. Delete one generated entry via the lightbox trash.
-// 3. Verify it is gone from memory + localStorage + tombstoned.
-// 4. Reload AND manually re-run backfillGalleries() — must NOT resurrect it.
+// 3. Verify it is gone from memory + localStorage.
+// 4. Reload — the deleted entry must NOT come back (no server backfill).
 const puppeteer = require('puppeteer');
 
 const APP = 'http://localhost:8000';
@@ -21,10 +22,7 @@ async function launch() {
 
 const lsFilenames = () => {
   const d = JSON.parse(localStorage.getItem(KEY));
-  return {
-    generated: (d.galleries.generated || []).map(e => e.filename),
-    deleted: (d.galleries.deleted || []),
-  };
+  return (d.galleries.generated || []).map(e => e.filename);
 };
 
 (async () => {
@@ -34,7 +32,7 @@ const lsFilenames = () => {
   page.on('pageerror', e => console.log('[pageerror]', String(e).slice(0, 200)));
 
   await page.goto(APP, { waitUntil: 'networkidle0', timeout: 30000 });
-  await sleep(2500); // let adoptRunningJob + backfillGalleries settle
+  await sleep(2500); // let the persisted galleries settle
 
   const initial = await page.evaluate(() => ({
     mem: (window.galleryGenerated || []).map(e => e.filename),
@@ -54,26 +52,25 @@ const lsFilenames = () => {
 
   const afterDelete = await page.evaluate(() => ({
     mem: (window.galleryGenerated || []).map(e => e.filename),
-    ls: (() => { const d = JSON.parse(localStorage.getItem('comfyTools.userConfig')); return { generated: (d.galleries.generated || []).map(e => e.filename), deleted: d.galleries.deleted || [] }; })(),
+    ls: (() => { const d = JSON.parse(localStorage.getItem('comfyTools.userConfig')); return (d.galleries.generated || []).map(e => e.filename); })(),
   }));
   console.log('DELETED      :', deletedBefore);
   console.log('AFTER DELETE mem:', afterDelete.mem.length, '| still present in mem:', afterDelete.mem.includes(deletedBefore));
-  console.log('AFTER DELETE ls :', afterDelete.ls.generated.length, '| still in ls:', afterDelete.ls.generated.includes(deletedBefore), '| tombstones:', afterDelete.ls.deleted.length);
+  console.log('AFTER DELETE ls :', afterDelete.ls.length, '| still in ls:', afterDelete.ls.includes(deletedBefore));
 
-  // Simulate the exact resurrection paths: reload + a manual backfill run.
+  // The only remaining resurrection path is a plain reload (no server
+  // backfill anymore — galleries live purely in localStorage).
   await page.reload({ waitUntil: 'networkidle0' });
   await sleep(2500);
-  await page.evaluate(() => backfillGalleries()); // visibilitychange-style re-backfill
-  await sleep(1500);
 
   const afterReload = await page.evaluate(() => ({
     mem: (window.galleryGenerated || []).map(e => e.filename),
-    ls: (() => { const d = JSON.parse(localStorage.getItem('comfyTools.userConfig')); return { generated: (d.galleries.generated || []).map(e => e.filename), deleted: d.galleries.deleted || [] }; })(),
+    ls: (() => { const d = JSON.parse(localStorage.getItem('comfyTools.userConfig')); return (d.galleries.generated || []).map(e => e.filename); })(),
   }));
-  console.log('AFTER RELOAD+BACKFILL mem:', afterReload.mem.length, '| resurrected:', afterReload.mem.includes(deletedBefore));
-  console.log('AFTER RELOAD+BACKFILL ls :', afterReload.ls.generated.length, '| resurrected:', afterReload.ls.generated.includes(deletedBefore), '| tombstones:', afterReload.ls.deleted.length);
+  console.log('AFTER RELOAD mem:', afterReload.mem.length, '| resurrected:', afterReload.mem.includes(deletedBefore));
+  console.log('AFTER RELOAD ls :', afterReload.ls.length, '| resurrected:', afterReload.ls.includes(deletedBefore));
 
-  const ok = !afterReload.mem.includes(deletedBefore) && !afterReload.ls.generated.includes(deletedBefore) && afterReload.ls.deleted.includes(deletedBefore);
+  const ok = !afterReload.mem.includes(deletedBefore) && !afterReload.ls.includes(deletedBefore);
   console.log(ok ? '\n✅ DELETION NOW PERSISTS' : '\n❌ DELETION STILL RESURRECTED');
   await browser.close();
   process.exit(ok ? 0 : 1);

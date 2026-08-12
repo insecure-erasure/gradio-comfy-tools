@@ -33,14 +33,10 @@ function savePersistedState() {
     // Galleries: persisted so a reload does not lose the history. The
     // stored entries are validated against the server on restore (see
     // verifyStoredGalleries) — dead files are dropped, never shown.
-    // ``deleted`` holds tombstoned filenames (entries the user deleted from
-    // a fullscreen gallery): the backend-history backfill skips them, so a
-    // deletion sticks across reloads.
     galleries: {
       generated: window.galleryGenerated || [],
       videos: window.galleryVideos || [],
       comparisons: window.galleryComparisons || [],
-      deleted: window.galleryDeleted || [],
     },
   };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* disabled */ }
@@ -93,9 +89,6 @@ function restorePersistedState() {
       window.galleryVideos = data.galleries.videos.map(normalizeVideoEntry);
     }
     if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
-    // Tombstoned filenames (deleted from a fullscreen gallery) — restored
-    // so the backfill keeps skipping them after a reload.
-    window.galleryDeleted = Array.isArray(data.galleries.deleted) ? data.galleries.deleted : [];
   }
   // keep params to re-apply after the auto-steps recalc (applyPersistedParams)
   window.__persistedParams = data.params || null;
@@ -241,7 +234,6 @@ function resetAllUserData() {
   window.galleryGenerated = [];
   window.galleryVideos = [];
   window.galleryComparisons = [];
-  window.galleryDeleted = []; // fresh start — no tombstones either
   toolbarValues = { genFamily: 'krea2', vidVersion: 'wan21' };
   promptsByTab = { generate: '', edit: '', video: '' };
   window.advancedValues = {};

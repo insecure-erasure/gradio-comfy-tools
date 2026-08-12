@@ -108,29 +108,17 @@ function restoreActiveTabResult() {
 // empties the pane (restores the placeholder / video mock), clears the
 // result URL row and persists. Other tools' galleries are untouched.
 function clearTabGallery(tab) {
-  // Tombstone every filename being cleared so the backend-history backfill
-  // (page load / visibilitychange) never resurrects a "cleared" gallery.
-  const tombstone = arr => {
-    window.galleryDeleted = window.galleryDeleted || [];
-    (arr || []).forEach(e => {
-      const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-      if (fn && !window.galleryDeleted.includes(fn)) window.galleryDeleted.push(fn);
-    });
-  };
   switch (tab) {
     case 'generate':
-      tombstone(window.galleryGenerated);
       window.galleryGenerated = [];
       break;
     case 'edit':
     case 'upscale':
       if (Array.isArray(window.galleryComparisons)) {
-        tombstone(window.galleryComparisons.filter(e => e.tab === tab));
         window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== tab);
       }
       break;
     case 'video':
-      tombstone(window.galleryVideos);
       window.galleryVideos = [];
       break;
   }
