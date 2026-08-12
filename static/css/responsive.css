@@ -310,6 +310,12 @@
     }
     .lora-row .btn-remove-lora {
       flex: 0 0 auto;
+      /* Tighter gap to the strength stepper: the row gap is 8px; a -4px
+         margin pulls the ✕ closer (flex margins add to the gap), so the
+         remove control sits snug against the strength field. Negative,
+         not auto — an auto margin would eat the free space before
+         flex-grow and shove the button past the row edge. */
+      margin-left: -4px;
     }
     /* Gallery — prompt boxes (vertical): BOTH the badge box (top) and the
        Show-prompt panel (bottom) span the FULL width (small side margins),
