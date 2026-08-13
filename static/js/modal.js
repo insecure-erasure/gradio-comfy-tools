@@ -401,7 +401,7 @@ function renderModalLoraRows(path) {
       </select>
       <div class="stepper lora-strength">
         <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, -0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Decrease">−</button>
-        <input type="number" inputmode="decimal" step="0.01" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)">
+        <input type="number" inputmode="decimal" step="0.01" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)" onblur="normalizeLoraStrength('${path}', ${i}, this)">
         <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, 0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Increase">+</button>
       </div>
       <button class="btn-remove-lora" onclick="removeLoraRow('${path}', ${i})" title="Remove">✕</button>
@@ -504,15 +504,27 @@ function updateLoraRow(path, i, key, val) {
 }
 
 // Keep the strength field numeric and in sync with the model. type=number
-// already blocks junk (browsers reject non-numeric keystrokes / 'e'); the
-// .value is always a valid number string (or '' while the user is editing
-// a partial like '-'), so just parse it — no manual regex filtering.
+// already blocks junk, and the value is parsed as-is; crucially we do NOT
+// re-render while typing — rebuilding the row would wipe a partial value
+// the user is composing ('-', '-0.', '1.') before it becomes a full
+// number (and made typing a negative impossible: '-' -> NaN -> re-render
+// -> '0.00'). Partials keep the last valid strength in the model; the
+// field normalizes (re-render) on blur.
 function sanitizeLoraStrength(path, i, raw) {
   const rows = loraSets[path] || [];
   const n = Number.parseFloat(raw);
-  rows[i].strength = Number.isFinite(n) ? n : 0;
+  if (Number.isFinite(n)) rows[i].strength = n;  // ignore partials like '-'
   loraSets[path] = rows;
-  if (String(n) !== raw && String(n) !== raw.trim()) renderModalLoraRows(path);
+}
+
+// Called when the field loses focus: snap the display to the model's
+// canonical form (toFixed(2)) so junk/partials never linger in the box.
+function normalizeLoraStrength(path, i, el) {
+  const rows = loraSets[path] || [];
+  const n = Number.parseFloat(el.value);
+  if (Number.isFinite(n)) rows[i].strength = n;
+  loraSets[path] = rows;
+  renderModalLoraRows(path);
 }
 
 function stepLoraStrength(path, i, delta) {
