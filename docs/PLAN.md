@@ -296,8 +296,8 @@ mockup directly.
   persisted to localStorage. `static/js/settings.js`.
 - ⚙️ advanced modal: values stored per tab (`window.advancedValues`);
   model/diffusion are **dropdowns from `/models/diffusion_models`**; LoRAs use
-  an **inline row editor** (dropdown + strength stepper ±0.01, any real
-  value, up to 4),
+  an **inline row editor** (dropdown + strength stepper ±0.01 with
+  hold-to-accelerate, any real value, up to 4),
   filtered by model directory (`zit/`, `flux2/`, `krea2/`, `wan21/`, `wan22/`).
   Video modal varies by Wan version (wan22 dual high/low) with a **per-version
   config store** (`advancedValues.video.wan21|wan22`) and a wider modal.

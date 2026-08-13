@@ -287,7 +287,8 @@ function diffusionSelectToJson(filename, path) {
 // ── Embedded LoRA config editor (🧩) ───────
 // Lives directly inside the ⚙️ advanced modal: one editor per "path"
 // (main for image tools / wan21, high+low for wan22). Each editor has rows of
-// (LoRA dropdown + strength stepper ±0.01, up to 4 rows). The JSON is derived
+// (LoRA dropdown + strength stepper ±0.01 with hold-to-accelerate, up to 4
+// rows). The JSON is derived
 // on save and stored in advancedValues.loraSets[path] (plus .lora for the
 // single-set image tools, which the backend reads).
 
@@ -399,9 +400,9 @@ function renderModalLoraRows(path) {
         ${options}
       </select>
       <div class="stepper lora-strength">
-        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, -0.01)" title="Decrease">−</button>
+        <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, -0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Decrease">−</button>
         <input type="number" inputmode="decimal" step="0.01" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)">
-        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, 0.01)" title="Increase">+</button>
+        <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, 0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Increase">+</button>
       </div>
       <button class="btn-remove-lora" onclick="removeLoraRow('${path}', ${i})" title="Remove">✕</button>
     </div>`;
@@ -519,4 +520,55 @@ function stepLoraStrength(path, i, delta) {
   rows[i].strength = Math.round((rows[i].strength + delta) * 100) / 100;
   loraSets[path] = rows;
   renderModalLoraRows(path);
+}
+
+// ── LoRA strength hold-to-repeat (acceleration) ──
+// Press-and-hold a stepper button to repeat the step, accelerating: after
+// ~400ms of hold the repeat kicks in at ~80ms/step and speeds up to ~25ms,
+// while the step grows 0.01 -> 0.05 -> 0.1 (so reaching a negative value
+// from 1.0 takes ~1.5s instead of 100 clicks). A plain click still applies
+// exactly one step. The document-level pointerup/pointercancel/blur guards
+// stop the repeat even if the button is re-rendered mid-hold (each step
+// rebuilds the row) or the pointer is released outside it.
+let _loraStepCfg = null;       // {path, i, delta, ticks} of the active hold
+let _loraStepTimer = null;     // delay before the repeat starts (400ms)
+let _loraStepInterval = null;  // the accelerating repeat
+let _loraDocBound = false;
+
+function _loraRepeat() {
+  const c = _loraStepCfg;
+  if (!c) { stopLoraStep(); return; }
+  c.ticks++;
+  // Scale: 0.01 for the first ticks, then 0.05, then 0.1.
+  const scale = c.ticks < 8 ? 1 : c.ticks < 20 ? 5 : 10;
+  stepLoraStrength(c.path, c.i, c.delta * scale);
+  // Interval: 80ms -> 25ms (floor), so the later big steps come faster.
+  const ms = Math.max(25, 80 - c.ticks * 2);
+  clearInterval(_loraStepInterval);
+  _loraStepInterval = setInterval(_loraRepeat, ms);
+}
+
+function _ensureLoraStopBound() {
+  if (_loraDocBound) return;
+  _loraDocBound = true;
+  document.addEventListener('pointerup', stopLoraStep);
+  document.addEventListener('pointercancel', stopLoraStep);
+  window.addEventListener('blur', stopLoraStep);
+}
+
+function startLoraStep(path, i, delta, ev) {
+  if (ev) ev.preventDefault();  // no text selection / focus steal on hold
+  _ensureLoraStopBound();
+  stopLoraStep();               // clear any stale repeat from a previous hold
+  stepLoraStrength(path, i, delta);  // instant first step (plain-click feel)
+  _loraStepCfg = { path, i, delta, ticks: 0 };
+  _loraStepTimer = setTimeout(() => {
+    _loraStepInterval = setInterval(_loraRepeat, 80);
+  }, 400);
+}
+
+function stopLoraStep() {
+  if (_loraStepTimer) { clearTimeout(_loraStepTimer); _loraStepTimer = null; }
+  if (_loraStepInterval) { clearInterval(_loraStepInterval); _loraStepInterval = null; }
+  _loraStepCfg = null;
 }
