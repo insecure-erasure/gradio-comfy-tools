@@ -236,3 +236,4 @@ fields (model, LoRA/diffusion config):
    JSON array on save); there is no dynamic list in the params pane.
    `override_system_loras` does not exist (no override layers).
 2. **Nodes with title != class** — `KSampler` (class KSamplerAdvanced) and `Output MP4` (VHS_VideoCombine) in video; always resolve by `_meta.title`.
+3. **Cache busting** — static assets are served with `Cache-Control: no-cache` (revalidate, `NoCacheStaticFiles`) AND versioned in the HTML shell (`?v=<hash>` from `ASSET_VERSION`, a sha1 of static path+mtimes), so a browser reload always runs the current JS/CSS. The HTML itself is `Cache-Control: no-store` — a stale index could pin old `?v=` URLs.

@@ -518,6 +518,10 @@ and re-transforms the trigger button).
 ## 5. How the code is organized
 
 - **`templates/index.html`**: shell + Jinja2 includes + script/css links.
+  All assets load with a `?v=<hash>` cache-buster derived from the static
+  files' mtimes (`server.py` `ASSET_VERSION`), so a reload ALWAYS fetches
+  the current JS/CSS — a stale browser tab can never keep running old code
+  after a deploy.
 - **`templates/partials/`**: nav, settings_menu, tab_generate, tab_edit,
   tab_upscale, tab_video, bottom_bar, modal, gallery_overlay, toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).

@@ -73,6 +73,29 @@ class NoCacheStaticFiles(StaticFiles):
 app.mount("/static", NoCacheStaticFiles(directory=STATIC_DIR), name="static")
 
 
+def _asset_version() -> str:
+    """A short hash of the static assets (path + mtime), so the UI can
+    cache-bust script/css URLs (?v=...) — a reload ALWAYS fetches the
+    current JS/CSS, even from a tab that cached the old page heuristically.
+    Changes whenever any file under static/ changes.
+    """
+    import hashlib
+
+    h = hashlib.sha1()
+    try:
+        entries = sorted((p.relative_to(STATIC_DIR).as_posix(), p.stat().st_mtime_ns)
+                         for p in STATIC_DIR.rglob("*") if p.is_file())
+    except OSError:
+        entries = []
+    for name, mtime in entries:
+        h.update(name.encode("utf-8", "replace"))
+        h.update(str(mtime).encode())
+    return h.hexdigest()[:10]
+
+
+ASSET_VERSION = _asset_version()
+
+
 def _settings() -> Settings:
     return Settings()
 
@@ -447,7 +470,13 @@ comfy_client.register_prompt_hook(_on_prompt_queued)
 # --------------------------------------------------------------------------- #
 @app.get("/")
 def index(request: Request) -> Response:
-    return TEMPLATES.TemplateResponse(request, "index.html")
+    resp = TEMPLATES.TemplateResponse(request, "index.html", {"asset_version": ASSET_VERSION})
+    # The HTML shell must never be cached: a stale index (heuristic cache)
+    # could keep a tab on old ?v= URLs. Static assets themselves are
+    # revalidated (NoCacheStaticFiles) AND versioned below, so a refresh
+    # always runs the current JS/CSS.
+    resp.headers["Cache-Control"] = "no-store"
+    return resp
 
 
 @app.get("/health")
