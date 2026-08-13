@@ -176,6 +176,71 @@ def test_refine_prompt_stream_sse(client, tmp_config, monkeypatch):
     assert captured["json"]["stream"] is True
 
 
+def test_refine_prompt_stream_sse_get(client, tmp_config, monkeypatch):
+    """GET /api/refine-prompt streams deltas for the browser's EventSource."""
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    captured = {}
+
+    class FakeStreamResp:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def iter_lines(self):
+            return [
+                'data: {"choices": [{"delta": {"content": "A fluffy"}}]}',
+                'data: {"choices": [{"delta": {"content": " cat"}}]}',
+                'data: {"choices": [{"delta": {}}], "timings": {"predicted_n": 17, "predicted_per_second": 11.85}}',
+                "data: [DONE]",
+            ]
+
+        def read(self):
+            return b""
+
+    class FakeStreamingClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def stream(self, method, url, json):
+            captured["url"] = url
+            captured["json"] = json
+            return FakeStreamResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeStreamingClient)
+    resp = client.get("/api/refine-prompt", params={"prompt": "a cat"})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    body = resp.text
+    assert '"delta": "A fluffy"' in body
+    assert '"delta": " cat"' in body
+    assert '"meta": {"predicted_n": 17, "predicted_per_second": 11.85}' in body
+    assert '"done": true' in body
+    assert captured["json"]["stream"] is True
+
+
+def test_refine_prompt_get_unconfigured_is_sse_error(client, tmp_config):
+    """EventSource cannot read the HTTP status of a failed response, so the
+    GET endpoint emits the error as an SSE event with status 200."""
+    resp = client.get("/api/refine-prompt", params={"prompt": "a cat"})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/event-stream")
+    assert '"error"' in resp.text
+    assert "not configured" in resp.text
+
+
 def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
     """Defensive: even if the model still emits a <think>...</think> block in
     content (e.g. ignores reasoning_effort), only the text after it is kept.

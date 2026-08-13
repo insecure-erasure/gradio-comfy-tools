@@ -938,22 +938,7 @@ def api_refine_prompt(body: dict):
             gen = stream_refine_prompt(s, prompt, system_prompt)
         except (RefinerUnavailable, RefinerError) as e:
             raise HTTPException(400, str(e)) from e
-
-        def event_stream():
-            try:
-                for item in gen:
-                    if isinstance(item, dict) and "delta" in item:
-                        yield f"data: {json.dumps({'delta': item['delta']})}\n\n"
-                    elif isinstance(item, dict) and "meta" in item:
-                        yield f"data: {json.dumps({'meta': item['meta']})}\n\n"
-                yield f"data: {json.dumps({'done': True})}\n\n"
-            except RefinerError as e:
-                yield f"data: {json.dumps({'error': str(e)[:300]})}\n\n"
-            except GeneratorExit:
-                gen.close()  # client disconnected / cancelled — close llama stream
-                raise
-
-        return StreamingResponse(event_stream(), media_type="text/event-stream")
+        return StreamingResponse(_refine_event_stream(gen), media_type="text/event-stream")
     try:
         refined = refine_prompt(s, prompt, system_prompt)
     except RefinerUnavailable as e:
@@ -961,3 +946,54 @@ def api_refine_prompt(body: dict):
     except RefinerError as e:
         raise HTTPException(400, str(e)) from e
     return {"refined": refined}
+
+
+def _refine_event_stream(gen):
+    """Yield an SSE event stream from a refine delta generator.
+
+    Each delta/meta item becomes a ``data: {...}`` event; a final
+    ``{"done": true}`` closes the stream; a RefinerError mid-stream
+    becomes a ``{"error": ...}`` event. GeneratorExit (client disconnect /
+    cancel) closes the underlying llama stream.
+    """
+    try:
+        for item in gen:
+            if isinstance(item, dict) and "delta" in item:
+                yield f"data: {json.dumps({'delta': item['delta']})}\n\n"
+            elif isinstance(item, dict) and "meta" in item:
+                yield f"data: {json.dumps({'meta': item['meta']})}\n\n"
+        yield f"data: {json.dumps({'done': True})}\n\n"
+    except RefinerError as e:
+        yield f"data: {json.dumps({'error': str(e)[:300]})}\n\n"
+    except GeneratorExit:
+        gen.close()  # client disconnected / cancelled — close llama stream
+        raise
+
+
+@app.get("/api/refine-prompt")
+def api_refine_prompt_get(prompt: str = "", system_prompt: str | None = None):
+    """Streaming refine for the browser's native EventSource (GET only).
+
+    EventSource cannot POST, so the frontend streams via this GET; the
+    prompt travels URL-encoded in the query string. Unlike the POST
+    variant, failures are emitted as SSE ``{\"error\": ...}`` events with
+    status 200 — EventSource does not expose the HTTP status of a failed
+    response, so a 400 would surface only as a generic connection error.
+    """
+    from prompt_refiner import RefinerError, RefinerUnavailable, stream_refine_prompt
+
+    s = _settings()
+    prompt = (prompt or "").strip()
+    if not prompt:
+        return StreamingResponse(
+            iter([f"data: {json.dumps({'error': 'prompt must not be empty'})}\n\n"]),
+            media_type="text/event-stream",
+        )
+    try:
+        gen = stream_refine_prompt(s, prompt, system_prompt)
+    except (RefinerUnavailable, RefinerError) as e:
+        return StreamingResponse(
+            iter([f"data: {json.dumps({'error': str(e)[:300]})}\n\n"]),
+            media_type="text/event-stream",
+        )
+    return StreamingResponse(_refine_event_stream(gen), media_type="text/event-stream")

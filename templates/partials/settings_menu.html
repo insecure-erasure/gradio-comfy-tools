@@ -33,4 +33,10 @@
     <button class="menu-item menu-item-danger" onclick="resetAllUserData(); hideSettingsMenu();">
       <span class="item-icon">🗑️</span> Reset everything
     </button>
+    <div class="menu-sep"></div>
+    <!-- App version (the asset hash in the script/CSS URLs). If this line
+         is missing, the page is a stale load — hard-reload (Ctrl+Shift+R). -->
+    <div class="menu-item menu-item-col" style="pointer-events:none;opacity:.55;font-size:.68rem">
+      App version <span id="appVersionLabel">{{ asset_version }}</span>
+    </div>
   </div>
