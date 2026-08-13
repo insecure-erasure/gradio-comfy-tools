@@ -402,7 +402,7 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 | Video (wan22) | `Diffusion model HIGH/LOW` (2 dropdowns) · LoRA editor HIGH/LOW (2) · `Negative prompt` (bottom, single) |
 
 - **LoRA editor** (`modal.js`): inline rows of (LoRA name dropdown +
-  strength text stepper ±0.05, default 1.0, up to 4) + "＋ Add LoRA". The
+  strength text stepper ±0.01 (any real value, default 1.0, up to 4) + "＋ Add LoRA". The
   JSON is derived on save (`advancedValues.lora` / `loraSets[path]`).
   In **portrait (<1024px)** the row narrows the dropdown (`max-width: 60%`,
   name truncates visually, full value kept) and locks the stepper + remove

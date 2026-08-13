@@ -287,7 +287,7 @@ function diffusionSelectToJson(filename, path) {
 // ── Embedded LoRA config editor (🧩) ───────
 // Lives directly inside the ⚙️ advanced modal: one editor per "path"
 // (main for image tools / wan21, high+low for wan22). Each editor has rows of
-// (LoRA dropdown + strength stepper ±0.05, up to 4 rows). The JSON is derived
+// (LoRA dropdown + strength stepper ±0.01, up to 4 rows). The JSON is derived
 // on save and stored in advancedValues.loraSets[path] (plus .lora for the
 // single-set image tools, which the backend reads).
 
@@ -399,9 +399,9 @@ function renderModalLoraRows(path) {
         ${options}
       </select>
       <div class="stepper lora-strength">
-        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, -0.05)" title="Decrease">−</button>
-        <input type="text" inputmode="decimal" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)">
-        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, 0.05)" title="Increase">+</button>
+        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, -0.01)" title="Decrease">−</button>
+        <input type="number" inputmode="decimal" step="0.01" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)">
+        <button class="stepper-btn" onclick="stepLoraStrength('${path}', ${i}, 0.01)" title="Increase">+</button>
       </div>
       <button class="btn-remove-lora" onclick="removeLoraRow('${path}', ${i})" title="Remove">✕</button>
     </div>`;
@@ -495,23 +495,28 @@ function removeLoraRow(path, i) {
 
 function updateLoraRow(path, i, key, val) {
   const rows = loraSets[path] || [];
-  if (key === 'strength') rows[i].strength = Math.max(0, parseFloat(val) || 1.0);
-  else rows[i].name = val;
+  if (key === 'strength') {
+    const n = Number.parseFloat(val);
+    rows[i].strength = Number.isFinite(n) ? n : 1.0;
+  } else rows[i].name = val;
   loraSets[path] = rows;
 }
 
-// Keep the strength text field numeric-only and in sync with the model.
+// Keep the strength field numeric and in sync with the model. type=number
+// already blocks junk (browsers reject non-numeric keystrokes / 'e'); the
+// .value is always a valid number string (or '' while the user is editing
+// a partial like '-'), so just parse it — no manual regex filtering.
 function sanitizeLoraStrength(path, i, raw) {
   const rows = loraSets[path] || [];
-  const clean = raw.replace(/[^0-9.]/g, '');
-  rows[i].strength = Math.max(0, parseFloat(clean) || 0);
+  const n = Number.parseFloat(raw);
+  rows[i].strength = Number.isFinite(n) ? n : 0;
   loraSets[path] = rows;
-  if (clean !== raw) renderModalLoraRows(path);
+  if (String(n) !== raw && String(n) !== raw.trim()) renderModalLoraRows(path);
 }
 
 function stepLoraStrength(path, i, delta) {
   const rows = loraSets[path] || [];
-  rows[i].strength = Math.max(0, Math.round((rows[i].strength + delta) * 100) / 100);
+  rows[i].strength = Math.round((rows[i].strength + delta) * 100) / 100;
   loraSets[path] = rows;
   renderModalLoraRows(path);
 }
