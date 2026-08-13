@@ -970,30 +970,3 @@ def _refine_event_stream(gen):
         raise
 
 
-@app.get("/api/refine-prompt")
-def api_refine_prompt_get(prompt: str = "", system_prompt: str | None = None):
-    """Streaming refine for the browser's native EventSource (GET only).
-
-    EventSource cannot POST, so the frontend streams via this GET; the
-    prompt travels URL-encoded in the query string. Unlike the POST
-    variant, failures are emitted as SSE ``{\"error\": ...}`` events with
-    status 200 — EventSource does not expose the HTTP status of a failed
-    response, so a 400 would surface only as a generic connection error.
-    """
-    from prompt_refiner import RefinerError, RefinerUnavailable, stream_refine_prompt
-
-    s = _settings()
-    prompt = (prompt or "").strip()
-    if not prompt:
-        return StreamingResponse(
-            iter([f"data: {json.dumps({'error': 'prompt must not be empty'})}\n\n"]),
-            media_type="text/event-stream",
-        )
-    try:
-        gen = stream_refine_prompt(s, prompt, system_prompt)
-    except (RefinerUnavailable, RefinerError) as e:
-        return StreamingResponse(
-            iter([f"data: {json.dumps({'error': str(e)[:300]})}\n\n"]),
-            media_type="text/event-stream",
-        )
-    return StreamingResponse(_refine_event_stream(gen), media_type="text/event-stream")

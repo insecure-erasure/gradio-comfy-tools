@@ -220,7 +220,7 @@ def test_refine_prompt_stream_sse_get(client, tmp_config, monkeypatch):
             return FakeStreamResp()
 
     monkeypatch.setattr(pr.httpx, "Client", FakeStreamingClient)
-    resp = client.get("/api/refine-prompt", params={"prompt": "a cat"})
+    resp = client.post("/api/refine-prompt", json={"prompt": "a cat", "stream": True})
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/event-stream")
     body = resp.text
@@ -230,15 +230,6 @@ def test_refine_prompt_stream_sse_get(client, tmp_config, monkeypatch):
     assert '"done": true' in body
     assert captured["json"]["stream"] is True
 
-
-def test_refine_prompt_get_unconfigured_is_sse_error(client, tmp_config):
-    """EventSource cannot read the HTTP status of a failed response, so the
-    GET endpoint emits the error as an SSE event with status 200."""
-    resp = client.get("/api/refine-prompt", params={"prompt": "a cat"})
-    assert resp.status_code == 200
-    assert resp.headers["content-type"].startswith("text/event-stream")
-    assert '"error"' in resp.text
-    assert "not configured" in resp.text
 
 
 def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):

@@ -135,8 +135,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   bottom-right of the prompt field, before the generate chip (Generate/Edit/Video);
   in **portrait** it is a pill in
   the prompt modal's bottom-right actions (next to 🩹/✨). `refinePrompt()`
-  streams the refined text live into the textarea via **EventSource** (native
-  SSE — GET `/api/refine-prompt`), showing a live tok/s estimate in the
+  streams the refined text live into the textarea via **SSE** (`POST
+  /api/refine-prompt` with `stream:true`, read with fetch's ReadableStream),
+  showing a live tok/s estimate in the
   result URL row and the final `✨ tokens · tok/s avg` stats on completion;
   cancel (⏹) restores the original prompt. On completion it syncs the
   per-tab prompt store.
@@ -553,7 +554,6 @@ and re-transforms the trigger button).
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |
 | `POST /api/generate` / `edit` / `upscale` / `video` | run the tools |
 | `POST /api/refine-prompt` | 🪄 refine a prompt via the llama-server refiner (OpenAI-compatible; `stream:true` → SSE of deltas, `system_prompt` override) |
-| `GET /api/refine-prompt` | the streaming variant the browser uses: EventSource (GET-only) — same SSE deltas, but failures are emitted as SSE `{"error": ...}` events with status 200 (EventSource cannot read a failed response's HTTP status) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
 | `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (persisted gallery pruning) |
