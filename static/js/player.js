@@ -493,8 +493,9 @@ function createVideoPlayer(src, noFullscreenBtn) {
   // it OVER the gallery button, so the click did fullscreen of the <video>
   // instead of opening the gallery. The gallery overlay has no competing
   // button, so it keeps the player's ⛶.
+  let fsBtn = null;
   if (!noFullscreenBtn) {
-    const fsBtn = document.createElement('button');
+    fsBtn = document.createElement('button');
     fsBtn.type = 'button';
     fsBtn.className = 'output-overlay-btn top-right video-fs-btn';
     setIcon(fsBtn, 'fullscreen');
@@ -574,6 +575,69 @@ function createVideoPlayer(src, noFullscreenBtn) {
 
   // Register as the current result video (tracked by pauseActiveVideo).
   activeVideoEl = v;
+
+  // ── Auto-hide the controls while playing ──
+  // While the video PLAYS and the pointer stays still / the user does not
+  // scroll for 1s, the controls fade out (see .video-player.idle in CSS —
+  // the progress bar is NOT part of the fade, it stays visible). Any
+  // pointer movement / scroll / tap on the video wakes them. Works the
+  // same in browser fullscreen and normal view (both run through the same
+  // wrap + listeners). The 1s delay is measured from the last activity,
+  // so a continuous move never lets them hide.
+  let idleTimer = null;
+  let idleHidden = false;
+
+  // Re-show the controls on hover over them (e.g. the cursor sits over the
+  // play button after they reappeared). Bound ONCE (not per toggle) so a
+  // playing video that cycles hide/show does not stack listeners.
+  const wakeOnHover = (el) => el.addEventListener('mouseenter', () => cancelIdle());
+
+  const setControlsVisible = (visible, force = false) => {
+    if (visible === !idleHidden && !force) return;
+    idleHidden = !visible;
+    wrap.classList.toggle('idle', !visible);
+  };
+
+  const hideControls = () => { if (v.paused) return; setControlsVisible(false); };
+
+  const cancelIdle = () => {
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+    setControlsVisible(true);
+  };
+
+  const scheduleIdle = () => {
+    setControlsVisible(true); // activity → controls visible immediately
+    if (v.paused) return;     // never auto-hide while paused
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(hideControls, 1000);
+  };
+
+  // Hovering the controls keeps them visible (they are excluded from the
+  // wrap's pointermove wake — see isControlEl below — so without this the
+  // cursor parked on the play button would let them fade).
+  wakeOnHover(ctrl);
+  wakeOnHover(moreBtn);
+  if (fsBtn) wakeOnHover(fsBtn);
+
+  // Activity that wakes the controls: pointer move (desktop) / pointer
+  // down (touch/click) / scroll — in BOTH normal view and fullscreen (the
+  // wrap gets the events in both). The pane behind is ignored. The
+  // progress bar (always visible, interactive) does NOT wake them: hovering
+  // it to seek should not bring the buttons back.
+  const isControlEl = (t) => !!(t && t.closest && t.closest('.video-play-btn, .video-stop-btn, .video-more-btn, .video-fs-btn, .video-progress, .video-menu'));
+  wrap.addEventListener('pointermove', (e) => { if (!isControlEl(e.target)) scheduleIdle(); });
+  wrap.addEventListener('pointerdown', (e) => { if (!isControlEl(e.target)) scheduleIdle(); });
+  wrap.addEventListener('wheel', (e) => { if (!isControlEl(e.target)) scheduleIdle(); });
+  window.addEventListener('scroll', scheduleIdle, true); // capture: catches inner scrollers
+
+  // State sync: start the idle clock when playback starts (not paused), and
+  // immediately show the controls when paused (a paused video must not hide
+  // them — the user is about to interact).
+  v.addEventListener('play', () => { cancelIdle(); scheduleIdle(); });
+  v.addEventListener('pause', () => { cancelIdle(); setControlsVisible(true, true); });
+
+  // Entering browser fullscreen must NOT leave the controls hidden.
+  document.addEventListener('fullscreenchange', () => { cancelIdle(); setControlsVisible(true, true); });
 
   return wrap;
 }

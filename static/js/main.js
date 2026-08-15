@@ -40,19 +40,19 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // Rebuild lastGeneratedUrl from the persisted galleries (the most recent
-// result of any tool). Called after baseUrl is known so older entries that
-// only carry the /media display src can be expanded to a full {base}/view
-// URL. In a live session lastGeneratedUrl is set by the generators; this
-// only matters after a refresh.
+// IMAGE result — generate/edit/restore/upscale). Called after baseUrl is
+// known so older entries that only carry the /media display src can be
+// expanded to a full {base}/view URL. galleryVideos is deliberately NOT
+// considered: the 🔗 chain feeds Edit/Upscale/Video, which all need an
+// image source (img2img / img2vid), so a video must never be chainable. In
+// a live session lastGeneratedUrl is set by the image generators; this only
+// matters after a refresh.
 function restoreLastGeneratedUrl() {
   const gen = window.galleryGenerated;
-  const vids = window.galleryVideos;
   const lastGen = gen && gen.length ? gen[gen.length - 1] : null;
-  const lastVid = vids && vids.length ? vids[vids.length - 1] : null;
-  const lastEntry = lastGen || lastVid;
-  if (!lastEntry) return;
-  lastGeneratedUrl = lastEntry.url
-    || (typeof fullComfyUrl === 'function' ? fullComfyUrl(lastEntry) : (lastEntry.src || ''));
+  if (!lastGen) return;
+  lastGeneratedUrl = lastGen.url
+    || (typeof fullComfyUrl === 'function' ? fullComfyUrl(lastGen) : (lastGen.src || ''));
 }
 
 // Each tab has its OWN textarea (.prompt-input). Typing updates the action

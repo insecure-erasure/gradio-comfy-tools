@@ -73,7 +73,6 @@ function generateVideo() {
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
     addGeneratedVideo(res, prompt);
-    lastGeneratedUrl = res.url;
     syncResultUrl('video', { url: res.url });
     showToast('🎬 Video ready');
     // Release the UI lock (the .finally below also runs, but after a

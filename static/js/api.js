@@ -604,7 +604,10 @@ function finalizeRecoveredJob(tool, res) {
     if (vid) vid.dataset.videoGallery = '1';
     if (currentTab !== 'video') pauseActiveVideo();
   }
-  lastGeneratedUrl = res.url;
+  // Only image tools set lastGeneratedUrl: the 🔗 chain feeds Edit/Upscale/
+  // Video, all of which need an IMAGE source (img2img / img2vid) — a
+  // generated video is never a valid source.
+  if (tool !== 'video') lastGeneratedUrl = res.url;
   syncResultUrl(tool, { url: res.url });
   recoverPending = false;
   releaseGeneratingUi();

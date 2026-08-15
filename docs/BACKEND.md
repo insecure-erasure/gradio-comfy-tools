@@ -194,8 +194,18 @@ Other nodes (wan21 and wan22): `CLIPLoader (GGUF)`, `WanImageToVideo`, `KSampler
 
 ## 6. Chaining (context between tools)
 
-- `lastGeneratedUrl` (per session): the output URL of the last generation, built as `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. **Persists across tab switches** so it can be used after generating in another tab.
-- Consumers: 📋 (copy) and 🔗 (fills the source URL field of Edit/Upscale/Video with `lastGeneratedUrl`).
+- `lastGeneratedUrl` (per session): the output URL of the last IMAGE
+generation (generate / edit / restore / upscale), built as
+`{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. **Persists across
+  tab switches** so it can be used after generating in another tab.
+- Consumers: 📋 (copy) and 🔗 (fills the source URL field of
+  Edit/Upscale/Video with `lastGeneratedUrl`).
+- Videos never become `lastGeneratedUrl`: all three consumers need an IMAGE
+  source (img2img / img2vid), so a generated video is never chainable. In a
+  session, `video.js`/`finalizeRecoveredJob` only record the URL in the
+  video gallery, not in `lastGeneratedUrl`; after a refresh,
+  `restoreLastGeneratedUrl` rebuilds it exclusively from
+  `galleryGenerated` (never `galleryVideos`).
 - The source URL field is the tool's `image` input: paste an external URL directly, or use 🔗/📁. When consumed as a source, pass the **filename** (not the full URL) to the `Load Image (URL/Path)` node; for external URLs pass the URL directly (scheme+netloc auto-detection, like the tools).
 - If the field is empty on generate, the app should prompt for a source (upload via 📁, use 🔗, or paste a URL).
 

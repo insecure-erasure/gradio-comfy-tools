@@ -150,6 +150,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
   the copyable result URL row is **cleared** (📋 disabled). `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video).
+  It always points to the last **image** result (generate/edit/restore/
+  upscale) — generated videos never overwrite it (img2vid needs an image
+  source, so a video is never a valid chain target).
 - Shortcuts: `Ctrl+1..4` switches tabs; `Esc` closes the modal.
 
 ## 3. Control inventory per tab
@@ -267,7 +270,14 @@ empty and the prompt fills it; see also deviation 14):
   that toggles real browser fullscreen and shows the exit icon in the
   same spot while in
   fullscreen; **single click anywhere on the video toggles play/pause,
-  double click toggles fullscreen** (controls excluded); **leaving the
+  double click toggles fullscreen** (controls excluded); **auto-hide of the
+  controls**: while the video plays and the pointer stays still / no scroll
+  for 1s, the control cluster and the fullscreen button fade out (opacity +
+  visibility, ~0.35s) so they don't clutter the frame — the **progress bar
+  stays always visible**. Any pointer movement / tap on the video / scroll
+  wakes them (works the same in browser fullscreen and normal view); they
+  never auto-hide while paused, entering fullscreen always shows them, and
+  hovering the controls themselves cancels the hide. **leaving the
   Video tab pauses a playing video** (`pauseActiveVideo()`, called from
   `switchTab`) so it doesn't keep consuming resources in the background.
   The player is created with `noFullscreenBtn=true` in the pane (the

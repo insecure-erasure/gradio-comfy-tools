@@ -1102,6 +1102,21 @@
     gap: 10px;
     z-index: 6;
   }
+  /* Auto-hide on idle: while the video PLAYS and there is no pointer
+     movement / scroll for 1s, the control cluster and the fullscreen
+     button fade out so they don't clutter the frame. Any pointer activity
+     or scroll wakes them (see player.js). Hidden = also unclickable
+     (pointer-events none). The progress bar stays ALWAYS visible. */
+  .video-player .video-controls,
+  .video-player .video-fs-btn {
+    transition: opacity .35s ease, visibility .35s;
+  }
+  .video-player.idle .video-controls,
+  .video-player.idle .video-fs-btn {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
   /* The three circular control buttons (play/pause, stop, more) are
      IDENTICAL: same size, same dark translucent style, same hover. The
      only difference is the SVG icon (fill=currentColor, so the white
