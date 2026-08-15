@@ -215,7 +215,31 @@ fields (model, LoRA/diffusion config):
 | lora_config (default) | `[]` | settings |
 | diffusion_model (video) | `""` (built-in defaults) | modal (Video) |
 | prompt_refiner_base_url | `""` (🪄 disabled) | 🎨 dropdown |
+| prompt_refiner_model | `""` (auto = first non-excluded model) | 🎨 dropdown (🤖) |
 | prompt_refiner_system_prompt | default system prompt | 🎨 dropdown |
+
+### 7.1 Refiner model resolution (llama.cpp router)
+
+The 🪄 refiner targets a llama.cpp **router** (one endpoint, several
+models). Every chat request must carry a valid `model` name — the router
+rejects requests without it (`400 model name is missing`) or with an
+unknown id (`400 model 'x' not found`).
+
+- `prompt_refiner.py::list_models()` — `GET {base}/v1/models` on the
+  router; returns the served model ids (used by `GET /api/refiner-models`).
+- `prompt_refiner.py::resolve_model()` — precedence:
+  1. the model id in the request body (if provided),
+  2. `settings.prompt_refiner_model` (what the 🤖 selector persists),
+  3. **auto**: the first model from the router's list that does NOT match
+     any substring in `settings.refiner_exclude` (env `REFINER_EXCLUDE`,
+     comma-separated; default excludes the 9B models so refinement never
+     lands on a heavy model). If all models are excluded, the first one is
+     used anyway (better a model than a 400).
+- The resolved model is injected into the `/v1/chat/completions` payload
+  (streaming and non-streaming).
+
+`GET /api/refiner-models` returns `{models: [id…], default: id}` where
+`default` is what auto would pick (first non-excluded).
 
 ## 8. State and session
 

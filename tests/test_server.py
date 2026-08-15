@@ -71,6 +71,72 @@ def test_settings_post_persists_refiner(client, tmp_config):
     assert s.prompt_refiner_system_prompt == "Refine this image prompt."
 
 
+def test_settings_post_persists_refiner_model(client, tmp_config):
+    resp = client.post(
+        "/api/settings",
+        json={
+            "prompt_refiner_base_url": "http://127.0.0.1:8080",
+            "prompt_refiner_model": "unsloth/Qwen3.5-4B-UD-Q8_K_XL",
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["prompt_refiner_model"] == "unsloth/Qwen3.5-4B-UD-Q8_K_XL"
+    from config import Settings
+
+    s = Settings()
+    assert s.prompt_refiner_model == "unsloth/Qwen3.5-4B-UD-Q8_K_XL"
+    # an explicit empty model clears it back to auto
+    resp = client.post("/api/settings", json={"prompt_refiner_model": ""})
+    assert resp.json()["prompt_refiner_model"] == ""
+    assert Settings().prompt_refiner_model == ""
+
+
+def test_refiner_models_endpoint(client, tmp_config, monkeypatch):
+    import prompt_refiner as pr
+
+    client.post("/api/settings", json={"prompt_refiner_base_url": "http://127.0.0.1:8080"})
+
+    class FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {
+                "data": [
+                    {"id": "mradermacher/Heretical-Qwen3.5-9B.i1-Q4_K_M"},
+                    {"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"},
+                    {"id": "unsloth/gemma-4-E4B-it-UD-Q6_K_XL"},
+                ]
+            }
+
+    class FakeClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def get(self, url):
+            return FakeResp()
+
+    monkeypatch.setattr(pr.httpx, "Client", FakeClient)
+    resp = client.get("/api/refiner-models")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["models"]) == 3
+    # default skips the 9B flagged as too heavy
+    assert body["default"] == "unsloth/Qwen3.5-4B-UD-Q8_K_XL"
+
+
+def test_refiner_models_endpoint_unconfigured(client, tmp_config):
+    resp = client.get("/api/refiner-models")
+    assert resp.status_code == 200
+    assert resp.json() == {"models": [], "default": ""}
+
+
 def test_refine_prompt_not_configured(client, tmp_config):
     resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})
     assert resp.status_code == 400
@@ -104,6 +170,16 @@ def test_refine_prompt_calls_llama(client, tmp_config, monkeypatch):
             captured["url"] = url
             captured["json"] = json
             return FakeResp()
+
+        def get(self, url):
+            # /v1/models → first model for the auto pick
+            return FakeModelsResp()
+
+    class FakeModelsResp:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"}]}
 
     monkeypatch.setattr(pr.httpx, "Client", FakeClient)
     resp = client.post(
@@ -164,6 +240,16 @@ def test_refine_prompt_stream_sse(client, tmp_config, monkeypatch):
             captured["json"] = json
             return FakeStreamResp()
 
+        def get(self, url):
+            return FakeModelsResp()
+
+    class FakeModelsResp:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"}]}
+
+
     monkeypatch.setattr(pr.httpx, "Client", FakeStreamingClient)
     resp = client.post("/api/refine-prompt", json={"prompt": "a cat", "stream": True})
     assert resp.status_code == 200
@@ -219,6 +305,16 @@ def test_refine_prompt_stream_sse_get(client, tmp_config, monkeypatch):
             captured["json"] = json
             return FakeStreamResp()
 
+        def get(self, url):
+            return FakeModelsResp()
+
+    class FakeModelsResp:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"}]}
+
+
     monkeypatch.setattr(pr.httpx, "Client", FakeStreamingClient)
     resp = client.post("/api/refine-prompt", json={"prompt": "a cat", "stream": True})
     assert resp.status_code == 200
@@ -229,7 +325,6 @@ def test_refine_prompt_stream_sse_get(client, tmp_config, monkeypatch):
     assert '"meta": {"predicted_n": 17, "predicted_per_second": 11.85}' in body
     assert '"done": true' in body
     assert captured["json"]["stream"] is True
-
 
 
 def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
@@ -265,6 +360,15 @@ def test_refine_prompt_strips_think_block(client, tmp_config, monkeypatch):
         def post(self, url, json):
             return FakeResp()
 
+        def get(self, url):
+            return FakeModelsResp()
+
+    class FakeModelsResp:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"}]}
+
     monkeypatch.setattr(pr.httpx, "Client", FakeClient)
     resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})
     assert resp.status_code == 200
@@ -292,6 +396,15 @@ def test_refine_prompt_error_becomes_400(client, tmp_config, monkeypatch):
 
         def post(self, url, json):
             return FakeResp()
+
+        def get(self, url):
+            return FakeModelsResp()
+
+    class FakeModelsResp:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"id": "unsloth/Qwen3.5-4B-UD-Q8_K_XL"}]}
 
     monkeypatch.setattr(pr.httpx, "Client", FakeClient)
     resp = client.post("/api/refine-prompt", json={"prompt": "a cat"})

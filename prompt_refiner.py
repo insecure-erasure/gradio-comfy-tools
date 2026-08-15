@@ -27,6 +27,49 @@ class RefinerUnavailable(RefinerError):
 DEFAULT_MODEL = "instruct"  # llama-server ignores the model name
 
 
+# A "unset" sentinel for the model id so the auto-resolution (first model
+# from the router's list) only happens when the user really left it empty.
+_AUTO = ""
+
+
+def list_models(settings: Settings, timeout: float = 10.0) -> list[str]:
+    """Model ids served by the llama.cpp router (GET /v1/models)."""
+    base = _refiner_ready(settings)
+    try:
+        with httpx.Client(timeout=timeout) as client:
+            resp = client.get(f"{base}/v1/models")
+    except Exception as e:
+        raise RefinerError(f"Could not reach the refiner service: {e}") from e
+    if resp.status_code >= 400:
+        raise RefinerError(f"Refiner service error: HTTP {resp.status_code} {resp.text[:200]}")
+    try:
+        data = resp.json()
+        models = [m["id"] for m in data.get("data", [])]
+    except (ValueError, TypeError, KeyError) as e:
+        raise RefinerError(f"Refiner returned an unexpected payload: {resp.text[:200]}") from e
+    if not models:
+        raise RefinerError("The refiner service reports no available models")
+    return models
+
+
+def resolve_model(settings: Settings, explicit: str | None = None) -> str:
+    """The model id to send to the router.
+
+    Precedence: explicit (request override) > settings.prompt_refiner_model
+    > the first model from the router's list ("auto" default — llama.cpp
+    router rejects requests without a model name).
+    """
+    model = (explicit if explicit is not None else settings.prompt_refiner_model)
+    model = (model or "").strip()
+    if model:
+        return model
+    # Auto: first model that is not flagged as too heavy (REFINER_EXCLUDE).
+    for m in list_models(settings):
+        if not any(tok.lower() in m.lower() for tok in settings.refiner_exclude):
+            return m
+    return list_models(settings)[0]
+
+
 def _refiner_ready(settings: Settings) -> str:
     """Validate + return the refiner base URL (eager — raises immediately)."""
     base = (settings.prompt_refiner_base_url or "").strip().rstrip("/")
@@ -41,7 +84,7 @@ def _build_payload(system: str, prompt: str, stream: bool = False) -> dict:
     """The chat request body. Thinking is disabled via the chat template (the
     reliable way per llama.cpp docs — reasoning_effort was not)."""
     return {
-        "model": DEFAULT_MODEL,
+        "model": DEFAULT_MODEL,  # placeholder; replaced by resolve_model()
         "messages": [
             {"role": "system", "content": system},
             {"role": "user", "content": prompt},
@@ -84,6 +127,7 @@ def refine_prompt(
         raise RefinerError("prompt must not be empty")
 
     payload = _build_payload(system, prompt, stream=False)
+    payload["model"] = resolve_model(settings)
     try:
         with httpx.Client(timeout=timeout) as client:
             resp = client.post(f"{base}/v1/chat/completions", json=payload)
@@ -124,6 +168,7 @@ def stream_refine_prompt(
     if not prompt:
         raise RefinerError("prompt must not be empty")
     payload = _build_payload(system, prompt, stream=True)
+    payload["model"] = resolve_model(settings)
 
     def gen():
         try:

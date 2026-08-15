@@ -130,8 +130,14 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   `api.js`).
 - `🩹 Restore` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
-  OpenAI-compatible API (configured in the ☰ menu — Refiner URL + System
-  prompt). In **landscape** it is a chip at the
+  OpenAI-compatible API (configured in the ☰ menu — Refiner URL, Model and
+  System prompt). The **🤖 Model** select lists what the llama.cpp router
+  serves (`GET /api/refiner-models`, refreshed when the refiner URL
+  changes); "Auto (router default)" picks the first model that is not
+  flagged as too heavy (9B models are skipped by default via
+  `REFINER_EXCLUDE`). The choice persists in the config file
+  (`prompt_refiner_model`) and is sent as `model` in every refinement
+  request. In **landscape** it is a chip at the
   bottom-right of the prompt field, before the generate chip (Generate/Edit/Video);
   in **portrait** it is a pill in
   the prompt modal's bottom-right actions (next to 🩹/✨). `refinePrompt()`
@@ -386,6 +392,10 @@ a ComfyUI temp filename, checked against `{media_base}/view?type=temp`
   localStorage (`currentTheme` / `applyTheme` in `settings.js`).
 - **ComfyUI Connection**: `🔌 Server URL` · `🖼️ Media base URL` — global
   settings, `GET/POST /api/settings`, persisted to `~/.gradio-comfy-tools.json`.
+- **Prompt Refiner**: `🪄 Refiner URL` · `🤖 Model` (select populated from
+  `GET /api/refiner-models`; "Auto (router default)" = first model that is
+  not flagged as too heavy — see §2 🪄) · `💬 System prompt` (textarea,
+  persisted on change). All persisted via `/api/settings`.
 - **Reset everything** (🗑️, bottom of the menu): wipes ALL user data the
   app saved in this browser — settings, prompts, parameter values, history
   and galleries — after a confirmation dialog written in plain language
@@ -554,6 +564,7 @@ and re-transforms the trigger button).
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |
 | `POST /api/generate` / `edit` / `upscale` / `video` | run the tools |
 | `POST /api/refine-prompt` | 🪄 refine a prompt via the llama-server refiner (OpenAI-compatible; `stream:true` → SSE of deltas, `system_prompt` override) |
+| `GET /api/refiner-models` | model ids served by the llama.cpp router (`{models: [id…], default: id}` — `default` is what auto picks; `{models: [], default: ""}` when the refiner is not configured) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
 | `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (persisted gallery pruning) |

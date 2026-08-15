@@ -883,6 +883,7 @@ def api_settings() -> dict:
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
         "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_model": s.prompt_refiner_model,
         "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
 
@@ -892,9 +893,11 @@ def api_settings_update(body: dict) -> dict:
     """Persist global settings from the 🎨 dropdown (B4).
 
     Accepts any subset of {comfyui_base_url, comfyui_media_base_url,
-    prompt_refiner_base_url, prompt_refiner_system_prompt}; empty strings
+    prompt_refiner_base_url, prompt_refiner_model,
+    prompt_refiner_system_prompt}; empty strings
     clear the override (media falls back to the server URL; the refiner
-    base URL empty disables the 🪄 refine button).
+    base URL empty disables the 🪄 refine button; an empty model selects
+    the router's first model).
     """
     s = _settings()
     if "comfyui_base_url" in body:
@@ -906,6 +909,8 @@ def api_settings_update(body: dict) -> dict:
         s.set_media_base_url(str(body["comfyui_media_base_url"]).strip())
     if "prompt_refiner_base_url" in body:
         s.set_refiner_base_url(str(body["prompt_refiner_base_url"]).strip())
+    if "prompt_refiner_model" in body:
+        s.set_refiner_model(str(body["prompt_refiner_model"]).strip())
     if "prompt_refiner_system_prompt" in body:
         s.set_refiner_system_prompt(str(body["prompt_refiner_system_prompt"]))
     return {
@@ -913,8 +918,31 @@ def api_settings_update(body: dict) -> dict:
         "media_base_url": s.media_base_url,
         "has_api_key": bool(s.api_key),
         "prompt_refiner_base_url": s.prompt_refiner_base_url,
+        "prompt_refiner_model": s.prompt_refiner_model,
         "prompt_refiner_system_prompt": s.prompt_refiner_system_prompt,
     }
+
+
+@app.get("/api/refiner-models")
+def api_refiner_models() -> dict:
+    """Model ids served by the llama.cpp router (GET /v1/models proxy).
+
+    Returns ``{"models": [...], "default": "first id"}`` where default
+    is what the refiner uses when the model setting is empty (the first
+    model NOT flagged in REFINER_EXCLUDE). ``models`` is [] when the
+    refiner is not configured; other failures bubble as a 400.
+    """
+    from prompt_refiner import RefinerError, RefinerUnavailable, list_models, resolve_model
+
+    s = _settings()
+    try:
+        models = list_models(s)
+        default = resolve_model(s) if models else ""
+    except RefinerUnavailable:
+        return {"models": [], "default": ""}
+    except RefinerError as e:
+        raise HTTPException(400, str(e)) from e
+    return {"models": models, "default": default}
 
 
 @app.post("/api/refine-prompt")

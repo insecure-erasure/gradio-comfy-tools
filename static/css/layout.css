@@ -255,6 +255,23 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 2px rgba(233,69,96,.15);
   }
+  /* Model selector (🤖) inside the menu — same look as the textarea. */
+  .settings-dropdown .menu-select {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 2px 0 6px;
+    padding: 7px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font: .78rem var(--font);
+  }
+  .settings-dropdown .menu-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(233,69,96,.15);
+  }
 
 
   /* ── Content area ─────────────────────────── */

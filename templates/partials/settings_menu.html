@@ -21,6 +21,13 @@
       <span id="refinerUrlValue" style="margin-left:auto;font-size:.7rem;color:var(--text-secondary)">…</span>
     </button>
     <div class="menu-item menu-item-col">
+      <span class="item-icon">🤖</span> Model
+      <span style="margin-left:auto;font-size:.68rem;color:var(--text-secondary)" id="refinerModelHint"></span>
+    </div>
+    <select class="menu-select" id="refinerModelSelect" onchange="onRefinerModelChange()">
+      <option value="">Auto (router default)</option>
+    </select>
+    <div class="menu-item menu-item-col">
       <span class="item-icon">💬</span> System prompt
     </div>
     <textarea class="menu-textarea" id="refinerSystemPromptInput" rows="3"

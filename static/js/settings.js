@@ -57,10 +57,21 @@ function updateSettingsDisplay(s) {
   const mv = document.getElementById('mediaBaseUrlValue');
   const rv = document.getElementById('refinerUrlValue');
   const si = document.getElementById('refinerSystemPromptInput');
+  const sel = document.getElementById('refinerModelSelect');
   if (sv) sv.textContent = s.comfyui_base_url || '…';
   if (mv) mv.textContent = s.media_base_url || 'default';
   if (rv) rv.textContent = s.prompt_refiner_base_url || 'not set';
   if (si && document.activeElement !== si) si.value = s.prompt_refiner_system_prompt || '';
+  // Model selector: reflect the stored model (if present in the list) and
+  // refresh the available options whenever the refiner URL changes.
+  currentRefinerModel = s.prompt_refiner_model || '';
+  if (sel) {
+    if (sel.querySelector('option[value="' + currentRefinerModel + '"]')) {
+      sel.value = currentRefinerModel;
+    }
+    // refetch options when the refiner URL is first set / changed
+    if (s.prompt_refiner_base_url) loadRefinerModels();
+  }
 }
 
 function loadSettings() {
@@ -113,6 +124,38 @@ function configureRefinerUrl() {
     current === 'not set' ? '' : current);
   if (url === null) return;
   saveSettings({ prompt_refiner_base_url: url.trim() }, 'Refiner URL updated');
+}
+
+// Router models for the 🤖 selector — fetched from the backend proxy
+// (GET /api/refiner-models).
+function loadRefinerModels() {
+  fetch('/api/refiner-models')
+    .then(r => { if (!r.ok) return r.json().then(j => { throw new Error(j.detail || 'HTTP ' + r.status); }); return r.json(); })
+    .then(({ models, default: def }) => {
+      const sel = document.getElementById('refinerModelSelect');
+      if (!sel) return;
+      const hint = document.getElementById('refinerModelHint');
+      sel.innerHTML = '<option value="">Auto (router default)</option>';
+      (models || []).forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        sel.appendChild(opt);
+      });
+      // Keep the stored selection if still available; otherwise Auto.
+      sel.value = (sel.querySelector('option[value="' + (currentRefinerModel || '') + '"]'))
+        ? (currentRefinerModel || '') : '';
+      if (hint) hint.textContent = def ? ('default: ' + def) : '';
+    })
+    .catch(() => { /* refiner offline / not configured — keep Auto */ });
+}
+
+let currentRefinerModel = '';
+
+function onRefinerModelChange() {
+  const sel = document.getElementById('refinerModelSelect');
+  currentRefinerModel = sel ? sel.value : '';
+  saveSettings({ prompt_refiner_model: currentRefinerModel }, 'Refiner model updated');
 }
 
 // Persist the system prompt when the field loses focus (or Enter).

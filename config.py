@@ -19,6 +19,16 @@ DEFAULT_BASE_URL = "http://192.168.1.8"
 # Prompt refiner (llama-server, OpenAI-compatible API). Empty base URL
 # disables the 🪄 refine button (it toasts that the service is not
 # configured). The system prompt is user-editable from the ☰ menu.
+# Refiner model served by the llama.cpp router (GET /v1/models). Empty =
+# "auto": the first available model is used.
+DEFAULT_REFINER_MODEL = ""
+
+# Model ids (or substrings) excluded from the "auto" pick and flagged in
+# the ☰ selector as too heavy for prompt refinement.
+DEFAULT_REFINER_EXCLUDE = [
+    "Heretical-Qwen3.5-9B",
+    "Qwen3.5-9B-UD",
+]
 DEFAULT_REFINER_SYSTEM_PROMPT = (
     "You are an expert prompt engineer for AI image and video generation. "
     "Given a user's prompt, rewrite it to be more detailed, vivid and "
@@ -38,6 +48,10 @@ class Settings:
         self.comfyui_media_base_url: str = os.environ.get("COMFYUI_MEDIA_BASE_URL", "")
         self.api_key: str = os.environ.get("COMFYUI_API_KEY", "")
         self.prompt_refiner_base_url: str = os.environ.get("PROMPT_REFINER_BASE_URL", "")
+        self.prompt_refiner_model: str = os.environ.get("PROMPT_REFINER_MODEL", DEFAULT_REFINER_MODEL)
+        self.refiner_exclude: list[str] = [
+            s for s in os.environ.get("REFINER_EXCLUDE", "").split(",") if s.strip()
+        ] or list(DEFAULT_REFINER_EXCLUDE)
         self.prompt_refiner_system_prompt: str = os.environ.get(
             "PROMPT_REFINER_SYSTEM_PROMPT", DEFAULT_REFINER_SYSTEM_PROMPT
         )
@@ -70,6 +84,11 @@ class Settings:
         self.prompt_refiner_base_url = url.strip().rstrip("/")
         self.save()
 
+    def set_refiner_model(self, model: str) -> None:
+        """Persist the router model id (empty = auto / first available)."""
+        self.prompt_refiner_model = model.strip()
+        self.save()
+
     def set_refiner_system_prompt(self, prompt: str) -> None:
         self.prompt_refiner_system_prompt = prompt.strip()
         self.save()
@@ -85,6 +104,7 @@ class Settings:
                     "comfyui_media_base_url": self.comfyui_media_base_url,
                     "api_key": self.api_key,
                     "prompt_refiner_base_url": self.prompt_refiner_base_url,
+                    "prompt_refiner_model": self.prompt_refiner_model,
                     "prompt_refiner_system_prompt": self.prompt_refiner_system_prompt,
                 },
                 indent=2,
@@ -109,5 +129,9 @@ class Settings:
                 self.api_key = str(data["api_key"])
             if data.get("prompt_refiner_base_url"):
                 self.prompt_refiner_base_url = str(data["prompt_refiner_base_url"]).rstrip("/")
+            # Empty is meaningful here (clears the model back to auto), so
+            # the key is checked instead of the truthy value.
+            if "prompt_refiner_model" in data:
+                self.prompt_refiner_model = str(data["prompt_refiner_model"]).strip()
             if data.get("prompt_refiner_system_prompt"):
                 self.prompt_refiner_system_prompt = str(data["prompt_refiner_system_prompt"])

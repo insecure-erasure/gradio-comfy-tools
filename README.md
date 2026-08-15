@@ -60,9 +60,24 @@ Web application with four image and video tools powered by ComfyUI:
 ### Settings
 
 - **☰** (top-left): light/dark theme, ComfyUI connection settings (server
-  URL and results URL) and the prompt-refiner settings (Refiner URL +
-  system prompt for the 🪄 button).
+  URL and results URL) and the prompt-refiner settings (Refiner URL,
+  **model selector** and system prompt for the 🪄 button).
 - **⚙️** (per tab): advanced options — model, LoRAs, video negative prompt.
+
+### Prompt refiner model (llama.cpp router)
+
+The 🪄 refiner talks to a llama.cpp server in **router mode** (several
+models behind one endpoint). The model used for refinement is chosen in the
+☰ menu → **Prompt Refiner → 🤖 Model**, listing what the router serves via
+`GET /v1/models` (auto-refreshed when the refiner URL changes). The choice
+is persisted in the config file (`prompt_refiner_model`).
+
+- **Auto (router default)**: the router's first model that is not flagged
+  as too heavy for refinement (configurable via `REFINER_EXCLUDE`, by
+  default the 9B models are skipped so a light 4B/E4B model is used).
+- Explicit models are always selectable; the refiner sends the chosen
+  `model` id in every request (llama.cpp rejects requests without a model
+  name).
 
 ## Troubleshooting
 
