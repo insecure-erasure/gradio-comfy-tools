@@ -138,12 +138,14 @@ function clearTabGallery(tab) {
       pane.insertBefore(ph, pane.firstChild);
     }
   }
-  // Clear the result URL row for this tab (it is shared, so only when the
-  // current tab is the one being cleared).
+  // Clear the result row (progress + timing) for this tab (it is shared,
+  // so only when the current tab is the one being cleared).
   if (currentTab === tab) {
     document.getElementById('resultUrl').textContent = '';
     document.getElementById('resultUrl').title = '';
-    document.getElementById('btnCopyUrl').disabled = true;
+    const rt = document.getElementById('resultTime');
+    if (rt) rt.textContent = '';
+    currentResultUrl = '';
   }
   savePersistedState();
   if (typeof syncPaneNav === 'function') syncPaneNav(tab);

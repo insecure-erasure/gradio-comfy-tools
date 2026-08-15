@@ -49,13 +49,16 @@ Web application with four image and video tools powered by ComfyUI:
 ### During a generation
 
 - The **progress row** shows **live progress** (current node and completed
-  steps).
+  steps) plus the **⏱ elapsed time** (1-second precision) while it runs;
+  when finished it keeps the **total generation time** (1-decimal
+  precision, e.g. `⏱ 12.4s`).
 - The **⏹** button (the action button, transformed) stops the running
   generation.
 - While a generation runs the prompt field is **locked** and the action and
   🪄 refine buttons are **disabled** (you cannot start another job, refine,
   or type mid-generation).
-- When finished, the result URL appears with the **📋** button to copy it.
+- When finished, open the result in the **fullscreen gallery** and use the
+  **📋** button (next to the download button) to copy the result URL.
 
 ### Settings
 

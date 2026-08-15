@@ -93,19 +93,18 @@ function clearPane(paneId) {
   if (mock) mock.style.display = '';
 }
 
-function copyResultUrl() {
-  const url = document.getElementById('resultUrl').textContent;
-  if (!url) return;
-  // navigator.clipboard only exists in SECURE contexts (https / localhost).
-  // Served over plain-http LAN (the typical ComfyUI setup) it is undefined,
-  // and the old code threw synchronously (TypeError — never reaching the
-  // .catch), so NOTHING was copied: the user pasted the previous clipboard
-  // content — a stale URL that is not the one shown in the hint. Fall back
-  // to the legacy textarea + execCommand('copy') path, which works on any
-  // origin, and always give explicit feedback.
+// Copy text to the clipboard. navigator.clipboard only exists in SECURE
+// contexts (https / localhost). Served over plain-http LAN (the typical
+// ComfyUI setup) it is undefined, and the old code threw synchronously
+// (TypeError — never reaching the .catch), so NOTHING was copied: the user
+// pasted the previous clipboard content. Fall back to the legacy textarea +
+// execCommand('copy') path, which works on any origin, and always give
+// explicit feedback.
+function copyText(text) {
+  if (!text) return showToast('Nothing to copy');
   const fallback = () => {
     const ta = document.createElement('textarea');
-    ta.value = url;
+    ta.value = text;
     ta.setAttribute('readonly', '');
     ta.style.position = 'fixed';
     ta.style.opacity = '0';
@@ -117,7 +116,7 @@ function copyResultUrl() {
     return ok;
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(
+    navigator.clipboard.writeText(text).then(
       () => showToast('URL copied'),
       () => showToast(fallback() ? 'URL copied' : 'Copy failed')
     );
@@ -311,6 +310,7 @@ function randomSeed() {
 let progressTimer = null;   // polling fallback interval — ALSO the "job running" marker
 let progressWs = null;      // the live progress WebSocket (null when closed/failed)
 let userCancelled = false;
+let _lastJobDurationSecs = 0; // total seconds of the last finished job (see timing.js)
 
 // Per-tool handler to finalize a result whose fetch was lost (background
 // tab / focus loss): called with the result {url, display} recovered from
@@ -409,10 +409,11 @@ function startProgressPolling() {
   stopProgressPolling();
   liveJobTab = currentTab; // tab that initiated the generation
   recoverPending = false;  // fresh job — the in-flight fetch is the primary channel
-  const copy = document.getElementById('btnCopyUrl');
-  if (copy) copy.style.display = 'none'; // the row shows progress while generating
+  _lastJobDurationSecs = 0; // a new job — no duration yet
   progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
   persistJobMarker(liveJobTab); // survives reloads / backgrounded-tab discards
+  // Elapsed-time clock in the result row (1s precision while it runs).
+  startElapsedClock(document.getElementById('resultTime'));
   openProgressWs();   // push channel — falls back to polling if it fails
   paintProgress();    // immediate paint (the WS snapshot arrives on connect too)
 }
@@ -546,6 +547,17 @@ document.addEventListener('visibilitychange', () => {
 function stopProgressPolling() {
   clearInterval(progressTimer);
   progressTimer = null;
+  // Stop the elapsed clock and remember the total generation time (1-decimal
+  // seconds) — appended as a ⏱ chip to the result URL hint when the result
+  // lands (see syncResultUrl in gallery.js). 0 when no clock was running.
+  _lastJobDurationSecs = stopElapsedClock();
+  // Stamp the duration onto the gallery entry for the tool that just
+  // finished (the registrars run BEFORE this — they capture the result but
+  // the clock had not stopped yet). The chip then survives tab switches /
+  // gallery navigation / a refresh (persisted with the entry).
+  if (_lastJobDurationSecs > 0 && liveJobTab && typeof _stampLastEntryDuration === 'function') {
+    _stampLastEntryDuration(liveJobTab, _lastJobDurationSecs);
+  }
   // The job settled (done / cancelled / reset): drop the recovery state and
   // the settle safety net, and forget the sessionStorage job marker so a
   // later reload does not try to adopt a job that no longer runs.
@@ -558,8 +570,6 @@ function stopProgressPolling() {
   // Close the live WS (if any). Null it FIRST so its onclose handler never
   // triggers the polling fallback.
   if (progressWs) { const w = progressWs; progressWs = null; try { w.close(); } catch (e) {} }
-  const copy = document.getElementById('btnCopyUrl');
-  if (copy) copy.style.display = ''; // restore the copy button (enabled once a result URL shows)
   liveJobTab = null;
   // Drop any live preview left in a pane (job settled: cancel or done). The
   // final result replaces it via showResult; on cancel nothing should linger.
@@ -618,7 +628,9 @@ function finalizeRecoveredJob(tool, res) {
   // Video, all of which need an IMAGE source (img2img / img2vid) — a
   // generated video is never a valid source.
   if (tool !== 'video') lastGeneratedUrl = res.url;
-  syncResultUrl(tool, { url: res.url });
+  // The hint is timing-only now; pass the gallery entry so its persisted
+  // duration shows (there is no elapsed clock for an adopted job).
+  syncResultUrl(tool, typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tool) : { url: res.url });
   recoverPending = false;
   releaseGeneratingUi();
   showToast('✅ Generation finished');
@@ -643,8 +655,7 @@ async function adoptRunningJob() {
     // The backend is still running that job: re-establish the tracking state.
     liveJobTab = marker.tool;
     recoverPending = true; // no in-flight fetch — resolve via recovery
-    const copy = document.getElementById('btnCopyUrl');
-    if (copy) copy.style.display = 'none';
+    _lastJobDurationSecs = 0; // adopted job — no elapsed clock; keep the entry's persisted duration
     progressTimer = {};
     openProgressWs();
     paintProgress();

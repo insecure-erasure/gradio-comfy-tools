@@ -42,9 +42,9 @@ function generateImage() {
     // generation prompt; session-scoped, survives the pane.
     addGeneratedEntry(res, prompt);
     lastGeneratedUrl = res.url;
+    stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('generate', { url: res.url });
     showToast('✨ Generated');
-    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

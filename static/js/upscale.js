@@ -63,9 +63,9 @@ function generateUpscale() {
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
+    stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('upscale', { url: res.url });
     showToast('🔍 Upscaled');
-    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

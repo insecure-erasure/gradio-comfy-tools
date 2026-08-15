@@ -75,9 +75,13 @@ async function refinePrompt() {
   setRefining(true);
   setRefineButtons(true);
   showToast('🪄 Refining prompt…');
-  // Clear any previous stats in the progress area.
+  // Clear any previous stats in the progress area — and stop the elapsed
+  // clock: the row now shows the refinement stream, not a generation.
   const resultUrlEl0 = document.getElementById('resultUrl');
   if (resultUrlEl0) resultUrlEl0.textContent = '';
+  const resultTimeEl0 = document.getElementById('resultTime');
+  if (resultTimeEl0) resultTimeEl0.textContent = '';
+  stopElapsedClock();
 
   // Keep the original prompt so cancel restores it (the textarea is filled
   // progressively with the streamed deltas).

@@ -148,7 +148,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   cancel (⏹) restores the original prompt. On completion it syncs the
   per-tab prompt store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
-  the copyable result URL row is **cleared** (📋 disabled). `lastGeneratedUrl`
+  the result row is **cleared** (progress + timing). `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video).
   It always points to the last **image** result (generate/edit/restore/
   upscale) — generated videos never overwrite it (img2vid needs an image
@@ -469,39 +469,52 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 `showToast()` (api.js) — floating bottom notifications.
 
-### 4.9 Result URL + live progress
+### 4.9 Result row + live progress + timing
 
-Shown in the URL row below the prompt (params pane in landscape, bottom bar
-in portrait) with a 📋 copy button (disabled until a result exists). The row
-**always reflects the image/video currently shown in the pane** — also when
-navigating with the pane ‹ › arrows or switching tabs: every render path
-(finalize of a generation, `paneNav`/`renderPane`, `restoreTabResult`,
-reset/trash) calls `syncResultUrl(tab, entry)` (gallery.js), which paints the
-entry's direct URL (or rebuilds it from the display src via `fullComfyUrl`
-for compare entries) and clears the row when the pane is empty. It only
+Shown in the row below the prompt (params pane in landscape, bottom bar in
+portrait): **`#resultUrl`** (node progress while a job runs) and
+**`#resultTime`** (the timing chip ⏱ — elapsed while generating, total
+duration once the result lands). The **generation URL is no longer shown in
+the row** — it is copied from the **fullscreen gallery's 📋 button** (next
+to the download button, top-left; `galleryCopyUrl` in gallery.js).
+
+The row **always reflects the image/video currently shown in the pane** —
+also when navigating with the pane ‹ › arrows or switching tabs: every
+render path (finalize of a generation, `paneNav`/`renderPane`,
+`restoreTabResult`, reset/trash) calls `syncResultUrl(tab, entry)`
+(gallery.js), which paints the entry's **duration** (persisted in the
+gallery entry — survives refresh / gallery navigation) and keeps the
+entry's URL in `currentResultUrl` for the gallery copy button. It only
 paints when the tab is the ACTIVE one — the row is shared across tabs.
-The row truncates long URLs with ellipsis; the **full URL is always the
-one copied** by 📋 (it reads the row's exact text) and is also available
-on hover (the row carries it as `title`). `copyResultUrl` (api.js) is
-robust on plain-http LAN (where `navigator.clipboard` does not exist): it
-falls back to a hidden textarea + `execCommand('copy')` and always shows
-explicit feedback (previously a missing API threw silently and the user
-pasted a STALE clipboard URL — not the one shown).
+`copyText` (api.js) is robust on plain-http LAN (where
+`navigator.clipboard` does not exist): it falls back to a hidden textarea
++ `execCommand('copy')` and always shows explicit feedback (previously a
+missing API threw silently and the user pasted a STALE clipboard URL).
 
-The ↺ resets restore parameters and clear the pane (and the URL row), but
+The ↺ resets restore parameters and clear the pane (and the row), but
 **never touch the galleries** — emptying those is exclusively the 🗑️ trash
 button (the old clearPane registry-drop was removed).
 
 **While a generation runs**, the same row shows **live progress** instead of
-the URL (`startProgressPolling` in `api.js`): the backend PUSHES every job
+a URL (`startProgressPolling` in `api.js`): the backend PUSHES every job
 update over the **`/ws/progress` WebSocket** (opened on job start) and the
 page paints the current stage — `⏳ Queued…`, then `⚙️ <node_title>
 <value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI moves node
 to node. The classic 1s polling of `GET /api/progress` is kept ONLY as an
 automatic fallback when the WS is unavailable (`wsProgressFailed` in
-api.js) — same payload shape, same painter. On success the URL replaces the
-progress text; on error the row is cleared (the error toast appears as
-before).
+api.js) — same payload shape, same painter. On success the row clears (the
+duration chip stays in `#resultTime`); on error the row is cleared (the
+error toast appears as before).
+
+**⏱ Timing** (`timing.js`): `startProgressPolling` starts an **elapsed
+clock** in `#resultTime` — while the job runs it shows `⏱ <n>s` with
+**1-second precision** (a 250ms interval flips the second at most ~0.25s
+late). When the job settles, `stopProgressPolling` stops the clock, captures
+the total with **1-decimal precision** (`⏱ 12.4s`, `fmtDuration`) and stamps
+it onto the gallery entry of the tool that just finished
+(`_stampLastEntryDuration` in gallery.js) so it survives tab switches /
+gallery navigation / a refresh (persisted with the entry). `syncResultUrl`
+shows the entry's persisted duration, or the last finished job's.
 
 **Live per-step preview** (Generate, Edit and Video): while the job runs,
 the `/ws/progress` push also carries the latest latent decode
@@ -526,10 +539,9 @@ URL row anymore (the small corner ⏹ was removed). Clicking the transformed
 ⏹ calls `cancelGeneration()` (`POST /api/cancel` — backend:
 `POST /interrupt` to stop the running prompt + `POST /queue` `delete` for
 the pending one, and marks the job done) and aborts the in-flight fetch,
-so the UI settles immediately (toast `Cancelled`). The 📋 copy button is
-HIDDEN while the generation runs (the row shows the live progress text)
-and comes back when the generation settles (enabled once a result URL is
-shown, disabled otherwise). The transform survives tab switches
+so the UI settles immediately (toast `Cancelled`). The URL row only shows
+progress + timing while the job runs (the 📋 copy button lives in the
+fullscreen gallery, not the row). The transform survives tab switches
 mid-generation (`switchTab` re-asserts the lock with `applyGenerationLock`
 and re-transforms the trigger button).
 

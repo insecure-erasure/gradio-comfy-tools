@@ -73,11 +73,11 @@ function generateVideo() {
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
     addGeneratedVideo(res, prompt);
+    stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('video', { url: res.url });
     showToast('🎬 Video ready');
     // Release the UI lock (the .finally below also runs, but after a
     // recovered result the fetch already settled — keep it idempotent).
-    stopProgressPolling();
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');

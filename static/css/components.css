@@ -786,6 +786,17 @@
     flex: 1;
     min-width: 0;
   }
+  /* Timing (⏱ elapsed while generating / duration when done) — right side
+     of the row, monospace like the URL hint used to be. */
+  .result-time {
+    font-size: .6rem;
+    color: var(--accent);
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 52px;
+    text-align: right;
+  }
   .result-url-row {
     display: flex;
     align-items: center;
@@ -1735,6 +1746,10 @@
   .gallery-btn svg { display: block; }
   .gallery-close { top: 14px; right: 14px; }
   .gallery-dl { top: 14px; left: 14px; }
+  /* Copy-URL button — to the RIGHT of the download button (top-left
+     cluster): the generation URL lives here now (the hint row no longer
+     shows it). */
+  .gallery-copy { top: 14px; left: 60px; }
   .gallery-prev { top: 50%; left: 14px; transform: translateY(-50%); }
   .gallery-next { top: 50%; right: 14px; transform: translateY(-50%); }
   /* Delete-current-entry — bottom-LEFT, same style as the other gallery

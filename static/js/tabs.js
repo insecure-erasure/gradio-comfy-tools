@@ -36,12 +36,14 @@ function switchTab(name) {
   const wrap = document.querySelector('.prompt-input-wrap');
   const btnCol = document.getElementById('btnCol');
 
-  // Reset the copyable result URL row when switching tools. The source
-  // image URL fields (Edit/Upscale/Video) keep their values and
+  // Reset the result row (progress + timing) when switching tools. The
+  // source image URL fields (Edit/Upscale/Video) keep their values and
   // lastGeneratedUrl persists for chaining (🔗 fills the source field).
   document.getElementById('resultUrl').textContent = '';
   document.getElementById('resultUrl').title = '';
-  document.getElementById('btnCopyUrl').disabled = true;
+  const rt = document.getElementById('resultTime');
+  if (rt) rt.textContent = '';
+  currentResultUrl = '';
 
   switch (name) {
     case 'generate':

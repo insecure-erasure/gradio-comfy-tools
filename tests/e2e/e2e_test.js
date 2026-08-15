@@ -47,7 +47,13 @@ async function clickGenerate(page) {
 }
 
 async function resultUrlRow(page) {
-  return page.evaluate(() => document.getElementById('resultUrl')?.textContent || '');
+  // The result row now shows node progress + timing; the generation URL
+  // lives in the fullscreen gallery's copy button (window.currentResultUrl).
+  return page.evaluate(() => {
+    const url = (document.getElementById('resultUrl')?.textContent || '')
+      + ' ' + (document.getElementById('resultTime')?.textContent || '');
+    return url.trim();
+  });
 }
 
 async function switchTab(page, tab) {

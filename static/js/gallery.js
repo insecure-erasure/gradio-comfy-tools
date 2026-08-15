@@ -269,6 +269,21 @@ function addGeneratedVideo(result, prompt) {
   syncPaneNav('video');
 }
 
+// Stamp the generation duration (1-decimal seconds) onto the gallery entry
+// for the tool that just finished. Called from api.js stopProgressPolling
+// AFTER the registrars ran (the clock stops at the very end). The ⏱ chip
+// then survives tab switches / gallery navigation / a refresh.
+function _stampLastEntryDuration(tab, durationSecs) {
+  if (!durationSecs || durationSecs <= 0) return;
+  const arr = tab === 'video' ? window.galleryVideos
+    : tab === 'generate' ? window.galleryGenerated
+    : (tab === 'edit' || tab === 'upscale') ? window.galleryComparisons : null;
+  if (!arr || !arr.length) return;
+  const e = arr[arr.length - 1];
+  e.duration = durationSecs;
+  savePersistedState();
+}
+
 // ── Open / close ───────────────────────────
 function openGalleryOverlay() {
   galleryOverlay.classList.add('show');
@@ -851,21 +866,34 @@ function paneCurrentEntry(tab) {
 // across tabs — a tab switch clears it and the incoming tab's restore
 // re-syncs it). ``entry`` carries the direct URL when available; otherwise
 // fullComfyUrl rebuilds {base}/view?... from the display src (restore.js).
+// The current result's copyable URL — kept by syncResultUrl for the
+// fullscreen gallery's 📋 button (the hint row no longer shows the URL).
+let currentResultUrl = '';
+
+// The result row now shows the timing only (#resultTime — the generation
+// URL is copied from the fullscreen gallery via galleryCopyUrl; #resultUrl
+// holds the live node progress while a job runs and is cleared here).
+// Paints only when ``tab`` is the ACTIVE one (the row is shared across
+// tabs — a tab switch clears it and the incoming tab's restore re-syncs
+// it). ``entry`` carries the direct URL when available; otherwise
+// fullComfyUrl rebuilds {base}/view?... from the display src (restore.js).
 function syncResultUrl(tab, entry) {
   if (currentTab !== tab) return;
   const el = document.getElementById('resultUrl');
-  const copy = document.getElementById('btnCopyUrl');
-  if (!el || !copy) return;
-  const url = entry && (entry.url || (typeof fullComfyUrl === 'function' ? fullComfyUrl(entry) : ''));
-  if (url) {
-    el.textContent = url;
-    el.title = url; // full URL on hover — the row truncates with ellipsis
-    copy.disabled = false;
-  } else {
-    el.textContent = '';
-    el.title = '';
-    copy.disabled = true;
+  const timeEl = document.getElementById('resultTime');
+  if (!el) return;
+  // Remember the URL for the gallery copy button (entry's direct URL, or
+  // rebuilt from the display src).
+  currentResultUrl = (entry && (entry.url || (typeof fullComfyUrl === 'function' ? fullComfyUrl(entry) : ''))) || '';
+  // Timing: the entry's own persisted duration (survives refresh / gallery
+  // navigation) takes priority, else the last finished job's duration.
+  let durSecs = (entry && entry.duration) || 0;
+  if (!durSecs && typeof _lastJobDurationSecs === 'number' && _lastJobDurationSecs > 0) {
+    durSecs = _lastJobDurationSecs;
   }
+  if (timeEl) timeEl.textContent = durSecs > 0 ? '⏱ ' + fmtDuration(durSecs) : '';
+  el.textContent = ''; // no URL / node text here once a result is shown
+  el.title = '';
 }
 
 // Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
@@ -906,6 +934,18 @@ function paneNav(tab, delta) {
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
+const galleryCopyBtn = document.getElementById('galleryCopy');
+// 📋 copies the shown entry's URL (the hint row no longer shows it).
+galleryCopyBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  const e2 = galleryEntries && galleryEntries[galleryIdx];
+  if (!e2) return;
+  const url = e2.url
+    || (typeof fullComfyUrl === 'function' ? fullComfyUrl(e2) : '')
+    || currentResultUrl
+    || (e2.src || e2.display || '');
+  copyText(url);
+});
 galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
 // ‹ › while the prompt panel is open: close it and navigate (one action —
 // the shown prompt never goes stale). The overlay is pointer-transparent,
