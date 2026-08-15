@@ -94,12 +94,12 @@ function clearPane(paneId) {
 }
 
 // Copy text to the clipboard. navigator.clipboard only exists in SECURE
-// contexts (https / localhost). Served over plain-http LAN (the typical
-// ComfyUI setup) it is undefined, and the old code threw synchronously
-// (TypeError — never reaching the .catch), so NOTHING was copied: the user
-// pasted the previous clipboard content. Fall back to the legacy textarea +
-// execCommand('copy') path, which works on any origin, and always give
-// explicit feedback.
+// contexts (https / localhost); on plain-http LAN (the typical ComfyUI
+// setup) it is either undefined OR exists but rejects — so the primary
+// path is always tried, and the execCommand fallback is robust: a hidden
+// textarea (position:absolute, but NOT display:none/opacity:0, which some
+// browsers refuse to select) is focused + selected before the copy, then
+// removed. Always shows explicit feedback.
 function copyText(text) {
   if (!text) return showToast('Nothing to copy');
   const fallback = () => {
@@ -107,21 +107,38 @@ function copyText(text) {
     ta.value = text;
     ta.setAttribute('readonly', '');
     ta.style.position = 'fixed';
-    ta.style.opacity = '0';
+    ta.style.left = '0';
+    ta.style.top = '0';
+    ta.style.width = '1px';
+    ta.style.height = '1px';
+    ta.style.opacity = '0.01';   // visible enough for select() on all engines
+    ta.style.border = '0';
+    ta.style.padding = '0';
     document.body.appendChild(ta);
+    ta.focus();
     ta.select();
+    ta.setSelectionRange(0, text.length); // iOS Safari needs this
     let ok = false;
     try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
     document.body.removeChild(ta);
     return ok;
   };
+  // Try the modern API first; if it is missing or rejects (plain-http
+  // LAN / non-secure context), fall back.
+  const done = (ok) => {
+    if (ok) {
+      if (typeof onUrlCopied === 'function') onUrlCopied(text); // hook: hint box / gallery box
+    } else {
+      showToast('Copy failed');
+    }
+  };
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(
-      () => showToast('URL copied'),
-      () => showToast(fallback() ? 'URL copied' : 'Copy failed')
+      () => done(true),
+      () => done(fallback())
     );
   } else {
-    showToast(fallback() ? 'URL copied' : 'Copy failed');
+    done(fallback());
   }
 }
 

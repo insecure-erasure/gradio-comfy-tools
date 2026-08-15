@@ -39,10 +39,12 @@ function switchTab(name) {
   // Reset the result row (progress + timing) when switching tools. The
   // source image URL fields (Edit/Upscale/Video) keep their values and
   // lastGeneratedUrl persists for chaining (🔗 fills the source field).
-  document.getElementById('resultUrl').textContent = '';
-  document.getElementById('resultUrl').title = '';
+  const rel = document.getElementById('resultUrl');
+  if (rel) { rel.textContent = ''; rel.title = ''; rel.classList.remove('clickable'); }
   const rt = document.getElementById('resultTime');
   if (rt) rt.textContent = '';
+  const rcb = document.getElementById('resultCopyBox');
+  if (rcb) { clearTimeout(_resultCopyTimer); rcb.classList.remove('show'); }
   currentResultUrl = '';
 
   switch (name) {

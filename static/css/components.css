@@ -786,11 +786,20 @@
     flex: 1;
     min-width: 0;
   }
+  /* When a result URL is shown, clicking it copies it (copyResultHint) —
+     affordance: pointer + accent hover. */
+  .result-url.clickable {
+    cursor: pointer;
+  }
+  .result-url.clickable:hover {
+    color: var(--accent);
+    text-decoration: underline;
+  }
   /* Timing (⏱ elapsed while generating / duration when done) — right side
-     of the row, monospace like the URL hint used to be. */
+     of the row, monospace like the URL hint. */
   .result-time {
     font-size: .6rem;
-    color: var(--accent);
+    color: var(--text-secondary);
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
     white-space: nowrap;
     flex-shrink: 0;
@@ -798,11 +807,43 @@
     text-align: right;
   }
   .result-url-row {
+    position: relative;         /* anchor for the copy box */
     display: flex;
     align-items: center;
     gap: 6px;
     min-height: 12px;
     line-height: 12px;
+  }
+  /* Copy confirmation box — floats ABOVE the row (like a tooltip) when the
+     URL is clicked, showing the copied URL. Same visual family as the
+     gallery copy box. */
+  .result-copy-box {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 120;              /* above the row, below the toast */
+    max-width: min(70vw, 480px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.5);
+    padding: 8px 12px;
+    display: none;
+  }
+  .result-copy-box.show { display: block; }
+  .result-copy-box-label {
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .result-copy-box-url {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: .62rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Landscape: prompt inside the params pane, URL row alone at the bottom */
@@ -1750,6 +1791,37 @@
      cluster): the generation URL lives here now (the hint row no longer
      shows it). */
   .gallery-copy { top: 14px; left: 60px; }
+  /* Copy confirmation box — BELOW the top-left button cluster, styled like
+     the gallery prompt modal: surface bg, border, radius, shadow. Shows the
+     copied URL for a few seconds (gallery.js). */
+  .gallery-copy-box {
+    position: absolute;
+    top: 62px;
+    left: 14px;
+    z-index: 1100;             /* above the gallery buttons (1000) */
+    max-width: 46vw;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.5);
+    padding: 8px 12px;
+    display: none;
+  }
+  .gallery-copy-box.show { display: block; }
+  .gallery-copy-box-label {
+    font-size: .7rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 3px;
+  }
+  .gallery-copy-box-url {
+    font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    font-size: .62rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .gallery-prev { top: 50%; left: 14px; transform: translateY(-50%); }
   .gallery-next { top: 50%; right: 14px; transform: translateY(-50%); }
   /* Delete-current-entry — bottom-LEFT, same style as the other gallery

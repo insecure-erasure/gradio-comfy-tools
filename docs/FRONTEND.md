@@ -472,24 +472,28 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 ### 4.9 Result row + live progress + timing
 
 Shown in the row below the prompt (params pane in landscape, bottom bar in
-portrait): **`#resultUrl`** (node progress while a job runs) and
-**`#resultTime`** (the timing chip ⏱ — elapsed while generating, total
-duration once the result lands). The **generation URL is no longer shown in
-the row** — it is copied from the **fullscreen gallery's 📋 button** (next
-to the download button, top-left; `galleryCopyUrl` in gallery.js).
+portrait): **`#resultUrl`** and **`#resultTime`**.
+
+**Once a result lands**, the row shows the **generation URL** (click it to
+copy — no button needed, `copyResultHint` in gallery.js) **plus the ⏱
+duration** (1-decimal, persisted with the gallery entry — survives refresh /
+gallery navigation). A confirmation box floats above the row showing the
+copied URL after a click. The fullscreen gallery's **📋 button** (top-left,
+next to download) also copies the shown entry's URL.
 
 The row **always reflects the image/video currently shown in the pane** —
 also when navigating with the pane ‹ › arrows or switching tabs: every
 render path (finalize of a generation, `paneNav`/`renderPane`,
 `restoreTabResult`, reset/trash) calls `syncResultUrl(tab, entry)`
-(gallery.js), which paints the entry's **duration** (persisted in the
-gallery entry — survives refresh / gallery navigation) and keeps the
-entry's URL in `currentResultUrl` for the gallery copy button. It only
-paints when the tab is the ACTIVE one — the row is shared across tabs.
-`copyText` (api.js) is robust on plain-http LAN (where
-`navigator.clipboard` does not exist): it falls back to a hidden textarea
-+ `execCommand('copy')` and always shows explicit feedback (previously a
-missing API threw silently and the user pasted a STALE clipboard URL).
+(gallery.js), which paints the entry's URL + duration and keeps the entry's
+URL in `currentResultUrl`. It only paints when the tab is the ACTIVE one —
+the row is shared across tabs.
+`copyText` (api.js) is robust on plain-http LAN: it tries
+`navigator.clipboard` first, and when it is missing or rejects (non-secure
+context) falls back to a textarea + `execCommand('copy')` (focused +
+selected, so it works on all engines), and shows the confirmation box via
+the `onUrlCopied` hook (previously a missing API threw silently and the
+user pasted a STALE clipboard URL).
 
 The ↺ resets restore parameters and clear the pane (and the row), but
 **never touch the galleries** — emptying those is exclusively the 🗑️ trash
@@ -539,11 +543,11 @@ URL row anymore (the small corner ⏹ was removed). Clicking the transformed
 ⏹ calls `cancelGeneration()` (`POST /api/cancel` — backend:
 `POST /interrupt` to stop the running prompt + `POST /queue` `delete` for
 the pending one, and marks the job done) and aborts the in-flight fetch,
-so the UI settles immediately (toast `Cancelled`). The URL row only shows
-progress + timing while the job runs (the 📋 copy button lives in the
-fullscreen gallery, not the row). The transform survives tab switches
-mid-generation (`switchTab` re-asserts the lock with `applyGenerationLock`
-and re-transforms the trigger button).
+so the UI settles immediately (toast `Cancelled`). While the job runs the
+row shows progress + timing only; once the result lands it shows the
+clickable URL + duration (and the gallery 📋 also copies). The transform
+survives tab switches mid-generation (`switchTab` re-asserts the lock with
+`applyGenerationLock` and re-transforms the trigger button).
 
 - The stop-transformed trigger is ENABLED, so the click-catcher overlay
   must not sit on top of it — `.btn-col.generating .btn-wrap:has(.btn-generate:not(:disabled))

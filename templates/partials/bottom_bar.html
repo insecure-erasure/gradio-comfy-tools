@@ -44,13 +44,18 @@
     </div>
   </div>
   <div class="result-url-row" id="resultUrlRow">
-    <!-- Progress + timing row. The generation URL is no longer shown here
-         (it is copied from the fullscreen gallery's 📋 button); the row
-         shows the current node while a job runs, and the timing:
-         ⏱ elapsed (1s precision) during generation, ⏱ duration
-         (1-decimal) once the result lands. -->
-    <span class="result-url" id="resultUrl"></span>
+    <!-- Progress + timing row. While a job runs: node progress (#resultUrl)
+         + ⏱ elapsed (#resultTime). Once the result lands: the generation
+         URL (click it to copy — no button needed) + ⏱ duration.
+         The fullscreen gallery's 📋 button also copies the URL. -->
+    <span class="result-url" id="resultUrl" title="" onclick="copyResultHint()"></span>
     <span class="result-time" id="resultTime"></span>
+    <!-- Copy confirmation box: floats over the row after clicking the URL,
+         showing the copied URL. -->
+    <div class="result-copy-box" id="resultCopyBox">
+      <div class="result-copy-box-label">📋 URL copied</div>
+      <div class="result-copy-box-url" id="resultCopyBoxUrl"></div>
+    </div>
   </div>
   <!-- Prompt fullscreen modal (portrait only): the compact single-line
        prompt opens a fullscreen field when tapped. openPromptModal()

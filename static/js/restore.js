@@ -141,10 +141,12 @@ function clearTabGallery(tab) {
   // Clear the result row (progress + timing) for this tab (it is shared,
   // so only when the current tab is the one being cleared).
   if (currentTab === tab) {
-    document.getElementById('resultUrl').textContent = '';
-    document.getElementById('resultUrl').title = '';
+    const rel = document.getElementById('resultUrl');
+    if (rel) { rel.textContent = ''; rel.title = ''; rel.classList.remove('clickable'); }
     const rt = document.getElementById('resultTime');
     if (rt) rt.textContent = '';
+    const rcb = document.getElementById('resultCopyBox');
+    if (rcb) { clearTimeout(_resultCopyTimer); rcb.classList.remove('show'); }
     currentResultUrl = '';
   }
   savePersistedState();

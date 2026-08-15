@@ -316,6 +316,7 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
+  if (galleryCopyBox) { clearTimeout(_copyBoxTimer); galleryCopyBox.classList.remove('show'); }
   resetGalleryZoom(); // a closed gallery must never keep a transform
   // Destroy the video player of the OVERLAY (stops playback) and hide the
   // wrap. The pane's own player/result is untouched — closing the gallery
@@ -870,20 +871,18 @@ function paneCurrentEntry(tab) {
 // fullscreen gallery's 📋 button (the hint row no longer shows the URL).
 let currentResultUrl = '';
 
-// The result row now shows the timing only (#resultTime — the generation
-// URL is copied from the fullscreen gallery via galleryCopyUrl; #resultUrl
-// holds the live node progress while a job runs and is cleared here).
+// The result row shows the generation URL (clickable → copy) + the timing
+// chip. ``entry`` carries the direct URL when available; otherwise
+// fullComfyUrl rebuilds {base}/view?... from the display src (restore.js).
 // Paints only when ``tab`` is the ACTIVE one (the row is shared across
 // tabs — a tab switch clears it and the incoming tab's restore re-syncs
-// it). ``entry`` carries the direct URL when available; otherwise
-// fullComfyUrl rebuilds {base}/view?... from the display src (restore.js).
+// it).
 function syncResultUrl(tab, entry) {
   if (currentTab !== tab) return;
   const el = document.getElementById('resultUrl');
   const timeEl = document.getElementById('resultTime');
   if (!el) return;
-  // Remember the URL for the gallery copy button (entry's direct URL, or
-  // rebuilt from the display src).
+  // The URL (for the click-to-copy + the gallery copy button).
   currentResultUrl = (entry && (entry.url || (typeof fullComfyUrl === 'function' ? fullComfyUrl(entry) : ''))) || '';
   // Timing: the entry's own persisted duration (survives refresh / gallery
   // navigation) takes priority, else the last finished job's duration.
@@ -891,9 +890,49 @@ function syncResultUrl(tab, entry) {
   if (!durSecs && typeof _lastJobDurationSecs === 'number' && _lastJobDurationSecs > 0) {
     durSecs = _lastJobDurationSecs;
   }
+  if (currentResultUrl) {
+    el.textContent = currentResultUrl;
+    el.title = 'Click to copy'; // the URL itself is shown; the tooltip hints the action
+    el.classList.add('clickable');
+  } else {
+    el.textContent = '';
+    el.title = '';
+    el.classList.remove('clickable');
+  }
   if (timeEl) timeEl.textContent = durSecs > 0 ? '⏱ ' + fmtDuration(durSecs) : '';
-  el.textContent = ''; // no URL / node text here once a result is shown
-  el.title = '';
+}
+
+let _resultCopyTimer = null;
+let _copyBoxTimer = null; // gallery copy-box timer (shared by onUrlCopied)
+// Click on the result URL in the row: copy it and show a confirmation box
+// with the copied URL (no button needed). No-op when there is no URL.
+function copyResultHint() {
+  if (!currentResultUrl) return;
+  copyText(currentResultUrl);
+}
+
+// Hook called by copyText after a successful copy — shows the confirmation
+// box (hint row OR gallery copy box) with the copied URL. Centralized so
+// both the click-to-copy hint and the gallery 📋 button behave the same.
+function onUrlCopied(url) {
+  const box = document.getElementById('resultCopyBox');
+  const boxUrl = document.getElementById('resultCopyBoxUrl');
+  if (box && boxUrl) {
+    boxUrl.textContent = url;
+    box.classList.add('show');
+    clearTimeout(_resultCopyTimer);
+    _resultCopyTimer = setTimeout(() => box.classList.remove('show'), 2500);
+    return;
+  }
+  // No hint box (e.g. copied from the gallery) — fall back to the gallery box.
+  const gBox = document.getElementById('galleryCopyBox');
+  const gBoxUrl = document.getElementById('galleryCopyBoxUrl');
+  if (gBox && gBoxUrl) {
+    gBoxUrl.textContent = url;
+    gBox.classList.add('show');
+    clearTimeout(_copyBoxTimer);
+    _copyBoxTimer = setTimeout(() => gBox.classList.remove('show'), 2500);
+  }
 }
 
 // Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
@@ -935,16 +974,24 @@ function paneNav(tab, delta) {
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
 const galleryCopyBtn = document.getElementById('galleryCopy');
-// 📋 copies the shown entry's URL (the hint row no longer shows it).
+const galleryCopyBox = document.getElementById('galleryCopyBox');
+const galleryCopyBoxUrl = document.getElementById('galleryCopyBoxUrl');
+// 📋 copies the shown entry's URL (the hint row also shows it, clickable).
+// The confirmation box with the copied URL is shown by onUrlCopied (called
+// from copyText on success) — the toast would sit BEHIND the fullscreen
+// overlay (z 100 < 300), so the box is an overlay child, always visible.
 galleryCopyBtn.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries && galleryEntries[galleryIdx];
   if (!e2) return;
-  const url = e2.url
+  // The direct URL is preferred; fullComfyUrl rebuilds {base}/view from the
+  // display src for older entries; currentResultUrl is the hint's last URL.
+  let url = e2.url
     || (typeof fullComfyUrl === 'function' ? fullComfyUrl(e2) : '')
     || currentResultUrl
     || (e2.src || e2.display || '');
-  copyText(url);
+  if (!url) return;
+  copyText(url); // onUrlCopied shows the confirmation box over the gallery
 });
 galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
 // ‹ › while the prompt panel is open: close it and navigate (one action —

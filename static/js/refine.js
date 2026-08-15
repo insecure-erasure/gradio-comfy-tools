@@ -81,6 +81,8 @@ async function refinePrompt() {
   if (resultUrlEl0) resultUrlEl0.textContent = '';
   const resultTimeEl0 = document.getElementById('resultTime');
   if (resultTimeEl0) resultTimeEl0.textContent = '';
+  const rcb0 = document.getElementById('resultCopyBox');
+  if (rcb0) { clearTimeout(_resultCopyTimer); rcb0.classList.remove('show'); }
   stopElapsedClock();
 
   // Keep the original prompt so cancel restores it (the textarea is filled

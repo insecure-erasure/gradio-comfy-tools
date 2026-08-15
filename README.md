@@ -57,8 +57,9 @@ Web application with four image and video tools powered by ComfyUI:
 - While a generation runs the prompt field is **locked** and the action and
   🪄 refine buttons are **disabled** (you cannot start another job, refine,
   or type mid-generation).
-- When finished, open the result in the **fullscreen gallery** and use the
-  **📋** button (next to the download button) to copy the result URL.
+- When finished, the result URL appears in the hint row next to the ⏱
+  duration — **click the URL to copy it** (a confirmation box shows the
+  copied URL). The **fullscreen gallery's 📋** button also copies it.
 
 ### Settings
 

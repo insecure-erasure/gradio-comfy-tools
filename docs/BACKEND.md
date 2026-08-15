@@ -198,8 +198,8 @@ Other nodes (wan21 and wan22): `CLIPLoader (GGUF)`, `WanImageToVideo`, `KSampler
 generation (generate / edit / restore / upscale), built as
 `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. **Persists across
   tab switches** so it can be used after generating in another tab.
-- Consumers: 📋 (copy — now from the fullscreen gallery's copy button) and
-  🔗 (fills the source URL field of Edit/Upscale/Video with
+- Consumers: 📋 (copy — click the hint URL, or the fullscreen gallery's
+  copy button) and 🔗 (fills the source URL field of Edit/Upscale/Video with
   `lastGeneratedUrl`).
 - Videos never become `lastGeneratedUrl`: all three consumers need an IMAGE
   source (img2img / img2vid), so a generated video is never chainable. In a
