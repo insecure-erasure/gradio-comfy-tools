@@ -319,12 +319,20 @@ let recoverHandler = null;
 let recoverPending = false;  // a job's fetch died; backend still running
 let _recoverSettleTimer = null; // safety-net timer for a stuck recovery (see applyProgress)
 let _recoverRetryTimer = null;  // retry loop for a result not yet recorded (see tryRecoverResult)
+let _recoverInFlight = false; // a recovery probe is in flight — no concurrent probes
 function registerRecoverHandler(fn) { recoverHandler = fn; }
 async function tryRecoverResult() {
   // Only runs when the original fetch is CONFIRMED dead (recoverPending):
   // while it is still in flight the normal .then() settles the result, and
   // recovering here too would double-finalize (duplicate gallery entries).
+  // The in-flight guard matters because this function AWAITS before
+  // clearing recoverPending: without it, concurrent calls (a poll of
+  // applyProgress + visibilitychange, or the retry timer overlapping the
+  // next poll) would ALL pass the guard, see the URL and each fire
+  // recoverHandler — one video landing twice in galleryVideos.
   if (!recoverPending || !recoverHandler || progressTimer === null) return;
+  if (_recoverInFlight) return; // a probe is already in flight — it will handle it
+  _recoverInFlight = true;
   try {
     const r = await fetch('/api/last-result');
     const j = await r.json();
@@ -335,6 +343,7 @@ async function tryRecoverResult() {
     // here, so a single early attempt — e.g. right after the job finished
     // but before the URL was recorded — permanently lost the result.)
     if (!j.url) {
+      _recoverInFlight = false; // allow the retry timer + next poll to probe again
       clearTimeout(_recoverRetryTimer);
       _recoverRetryTimer = setTimeout(tryRecoverResult, 500);
       return;
@@ -349,6 +358,7 @@ async function tryRecoverResult() {
       recoverHandler({ url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type });
     }
   } catch (e) { /* ignore */ }
+  _recoverInFlight = false;
 }
 
 // ⏹ Cancel (the transformed action button): stop the backend job (POST

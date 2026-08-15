@@ -86,7 +86,18 @@ function restorePersistedState() {
   if (data.galleries) {
     if (Array.isArray(data.galleries.generated)) window.galleryGenerated = data.galleries.generated;
     if (Array.isArray(data.galleries.videos)) {
-      window.galleryVideos = data.galleries.videos.map(normalizeVideoEntry);
+      // Dedup by URL: a lost-fetch recovery race used to register a video
+      // twice (see api.js tryRecoverResult). Drop pre-existing duplicates
+      // from sessions with the old bug so the gallery shows one entry per
+      // generated video.
+      const seen = new Set();
+      window.galleryVideos = [];
+      data.galleries.videos.map(normalizeVideoEntry).forEach(e => {
+        const key = e.url || e.src || '';
+        if (key && seen.has(key)) return;
+        if (key) seen.add(key);
+        window.galleryVideos.push(e);
+      });
     }
     if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
   }

@@ -251,6 +251,13 @@ window.galleryVideos = window.galleryVideos || [];
 function addGeneratedVideo(result, prompt) {
   const url = result.url || result.display;
   const display = result.display || url;
+  // Defensive dedup by URL: a single generation must never appear twice in
+  // the gallery. A lost-fetch recovery race used to fire the finalizer
+  // twice for one video (see the _recoverInFlight guard in api.js) — this
+  // makes the registry robust even against already-persisted duplicates
+  // from sessions with the old bug.
+  const key = url || display;
+  if (key && window.galleryVideos.some(e => (e.url || e.src) === key)) return;
   window.galleryVideos.push({
     src: display,        // like galleryGenerated.src — the same-origin display URL
     url,                 // direct ComfyUI URL (chaining/copy)
