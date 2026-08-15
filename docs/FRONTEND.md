@@ -478,8 +478,7 @@ portrait): **`#resultUrl`** and **`#resultTime`**.
 copy — no button needed, `copyResultHint` in gallery.js) **plus the ⏱
 duration** (1-decimal, persisted with the gallery entry — survives refresh /
 gallery navigation). A confirmation box floats above the row showing the
-copied URL after a click. The fullscreen gallery's **📋 button** (top-left,
-next to download) also copies the shown entry's URL.
+copied URL after a click.
 
 The row **always reflects the image/video currently shown in the pane** —
 also when navigating with the pane ‹ › arrows or switching tabs: every
@@ -545,7 +544,7 @@ URL row anymore (the small corner ⏹ was removed). Clicking the transformed
 the pending one, and marks the job done) and aborts the in-flight fetch,
 so the UI settles immediately (toast `Cancelled`). While the job runs the
 row shows progress + timing only; once the result lands it shows the
-clickable URL + duration (and the gallery 📋 also copies). The transform
+clickable URL + duration. The transform
 survives tab switches mid-generation (`switchTab` re-asserts the lock with
 `applyGenerationLock` and re-transforms the trigger button).
 

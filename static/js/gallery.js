@@ -316,7 +316,6 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
-  if (galleryCopyBox) { clearTimeout(_copyBoxTimer); galleryCopyBox.classList.remove('show'); }
   resetGalleryZoom(); // a closed gallery must never keep a transform
   // Destroy the video player of the OVERLAY (stops playback) and hide the
   // wrap. The pane's own player/result is untouched — closing the gallery
@@ -903,7 +902,6 @@ function syncResultUrl(tab, entry) {
 }
 
 let _resultCopyTimer = null;
-let _copyBoxTimer = null; // gallery copy-box timer (shared by onUrlCopied)
 // Click on the result URL in the row: copy it and show a confirmation box
 // with the copied URL (no button needed). No-op when there is no URL.
 function copyResultHint() {
@@ -912,27 +910,15 @@ function copyResultHint() {
 }
 
 // Hook called by copyText after a successful copy — shows the confirmation
-// box (hint row OR gallery copy box) with the copied URL. Centralized so
-// both the click-to-copy hint and the gallery 📋 button behave the same.
+// box above the hint row with the copied URL.
 function onUrlCopied(url) {
   const box = document.getElementById('resultCopyBox');
   const boxUrl = document.getElementById('resultCopyBoxUrl');
-  if (box && boxUrl) {
-    boxUrl.textContent = url;
-    box.classList.add('show');
-    clearTimeout(_resultCopyTimer);
-    _resultCopyTimer = setTimeout(() => box.classList.remove('show'), 2500);
-    return;
-  }
-  // No hint box (e.g. copied from the gallery) — fall back to the gallery box.
-  const gBox = document.getElementById('galleryCopyBox');
-  const gBoxUrl = document.getElementById('galleryCopyBoxUrl');
-  if (gBox && gBoxUrl) {
-    gBoxUrl.textContent = url;
-    gBox.classList.add('show');
-    clearTimeout(_copyBoxTimer);
-    _copyBoxTimer = setTimeout(() => gBox.classList.remove('show'), 2500);
-  }
+  if (!box || !boxUrl) return;
+  boxUrl.textContent = url;
+  box.classList.add('show');
+  clearTimeout(_resultCopyTimer);
+  _resultCopyTimer = setTimeout(() => box.classList.remove('show'), 2500);
 }
 
 // Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
@@ -973,26 +959,6 @@ function paneNav(tab, delta) {
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
 galleryDlBtn.addEventListener('click', galleryDownload);
-const galleryCopyBtn = document.getElementById('galleryCopy');
-const galleryCopyBox = document.getElementById('galleryCopyBox');
-const galleryCopyBoxUrl = document.getElementById('galleryCopyBoxUrl');
-// 📋 copies the shown entry's URL (the hint row also shows it, clickable).
-// The confirmation box with the copied URL is shown by onUrlCopied (called
-// from copyText on success) — the toast would sit BEHIND the fullscreen
-// overlay (z 100 < 300), so the box is an overlay child, always visible.
-galleryCopyBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  const e2 = galleryEntries && galleryEntries[galleryIdx];
-  if (!e2) return;
-  // The direct URL is preferred; fullComfyUrl rebuilds {base}/view from the
-  // display src for older entries; currentResultUrl is the hint's last URL.
-  let url = e2.url
-    || (typeof fullComfyUrl === 'function' ? fullComfyUrl(e2) : '')
-    || currentResultUrl
-    || (e2.src || e2.display || '');
-  if (!url) return;
-  copyText(url); // onUrlCopied shows the confirmation box over the gallery
-});
 galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
 // ‹ › while the prompt panel is open: close it and navigate (one action —
 // the shown prompt never goes stale). The overlay is pointer-transparent,

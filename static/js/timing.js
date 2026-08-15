@@ -9,8 +9,8 @@
 //     total generation time with 1-decimal precision (e.g. "⏱ 12.4s"). It
 //     survives tab switches, gallery navigation and page reloads (the
 //     duration rides along with the result in the galleries / persisted
-//     state). The URL itself is no longer shown in the row — it is copied
-//     from the fullscreen gallery's 📋 button (galleryCopyUrl).
+//     state). The result URL is shown next to it in the row (#resultUrl,
+//     click it to copy — copyResultHint).
 //
 // The clock is driven by performance.now() (monotonic — unaffected by
 // wall-clock jumps / DST); the stored duration is the wall-clock delta at

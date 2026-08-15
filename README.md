@@ -59,7 +59,7 @@ Web application with four image and video tools powered by ComfyUI:
   or type mid-generation).
 - When finished, the result URL appears in the hint row next to the ⏱
   duration — **click the URL to copy it** (a confirmation box shows the
-  copied URL). The **fullscreen gallery's 📋** button also copies it.
+  copied URL).
 
 ### Settings
 
