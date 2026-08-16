@@ -50,7 +50,8 @@ const ICONS = {
 const setIcon = (b, name) => { b.innerHTML = ICONS[name] || ''; };
 
 // Toast shown when the empty player's (disabled) controls are clicked:
-// there is no video to play/seek yet.
+// there is no video to play/seek yet. Only the BUTTONS/bar toast — the
+// black backdrop shows nothing.
 const NO_VIDEOS_MSG = 'No videos yet — generate one first';
 
 // ── Empty player (no videos generated yet) ──
@@ -60,17 +61,15 @@ const NO_VIDEOS_MSG = 'No videos yet — generate one first';
 // control is DISABLED (aria-disabled + .disabled styling, NOT the native
 // `disabled` attribute — a native disabled button swallows click events,
 // and we need the click to toast "no videos yet"). No <video>, no
-// scrubber, no autoplay/idle/fullscreen logic, no activeVideoEl.
+// scrubber, no autoplay/idle/fullscreen logic, no activeVideoEl. The
+// controls sit at the SAME BOTTOM position as the real player's (shared
+// .video-controls). Only the controls/bar toast — the backdrop is blank.
 function createEmptyVideoPlayer() {
   const wrap = document.createElement('div');
   wrap.className = 'video-player video-empty-player';
 
   const bg = document.createElement('div');
   bg.className = 'video-empty-bg';
-  const hint = document.createElement('div');
-  hint.className = 'video-empty-hint';
-  hint.textContent = 'No videos yet';
-  bg.appendChild(hint);
   wrap.appendChild(bg);
 
   const prog = document.createElement('div');
@@ -102,7 +101,6 @@ function createEmptyVideoPlayer() {
   ctrl.appendChild(mkBtn('video-more-btn', 'more', 'More options'));
   wrap.appendChild(ctrl);
 
-  bg.addEventListener('click', () => showToast(NO_VIDEOS_MSG));
   prog.addEventListener('click', (e) => { e.stopPropagation(); showToast(NO_VIDEOS_MSG); });
 
   return wrap;
@@ -117,9 +115,7 @@ function ensureEmptyVideoPlayer(pane) {
   if (!pane || pane.id !== 'videoOutputPane') return;
   if (pane.querySelector('.result-video, .source-preview, .preview-live, .video-player:not(.video-empty-player)')) return;
   if (pane.querySelector('.video-empty-player')) return;
-  const host = document.getElementById('videoEmptyHost');
-  if (host) host.appendChild(createEmptyVideoPlayer());
-  else pane.appendChild(createEmptyVideoPlayer());
+  pane.appendChild(createEmptyVideoPlayer());
 }
 
 // ── ⋮ Options menu: shared close helpers ──
