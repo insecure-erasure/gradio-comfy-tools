@@ -21,7 +21,7 @@ def wf():
 
 def test_resolve_workflow_all_titles_present(wf):
     nodes = resolve_workflow(wf)
-    for t in ["Load Image (URL/Path)", "Prompt", "KSampler", "Power Lora Loader (rgthree)"]:
+    for t in ["Load Image (URL/Path)", "Prompt", "RandomNoise", "Flux2Scheduler", "Power Lora Loader (rgthree)"]:
         assert t in nodes
 
 
@@ -34,8 +34,8 @@ def test_build_workflow_edit_filename(wf):
     assert img["source"] == "temp"
     assert img["image"] == "ComfyUI_prev_00001_.png"
     assert nodes["Prompt"]["inputs"]["value"] == "make it green"
-    assert nodes["KSampler"]["inputs"]["seed"] == 5
-    assert nodes["KSampler"]["inputs"]["steps"] == 8
+    assert nodes["RandomNoise"]["inputs"]["noise_seed"] == 5
+    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 8
     assert meta["mode"] == "edit"
     assert meta["restore_lora"] is False
 
@@ -56,7 +56,7 @@ def test_build_workflow_steps_default(wf):
     built, meta = build_workflow(wf, image="ComfyUI_prev_00001_.png", prompt="x", steps=0)
     nodes = resolve_workflow(built)
     # steps 0 = keep workflow default (6)
-    assert nodes["KSampler"]["inputs"]["steps"] == 6
+    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 6
     assert meta["steps"] == 0
 
 
@@ -102,5 +102,8 @@ def test_build_workflow_validations(wf):
 
 def test_deep_copy_not_mutating_source(wf):
     built, _ = build_workflow(wf, image="ComfyUI_prev_00001_.png", prompt="x", seed=3, steps=9)
-    assert wf["227"]["inputs"]["seed"] == 963880637461774  # original untouched
-    assert built["227"]["inputs"]["seed"] == 3
+    src = resolve_workflow(wf)
+    assert src["RandomNoise"]["inputs"]["noise_seed"] == 1100351992931438  # original untouched
+    assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
+    assert resolve_workflow(built)["RandomNoise"]["inputs"]["noise_seed"] == 3
+    assert resolve_workflow(built)["Flux2Scheduler"]["inputs"]["steps"] == 9

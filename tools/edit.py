@@ -46,7 +46,8 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
     titles = [
         "Load Image (URL/Path)",
         "Prompt",
-        "KSampler",
+        "RandomNoise",
+        "Flux2Scheduler",
         "Power Lora Loader (rgthree)",
         "Random Preview Image",
     ]
@@ -100,10 +101,10 @@ def build_workflow(
     # Prompt
     nodes["Prompt"]["inputs"]["value"] = value
 
-    # Seed + steps (KSampler)
-    nodes["KSampler"]["inputs"]["seed"] = seed_arg
+    # Seed + steps (FLUX.2 guidance stack: RandomNoise + Flux2Scheduler)
+    nodes["RandomNoise"]["inputs"]["noise_seed"] = seed_arg
     if steps:
-        nodes["KSampler"]["inputs"]["steps"] = steps
+        nodes["Flux2Scheduler"]["inputs"]["steps"] = steps
 
     # LoRAs
     _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], loras)
@@ -141,10 +142,11 @@ def edit_image(
         lora_config=lora_config,
     )
     with ComfyClient(settings=settings) as client:
-        # preview_method: auto — the KSampler decodes its intermediate latent
-        # each step and streams JPEG previews over the WS, which server.py's
-        # job listener captures for the live preview in the Edit tab (same
-        # mechanism as Generate; the flag is per-prompt and auto-reset).
+        # preview_method: auto — the SamplerCustomAdvanced decodes its
+        # intermediate latent each step and streams JPEG previews over the WS,
+        # which server.py's job listener captures for the live preview in the
+        # Edit tab (same mechanism as Generate; the flag is per-prompt and
+        # auto-reset).
         prompt_id = client.queue_prompt(wf, extra_data={"preview_method": "auto"})
         outputs = client.wait_for_output(prompt_id, timeout=timeout)
     image_rec = _common.find_output_image(outputs)

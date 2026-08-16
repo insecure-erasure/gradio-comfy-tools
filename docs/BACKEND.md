@@ -144,14 +144,16 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 |---|---|---|
 | 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
-| 👣 Steps | `steps` (1–15, default 6) | `KSampler` |
-| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `KSampler` |
+| 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
+| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `RandomNoise` |
 | Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar; optional in restore) | `prompt` | `Prompt` |
 
-Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `Upscale Image (using Model)` / `Load Upscale Model`, `ConditioningZeroOut`, `Concatenate`; output: `Random Preview Image`.
+Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): `SamplerCustomAdvanced` + `Flux2Scheduler` (steps) + `CFGGuider` (cfg 1) + `KSamplerSelect` (euler) + `RandomNoise` (seed). The negative conditioning is the `ConditioningZeroOut` of the positive `ReferenceLatent` (no separate negative ReferenceLatent). The output goes **directly from `VAE Decode` to `Random Preview Image`** — the previous `Upscale Image (using Model)` / `Load Upscale Model` (1xSkinContrast) stage was removed, so the result is no longer upscaled/skin-contrasted.
 
-**✅ Seed supported**: the reference `edit_image/tool.py` exposes `seed` since v1.6 (UserValve, -1 = random, ≥0 = fixed, injected into `KSampler`).
+Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `GetImage_(Width&Height) _O` (feeds `Flux2Scheduler`), `ConditioningZeroOut`, `Concatenate`; output: `Random Preview Image`.
+
+**✅ Seed supported**: the reference `edit_image/tool.py` exposes `seed` since v1.6 (UserValve, -1 = random, ≥0 = fixed, injected into `RandomNoise.noise_seed`).
 
 ### 5.3 Upscale 🔍 — `seedvr2_upscale.json`
 
