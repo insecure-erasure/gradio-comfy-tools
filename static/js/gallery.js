@@ -680,7 +680,7 @@ async function openVideoGallery() {
   // cleaned on server restart, and the user wants the gallery to show every
   // entry from the session/localStorage — a missing file just won't play.
   const all = window.galleryVideos;
-  if (!all.length) return showToast('No video to show yet');
+  if (!all.length) return showToast(NO_VIDEOS_MSG);
   galleryMode = 'video';
   galleryEntries = all;
   galleryBig.style.display = 'none';

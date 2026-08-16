@@ -52,7 +52,7 @@ const setIcon = (b, name) => { b.innerHTML = ICONS[name] || ''; };
 // Toast shown when the empty player's (disabled) controls are clicked:
 // there is no video to play/seek yet. Only the BUTTONS/bar toast — the
 // black backdrop shows nothing.
-const NO_VIDEOS_MSG = 'No videos yet — generate one first';
+const NO_VIDEOS_MSG = 'No videos yet';
 
 // ── Empty player (no videos generated yet) ──
 // The Video pane shows the REAL player controls even when no video has been

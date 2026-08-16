@@ -292,7 +292,7 @@ empty and the prompt fills it; see also deviation 14):
   styled `.disabled` (dimmed, `cursor: not-allowed`, no hover accent) via
   `aria-disabled` + a `.disabled` class (NOT the native `disabled`
   attribute — that would swallow clicks, and every click on a control or
-  the bar must toast "No videos yet — generate one first"). The controls
+  the bar must toast "No videos yet"). The controls
   sit at the SAME bottom position as the real player's (shared
   `.video-controls`); the backdrop is blank — no hint text. Injected by
   `ensureEmptyVideoPlayer(pane)` on init (`main.js`), after
