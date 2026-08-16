@@ -285,6 +285,19 @@ empty and the prompt fills it; see also deviation 14):
   overlay's video mode (the overlay is already fullscreen and the
   gallery's ✕ occupies the same top-right corner) — the ⛶ button only
   exists where there is no competing button.
+  **Empty state (no videos generated yet)**: the pane shows the SAME
+  player controls but DISABLED — `createEmptyVideoPlayer()`
+  (`static/js/player.js`) builds a `.video-player.video-empty-player`
+  with the progress bar + the bottom-centered play/stop/more cluster, all
+  styled `.disabled` (dimmed, `cursor: not-allowed`, no hover accent) via
+  `aria-disabled` + a `.disabled` class (NOT the native `disabled`
+  attribute — that would swallow clicks, and every click must toast
+  "No videos yet — generate one first"; the black backdrop also toasts).
+  Injected by `ensureEmptyVideoPlayer(pane)` on init (`main.js`), after
+  `clearPane` (↺ resets, 🗑️ gallery clear) and after `clearSourcePreview`
+  — and it never covers a real result/source preview (`ensureEmptyVideoPlayer`
+  bails when one is present; `paneHasContent` ignores the empty player so
+  persisted videos still restore).
 - **Toolbar**: Model dropdown (Wan 2.1 default, Wan 2.2) + ⚙️ + ↺.
 - **Params**: two chips over the prompt textarea — **🎞️ Frames** (shows
   the frame count, popover with the 81–161 stepper, step 4, 4n+1 snap) and
@@ -381,14 +394,15 @@ failure it toasts the error
 generating.
 
 **Video tab specifics**: the preview **replaces the video component** — the
-mock placeholder (and any previous generated video) is hidden while the
-source image fills the pane. When generation starts the image **recedes
+empty (disabled) player and any previous generated video are removed while
+the source image fills the pane. When generation starts the image **recedes
 behind the loading overlay** (dimmed, `.output-pane.busy .source-preview`;
 the `.gen-spinner` overlay, z-index 10, sits above it) and is **removed when
 the generation finishes** (`showResult`) to show the generated video. The
-mock placeholder itself is **removed from the DOM** (not just hidden) when
+empty player itself is **removed from the DOM** (not just hidden) when
 the result lands, so it cannot be resurrected by `stopProgressPolling` and
-push the `<video>` aside. In the other tabs the preview behaves as before.
+push the `<video>` aside; `clearSourcePreview` re-creates it when the source
+preview is cleared. In the other tabs the preview behaves as before.
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
 docs/BACKEND.md §6): external URL → checked directly; anything else → treated as
@@ -527,7 +541,7 @@ inside the output pane of the tab that started the generation, and ONLY
 while that tab is active — switching tabs mid-generation keeps capturing
 server-side but stops painting; coming back resumes with the latest frame.
 While painted it hides (and restores on cancel) the placeholder / previous
-result / source preview / compare slider / video mock / video player so it
+result / source preview / compare slider / empty video player / video player so it
 fills the pane and stays centered; the spinner stays on top (`.busy` z-index).
 `stopProgressPolling` removes it, and `showResult`/`clearPane` drop it too so
 the final result replaces the preview. The preview is ephemeral: it is

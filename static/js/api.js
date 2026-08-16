@@ -54,7 +54,7 @@ function showToast(msg) {
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .video-mock').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
   if (isVideo) {
     // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
     // always-visible accent progress line — replaces the native controls
@@ -72,7 +72,8 @@ function showResult(paneId, result, isVideo) {
 }
 
 // Reset an output pane: drop results, hide compare sliders, restore the
-// video mock placeholder. Used by the ↺ resets. NOTE: this clears only the
+// video empty player (the Video pane shows the real-but-disabled player
+// when it has no video). Used by the ↺ resets. NOTE: this clears only the
 // PANE — the galleries (registries + localStorage) are NEVER touched here;
 // emptying those is exclusively the 🗑️ trash button's job (clearTabGallery
 // in restore.js removes the entries explicitly, and the gallery delete
@@ -89,8 +90,8 @@ function clearPane(paneId) {
     delete el.dataset.kind;
     delete el.dataset.prompt;
   });
-  const mock = pane.querySelector('.video-mock');
-  if (mock) mock.style.display = '';
+  // The Video pane goes back to the empty (disabled) player when cleared.
+  ensureEmptyVideoPlayer(pane);
 }
 
 // Copy text to the clipboard. navigator.clipboard only exists in SECURE
@@ -522,10 +523,10 @@ function applyProgress(j) {
       if (!pv) {
         // The preview must fill the pane and stay centered: hide (not
         // remove) whatever competes for space — placeholder, previous
-        // result, source preview, compare slider, video mock. Overlays
+        // result, source preview, compare slider, video player. Overlays
         // (spinner, buttons) stay. liveHidden is restored by
         // stopProgressPolling on cancel.
-        liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider, .video-mock'));
+        liveHidden = Array.from(pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .compare-slider'));
         liveHidden.forEach(el => { el.style.display = 'none'; });
         pv = document.createElement('img');
         pv.className = 'preview-live';
@@ -633,8 +634,11 @@ function releaseGeneratingUi() {
 function finalizeRecoveredJob(tool, res) {
   const paneId = TAB_PANE_IDS[tool] || 'genOutputPane';
   const pane = document.getElementById(paneId);
-  const mock = pane && pane.querySelector('.video-mock');
-  if (mock) mock.remove();
+  // Drop any empty (disabled) player before showing the recovered result
+  // (the .video-player removal in showResult also covers it — this is just
+  // explicit and runs even if the pane is missing).
+  const emptyPlayer = pane && pane.querySelector('.video-empty-player');
+  if (emptyPlayer) emptyPlayer.remove();
   showResult(paneId, res, tool === 'video');
   if (tool === 'video') {
     const vid = pane && pane.querySelector('.result-video');

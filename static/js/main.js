@@ -17,6 +17,10 @@ window.addEventListener('DOMContentLoaded', () => {
   onModelFamilyChange();     // auto-steps + recalc for the family
   applyPersistedParams();    // re-apply persisted field values (they win over auto-steps)
   initSourceFields();        // select-all on click for the source URL fields
+  // The Video pane shows the real-but-disabled player when it has no video
+  // (restoreActiveTabResult may replace it with the last generated video
+  // right below — paneHasContent excludes the empty player).
+  ensureEmptyVideoPlayer(document.getElementById('videoOutputPane'));
   relayoutPrompt();
   updateActionButtons();
   savePersistedState();      // normalize the stored shape after applying

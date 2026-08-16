@@ -995,51 +995,41 @@
   }
   .compare-slider .handle span:last-child { transform: rotate(-135deg); }
 
-  /* ── Video player mock ────────────────────── */
-  .video-mock {
-    width: 100%;
-    max-width: 640px;
-    aspect-ratio: 3/5;
+  /* ── Empty video player (no videos generated yet) ──
+     The Video pane shows the REAL player controls even with no videos: the
+     same bottom-centered cluster + progress bar, but DISABLED (.disabled:
+     dimmed, not-allowed cursor, no hover accent) and every click toasts
+     "No videos yet". The black backdrop keeps the video feel. */
+  .video-empty-player {
     background: #000;
+  }
+  .video-empty-bg {
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    overflow: hidden;
-    cursor: pointer;
+    background: #000;
   }
-  .video-mock .play-btn {
-    width: 56px; height: 56px;
-    background: rgba(233,69,96,.9);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
-    color: #fff;
-    transition: .15s;
+  .video-empty-hint {
+    color: rgba(255,255,255,.38);
+    font: 600 13px/1 system-ui, sans-serif;
+    letter-spacing: .02em;
+    user-select: none;
   }
-  .video-mock:hover .play-btn { background: var(--accent); transform: scale(1.05); }
-  .video-mock .bar {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 32px;
-    background: linear-gradient(transparent, rgba(0,0,0,.7));
-    display: flex; align-items: flex-end;
-    padding: 6px 12px;
+  .video-empty-player .video-controls .disabled {
+    opacity: .45;
+    cursor: not-allowed;
   }
-  .video-mock .bar .progress {
-    flex: 1;
-    height: 3px;
-    background: rgba(255,255,255,.2);
-    border-radius: 2px;
-    position: relative;
+  .video-empty-player .video-controls .disabled:hover {
+    background: rgba(0,0,0,.55);
+    border-color: rgba(255,255,255,.18);
   }
-  .video-mock .bar .progress::before {
-    content: '';
-    position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 35%;
-    background: var(--accent);
-    border-radius: 2px;
+  .video-empty-player .video-progress {
+    cursor: default;
+  }
+  .video-empty-player .video-progress-track {
+    background: rgba(255,255,255,.08);
   }
 
   /* ── Generated video player (custom controls) ── */

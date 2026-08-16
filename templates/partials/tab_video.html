@@ -17,10 +17,9 @@
             <button class="source-url-confirm" onclick="confirmSourceUrl('video')" title="Load this image">✓</button>
           </div>
           <button class="output-overlay-btn bottom-right" onclick="usePreviousSource('video')" title="Use previous generation">🔗</button>
-          <div class="video-mock" onclick="showToast('Video player (WIP)')">
-            <div class="play-btn">▶</div>
-            <div class="bar"><div class="progress"></div></div>
-          </div>
+          <!-- Empty player (real controls, disabled) — injected by
+               ensureEmptyVideoPlayer() (player.js) when no video exists. -->
+          <div class="video-empty-host" id="videoEmptyHost"></div>
           <div class="gen-spinner" id="videoSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">

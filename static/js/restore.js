@@ -16,12 +16,14 @@ function paneHasContent(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return true; // no pane → nothing to restore into
   // A visible compare slider has display:'' (inline style removed the
-  // display:none) — check it is NOT 'none'. Any result/preview also counts.
+  // display:none) — check it is NOT 'none'. Any result/preview also counts,
+  // EXCEPT the empty (disabled) video player (.video-empty-player) — it is
+  // the idle state of the Video pane, not a real result.
   const visibleSlider = Array.from(pane.querySelectorAll('.compare-slider')).find(
     s => (s.style.display || '').toLowerCase() !== 'none'
   );
   return !!visibleSlider || !!pane.querySelector(
-    '.result-img, .result-video, .video-player, .source-preview'
+    '.result-img, .result-video, .video-player:not(.video-empty-player), .source-preview'
   );
 }
 

@@ -41,7 +41,7 @@ function generateVideo() {
 
   const pane = document.getElementById('videoOutputPane');
   const spinner = document.getElementById('videoSpinner');
-  const mock = pane.querySelector('.video-mock');
+  const emptyPlayer = pane.querySelector('.video-empty-player');
   const btn = document.getElementById('btnVideo') || document.querySelector('#btnCol .btn-generate');
   if (btn) btn.disabled = true;
   pane.classList.add('busy');
@@ -55,11 +55,11 @@ function generateVideo() {
   // fetch OR from the recover handler when the fetch died in a background
   // tab (the backend kept running and finished the job).
   function finalizeVideo(res) {
-    // Remove the mock player from the DOM (not just hide it): it is a
+    // Remove the empty player from the DOM (not just hide it): it is a
     // flex block with width:100%, so leaving it (even display:none inline)
     // gets restored by stopProgressPolling and pushes the real <video> to
     // the side. showResult then fills the pane.
-    if (mock) mock.remove();
+    if (emptyPlayer) emptyPlayer.remove();
     showResult('videoOutputPane', res, true);
     // If the user switched away while the video was generating, don't let
     // the autoplaying result keep consuming resources hidden behind another

@@ -36,6 +36,92 @@ let activeVideoEl = null;
 const VIDEO_SPEEDS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
 const formatSpeed = v => String(v);
 
+// Icons shared by the real player and the empty (no-videos-yet) player —
+// inline SVG (never emoji/font glyphs), fill=currentColor inherits the
+// button's CSS color; sized via CSS, so all buttons stay pixel-identical.
+const ICONS = {
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l11-6.86a1 1 0 0 0 0-1.7l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>',
+  stop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg>',
+  more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
+  fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
+  fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
+};
+const setIcon = (b, name) => { b.innerHTML = ICONS[name] || ''; };
+
+// Toast shown when the empty player's (disabled) controls are clicked:
+// there is no video to play/seek yet.
+const NO_VIDEOS_MSG = 'No videos yet — generate one first';
+
+// ── Empty player (no videos generated yet) ──
+// The Video pane shows the REAL player controls even when no video has been
+// generated (replaces the old static .video-mock placeholder): same
+// structure (progress bar + bottom-centered play/stop/more), but every
+// control is DISABLED (aria-disabled + .disabled styling, NOT the native
+// `disabled` attribute — a native disabled button swallows click events,
+// and we need the click to toast "no videos yet"). No <video>, no
+// scrubber, no autoplay/idle/fullscreen logic, no activeVideoEl.
+function createEmptyVideoPlayer() {
+  const wrap = document.createElement('div');
+  wrap.className = 'video-player video-empty-player';
+
+  const bg = document.createElement('div');
+  bg.className = 'video-empty-bg';
+  const hint = document.createElement('div');
+  hint.className = 'video-empty-hint';
+  hint.textContent = 'No videos yet';
+  bg.appendChild(hint);
+  wrap.appendChild(bg);
+
+  const prog = document.createElement('div');
+  prog.className = 'video-progress';
+  const track = document.createElement('div');
+  track.className = 'video-progress-track';
+  const fill = document.createElement('div');
+  fill.className = 'video-progress-fill';
+  track.appendChild(fill);
+  prog.appendChild(track);
+  wrap.appendChild(prog);
+
+  const ctrl = document.createElement('div');
+  ctrl.className = 'video-controls';
+  const mkBtn = (cls, icon, title) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    setIcon(b, icon);
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    b.setAttribute('aria-disabled', 'true');
+    b.classList.add('disabled');
+    b.addEventListener('click', (e) => { e.stopPropagation(); showToast(NO_VIDEOS_MSG); });
+    return b;
+  };
+  ctrl.appendChild(mkBtn('video-play-btn', 'play', 'Play'));
+  ctrl.appendChild(mkBtn('video-stop-btn', 'stop', 'Stop'));
+  ctrl.appendChild(mkBtn('video-more-btn', 'more', 'More options'));
+  wrap.appendChild(ctrl);
+
+  bg.addEventListener('click', () => showToast(NO_VIDEOS_MSG));
+  prog.addEventListener('click', (e) => { e.stopPropagation(); showToast(NO_VIDEOS_MSG); });
+
+  return wrap;
+}
+
+// Show the empty player in the Video pane IF the pane shows nothing real
+// (no generated video / source preview / live preview) and the empty player
+// is not already there. Called on init, clearPane, clearSourcePreview and
+// gallery clear — the empty state must always come back when the pane is
+// emptied, but never cover an actual result.
+function ensureEmptyVideoPlayer(pane) {
+  if (!pane || pane.id !== 'videoOutputPane') return;
+  if (pane.querySelector('.result-video, .source-preview, .preview-live, .video-player:not(.video-empty-player)')) return;
+  if (pane.querySelector('.video-empty-player')) return;
+  const host = document.getElementById('videoEmptyHost');
+  if (host) host.appendChild(createEmptyVideoPlayer());
+  else pane.appendChild(createEmptyVideoPlayer());
+}
+
 // ── ⋮ Options menu: shared close helpers ──
 // Each player owns its menu (a child of its wrap — see createVideoPlayer),
 // so closeAllVideoMenus closes ANY player's open menu. A click outside the
@@ -223,15 +309,6 @@ function createVideoPlayer(src, noFullscreenBtn) {
   // differently per platform/font). fill=currentColor inherits the
   // button's CSS color; the svg is sized via CSS (width/height), so all
   // buttons stay pixel-identical and the icons center perfectly.
-  const ICONS = {
-    play: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.53.85l11-6.86a1 1 0 0 0 0-1.7l-11-6.86A1 1 0 0 0 8 5.14z"/></svg>',
-    pause: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1.2"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>',
-    stop: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5.5" y="5.5" width="13" height="13" rx="1.5"/></svg>',
-    more: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>',
-    fullscreen: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>',
-    fullscreenExit: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>',
-  };
-  const setIcon = (b, name) => { b.innerHTML = ICONS[name] || ''; };
   // The play/pause icon must FOLLOW the playback state: pause while playing,
   // play while paused. The video autoplays muted, but autoplay can be
   // blocked by the browser — so the initial state is read from v.paused,
