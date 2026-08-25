@@ -73,6 +73,19 @@ function openAdvancedModal() {
   openModal(currentTab);
 }
 
+// Flatten modal fields, descending into section groups (the wan22 HIGH/LOW
+// sections hold their own selects + LoRA editors). Loops that need to see
+// every field (populate/save) use this so section-nested fields are treated
+// exactly like top-level ones.
+function flattenFields(fields) {
+  const out = [];
+  (fields || []).forEach(f => {
+    if (f.type === 'section') out.push(...flattenFields(f.fields));
+    else out.push(f);
+  });
+  return out;
+}
+
 // HTML for a single modal field. Every field that maps to a store key
 // carries data-key (used for prefill and save); generate/edit fields keep
 // the label-based fallback (no data-key) for backward compatibility.
@@ -175,14 +188,16 @@ function openModal(tab) {
     if (filename && [...sel.options].some(o => o.value === filename)) sel.value = filename;
   });
 
-  // Populate each embedded LoRA editor from saved JSON
-  cfg.fields.filter(f => f.type === 'lora').forEach(f => {
+  // Populate each embedded LoRA editor from saved JSON (descends into the
+  // wan22 HIGH/LOW sections — their LoRA editors live inside sections)
+  const loraFields = flattenFields(cfg.fields).filter(f => f.type === 'lora');
+  loraFields.forEach(f => {
     const path = f.path || 'main';
     loraSets[path] = parseLoraJson(store.loraSets ? store.loraSets[path] : store.lora);
     renderModalLoraRows(path);
   });
   if (loraNames.length === 0) fetchLoras().then(() => {
-    cfg.fields.filter(f => f.type === 'lora').forEach(f => renderModalLoraRows(f.path || 'main'));
+    loraFields.forEach(f => renderModalLoraRows(f.path || 'main'));
   });
   // Load diffusion models for the dropdowns (cached)
   if (diffusionModels.length === 0) fetchDiffusionModels();
