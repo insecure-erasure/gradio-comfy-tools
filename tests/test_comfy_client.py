@@ -355,6 +355,17 @@ def test_parse_lora_config():
         _common.parse_lora_config("[42]")
 
 
+def test_parse_lora_config_strength_bounds():
+    # Bounds are inclusive: -10 and 10 are valid, anything beyond is rejected.
+    assert _common.parse_lora_config(
+        '[{"name": "lo.sft", "strength": -10}, {"name": "hi.sft", "strength": 10}]'
+    ) == [{"name": "lo.sft", "strength": -10}, {"name": "hi.sft", "strength": 10}]
+    with pytest.raises(ValueError, match="between -10 and 10"):
+        _common.parse_lora_config('[{"name": "x.sft", "strength": 10.01}]')
+    with pytest.raises(ValueError, match="between -10 and 10"):
+        _common.parse_lora_config('[{"name": "x.sft", "strength": -11}]')
+
+
 def test_apply_loras_grows_and_fills():
     inputs = {
         "lora_1": {"on": False, "lora": "", "strength": 1},
@@ -367,9 +378,14 @@ def test_apply_loras_grows_and_fills():
     assert inputs["lora_3"] == {"on": True, "lora": "c.sft", "strength": 1}
 
 
-def test_apply_loras_disables_empty_or_zero():
+def test_apply_loras_disables_empty_but_applies_zero_strength():
     inputs = {"lora_1": {"on": False, "lora": "", "strength": 1}}
+    # Empty name still disables the slot.
     _common.apply_loras(inputs, [{"name": "", "strength": 1.0}])
     assert inputs["lora_1"]["on"] is False
+    # Strength 0 is a VALID value (as are fractional and negative) — the slot
+    # must stay enabled with the strength applied as-is.
     _common.apply_loras(inputs, [{"name": "x.sft", "strength": 0}])
-    assert inputs["lora_1"]["on"] is False
+    assert inputs["lora_1"] == {"on": True, "lora": "x.sft", "strength": 0}
+    _common.apply_loras(inputs, [{"name": "y.sft", "strength": -0.5}])
+    assert inputs["lora_1"] == {"on": True, "lora": "y.sft", "strength": -0.5}

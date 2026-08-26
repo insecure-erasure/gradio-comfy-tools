@@ -313,6 +313,17 @@ let loraNamesLoaded = false;  // true once the fetch resolved (for tests/UX)
 let diffusionModels = [];     // fetched from {COMFYUI_BASE_URL}/models/diffusion_models
 let diffusionLoaded = false;  // true once the fetch resolved
 
+// LoRA strength bounds, mirroring LORA_STRENGTH_MIN/MAX in tools/_common.py.
+// ComfyUI accepts any number, but ±10 is beyond anything meaningful and is
+// almost always a typo. Every write path clamps to this range so the API is
+// never asked for an out-of-bounds value (which it rejects).
+const LORA_STRENGTH_MIN = -10;
+const LORA_STRENGTH_MAX = 10;
+
+function clampLoraStrength(n) {
+  return Math.min(LORA_STRENGTH_MAX, Math.max(LORA_STRENGTH_MIN, n));
+}
+
 function fetchDiffusionModels() {
   return fetch('/api/diffusion-models')
     .then(r => {
@@ -340,10 +351,18 @@ function parseLoraJson(json) {
   let parsed = [];
   try { parsed = JSON.parse(json || '[]'); } catch (e) { parsed = []; }
   return (Array.isArray(parsed) ? parsed : [])
-    .map(r => ({
-      name: typeof r === 'string' ? r : (r.name || ''),
-      strength: (typeof r === 'object' && r !== null) ? (parseFloat(r.strength) || 1.0) : 1.0,
-    }))
+    .map(r => {
+      // parseFloat + isFinite instead of `|| 1.0`: a saved strength of 0 is
+      // valid (and so are fractional/negative values) and must round-trip
+      // unchanged — `0 || 1.0` would silently rewrite 0 to 1.0. Missing or
+      // non-numeric strength still falls back to the default 1.0; any
+      // out-of-range saved value is clamped to ±10.
+      const s = (typeof r === 'object' && r !== null) ? parseFloat(r.strength) : NaN;
+      return {
+        name: typeof r === 'string' ? r : (r.name || ''),
+        strength: Number.isFinite(s) ? clampLoraStrength(s) : 1.0,
+      };
+    })
     // Empty/whitespace names mean "no LoRA loaded" — by default there is
     // never a LoRA unless the user saved one (bogus empty rows, e.g. from
     // the Windows-path bug, are dropped instead of showing as loaded).
@@ -416,7 +435,7 @@ function renderModalLoraRows(path) {
       </select>
       <div class="stepper lora-strength">
         <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, -0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Decrease">−</button>
-        <input type="number" inputmode="decimal" step="0.01" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)" onblur="normalizeLoraStrength('${path}', ${i}, this)">
+        <input type="number" inputmode="decimal" step="0.01" min="-10" max="10" value="${row.strength.toFixed(2)}" class="lora-strength-input" oninput="sanitizeLoraStrength('${path}', ${i}, this.value)" onblur="normalizeLoraStrength('${path}', ${i}, this)">
         <button class="stepper-btn" onpointerdown="startLoraStep('${path}', ${i}, 0.01, event)" onpointerup="stopLoraStep()" onpointerleave="stopLoraStep()" onpointercancel="stopLoraStep()" title="Increase">+</button>
       </div>
       <button class="btn-remove-lora" onclick="removeLoraRow('${path}', ${i})" title="Remove">✕</button>
@@ -513,7 +532,7 @@ function updateLoraRow(path, i, key, val) {
   const rows = loraSets[path] || [];
   if (key === 'strength') {
     const n = Number.parseFloat(val);
-    rows[i].strength = Number.isFinite(n) ? n : 1.0;
+    rows[i].strength = Number.isFinite(n) ? clampLoraStrength(n) : 1.0;
   } else rows[i].name = val;
   loraSets[path] = rows;
 }
@@ -528,7 +547,7 @@ function updateLoraRow(path, i, key, val) {
 function sanitizeLoraStrength(path, i, raw) {
   const rows = loraSets[path] || [];
   const n = Number.parseFloat(raw);
-  if (Number.isFinite(n)) rows[i].strength = n;  // ignore partials like '-'
+  if (Number.isFinite(n)) rows[i].strength = clampLoraStrength(n);  // ignore partials like '-'
   loraSets[path] = rows;
 }
 
@@ -537,14 +556,14 @@ function sanitizeLoraStrength(path, i, raw) {
 function normalizeLoraStrength(path, i, el) {
   const rows = loraSets[path] || [];
   const n = Number.parseFloat(el.value);
-  if (Number.isFinite(n)) rows[i].strength = n;
+  if (Number.isFinite(n)) rows[i].strength = clampLoraStrength(n);
   loraSets[path] = rows;
   renderModalLoraRows(path);
 }
 
 function stepLoraStrength(path, i, delta) {
   const rows = loraSets[path] || [];
-  rows[i].strength = Math.round((rows[i].strength + delta) * 100) / 100;
+  rows[i].strength = clampLoraStrength(Math.round((rows[i].strength + delta) * 100) / 100);
   loraSets[path] = rows;
   renderModalLoraRows(path);
 }

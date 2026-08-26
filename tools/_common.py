@@ -161,11 +161,20 @@ def snap_frames(n: int, min_frames: int = VIDEO_MIN_FRAMES, max_frames: int = VI
 # --------------------------------------------------------------------------- #
 # LoRAs (rgthree Power Lora Loader)
 # --------------------------------------------------------------------------- #
+# Strength bounds: ComfyUI itself accepts any number (each LoRA defines its own
+# working range), but values beyond ±10 are never meaningful and are usually
+# typos. The API rejects them with a clear error; the UI clamps to the same
+# range so nothing out of bounds can be submitted.
+LORA_STRENGTH_MIN = -10.0
+LORA_STRENGTH_MAX = 10.0
+
+
 def parse_lora_config(raw: str) -> list[Any]:
     """Parse a lora_config JSON string into a list of str-or-dict items.
 
     Items: ``"name"`` (strength 1.0) or ``{"name"|"model": ..., "strength": ...}``.
-    Raises ValueError with a user-facing message on malformed input.
+    Raises ValueError with a user-facing message on malformed input or a
+    strength outside ``LORA_STRENGTH_MIN..LORA_STRENGTH_MAX``.
     """
     try:
         parsed = json.loads(raw)
@@ -192,6 +201,12 @@ def parse_lora_config(raw: str) -> list[Any]:
                     f"lora_config[{i}] 'strength' must be a number, "
                     f"got {type(strength).__name__}"
                 )
+            if not (LORA_STRENGTH_MIN <= strength <= LORA_STRENGTH_MAX):
+                raise ValueError(
+                    f"lora_config[{i}] 'strength' must be between "
+                    f"{LORA_STRENGTH_MIN:g} and {LORA_STRENGTH_MAX:g}, "
+                    f"got {strength:g}"
+                )
             continue
         raise ValueError(
             f"lora_config[{i}] must be a string or object, got {type(item).__name__}"
@@ -204,8 +219,9 @@ def apply_loras(loader_inputs: dict[str, Any], loras: list[Any]) -> None:
 
     Applied positionally to ``lora_1..lora_N``; grows the workflow with extra
     slots when there are more LoRAs than the loader defines (rgthree nodes use
-    FlexibleOptionalInputType, like the reference). Empty name or strength 0
-    disables the slot.
+    FlexibleOptionalInputType, like the reference). An empty name disables the
+    slot. Any numeric strength is applied as-is — 0, fractional (0<|s|<1) and
+    negative strengths are all valid in ComfyUI and must NOT disable the slot.
     """
     max_slots = sum(1 for k in loader_inputs if k.startswith("lora_"))
     for i in range(max_slots + 1, len(loras) + 1):
@@ -223,7 +239,7 @@ def apply_loras(loader_inputs: dict[str, Any], loras: list[Any]) -> None:
         else:
             continue
 
-        if bool(name) and strength != 0:
+        if bool(name):
             loader_inputs[slot]["on"] = True
             loader_inputs[slot]["lora"] = name
             loader_inputs[slot]["strength"] = strength
