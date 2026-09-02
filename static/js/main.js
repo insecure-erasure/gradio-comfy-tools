@@ -109,15 +109,42 @@ document.addEventListener('mouseout', e => {
 });
 
 // ── Compare slider drag — sets --p (like the reference compare_images) ──
-// DELEGATED on document: works for the pane sliders (edit/upscale) AND the
-// fullscreen gallery slider (#gallerySlider), which is inside the overlay
-// (it exists in the DOM at load, but the delegation makes it robust to any
-// slider created later — including future ones).
+// DELEGATED on document: works for the pane sliders (edit/upscale/
+// face_swap) AND the fullscreen gallery slider (#gallerySlider), which is
+// inside the overlay (it exists in the DOM at load, but the delegation
+// makes it robust to any slider created later — including future ones).
+//
+// The divider is confined to the area actually covered by the image: the
+// slider fills its pane while the images use object-fit:contain, so when
+// the pane aspect differs from the image's there are letterbox bars on the
+// sides. Without clamping, the divider/handle could be dragged over the
+// black bars (outside the image). The clamp maps the pointer position onto
+// the image's displayed box (same contain math the CSS applies).
 function setupCompareSlider(slider) {
   let dragging = false;
+  // The image's displayed horizontal span inside the slider, in viewport
+  // x-coordinates. Returns null while the image is not loaded yet (no
+  // natural size) — the drag then behaves as before (full width).
+  function imageSpan() {
+    const rect = slider.getBoundingClientRect();
+    const W = rect.width, H = rect.height;
+    if (!W || !H) return null;
+    const img = slider.querySelector('img.side.after, img.side.before');
+    const nw = img && img.naturalWidth, nh = img && img.naturalHeight;
+    if (!nw || !nh) return null;
+    const scale = Math.min(W / nw, H / nh);
+    const dispW = nw * scale;
+    const x0 = rect.left + (W - dispW) / 2;
+    return { min: x0, max: x0 + dispW };
+  }
   function setP(x) {
     const rect = slider.getBoundingClientRect();
-    const p = Math.min(100, Math.max(0, (x - rect.left) / rect.width * 100));
+    const span = imageSpan();
+    let xc = x;
+    if (span && span.max > span.min) {
+      xc = Math.min(span.max, Math.max(span.min, x)); // clamp to the image box
+    }
+    const p = Math.min(100, Math.max(0, (xc - rect.left) / rect.width * 100));
     slider.style.setProperty('--p', p + '%');
   }
   const onBtn = e => e.target.closest && e.target.closest('.btn');

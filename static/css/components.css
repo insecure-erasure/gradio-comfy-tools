@@ -167,6 +167,13 @@
     bottom: 12px;
     right: 84px;
   }
+  /* The Face swap compare fills its canvas — let the OUTPUT PANE background
+     (the app theme color) show through the letterbox instead of the shared
+     .compare-slider black, so the canvas keeps the same look it had before
+     the comparison view (pure black was a visual regression here). */
+  #faceSwapCompare {
+    background: transparent;
+  }
   /* The Face swap prompt field is permanently readonly (a future version
      exposes the prompt) — make it read as such, but keep it clickable (it
      opens the portrait prompt modal with the 👣 parameter chips). */
