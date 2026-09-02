@@ -122,6 +122,22 @@ document.addEventListener('mouseout', e => {
 // the image's displayed box (same contain math the CSS applies).
 function setupCompareSlider(slider) {
   let dragging = false;
+  let dragPointerId = null;
+  // Fully end a drag: drop the flag AND release the pointer capture. A drag
+  // that ends with the button released OUTSIDE the browser window can strand
+  // the implicit capture (the page never receives pointerup) — Chromium then
+  // keeps the pointer captured, and the OS cursor stops tracking/updating
+  // over parts of the page until the next interaction (visible as a missing
+  // cursor over the canvas, e.g. the letterbox around the image). Every exit
+  // path (pointerup/pointercancel/lost capture/focus loss/any button-less
+  // move) resets it.
+  function endDrag() {
+    dragging = false;
+    if (dragPointerId !== null) {
+      try { if (slider.hasPointerCapture && slider.hasPointerCapture(dragPointerId)) slider.releasePointerCapture(dragPointerId); } catch (e) {}
+      dragPointerId = null;
+    }
+  }
   // The image's displayed horizontal span inside the slider, in viewport
   // x-coordinates. Returns null while the image is not loaded yet (no
   // natural size) — the drag then behaves as before (full width).
@@ -151,15 +167,26 @@ function setupCompareSlider(slider) {
   slider.addEventListener('pointerdown', e => {
     if (onBtn(e)) return;
     dragging = true;
+    dragPointerId = e.pointerId;
     try { slider.setPointerCapture(e.pointerId); } catch (e) {}
     setP(e.clientX);
     e.preventDefault();
   });
   slider.addEventListener('pointermove', e => {
-    if ((dragging || e.pointerType === 'mouse') && !onBtn(e)) setP(e.clientX);
+    // e.buttons === 0: the button was already released somewhere the page
+    // never saw (outside the window) — never drag without a pressed button.
+    if ((dragging || e.pointerType === 'mouse') && !onBtn(e)) {
+      if (dragging && e.buttons === 0) { endDrag(); return; }
+      setP(e.clientX);
+    }
   });
-  slider.addEventListener('pointerup', () => { dragging = false; });
-  slider.addEventListener('pointercancel', () => { dragging = false; });
+  slider.addEventListener('pointerup', endDrag);
+  slider.addEventListener('pointercancel', endDrag);
+  slider.addEventListener('lostpointercapture', () => { dragging = false; dragPointerId = null; });
+  // Safety nets for a capture stranded by a release outside the window:
+  // any pointerup anywhere in the page or any focus loss ends the drag.
+  document.addEventListener('pointerup', () => { if (dragging) endDrag(); });
+  window.addEventListener('blur', () => { if (dragging) endDrag(); });
 }
 document.querySelectorAll('.compare-slider').forEach(setupCompareSlider);
 

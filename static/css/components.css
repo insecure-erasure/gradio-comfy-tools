@@ -67,6 +67,12 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    /* Standard arrow, not the text (I-beam) shape: the I-beam cursor is
+       NOT rendered in some environments (Firefox/Linux Wayland), which left
+       these canvas-floating fields with no visible cursor at all. The field
+       still behaves like an input (focus, caret, typing) — only the hover
+       cursor is the always-visible arrow. */
+    cursor: default;
   }
   .source-url-input::placeholder { color: rgba(255,255,255,.45); }
   /* ✓ confirm button: only shown once the field is expanded (focus or has
@@ -978,7 +984,12 @@
     min-height: 200px;       /* never collapse — portrait pane may be short */
     margin: auto;
     overflow: hidden;
-    cursor: ew-resize;
+    /* Standard arrow on purpose: some environments (Firefox on Linux/
+       Wayland with minimal cursor themes) never render the ew-resize /
+       text cursor SHAPES, leaving NO cursor over the canvas. The plain
+       `default` arrow is always rendered — the divider + handle already
+       afford the drag. */
+    cursor: default;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
