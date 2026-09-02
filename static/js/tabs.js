@@ -418,15 +418,24 @@ function promptModalRestore() {
 function updatePromptModalActions() {
   const btn = document.getElementById('promptGenerateBtn');
   const restore = document.getElementById('promptRestoreBtn');
+  const refine = document.getElementById('btnPromptRefine');
   if (!btn) return;
   const cfg = {
     generate: { glyph: '✨', title: 'Generate' },
     edit: { glyph: '🖌️', title: 'Edit' },
     video: { glyph: '🎬', title: 'Generate video' },
   }[currentTab];
-  if (!cfg) { btn.style.display = 'none'; if (restore) restore.style.display = 'none'; return; }
+  if (!cfg) {
+    // Face swap (and Upscale, defensively): NO prompt actions at all — the
+    // 🪄 refine goes too (this tool has no editable prompt to refine).
+    btn.style.display = 'none';
+    if (restore) restore.style.display = 'none';
+    if (refine) refine.style.display = 'none';
+    return;
+  }
   btn.style.display = '';
   if (restore) restore.style.display = currentTab === 'edit' ? '' : 'none';
+  if (refine) refine.style.display = '';
   if (_genStopOrig.has(btn)) return; // already the ⏹ stop button
   btn.textContent = cfg.glyph;
   btn.title = cfg.title;
@@ -474,7 +483,9 @@ const CHIP_CONFIGS = {
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
   ],
   face_swap: [
-    { kind: 'stepseed', icon: '👣', title: 'Steps, CFG and seed' },
+    // The chip carries NO separate icon — the LABEL renders each value with
+    // its own emoji (🎚️ CFG · 👣 steps · 🎲 seed), same order as the popover.
+    { kind: 'stepseed', icon: '', title: 'CFG, steps and seed' },
   ],
   video: [
     { kind: 'frames', icon: '🎞️', title: 'Frames (4n+1, 81–161)' },
@@ -557,20 +568,37 @@ function updatePromptChips() {
   }
   // 👣 Steps & seed (generate/edit/video): "steps · 🎲" while the seed is
   // random; when it is FIXED the separator and the dice disappear (steps
-  // only) — that is the visual cue.
+  // only) — that is the visual cue. Face swap mirrors it with the CFG
+  // first: "CFG · steps · 🎲" while random, "CFG · steps" when fixed — the
+  // seed NUMBER is never shown on the chip.
   const ssLabel = document.getElementById('chipStepSeedLabel');
   if (ssLabel) {
-    const ids = {
-      generate: ['genSteps', 'genSeedRandom'],
-      edit: ['editSteps', 'editSeedRandom'],
-      face_swap: ['fsSteps', 'fsSeedRandom'],
-      video: ['videoSteps', 'videoSeedRandom'],
-    }[currentTab];
-    if (ids) {
-      const steps = document.getElementById(ids[0]);
-      const rnd = document.getElementById(ids[1]);
-      if (steps) {
-        ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
+    if (currentTab === 'face_swap') {
+      const cfgEl = document.getElementById('fsCfg');
+      const steps = document.getElementById('fsSteps');
+      const rnd = document.getElementById('fsSeedRandom');
+      if (cfgEl && steps) {
+        const cfg = parseFloat(cfgEl.value);
+        const cfgTxt = (isNaN(cfg) ? 1 : cfg).toFixed(1); // one decimal
+        const stepsTxt = (parseInt(steps.value, 10) || 6);
+        // 🎚️ CFG · 👣 steps · 🎲 — the dice + its separator only while the
+        // seed is random (the seed number/emoji never appear on the chip).
+        // One space after each emoji: like Edit's chip (icon span + gap),
+        // the values must not hug the emojis.
+        ssLabel.textContent = '🎚️ ' + cfgTxt + ' · 👣 ' + stepsTxt + ((rnd && rnd.checked) ? ' · 🎲' : '');
+      }
+    } else {
+      const ids = {
+        generate: ['genSteps', 'genSeedRandom'],
+        edit: ['editSteps', 'editSeedRandom'],
+        video: ['videoSteps', 'videoSeedRandom'],
+      }[currentTab];
+      if (ids) {
+        const steps = document.getElementById(ids[0]);
+        const rnd = document.getElementById(ids[1]);
+        if (steps) {
+          ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
+        }
       }
     }
   }
@@ -588,7 +616,10 @@ function openChipPopover(kind) {
     s.hidden = s.dataset.chipSection !== kind;
   });
   const info = CHIP_KIND_INFO[kind] || {};
-  document.getElementById('chipPopoverTitle').textContent = info.title || kind;
+  // Face swap popover header follows its control order (CFG first).
+  let title = info.title || kind;
+  if (currentTab === 'face_swap' && kind === 'stepseed') title = 'CFG · steps · seed';
+  document.getElementById('chipPopoverTitle').textContent = title;
   const chip = document.getElementById(CHIP_IDS[kind]);
   if (chip) {
     const r = chip.getBoundingClientRect();

@@ -280,18 +280,13 @@ function generateFaceSwap() {
   });
 }
 
-// ── Steppers (steps / CFG / seed) ──────────
-function stepFsSteps(d) { const input = document.getElementById('fsSteps'); input.value = Math.min(15, Math.max(1, parseInt(input.value) + d)); }
-function onFsStepsInput() {
-  const input = document.getElementById('fsSteps');
-  const v = parseInt(input.value);
-  if (isNaN(v) || v < 1) input.value = 1;
-  if (v > 15) input.value = 15;
-}
+// ── Steppers (CFG / steps / seed) ──────────
+function _fsSyncChip() { if (typeof updatePromptChips === 'function') updatePromptChips(); }
 function stepFsCfg(d) {
   const input = document.getElementById('fsCfg');
   const v = Math.round((parseFloat(input.value || '1') + d) * 10) / 10;
   input.value = isNaN(v) ? 1 : Math.min(8, Math.max(0.5, v));
+  _fsSyncChip();
 }
 function onFsCfgInput() {
   const input = document.getElementById('fsCfg');
@@ -299,16 +294,27 @@ function onFsCfgInput() {
   if (isNaN(v)) input.value = 1;
   if (v < 0.5) input.value = 0.5;
   if (v > 8) input.value = 8;
+  _fsSyncChip();
 }
-function stepFsSeed(d) { const input = document.getElementById('fsSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
+function stepFsSteps(d) { const input = document.getElementById('fsSteps'); input.value = Math.min(15, Math.max(1, parseInt(input.value) + d)); _fsSyncChip(); }
+function onFsStepsInput() {
+  const input = document.getElementById('fsSteps');
+  const v = parseInt(input.value);
+  if (isNaN(v) || v < 1) input.value = 1;
+  if (v > 15) input.value = 15;
+  _fsSyncChip();
+}
+function stepFsSeed(d) { const input = document.getElementById('fsSeed'); input.value = Math.max(0, parseInt(input.value) + d); _fsSyncChip(); }
 function onFsSeedInput() {
   const input = document.getElementById('fsSeed');
   if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('fsSeedRandom').checked = false;
   input.disabled = false;
+  _fsSyncChip();
 }
 function onFsSeedRandomToggle() {
   document.getElementById('fsSeed').disabled = document.getElementById('fsSeedRandom').checked;
+  _fsSyncChip();
 }
 
 // ── ↺ Reset ───────────────────────────────
@@ -323,6 +329,7 @@ function resetFaceSwap() {
   document.getElementById('fsSeed').disabled = true;
   clearPane(FS_PANE_ID); // drops the previews (base + face overlay) and any result
   syncResultUrl('face_swap', null); // no image shown — no URL hint
+  _fsSyncChip();
   showToast('Face swap parameters reset');
 }
 
