@@ -10,7 +10,7 @@ let baseUrl = '';
 // fill the Edit/Upscale/Video source field (chaining).
 let lastGeneratedUrl = null;
 
-// Active tab id ('generate' | 'edit' | 'upscale' | 'video').
+// Active tab id ('generate' | 'edit' | 'face_swap' | 'upscale' | 'video').
 let currentTab = 'generate';
 
 // Toolbar selections persist across tab switches (the toolbar is rebuilt
@@ -22,7 +22,8 @@ let toolbarValues = {
 
 // Per-tab prompt text — each tab (generate/edit/video) has its OWN textarea
 // element (#promptInput<Cap>), so values never mix; promptsByTab mirrors
-// them for localStorage persistence (storage.js).
+// them for localStorage persistence (storage.js). Face swap has no prompt
+// (its textarea is disabled — a future version), so it has no key here.
 let promptsByTab = {
   generate: '',
   edit: '',

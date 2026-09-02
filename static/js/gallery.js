@@ -58,7 +58,7 @@ let galleryEntries = [];    // collected on open
 let galleryIdx = -1;
 // Pane navigation (normal view): which gallery entry each tool's output
 // pane shows. -1 = "show the most recent"; paneNav materializes it.
-const paneIdx = { generate: -1, edit: -1, upscale: -1, video: -1 };
+const paneIdx = { generate: -1, edit: -1, upscale: -1, video: -1, face_swap: -1 };
 
 // ── Generated history ──────────────────────
 // Session-scoped registry of generated images + their transformations.
@@ -109,6 +109,23 @@ function addGeneratedEntry(res, prompt) {
   savePersistedState(); // galleries are persisted — persist immediately
   paneIdx.generate = -1; // a new generation — the pane shows the most recent again
   syncPaneNav('generate');
+}
+
+// A FACE SWAP of (base + face) -> new result src: APPENDS a new entry to
+// the generated history (the base stays in the gallery — the swap is a new
+// image). ``before`` is the same-origin proxy URL of the base (the BEFORE
+// side of the comparison, persisted for restore). Called from face_swap.js
+// when a result lands; the pane ‹ › nav and ⛶ gallery use the COMPARISON
+// registry (addCompareEntry) instead — see paneGalleryCount.
+function addFaceSwapEntry(res, before) {
+  const src = res.display || res.src || res.url;
+  window.galleryGenerated.push({
+    src, url: res.url || '', prompt: '', badge: '', filename: filenameFromUrl(src),
+    originalPrompt: '', before: before || null, faceSwap: true,
+  });
+  savePersistedState();
+  paneIdx.face_swap = -1; // the pane shows the most recent again
+  syncPaneNav('face_swap');
 }
 
 // An UPScale of sourceSrc -> new result src: REPLACES the source entry in
@@ -231,7 +248,7 @@ function collectCompareEntries() {
     const bfr = el.querySelector('img.side.before');
     if (!after || !after.src) return;
     const kind = el.dataset.kind || 'edit';
-    if (kind !== 'edit' && kind !== 'restore' && kind !== 'upscale') return;
+    if (kind !== 'edit' && kind !== 'restore' && kind !== 'upscale' && kind !== 'face_swap') return;
     push({
       src: after.src,
       before: bfr && bfr.src ? bfr.src : null,
@@ -275,9 +292,16 @@ function addGeneratedVideo(result, prompt) {
 // then survives tab switches / gallery navigation / a refresh.
 function _stampLastEntryDuration(tab, durationSecs) {
   if (!durationSecs || durationSecs <= 0) return;
-  const arr = tab === 'video' ? window.galleryVideos
-    : tab === 'generate' ? window.galleryGenerated
-    : (tab === 'edit' || tab === 'upscale') ? window.galleryComparisons : null;
+  let arr;
+  if (tab === 'face_swap') {
+    // The comparison registry holds the before/after pair — stamp the LAST
+    // face-swap comparison, not whatever happened to be appended last.
+    arr = (window.galleryComparisons || []).filter(c => c.tab === 'face_swap');
+  } else {
+    arr = tab === 'video' ? window.galleryVideos
+      : tab === 'generate' ? window.galleryGenerated
+      : (tab === 'edit' || tab === 'upscale') ? window.galleryComparisons : null;
+  }
   if (!arr || !arr.length) return;
   const e = arr[arr.length - 1];
   e.duration = durationSecs;
@@ -539,9 +563,7 @@ function renderGalleryItem() {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;
     gallerySlider.style.setProperty('--p', '50%');
-    galleryLabelAfter.textContent =
-      e.kind === 'edit' ? 'Edited' : e.kind === 'restore' ? 'Restored'
-        : e.kind === 'upscale' ? 'Upscaled' : 'Result';
+    galleryLabelAfter.textContent = compareKindLabel(e.kind);
     galleryBadge.classList.remove('show');
     // Compare mode: the Show-prompt button is visible by DEFAULT when the
     // comparison has a prompt (no click on the slider needed) — same rule
@@ -632,6 +654,25 @@ async function openGenerateLightbox(img) {
   }
   galleryIdx = idx;
   resetGalleryZoom(); // opening always starts at 1x
+  renderGalleryItem();
+  openGalleryOverlay();
+}
+
+// Face swap fullscreen: the ⛶ button on the Face swap tab opens the
+// COMPARE gallery of this tab's before/after comparisons (kind
+// 'face_swap'), mirroring Edit/Upscale. Positions on the comparison the
+// pane is currently showing, like the other openers.
+async function openFaceSwapGallery() {
+  await verifyStoredGalleries(true); // drop dead files before showing
+  const comps = collectCompareEntries().filter(c => c.kind === 'face_swap');
+  if (!comps.length) return showToast('No face-swapped image yet');
+  galleryMode = 'compare';
+  galleryEntries = comps;
+  galleryBig.style.display = 'none';
+  gallerySlider.style.display = '';
+  galleryVideoWrap.style.display = 'none';
+  const i = indexOfPaneEntry(comps, 'face_swap');
+  galleryIdx = i >= 0 ? i : comps.length - 1;
   renderGalleryItem();
   openGalleryOverlay();
 }
@@ -772,7 +813,7 @@ function galleryDeleteCurrent() {
   // the registry srcs are relative — compare by ComfyUI filename (filenameFromUrl
   // handles both), not by raw strings (a raw === would never match and leave
   // the ghost visible until a reload).
-  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
   const pane = document.getElementById(paneIds[currentTab]);
   if (pane) {
     // The pane's shown src: result-img .src, video-player > video .src, or
@@ -836,10 +877,18 @@ function paneGalleryCount(tab) {
   switch (tab) {
     case 'generate': return (window.galleryGenerated || []).length;
     case 'edit':
-    case 'upscale': return (window.galleryComparisons || []).filter(c => c.tab === tab).length;
+    case 'upscale':
+    case 'face_swap': return (window.galleryComparisons || []).filter(c => c.tab === tab).length;
     case 'video': return (window.galleryVideos || []).length;
     default: return 0;
   }
+}
+
+// The AFTER-side label of a before/after comparison, from its kind.
+function compareKindLabel(kind) {
+  return kind === 'edit' ? 'Edited' : kind === 'restore' ? 'Restored'
+    : kind === 'upscale' ? 'Upscaled'
+    : kind === 'face_swap' ? 'Face swapped' : 'Result';
 }
 
 // The gallery entry the pane is CURRENTLY showing for a tab: paneIdx[tab]
@@ -857,6 +906,10 @@ function paneCurrentEntry(tab) {
   if (tab === 'video') {
     const all = window.galleryVideos || [];
     return all[paneIdx.video === -1 ? all.length - 1 : paneIdx.video] || null;
+  }
+  if (tab === 'edit' || tab === 'upscale' || tab === 'face_swap') {
+    const comps = (window.galleryComparisons || []).filter(c => c.tab === tab);
+    return comps[paneIdx[tab] === -1 ? comps.length - 1 : paneIdx[tab]] || null;
   }
   return null;
 }
@@ -939,8 +992,10 @@ function renderPane(tab) {
   if (!e) { syncResultUrl(tab, null); return; }
   if (tab === 'generate') {
     showResult('genOutputPane', { display: e.src }, false);
-  } else if (tab === 'edit' || tab === 'upscale') {
-    restoreCompareSlider(tab, tab === 'edit' ? 'editOutputPane' : 'upscaleOutputPane', e);
+  } else if (tab === 'edit' || tab === 'upscale' || tab === 'face_swap') {
+    const paneId = tab === 'edit' ? 'editOutputPane'
+      : tab === 'face_swap' ? 'faceSwapOutputPane' : 'upscaleOutputPane';
+    restoreCompareSlider(tab, paneId, e);
   } else if (tab === 'video') {
     showResult('videoOutputPane', { display: e.src || e.display || e.url }, true);
   }

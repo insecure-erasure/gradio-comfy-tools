@@ -29,6 +29,13 @@ const modalConfigs = {
       { label: 'LoRA config', type: 'lora', path: 'main' },
     ]
   },
+  face_swap: {
+    title: 'Face Swap',
+    // Empty on purpose: no advanced fields yet (the head-swap LoRA / model /
+    // prompt are fixed in the workflow). A future version may add controls
+    // here — the modal shell and save plumbing already work with fields: [].
+    fields: [],
+  },
   upscale: {
     title: 'Upscale',
     // No advanced fields: resolution/blend/color stay as workflow defaults

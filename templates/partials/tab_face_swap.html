@@ -1,0 +1,97 @@
+<!-- ═══ TAB: Face swap 🧔 ═══ -->
+    <div class="tab-panel" id="tab-face_swap">
+      <div class="split">
+        <div class="output-pane" id="faceSwapOutputPane">
+          <button class="output-overlay-btn top-right" onclick="openFaceSwapGallery()" title="Fullscreen (compare)" aria-label="Fullscreen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
+          <button class="output-overlay-btn pane-nav prev" onclick="paneNav('face_swap',-1)" title="Previous" aria-label="Previous" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="output-overlay-btn pane-nav next" onclick="paneNav('face_swap',1)" title="Next" aria-label="Next" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+          <!-- TWO source images. Field positions (bottom-up): the FACE field
+               (Picture 2 — the face to copy) sits at the bottom, the BASE
+               field (Picture 1 — the image being edited) ABOVE it. Each
+               field accepts a pasted URL (✓ validates) or an upload
+               (🖼️ base / 🧔 face buttons bottom-right). -->
+          <div class="source-url-field" id="faceSwapFaceField">
+            <input type="text" class="source-url-input" id="faceSwapFaceUrl" placeholder="Image 2 — face to copy (paste URL…)" oninput="fsClearPreview('face')" />
+            <button class="source-url-confirm" onclick="fsConfirm('face')" title="Load face image">✓</button>
+          </div>
+          <div class="source-url-field fs-base" id="faceSwapBaseField">
+            <input type="text" class="source-url-input" id="faceSwapSourceUrl" placeholder="Image 1 — base (paste URL…)" oninput="fsClearPreview('base')" />
+            <button class="source-url-confirm" onclick="fsConfirm('base')" title="Load base image">✓</button>
+          </div>
+          <!-- Bottom-right cluster (right → left): 🔗 previous generation →
+               base field | 🧔 upload face | 🖼️ upload base -->
+          <button class="output-overlay-btn bottom-right-left2" onclick="fsUpload('base')" title="Upload base image">🖼️</button>
+          <button class="output-overlay-btn bottom-right-left" onclick="fsUpload('face')" title="Upload face image">🧔</button>
+          <button class="output-overlay-btn bottom-right" onclick="fsUsePrevious()" title="Use previous generation as base">🔗</button>
+          <!-- Compare slider: the RESULT of a face swap is shown as the
+               before/after comparison (Original | Face swapped) — the same
+               presentation as Edit. -->
+          <div class="compare-slider" id="faceSwapCompare" style="display:none">
+            <img class="side before" id="faceSwapBefore" src="" draggable="false" alt="Original">
+            <img class="side after" id="faceSwapAfter" src="" draggable="false" alt="Face swapped">
+            <span class="label" id="faceSwapCompareBeforeLabel">Original</span>
+            <span class="label" id="faceSwapCompareAfterLabel" style="right:12px;left:auto">Face swapped</span>
+            <div class="divider"></div>
+            <div class="handle"><span></span><span></span></div>
+          </div>
+          <div class="gen-spinner" id="faceSwapSpinner"><div class="ring"></div></div>
+        </div>
+        <div class="params-pane">
+          <!-- Face swap parameters live in the 👣 prompt chip (see
+               #faceSwapParams below): renderPromptChips moves them into the
+               chip popover over the (readonly) prompt field, exactly like
+               Edit. The prompt field itself is readonly for now — a future
+               version may expose the prompt. -->
+        </div>
+      </div>
+    </div>
+    <!-- Face swap parameter controls (moved to the 👣 chip popover by
+         renderPromptChips — the IDs are unchanged, so storage.js and
+         face_swap.js keep working without modifications). -->
+    <div id="faceSwapParams" data-params-block hidden>
+      <div id="faceSwapParamsStepSeed" data-chip-section="stepseed">
+        <!-- Row: Steps -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Steps">👣</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepFsSteps(-1)" title="Decrease">−</button>
+              <input type="number" id="fsSteps" value="6" min="1" max="15" step="1" oninput="onFsStepsInput()">
+              <button class="stepper-btn" onclick="stepFsSteps(1)" title="Increase">+</button>
+            </div>
+          </div>
+        </div>
+        <!-- Row: CFG (guidance) -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="CFG (guidance)">🎚️</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepFsCfg(-0.5)" title="Decrease">−</button>
+              <input type="number" id="fsCfg" value="1" min="0.5" max="8" step="0.5" oninput="onFsCfgInput()">
+              <button class="stepper-btn" onclick="stepFsCfg(0.5)" title="Increase">+</button>
+            </div>
+          </div>
+        </div>
+        <!-- Row: Seed + Random -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Seed">🌱</label>
+            <div class="stepper">
+              <button class="stepper-btn" onclick="stepFsSeed(-1)" title="Decrease">−</button>
+              <input type="number" id="fsSeed" value="0" min="0" step="1" disabled oninput="onFsSeedInput()">
+              <button class="stepper-btn" onclick="stepFsSeed(1)" title="Increase">+</button>
+            </div>
+            <label class="check-label" style="margin-left:4px">
+              <input type="checkbox" id="fsSeedRandom" checked onchange="onFsSeedRandomToggle()">
+              🎲
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>

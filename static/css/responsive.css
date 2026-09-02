@@ -53,6 +53,7 @@
     #tab-generate .params-pane,
     #tab-edit .params-pane,
     #tab-video .params-pane { display: none; }
+    #tab-face_swap .params-pane { display: none; }
     .bottom-bar { padding: 6px 6px; gap: 4px; }
     .bottom-bar .prompt-block { gap: 6px; }
     /* Portrait: the prompt becomes a compact single-line FIELD that

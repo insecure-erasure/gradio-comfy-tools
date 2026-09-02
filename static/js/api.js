@@ -54,7 +54,7 @@ function showToast(msg) {
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay').forEach(el => el.remove());
   if (isVideo) {
     // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
     // always-visible accent progress line — replaces the native controls
@@ -81,7 +81,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';
     // Drop the gallery markers so a cleared result no longer appears in the
@@ -162,7 +162,7 @@ function updateActionButtons() {
   const prompt = (activePromptInput()?.value || '').trim();
   const btnCol = document.getElementById('btnCol');
   if (!btnCol) return;
-  if (currentTab === 'upscale') return; // no prompt needed
+  if (currentTab === 'upscale' || currentTab === 'face_swap') return; // no prompt needed
   const hasText = prompt.length > 0;
   btnCol.querySelectorAll('.btn-generate[data-requires-prompt]').forEach(btn => {
     btn.disabled = !hasText;
@@ -216,7 +216,7 @@ function setGeneratingUi(on, triggerId) {
     applyGenerationLock();
   } else {
     genTriggerId = null;
-    if (input) { input.disabled = false; input.classList.remove('generating'); }
+    if (input) { input.disabled = input.hasAttribute('data-always-disabled'); input.classList.remove('generating'); }
     const btnCol = document.getElementById('btnCol');
     if (btnCol) {
       btnCol.classList.remove('generating');
@@ -415,7 +415,7 @@ function cancelIfRunning() {
 // "if the user switches tabs mid-generation, keep capturing but only show
 // in the tab where it started"). tab -> output pane id (generate uses
 // 'genOutputPane', the rest match by name).
-const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
 let liveJobTab = null;
 // Elements hidden while the live preview is painted (placeholder, previous
 // result, source preview) so the preview fills the pane and stays centered;
@@ -620,7 +620,7 @@ function clearJobMarker() {
 // their own release).
 function releaseGeneratingUi() {
   stopProgressPolling();
-  ['genOutputPane', 'editOutputPane', 'upscaleOutputPane', 'videoOutputPane'].forEach(id => {
+  ['genOutputPane', 'editOutputPane', 'upscaleOutputPane', 'videoOutputPane', 'faceSwapOutputPane'].forEach(id => {
     const p = document.getElementById(id);
     if (p) { p.classList.remove('busy'); p.classList.remove('generating'); }
   });

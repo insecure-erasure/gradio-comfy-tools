@@ -496,6 +496,50 @@ def test_api_upscale_seed(client, tmp_config, monkeypatch):
     assert received["seed"] == 42
 
 
+def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_face_swap(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=swapped.png&type=temp"
+
+    monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
+    resp = client.post(
+        "/api/face-swap",
+        json={"image": "base.png", "face": "face.png", "steps": 8, "cfg": 2.0, "seed": 7},
+    )
+    assert resp.status_code == 200
+    assert received["image"] == "base.png"
+    assert received["face"] == "face.png"
+    assert received["steps"] == 8
+    assert received["cfg"] == 2.0
+    assert received["seed"] == 7
+    assert resp.json()["filename"] == "swapped.png"
+    assert resp.json()["type"] == "temp"
+
+
+def test_api_face_swap_tool_error_becomes_400(client, tmp_config, monkeypatch):
+    def boom(settings, **kwargs):
+        raise ValueError("image (base) must not be empty")
+
+    monkeypatch.setattr(server, "face_swap_image", boom)
+    resp = client.post("/api/face-swap", json={"image": "", "face": "f.png"})
+    assert resp.status_code == 400
+
+
+def test_index_serves_face_swap_tab(client, tmp_config):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+    # The new tab partial + its disabled prompt + script are all wired up.
+    assert 'id="tab-face_swap"' in html
+    assert 'id="faceSwapSourceUrl"' in html
+    assert 'id="faceSwapFaceUrl"' in html
+    assert 'id="promptInputFaceSwap"' in html
+    assert 'data-tab="face_swap"' in html
+    assert 'face_swap.js' in html
+
+
 def test_api_loras(client, tmp_config, monkeypatch):
     import comfy_client as cc
 

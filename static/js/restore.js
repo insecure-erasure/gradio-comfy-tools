@@ -38,9 +38,10 @@ function restoreCompareSlider(tab, paneId, cmp) {
   const after = slider.querySelector('.side.after');
   if (!before || !after) return;
   const afterLabel = slider.querySelector('.label:last-of-type') ||
-    (pane.id === 'editOutputPane' ? document.getElementById('editCompareAfterLabel') : null);
-  if (afterLabel && tab === 'edit') {
-    afterLabel.textContent = cmp.kind === 'restore' ? 'Restored' : 'Edited';
+    (pane.id === 'editOutputPane' ? document.getElementById('editCompareAfterLabel')
+      : pane.id === 'faceSwapOutputPane' ? document.getElementById('faceSwapCompareAfterLabel') : null);
+  if (afterLabel && typeof compareKindLabel === 'function') {
+    afterLabel.textContent = compareKindLabel(cmp.kind);
   }
   before.src = cmp.before || cmp.src;
   after.src = cmp.src;
@@ -58,7 +59,7 @@ function restoreCompareSlider(tab, paneId, cmp) {
 // entry the pane was navigating (paneCurrentEntry: paneIdx[tab], or the
 // most recent when the user never navigated).
 function restoreTabResult(tab) {
-  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
   const paneId = paneIds[tab];
   if (!paneId) return;
   const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
@@ -76,7 +77,8 @@ function restoreTabResult(tab) {
       break;
     }
     case 'edit':
-    case 'upscale': {
+    case 'upscale':
+    case 'face_swap': {
       if (entry) restoreCompareSlider(tab, paneId, entry);
       break;
     }
@@ -120,6 +122,16 @@ function clearTabGallery(tab) {
         window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== tab);
       }
       break;
+    case 'face_swap':
+      // Face swap results live in TWO registries: the comparison pairs
+      // (before/after) and the appended generated-history entries (flagged
+      // faceSwap, for the main lightbox). Remove both — only this tab's own
+      // entries (generations/edits/upscales stay).
+      if (Array.isArray(window.galleryComparisons)) {
+        window.galleryComparisons = window.galleryComparisons.filter(e => e.tab !== 'face_swap');
+      }
+      window.galleryGenerated = (window.galleryGenerated || []).filter(e => !e.faceSwap);
+      break;
     case 'video':
       window.galleryVideos = [];
       break;
@@ -127,7 +139,7 @@ function clearTabGallery(tab) {
   // Refresh the pane: drop the result / slider / video, restore the
   // placeholder. The resets already clearPane, but here we do it directly
   // so the pane shows the idle state regardless of the tab.
-  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane' };
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
   const paneId = paneIds[tab];
   if (paneId) {
     clearPane(paneId);
@@ -155,7 +167,8 @@ function clearTabGallery(tab) {
   if (typeof syncPaneNav === 'function') syncPaneNav(tab);
   showToast(tab === 'generate' ? '🗑️ Generated images cleared'
     : tab === 'video' ? '🗑️ Videos cleared'
-    : tab === 'edit' ? '🗑️ Edits cleared' : '🗑️ Upscales cleared');
+    : tab === 'edit' ? '🗑️ Edits cleared'
+    : tab === 'face_swap' ? '🗑️ Face swaps cleared' : '🗑️ Upscales cleared');
 }
 
 // Toolbar trash handler: clears the gallery of the ACTIVE tab.

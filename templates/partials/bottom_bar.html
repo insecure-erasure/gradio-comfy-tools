@@ -19,6 +19,14 @@
       <textarea id="promptInputVideo" class="prompt-input" data-tab="video"
         placeholder="Describe the motion and action (e.g., &quot;a cat walking slowly through a field of flowers, gentle breeze&quot;)..."
         onclick="openPromptModal()"></textarea>
+      <!-- Face swap: the prompt is NOT used yet — the field is readonly (a
+           placeholder for a future version; the flow's prompt is fixed
+           inside the workflow). Readonly (not disabled) so tapping it can
+           still open the portrait prompt modal, where the 👣 parameter
+           chips live — same interaction as Edit. -->
+      <textarea id="promptInputFaceSwap" class="prompt-input" data-tab="face_swap" readonly
+        placeholder="Prompt (coming soon) — the face swap runs with its built-in prompt"
+        onclick="openPromptModal()"></textarea>
       <button class="prompt-clear" id="btnPromptClear" onclick="clearPrompt()" title="Clear prompt">✕</button>
       <!-- Overlay actions, bottom-right (portrait prompt modal only): 🪄
            refine + 🩹 restore (Edit only) + ✨ direct generation — larger

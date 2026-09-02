@@ -12,6 +12,7 @@ const STORAGE_KEY = 'comfyTools.userConfig';
 const PERSIST_FIELDS = {
   generate: ['genSteps', 'genSeed', 'genMegapixel', 'genAspectRatio', 'genSeedRandom'],
   edit: ['editSteps', 'editSeed', 'editSeedRandom'],
+  face_swap: ['fsSteps', 'fsCfg', 'fsSeed', 'fsSeedRandom'],
   upscale: ['upscaleSeed', 'upscaleSeedRandom'],
   video: ['videoFrames', 'videoSteps', 'videoSeed', 'videoSeedRandom'],
 };
@@ -202,7 +203,7 @@ async function verifyStoredGalleries(force) {
   await Promise.all(jobs);
   savePersistedState(); // persist the (possibly pruned) set
   // The prune may have changed entry counts — keep the pane ‹ › nav in sync.
-  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
+  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video', 'face_swap'].forEach(syncPaneNav);
 }
 
 // Re-apply persisted per-tab params AFTER onModelFamilyChange ran, so the
@@ -249,7 +250,7 @@ function resetAllUserData() {
   promptsByTab = { generate: '', edit: '', video: '' };
   window.advancedValues = {};
   currentTheme = 'dark';
-  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video'].forEach(syncPaneNav);
+  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video', 'face_swap'].forEach(syncPaneNav);
   // Reload so every field, pane and control returns to its default state.
   window.location.reload();
 }

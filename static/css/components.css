@@ -131,6 +131,57 @@
     width: 10%;
   }
 
+  /* ── Face swap tab (two source fields + face overlay) ── */
+  /* The BASE (Picture 1) source field sits ABOVE the face field (the face
+     keeps the default bottom:12px). Same collapse/expand behavior. */
+  .source-url-field.fs-base {
+    bottom: 52px;
+  }
+  /* Face reference overlay: the loaded face image previews as a SMALL box
+     sitting just ABOVE the two stacked source fields (bottom-left of the
+     pane: face field at bottom:12px, base field at bottom:52px) — the box
+     floats over the canvas edge, aligned with the fields. ~10% of the
+     canvas width, below the overlay buttons (z5) and the spinner (z10);
+     removed by showResult / clearPane like a preview (but KEPT when a
+     face-swap result lands, so the comparison keeps its reference). */
+  .face-ref-overlay {
+    position: absolute;
+    left: 12px;
+    bottom: 92px;
+    width: 10%;
+    min-width: 48px;
+    max-width: 140px;
+    max-height: 22%;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 8px;
+    background: #000;
+    object-fit: contain;
+    opacity: .95;
+    box-shadow: 0 2px 10px rgba(0,0,0,.45);
+    z-index: 4;
+    pointer-events: none;
+  }
+  /* Third bottom-right overlay slot (upload base 🖼️ sits left of the face
+     upload 🧔, which sits left of 🔗). */
+  .output-overlay-btn.bottom-right-left2 {
+    bottom: 12px;
+    right: 84px;
+  }
+  /* The Face swap prompt field is permanently readonly (a future version
+     exposes the prompt) — make it read as such, but keep it clickable (it
+     opens the portrait prompt modal with the 👣 parameter chips). */
+  .prompt-input-wrap textarea:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+  .prompt-input-wrap textarea[readonly]:not(:disabled) {
+    opacity: .5;
+    cursor: pointer;
+  }
+  .prompt-input-wrap textarea[readonly]:not(:disabled):hover {
+    opacity: .7;
+  }
+
   /* ── Form elements ─────────────────────────── */
   .field { display: flex; flex-direction: column; gap: 5px; }
   .field-inline {

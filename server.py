@@ -43,6 +43,7 @@ from starlette.requests import Request
 import comfy_client
 from config import Settings
 from tools.edit import edit_image, MODES
+from tools.face_swap import face_swap_image
 from tools.generate import FAMILY_OPTIONS, generate_image
 from tools.upscale import upscale_image
 from tools.video import MODEL_VERSIONS, generate_video
@@ -643,6 +644,29 @@ def api_edit(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
         )
         _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
+    except Exception as e:
+        raise HTTPException(400, str(e)) from e
+    return _tool_response(url)
+
+
+@app.post("/api/face-swap")
+def api_face_swap(body: dict) -> dict:
+    """Face swap: replace the head of `image` (base) with the face from
+    `face` (Picture 2). See tools/face_swap.py."""
+    s = _settings()
+    try:
+        global _pending_tool, _pending_prompt
+        _pending_tool = "face_swap"
+        _pending_prompt = ""
+        url = face_swap_image(
+            s,
+            image=str(body.get("image", "")),
+            face=str(body.get("face", "")),
+            steps=int(body.get("steps", 0)),
+            cfg=float(body.get("cfg", 0.0)),
+            seed=int(body.get("seed", -1)),
+        )
+        _mark_latest_done(url, tool="face_swap")
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)

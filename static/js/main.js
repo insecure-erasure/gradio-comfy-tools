@@ -137,10 +137,10 @@ function setupCompareSlider(slider) {
 document.querySelectorAll('.compare-slider').forEach(setupCompareSlider);
 
 // ── Keyboard shortcuts ────────────────────
-// Ctrl+1..4 switches tabs; Esc closes the modal.
+// Ctrl+1..5 switches tabs; Esc closes the modal.
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
-    const map = { '1': 'generate', '2': 'edit', '3': 'upscale', '4': 'video' };
+    const map = { '1': 'generate', '2': 'edit', '3': 'face_swap', '4': 'upscale', '5': 'video' };
     if (map[e.key]) { e.preventDefault(); switchTab(map[e.key]); }
   }
   if (e.key === 'Escape') closeModal();

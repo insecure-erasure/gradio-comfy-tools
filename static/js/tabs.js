@@ -62,6 +62,13 @@ function switchTab(name) {
       // portrait prompt modal's action pills (🪄 🩹 🖌️).
       btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
+    case 'face_swap':
+      // No editable prompt (the field is disabled — a future version) and
+      // no 🪄 refine: the single 🔄 action is always active (no catcher).
+      bar.style.display = 'flex';
+      wrap.style.display = '';
+      btnCol.innerHTML = '<button class="btn-generate" id="btnFaceSwap" onclick="generateFaceSwap()" title="Swap faces">🔄</button>';
+      break;
     case 'upscale':
       // Upscale has no prompt. In portrait, the bottom bar (prompt + action)
       // is hidden entirely and the 🔍 button moves into the params pane,
@@ -150,6 +157,12 @@ function renderToolbar(tab) {
   } else if (tab === 'edit') {
     html += `<button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
       <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>
+      <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
+  } else if (tab === 'face_swap') {
+    // No model dropdown (the head-swap LoRA is fixed in the workflow); the
+    // ⚙️ advanced modal opens EMPTY for now (a future version).
+    html += `<button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
+      <button class="btn-reset" onclick="resetFaceSwap()" title="Reset">↺</button>
       <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   } else if (tab === 'upscale') {
     html += `<button class="btn-reset" onclick="resetUpscale()" title="Reset">↺</button>
@@ -460,6 +473,9 @@ const CHIP_CONFIGS = {
   edit: [
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
   ],
+  face_swap: [
+    { kind: 'stepseed', icon: '👣', title: 'Steps, CFG and seed' },
+  ],
   video: [
     { kind: 'frames', icon: '🎞️', title: 'Frames (4n+1, 81–161)' },
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
@@ -485,7 +501,7 @@ const CHIP_KIND_INFO = {
 // from the original template) — the generic `${currentTab}Params` would look
 // for a non-existent 'generateParams'. Upscale has no block (no chips).
 const PARAMS_BLOCK_IDS = {
-  generate: 'genParams', edit: 'editParams', video: 'videoParams',
+  generate: 'genParams', edit: 'editParams', video: 'videoParams', face_swap: 'faceSwapParams',
 };
 
 // Render the chips of the active tab and mount its params block into the
@@ -547,6 +563,7 @@ function updatePromptChips() {
     const ids = {
       generate: ['genSteps', 'genSeedRandom'],
       edit: ['editSteps', 'editSeedRandom'],
+      face_swap: ['fsSteps', 'fsSeedRandom'],
       video: ['videoSteps', 'videoSeedRandom'],
     }[currentTab];
     if (ids) {
