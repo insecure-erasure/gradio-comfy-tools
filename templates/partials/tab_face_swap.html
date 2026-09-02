@@ -17,11 +17,11 @@
                field accepts a pasted URL (✓ validates) or an upload
                (🖼️ base / 🧔 face buttons bottom-right). -->
           <div class="source-url-field" id="faceSwapFaceField">
-            <input type="text" class="source-url-input" id="faceSwapFaceUrl" placeholder="Image 2 — face to copy (paste URL…)" oninput="fsClearPreview('face')" />
+            <input type="text" class="source-url-input" id="faceSwapFaceUrl" placeholder="Face image" oninput="fsClearPreview('face')" />
             <button class="source-url-confirm" onclick="fsConfirm('face')" title="Load face image">✓</button>
           </div>
           <div class="source-url-field fs-base" id="faceSwapBaseField">
-            <input type="text" class="source-url-input" id="faceSwapSourceUrl" placeholder="Image 1 — base (paste URL…)" oninput="fsClearPreview('base')" />
+            <input type="text" class="source-url-input" id="faceSwapSourceUrl" placeholder="Base image" oninput="fsClearPreview('base')" />
             <button class="source-url-confirm" onclick="fsConfirm('base')" title="Load base image">✓</button>
           </div>
           <!-- Bottom-right cluster (right → left): 🔗 previous generation →
