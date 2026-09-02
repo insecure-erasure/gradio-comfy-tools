@@ -1,4 +1,4 @@
-// ── Face swap tab 🧔 ──────────────────────
+// ── Face swap tab 👨🏻 ──────────────────────
 // POST /api/face-swap (base image + face image + steps/cfg/seed) → the
 // swapped image shown in the pane.
 //
@@ -169,7 +169,7 @@ function generateFaceSwap() {
   const base = fsSource('base');
   const face = fsSource('face');
   if (!base) return showToast('No base image — paste a URL, upload 🖼️ or use 🔗');
-  if (!face) return showToast('No face image — paste a URL or upload with 🧔');
+  if (!face) return showToast('No face image — paste a URL or upload with 👨🏻');
   const steps = parseInt(document.getElementById('fsSteps')?.value) || 6;
   const cfgRaw = parseFloat(document.getElementById('fsCfg')?.value);
   const cfg = (isNaN(cfgRaw) ? 1 : cfgRaw);
