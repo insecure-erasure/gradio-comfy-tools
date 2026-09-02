@@ -658,12 +658,13 @@ def api_face_swap(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "face_swap"
         _pending_prompt = ""
+        cfg_raw = body.get("cfg")
         url = face_swap_image(
             s,
             image=str(body.get("image", "")),
             face=str(body.get("face", "")),
             steps=int(body.get("steps", 0)),
-            cfg=float(body.get("cfg", 0.0)),
+            cfg=float(cfg_raw) if cfg_raw not in (None, "") else None,
             seed=int(body.get("seed", -1)),
         )
         _mark_latest_done(url, tool="face_swap")

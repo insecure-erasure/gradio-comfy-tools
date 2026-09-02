@@ -71,13 +71,26 @@ def test_build_workflow_temp_filenames(wf):
 
 
 def test_build_workflow_defaults_kept(wf):
-    # steps=0 / cfg=0 → keep the workflow defaults (6 / 1)
-    built, meta = build_workflow(wf, image="a.png", face="b.png", steps=0, cfg=0.0)
+    # steps=0 / cfg=None → keep the workflow defaults (6 / 1)
+    built, meta = build_workflow(wf, image="a.png", face="b.png", steps=0, cfg=None)
     nodes = resolve_workflow(built)
     assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 6
     assert nodes["CFG Guider"]["inputs"]["cfg"] == 1.0
     assert meta["steps"] == 0
+    assert meta["cfg"] is None
+
+
+def test_build_workflow_explicit_cfg_zero_applied(wf):
+    # cfg=0 is a VALID explicit value (no guidance) — not "keep default".
+    built, meta = build_workflow(wf, image="a.png", face="b.png", cfg=0.0)
+    assert resolve_workflow(built)["CFG Guider"]["inputs"]["cfg"] == 0.0
     assert meta["cfg"] == 0.0
+
+
+def test_build_workflow_cfg_decimals_applied(wf):
+    # 0.1-stepped control — fractional values pass through unchanged.
+    built, _ = build_workflow(wf, image="a.png", face="b.png", cfg=1.3)
+    assert resolve_workflow(built)["CFG Guider"]["inputs"]["cfg"] == 1.3
 
 
 def test_build_workflow_validations(wf):
@@ -90,7 +103,7 @@ def test_build_workflow_validations(wf):
     with pytest.raises(FaceSwapError):
         build_workflow(wf, image="a.png", face="b.png", cfg=9.0)
     with pytest.raises(FaceSwapError):
-        build_workflow(wf, image="a.png", face="b.png", cfg=0.1)
+        build_workflow(wf, image="a.png", face="b.png", cfg=-0.1)  # below the 0 floor
 
 
 def test_deep_copy_not_mutating_source(wf):

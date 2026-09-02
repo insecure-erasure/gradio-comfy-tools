@@ -57,14 +57,15 @@
     <div id="faceSwapParams" data-params-block hidden>
       <div id="faceSwapParamsStepSeed" data-chip-section="stepseed">
         <!-- Row: CFG (guidance) — first, matching the chip label order
-             (CFG · steps · seed). -->
+             (CFG · steps · seed). Steps of 0.1, floor of 0 (0 = no
+             guidance). -->
         <div class="field-row">
           <div class="field-inline" style="flex:1">
             <label title="CFG (guidance)">🎚️</label>
             <div class="stepper">
-              <button class="stepper-btn" onclick="stepFsCfg(-0.5)" title="Decrease">−</button>
-              <input type="number" id="fsCfg" value="1" min="0.5" max="8" step="0.5" oninput="onFsCfgInput()">
-              <button class="stepper-btn" onclick="stepFsCfg(0.5)" title="Increase">+</button>
+              <button class="stepper-btn" onclick="stepFsCfg(-0.1)" title="Decrease">−</button>
+              <input type="number" id="fsCfg" value="1" min="0" max="8" step="0.1" oninput="onFsCfgInput()">
+              <button class="stepper-btn" onclick="stepFsCfg(0.1)" title="Increase">+</button>
             </div>
           </div>
         </div>

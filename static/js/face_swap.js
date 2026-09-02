@@ -284,15 +284,15 @@ function generateFaceSwap() {
 function _fsSyncChip() { if (typeof updatePromptChips === 'function') updatePromptChips(); }
 function stepFsCfg(d) {
   const input = document.getElementById('fsCfg');
-  const v = Math.round((parseFloat(input.value || '1') + d) * 10) / 10;
-  input.value = isNaN(v) ? 1 : Math.min(8, Math.max(0.5, v));
+  const v = Math.round((parseFloat(input.value || '1') + d) * 10) / 10; // 0.1 steps
+  input.value = isNaN(v) ? 1 : Math.min(8, Math.max(0, v)); // floor 0
   _fsSyncChip();
 }
 function onFsCfgInput() {
   const input = document.getElementById('fsCfg');
   const v = parseFloat(input.value);
   if (isNaN(v)) input.value = 1;
-  if (v < 0.5) input.value = 0.5;
+  if (v < 0) input.value = 0;
   if (v > 8) input.value = 8;
   _fsSyncChip();
 }

@@ -32,8 +32,10 @@ DEFAULT_CFG = 1.0
 
 # Sampler bounds mirroring the other image tools (edit 1–15); CFG is the
 # FLUX.2 guidance value (workflow default 1.0, distilled models use 1).
+# CFG steps in 0.1 and may go as low as 0 (no guidance) — 0 is a VALID
+# explicit value, so "not provided" is None (keeps the workflow default).
 MIN_STEPS, MAX_STEPS = 1, 15
-MIN_CFG, MAX_CFG = 0.5, 8.0
+MIN_CFG, MAX_CFG = 0.0, 8.0
 
 
 class FaceSwapError(ValueError):
@@ -66,7 +68,7 @@ def build_workflow(
     image: str,
     face: str,
     steps: int = 0,
-    cfg: float = 0.0,
+    cfg: float | None = None,
     seed: int = -1,
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta)."""
@@ -76,7 +78,7 @@ def build_workflow(
         raise FaceSwapError("face image must not be empty")
     if steps and not (MIN_STEPS <= steps <= MAX_STEPS):
         raise FaceSwapError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
-    if cfg and not (MIN_CFG <= cfg <= MAX_CFG):
+    if cfg is not None and not (MIN_CFG <= cfg <= MAX_CFG):
         raise FaceSwapError(f"cfg must be in [{MIN_CFG:g}, {MAX_CFG:g}], got {cfg:g}")
     seed_arg = _common.resolve_seed(seed)
 
@@ -88,9 +90,11 @@ def build_workflow(
     _common.configure_image_node(nodes["Load Image (URL/Path)"]["inputs"], image)
     _common.configure_image_node(nodes["Face Reference"]["inputs"], face)
 
-    # Steps + CFG + seed (FLUX.2 guidance stack).
+    # Steps + CFG + seed (FLUX.2 guidance stack). cfg=None keeps the
+    # workflow default (1.0); an explicit 0 is applied as-is (no guidance).
     nodes["Flux2Scheduler"]["inputs"]["steps"] = steps if steps else DEFAULT_STEPS
-    nodes["CFG Guider"]["inputs"]["cfg"] = cfg if cfg else DEFAULT_CFG
+    if cfg is not None:
+        nodes["CFG Guider"]["inputs"]["cfg"] = cfg
     nodes["RandomNoise"]["inputs"]["noise_seed"] = seed_arg
 
     meta = {
@@ -109,7 +113,7 @@ def face_swap_image(
     image: str,
     face: str,
     steps: int = 0,
-    cfg: float = 0.0,
+    cfg: float | None = None,
     seed: int = -1,
     timeout: float = 240.0,
 ) -> str:
