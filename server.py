@@ -343,13 +343,16 @@ def _record_job_output(
             # fires; the generous timeout covers any tiny write lag.
             outputs = c.wait_for_output(prompt_id, timeout=60, poll=1)
             rec = None
+            face_url = None
             if tool == "face_swap":
                 try:
                     from tools.face_swap import select_result_images
 
-                    main, _ = select_result_images(outputs, titles or {})
+                    main, face = select_result_images(outputs, titles or {})
                     if main is not None:
                         rec = main
+                    if face is not None:
+                        face_url = c.result_url(face["filename"], face.get("type", "output"))
                 except Exception:
                     rec = None  # fall back to the generic pick below
             if rec is None:
@@ -358,18 +361,22 @@ def _record_job_output(
                 except _common.WorkflowError:
                     rec = _common.find_output_video(outputs)
             url = c.result_url(rec["filename"], rec.get("type", "output"))
-        _mark_job_result(prompt_id, url, tool=tool, prompt=prompt)
+        _mark_job_result(prompt_id, url, tool=tool, prompt=prompt, face_url=face_url)
     except Exception:
         pass  # best-effort — the handler's _mark_latest_done is the fallback
 
 
-def _mark_job_result(prompt_id: str, url: str, tool: str = "", prompt: str = "") -> None:
+def _mark_job_result(
+    prompt_id: str, url: str, tool: str = "", prompt: str = "", face_url: str | None = None
+) -> None:
     """Mark a job done and attach its result URL.
 
     The per-step preview is dropped here (and on cancel, where url=None):
     previews are ephemeral — once the real result is ready (or the job was
     cancelled) keeping them would only hold memory. Later calls are
-    idempotent.
+    idempotent. ``face_url`` is the Face swap's extracted-face preview URL
+    (None clears it — e.g. on cancel), so the recovery endpoint can hand
+    both to the frontend.
     """
     new_result = False
     with _jobs_lock:
@@ -378,6 +385,7 @@ def _mark_job_result(prompt_id: str, url: str, tool: str = "", prompt: str = "")
             new_result = bool(url) and not job.get("url")
             job["done"] = True
             job["url"] = url
+            job["face_url"] = face_url
             job.pop("preview", None)
     if job is not None:
         _broadcast_progress(job)  # push "active: null" — the job settled
@@ -501,11 +509,13 @@ def _latest_job() -> dict | None:
         return max(_jobs.values(), key=lambda j: j.get("started", 0))
 
 
-def _mark_latest_done(url: str, tool: str = "", prompt: str = "") -> None:
+def _mark_latest_done(
+    url: str, tool: str = "", prompt: str = "", face_url: str | None = None
+) -> None:
     """Attach the result URL to the most recent job (single-user app)."""
     job = _latest_job()
     if job is not None:
-        _mark_job_result(job["prompt_id"], url, tool=tool, prompt=prompt)
+        _mark_job_result(job["prompt_id"], url, tool=tool, prompt=prompt, face_url=face_url)
 
 
 def _on_prompt_queued(client_id: str, prompt_id: str, workflow: dict) -> None:
@@ -579,12 +589,14 @@ def api_last_result() -> dict:
     frontend (background tab) and the in-flight fetch was aborted: the
     backend keeps running and finishes the job, so the frontend can poll
     this after regaining focus and resolve the result URL it missed.
-    Returns ``{"url": ...}`` or ``{"url": null}``.
+    Returns ``{"url": ..., "face_preview": ...}`` (face_preview is the
+    Face swap's extracted-face preview URL, null when absent or when no
+    job has completed) or ``{"url": null}``.
     """
     job = _latest_job()
     if job is None or not job.get("done"):
         return {"url": None}
-    return {"url": job.get("url") or None}
+    return {"url": job.get("url") or None, "face_preview": job.get("face_url") or None}
 
 
 @app.post("/api/cancel")
@@ -739,7 +751,7 @@ def api_face_swap(body: dict) -> dict:
             cfg=float(cfg_raw) if cfg_raw not in (None, "") else None,
             seed=int(body.get("seed", -1)),
         )
-        _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt)
+        _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt, face_url=face_url)
         resp = _tool_response(url)
         if face_url:
             resp["face_preview"] = _tool_response(face_url)

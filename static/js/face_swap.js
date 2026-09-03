@@ -253,12 +253,15 @@ function generateFaceSwap() {
     // Extracted-face preview (the workflow's "Random Preview Image (face)"
     // output — the face region with its alpha): a small overlay box
     // bottom-right, ABOVE the upload/chain buttons (which stay clickable),
-    // so the user can verify the extraction that fed the swap. Any overlay
-    // painted EARLY by the live progress is replaced here with the
-    // authoritative one; the API omits face_preview when the workflow has
-    // no such node.
-    pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
+    // so the user can verify the extraction that fed the swap. The NORMAL
+    // response carries face_preview and replaces any EARLY overlay painted
+    // by the live progress; the recovery path delivers only {url, display}
+    // (or face_preview when the backend record had it) — there the early
+    // overlay (painted from the same run's executed event) is KEPT, never
+    // wiped, so the extraction does not vanish when the job settles
+    // through recovery.
     if (res.face_preview && res.face_preview.display) {
+      pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
       const extract = document.createElement('img');
       extract.className = 'face-extract-overlay';
       extract.alt = 'Extracted face';

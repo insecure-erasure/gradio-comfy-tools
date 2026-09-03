@@ -598,7 +598,7 @@ survives tab switches mid-generation (`switchTab` re-asserts the lock with
 | `GET /health` | server + ComfyUI health (version, base URL) |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
 | `GET /api/progress` | live progress of the most recent job. While it runs: `{active: {stage, node, node_title, value, max, preview?, face_preview?}}` — `preview` is the latest per-step latent decode (`data:image/jpeg;base64,…`), `face_preview` is the Face swap's extracted-face `/media` path (available from the moment its preview node executed, BEFORE the sampled result). When it settled: `{active: null}` — or `{active: null, error}` when the job ended in a **ComfyUI execution error** (e.g. CUDA OOM): terminal, the UI must stop waiting. |
-| `GET /api/last-result` | URL of the last COMPLETED job (recovery when the frontend's in-flight fetch was aborted — background tab) |
+| `GET /api/last-result` | result of the last COMPLETED job (`{url, face_preview?}` — `face_preview` is the Face swap extracted-face URL, recorded with the result by the handler AND the WS-listener recovery record; recovery when the frontend's in-flight fetch was aborted — background tab) |
 | `POST /api/cancel` | cancel the most recent job (interrupt running + delete pending) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |

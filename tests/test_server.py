@@ -1043,7 +1043,8 @@ def test_record_job_output_sets_url(client, tmp_config, monkeypatch):
             assert job["url"] == "http://x/view?filename=out.mp4&type=output"
         # The recovery endpoint can now resolve it.
         assert client.get("/api/last-result").json() == {
-            "url": "http://x/view?filename=out.mp4&type=output"
+            "url": "http://x/view?filename=out.mp4&type=output",
+            "face_preview": None,
         }
         # And /api/progress is idle (job settled).
         assert client.get("/api/progress").json() == {"active": None}
@@ -1492,3 +1493,77 @@ def test_progress_payload_carries_job_error():
     job_ok = {"prompt_id": "p2", "started": 1, "done": True}
     assert server._progress_payload(job_ok) == {"active": None}
     assert server._progress_payload(None) == {"active": None}
+
+
+def test_record_face_swap_output_records_face_preview(client, tmp_config, monkeypatch):
+    """The WS-listener recovery record for a Face swap stores BOTH the main
+    result and the extracted-face preview (job.face_url), so a recovered
+    finalize can repaint the overlay instead of wiping it."""
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            # Face preview node recorded first, main after — like the real
+            # incremental history.
+            return {
+                "302": {"images": [{"filename": "face.png", "type": "temp"}]},
+                "199": {"images": [{"filename": "swapped.png", "type": "temp"}]},
+            }
+
+        def result_url(self, filename, type_="output"):
+            return f"http://x/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    titles = {
+        "199": "Random Preview Image",
+        "302": "Random Preview Image (face)",
+    }
+    server._start_job_listener("cid", "pidfs", {"1": {"class_type": "X", "_meta": {"title": "T"}}})
+    try:
+        server._record_job_output("pidfs", tool="face_swap", titles=titles)
+        with server._jobs_lock:
+            job = server._jobs["pidfs"]
+            assert job["url"] == "http://x/view?filename=swapped.png&type=temp"
+            assert job["face_url"] == "http://x/view?filename=face.png&type=temp"
+        assert client.get("/api/last-result").json() == {
+            "url": "http://x/view?filename=swapped.png&type=temp",
+            "face_preview": "http://x/view?filename=face.png&type=temp",
+        }
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()
+
+
+def test_api_face_swap_handler_records_face_preview(client, tmp_config, monkeypatch):
+    """The /api/face-swap handler records the face preview with the result
+    (idempotent with the listener record), so /api/last-result carries it.
+    In production the job exists because queue_prompt fired the prompt hook;
+    the test registers it explicitly."""
+    server._start_job_listener("cid", "pidh", {"1": {"class_type": "X", "_meta": {"title": "T"}}})
+
+    def fake_face_swap(settings, **kwargs):
+        return (
+            "http://comfy/view?filename=swapped.png&type=temp",
+            "http://comfy/view?filename=face_crop.png&type=temp",
+        )
+
+    monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
+    try:
+        resp = client.post("/api/face-swap", json={"image": "a.png", "face": "b.png"})
+        assert resp.status_code == 200
+        assert client.get("/api/last-result").json() == {
+            "url": "http://comfy/view?filename=swapped.png&type=temp",
+            "face_preview": "http://comfy/view?filename=face_crop.png&type=temp",
+        }
+    finally:
+        with server._jobs_lock:
+            server._jobs.clear()

@@ -380,8 +380,19 @@ async function tryRecoverResult() {
     const fn = params.get('filename');
     const type = params.get('type') || 'output';
     if (fn) {
+      const res = { url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type };
+      // The recovery record carries the Face swap extracted-face preview
+      // too (the backend stores job.face_url): hand it to the per-tool
+      // finalize in the same shape as the direct API response.
+      if (j.face_preview) {
+        const qf = (String(j.face_preview).split('?')[1] || '');
+        const pf = new URLSearchParams(qf);
+        const ffn = pf.get('filename');
+        const ftype = pf.get('type') || 'output';
+        if (ffn) res.face_preview = { display: '/media/' + encodeURIComponent(ffn) + '?type=' + ftype };
+      }
       recoverPending = false;
-      recoverHandler({ url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type });
+      recoverHandler(res);
     }
   } catch (e) { /* ignore */ }
   _recoverInFlight = false;
