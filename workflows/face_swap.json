@@ -186,7 +186,7 @@
   },
   "133": {
     "inputs": {
-      "lora_name": "flux2/bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors",
+      "lora_name": "bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors",
       "strength_model": 1,
       "model": [
         "118",

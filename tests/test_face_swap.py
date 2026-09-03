@@ -5,11 +5,14 @@ from __future__ import annotations
 import pytest
 
 from tools.face_swap import (
+    _HEAD_SWAP_LORA_NAME,
     build_workflow,
+    face_swap_image,
     load_workflow,
     resolve_workflow,
     FaceSwapError,
 )
+from config import Settings
 
 
 @pytest.fixture
@@ -22,6 +25,7 @@ def test_resolve_workflow_all_titles_present(wf):
     for t in [
         "Load Image (URL/Path)",   # Picture 1 — base
         "Face Reference",          # Picture 2 — face
+        "Load LoRA",               # dedicated head-swap LoRA
         "Flux2Scheduler",
         "CFG Guider",
         "RandomNoise",
@@ -126,3 +130,144 @@ def test_deep_copy_not_mutating_source(wf):
     assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
     assert src["CFG Guider"]["inputs"]["cfg"] == 1.0
     assert src["RandomNoise"]["inputs"]["noise_seed"] != 42
+
+
+# --------------------------------------------------------------------------- #
+# Dedicated head-swap LoRA — OS-independent name resolution + injection
+# --------------------------------------------------------------------------- #
+def test_workflow_default_lora_is_os_neutral(wf):
+    # The JSON default is the bare basename — never an OS-specific subfolder
+    # path (ComfyUI lists flux2/... on Linux but flux2\\... on Windows).
+    src = resolve_workflow(wf)["Load LoRA"]["inputs"]
+    assert src["lora_name"] == _HEAD_SWAP_LORA_NAME
+    assert "/" not in src["lora_name"] and "\\" not in src["lora_name"]
+
+
+def test_build_workflow_injects_head_swap_lora_name(wf):
+    # face_swap_image resolves the installed name from the server (OS-native
+    # separators) and passes it here — it must land verbatim in the strict
+    # LoraLoaderModelOnly combo.
+    windows_name = "flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+    built, meta = build_workflow(wf, image="a.png", face="b.png", lora_name=windows_name)
+    lora = resolve_workflow(built)["Load LoRA"]["inputs"]
+    assert lora["lora_name"] == windows_name
+    assert lora["strength_model"] == 1  # fixed workflow values untouched
+    assert meta["lora_name"] == windows_name
+    # deep-copy safety: the source workflow default is not mutated
+    assert resolve_workflow(wf)["Load LoRA"]["inputs"]["lora_name"] == _HEAD_SWAP_LORA_NAME
+
+
+def test_build_workflow_keeps_default_lora_when_omitted(wf):
+    built, meta = build_workflow(wf, image="a.png", face="b.png")
+    assert resolve_workflow(built)["Load LoRA"]["inputs"]["lora_name"] == _HEAD_SWAP_LORA_NAME
+    assert meta["lora_name"] is None
+
+
+def test_build_workflow_rejects_blank_lora_name(wf):
+    with pytest.raises(FaceSwapError):
+        build_workflow(wf, image="a.png", face="b.png", lora_name="   ")
+
+
+# --------------------------------------------------------------------------- #
+# face_swap_image — resolves the installed LoRA name against the server
+# --------------------------------------------------------------------------- #
+def test_face_swap_image_resolves_and_injects_installed_lora(monkeypatch):
+    import tools.face_swap as fs
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            # Windows-style listing (backslash subfolder separators).
+            return [
+                "flux2\\Flux2-Klein-Image-RestoreV1.safetensors",
+                "flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors",
+            ]
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            captured["wf"] = wf
+            return "pid-1"
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"199": {"images": [{"filename": "swapped.png", "subfolder": "", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://comfy/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(fs, "ComfyClient", FakeClient)
+    url = fs.face_swap_image(Settings(), image="a.png", face="b.png", steps=8)
+
+    assert url == "http://comfy/view?filename=swapped.png&type=output"
+    wf = captured["wf"]
+    lora = resolve_workflow(wf)["Load LoRA"]["inputs"]
+    # The EXACT server-listed name (backslashes on Windows) is injected, not
+    # the forward-slash basename or the JSON default.
+    assert lora["lora_name"] == "flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+    assert resolve_workflow(wf)["Flux2Scheduler"]["inputs"]["steps"] == 8
+
+
+def test_face_swap_image_linux_listing_injects_forward_slash_name(monkeypatch):
+    import tools.face_swap as fs
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            return ["flux2/bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"]
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            captured["wf"] = wf
+            return "pid-1"
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"199": {"images": [{"filename": "x.png", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://comfy/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(fs, "ComfyClient", FakeClient)
+    fs.face_swap_image(Settings(), image="a.png", face="b.png")
+    lora = resolve_workflow(captured["wf"])["Load LoRA"]["inputs"]
+    assert lora["lora_name"] == "flux2/bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+
+
+def test_face_swap_image_missing_lora_raises_clear_error(monkeypatch):
+    import tools.face_swap as fs
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            return ["flux2\\some-other-lora.safetensors"]
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            raise AssertionError("must not queue when the head-swap LoRA is missing")
+
+    monkeypatch.setattr(fs, "ComfyClient", FakeClient)
+    with pytest.raises(FaceSwapError, match="not installed"):
+        fs.face_swap_image(Settings(), image="a.png", face="b.png")

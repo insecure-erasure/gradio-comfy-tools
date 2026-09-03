@@ -247,3 +247,27 @@ def apply_loras(loader_inputs: dict[str, Any], loras: list[Any]) -> None:
             loader_inputs[slot]["on"] = False
             loader_inputs[slot]["lora"] = ""
             loader_inputs[slot]["strength"] = 0
+
+
+# --------------------------------------------------------------------------- #
+# Model names — OS-independent basename matching
+# --------------------------------------------------------------------------- #
+def match_by_basename(names: list[str], basename: str) -> str | None:
+    """Find the entry of a ComfyUI model-folder listing whose basename matches.
+
+    ComfyUI reports subfolder paths with the OS separator (``/`` on
+    Linux/macOS, ``\\`` on Windows — users often dual-boot the same model
+    folder), and core loader nodes (e.g. the strict ``LoraLoaderModelOnly``
+    combo) only accept the exact string the server lists. Matching by
+    basename (PurePosixPath-style: both separators treated the same,
+    case-insensitive — same canonicalization as dev/check_env.py and the
+    frontend's purePath shim) lets a tool look up the installed name and
+    send it back verbatim, so the injected value always passes ComfyUI's
+    validation regardless of the host OS. Returns None when nothing matches.
+    """
+    wanted = basename.replace("\\", "/").rsplit("/", 1)[-1].lower()
+    for name in names:
+        candidate = name.replace("\\", "/").rsplit("/", 1)[-1].lower()
+        if candidate == wanted:
+            return name
+    return None

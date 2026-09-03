@@ -389,3 +389,38 @@ def test_apply_loras_disables_empty_but_applies_zero_strength():
     assert inputs["lora_1"] == {"on": True, "lora": "x.sft", "strength": 0}
     _common.apply_loras(inputs, [{"name": "y.sft", "strength": -0.5}])
     assert inputs["lora_1"] == {"on": True, "lora": "y.sft", "strength": -0.5}
+
+
+def test_match_by_basename_windows_subfolder_paths():
+    # Windows ComfyUI lists subfolder LoRAs with backslashes; matching by
+    # basename finds the exact installed string so it can be sent back
+    # verbatim (the strict LoraLoaderModelOnly combo requires it).
+    names = [
+        "flux2\\Flux2-Klein-Image-RestoreV1.safetensors",
+        "flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors",
+        "wan21\\wan2.1.sft",
+    ]
+    assert (
+        _common.match_by_basename(names, "bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors")
+        == "flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+    )
+
+
+def test_match_by_basename_linux_subfolder_paths():
+    names = ["flux2/bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"]
+    found = _common.match_by_basename(names, "bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors")
+    assert found == "flux2/bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+
+
+def test_match_by_basename_top_level_and_mixed_separators():
+    names = ["plain.safetensors", "sub\\nested\\x.safetensors"]
+    assert _common.match_by_basename(names, "plain.safetensors") == "plain.safetensors"
+    # The sought name may itself carry separators — only the basename counts.
+    assert _common.match_by_basename(names, "sub/nested/x.safetensors") == "sub\\nested\\x.safetensors"
+
+
+def test_match_by_basename_case_insensitive_and_missing():
+    names = ["FLUX2\\BFS_HEAD_VA1.SAFETENSORS"]
+    assert _common.match_by_basename(names, "bfs_head_va1.safetensors") == "FLUX2\\BFS_HEAD_VA1.SAFETENSORS"
+    assert _common.match_by_basename(names, "not-installed.safetensors") is None
+    assert _common.match_by_basename([], "anything.safetensors") is None
