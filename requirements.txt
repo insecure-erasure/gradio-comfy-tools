@@ -7,7 +7,7 @@ fastapi==0.141.1
 uvicorn==0.52.1
 httpx==0.28.1          # REST client + TestClient for the API tests
 websockets==17.0.1     # live progress: per-job ComfyUI WebSocket listener
-jinja
+jinja2
 python-multipart
 
 # Development / tests
