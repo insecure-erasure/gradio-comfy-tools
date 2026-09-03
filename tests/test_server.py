@@ -506,11 +506,12 @@ def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
     monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
     resp = client.post(
         "/api/face-swap",
-        json={"image": "base.png", "face": "face.png", "steps": 8, "cfg": 2.0, "seed": 7},
+        json={"image": "base.png", "face": "face.png", "prompt": "add a subtle smile", "steps": 8, "cfg": 2.0, "seed": 7},
     )
     assert resp.status_code == 200
     assert received["image"] == "base.png"
     assert received["face"] == "face.png"
+    assert received["prompt"] == "add a subtle smile"
     assert received["steps"] == 8
     assert received["cfg"] == 2.0
     assert received["seed"] == 7

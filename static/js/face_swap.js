@@ -1,15 +1,15 @@
 // ── Face swap tab 👨🏻 ──────────────────────
-// POST /api/face-swap (base image + face image + steps/cfg/seed) → the
-// swapped image shown in the pane.
+// POST /api/face-swap (base image + face image + optional prompt +
+// steps/cfg/seed) → the swapped image shown in the pane.
 //
 // TWO source images, each with its own URL field + upload button:
 //   • Picture 1 (BASE)   — the image being edited; previewed FULL-canvas.
 //   • Picture 2 (FACE)   — the face to extract; previewed as a SMALL
 //                          reference overlay box that floats just ABOVE the
 //                          two source fields (bottom-left), ~10% wide.
-// The prompt field is readonly (the workflow has a built-in head_swap
-// prompt — see bottom_bar.html); params (👣 steps / 🎚️ CFG / 🌱 seed+🎲)
-// live in the 👣 prompt-chip popover, like Edit.
+// The prompt is OPTIONAL: the workflow appends it after its built-in
+// head_swap instructions (empty prompt = built-in only). Params (👣 steps /
+// 🎚️ CFG / 🌱 seed+🎲) live in the 👣 prompt-chip popover, like Edit.
 
 const FS_PANE_ID = 'faceSwapOutputPane';
 
@@ -170,6 +170,8 @@ function generateFaceSwap() {
   const face = fsSource('face');
   if (!base) return showToast('No base image — paste a URL, upload 🖼️ or use 🔗');
   if (!face) return showToast('No face image — paste a URL or upload with 👨🏻');
+  const promptInput = document.getElementById('promptInputFaceSwap');
+  const prompt = (promptInput ? promptInput.value : '').trim();
   const steps = parseInt(document.getElementById('fsSteps')?.value) || 6;
   const cfgRaw = parseFloat(document.getElementById('fsCfg')?.value);
   const cfg = (isNaN(cfgRaw) ? 1 : cfgRaw);
@@ -214,7 +216,7 @@ function generateFaceSwap() {
       // AFTER image); kind is the face swap's own.
       cmp.dataset.gallery = '1';
       cmp.dataset.kind = 'face_swap';
-      cmp.dataset.prompt = '';
+      cmp.dataset.prompt = prompt;
       // The base full preview is replaced by the slider's BEFORE side; the
       // FACE overlay stays as the reference.
       pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live')
@@ -223,13 +225,13 @@ function generateFaceSwap() {
       addCompareEntry({
         src: res.display,
         before: beforeSrc,
-        prompt: '',
+        prompt,
         kind: 'face_swap',
         tab: 'face_swap',
       });
       // Generated history: a face swap APPENDS a new entry (the original
       // base stays in the gallery — the swap is a new image).
-      addFaceSwapEntry(res, beforeSrc);
+      addFaceSwapEntry(res, beforeSrc, prompt);
     } else {
       // Defensive fallback: plain result (the markup always has the slider).
       pane.querySelectorAll('.source-preview, .face-ref-overlay, .output-placeholder, .preview-live')
@@ -249,7 +251,7 @@ function generateFaceSwap() {
   registerRecoverHandler(finalize);
 
   api('/api/face-swap', {
-    image: base, face, steps, cfg, seed,
+    image: base, face, prompt, steps, cfg, seed,
   }).then(res => {
     finalize(res);
   }).catch(err => {

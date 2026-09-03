@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from tools import _common
 from tools.face_swap import (
     _HEAD_SWAP_LORA_NAME,
     build_workflow,
@@ -26,6 +27,8 @@ def test_resolve_workflow_all_titles_present(wf):
         "Load Image (URL/Path)",   # Picture 1 — base
         "Face Reference",          # Picture 2 — face
         "Load LoRA",               # dedicated head-swap LoRA
+        "Prompt",                  # optional extra prompt (appended by concat)
+        "Concat Prompt (Positive)",  # built-in head_swap text + extra prompt
         "Flux2Scheduler",
         "CFG Guider",
         "RandomNoise",
@@ -161,6 +164,77 @@ def test_build_workflow_keeps_default_lora_when_omitted(wf):
     built, meta = build_workflow(wf, image="a.png", face="b.png")
     assert resolve_workflow(built)["Load LoRA"]["inputs"]["lora_name"] == _HEAD_SWAP_LORA_NAME
     assert meta["lora_name"] is None
+
+
+# --------------------------------------------------------------------------- #
+# Optional extra prompt — appended after the built-in head_swap text
+# --------------------------------------------------------------------------- #
+def test_build_workflow_injects_extra_prompt(wf):
+    built, meta = build_workflow(
+        wf, image="a.png", face="b.png", prompt="add a subtle smile, keep teeth natural"
+    )
+    nodes = resolve_workflow(built)
+    # The extra prompt lands in the PrimitiveStringMultiline that feeds the
+    # concat node's string_b (appended AFTER the built-in head_swap text).
+    assert nodes["Prompt"]["inputs"]["value"] == "add a subtle smile, keep teeth natural"
+    assert meta["prompt"] == "add a subtle smile, keep teeth natural"
+    # The concat wiring is untouched: string_a still carries the built-in
+    # head_swap instructions and string_b still links to the Prompt node.
+    concat = nodes["Concat Prompt (Positive)"]["inputs"]
+    assert concat["string_a"].startswith("head_swap:")
+    prompt_node_id = next(
+        nid for nid, n in wf.items() if n.get("_meta", {}).get("title") == "Prompt"
+    )
+    assert concat["string_b"] == [prompt_node_id, 0]
+    # Deep-copy safety: the source workflow keeps its empty default.
+    assert resolve_workflow(wf)["Prompt"]["inputs"]["value"] == ""
+
+
+def test_build_workflow_empty_prompt_keeps_default(wf):
+    built, _ = build_workflow(wf, image="a.png", face="b.png", prompt="")
+    assert resolve_workflow(built)["Prompt"]["inputs"]["value"] == ""
+    # The positive CLIPTextEncode reads the concat node (a link, not a
+    # literal), so with an empty extra prompt the final text is the
+    # built-in head_swap text — the concat wiring is preserved by the tool.
+    _, clip = _common.resolve_node(built, "CLIP Text Encode (Positive Prompt)")
+    assert clip["inputs"]["text"] == [
+        next(nid for nid, n in built.items() if n.get("_meta", {}).get("title") == "Concat Prompt (Positive)"),
+        0,
+    ]
+
+
+def test_face_swap_image_prompt_reaches_workflow(monkeypatch):
+    import tools.face_swap as fs
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            return ["flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"]
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            captured["wf"] = wf
+            return "pid-1"
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"199": {"images": [{"filename": "x.png", "type": "output"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://comfy/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(fs, "ComfyClient", FakeClient)
+    fs.face_swap_image(Settings(), image="a.png", face="b.png", prompt="soften the jaw")
+    prompt_node = resolve_workflow(captured["wf"])["Prompt"]["inputs"]
+    assert prompt_node["value"] == "soften the jaw"
 
 
 def test_build_workflow_rejects_blank_lora_name(wf):

@@ -652,22 +652,24 @@ def api_edit(body: dict) -> dict:
 @app.post("/api/face-swap")
 def api_face_swap(body: dict) -> dict:
     """Face swap: replace the head of `image` (base) with the face from
-    `face` (Picture 2). See tools/face_swap.py."""
+    `face` (Picture 2). An optional `prompt` is appended after the
+    workflow's built-in head_swap instructions. See tools/face_swap.py."""
     s = _settings()
     try:
         global _pending_tool, _pending_prompt
         _pending_tool = "face_swap"
-        _pending_prompt = ""
+        _pending_prompt = str(body.get("prompt", ""))
         cfg_raw = body.get("cfg")
         url = face_swap_image(
             s,
             image=str(body.get("image", "")),
             face=str(body.get("face", "")),
+            prompt=_pending_prompt,
             steps=int(body.get("steps", 0)),
             cfg=float(cfg_raw) if cfg_raw not in (None, "") else None,
             seed=int(body.get("seed", -1)),
         )
-        _mark_latest_done(url, tool="face_swap")
+        _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt)
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)

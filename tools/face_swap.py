@@ -8,16 +8,22 @@ image URL.
 
 The head-swap logic itself (face segmentation → mask enhancement → crop →
 alpha → reference latents) is fixed inside the workflow; only the two source
-images and the sampling parameters are exposed, plus the dedicated head-swap
-LoRA — which, like the restore LoRA in Edit, is injected at runtime instead
-of being hardcoded with an OS-specific path. ComfyUI lists subfolder files
-(the LoRA lives under ``flux2/``) with the OS separator (``flux2/...`` on
-Linux, ``flux2\\...`` on Windows) and the strict ``LoraLoaderModelOnly``
-combo only accepts the exact string the server lists, so the tool resolves
-the installed name from ``GET /models/loras`` (basename match, see
-``_resolve_head_swap_lora``) and sends that verbatim — the same value passes
-validation on both OSes. The positive prompt is also fixed in the workflow
-(the text input in the UI is disabled — a future version may expose it).
+images, the sampling parameters and an OPTIONAL extra prompt are exposed,
+plus the dedicated head-swap LoRA — which, like the restore LoRA in Edit,
+is injected at runtime instead of being hardcoded with an OS-specific path.
+ComfyUI lists subfolder files (the LoRA lives under ``flux2/``) with the OS
+separator (``flux2/...`` on Linux, ``flux2\\...`` on Windows) and the strict
+``LoraLoaderModelOnly`` combo only accepts the exact string the server
+lists, so the tool resolves the installed name from ``GET /models/loras``
+(basename match, see ``_resolve_head_swap_lora``) and sends that verbatim —
+the same value passes validation on both OSes.
+
+The positive prompt is built in the workflow by a StringConcatenate node
+(``Concat Prompt (Positive)``): the built-in head_swap instructions are its
+fixed first part, and the OPTIONAL user prompt (the ``Prompt``
+PrimitiveStringMultiline node — the text input in the UI) is appended after
+it, verbatim. An empty extra prompt leaves the built-in instructions
+unchanged.
 """
 
 from __future__ import annotations
@@ -63,6 +69,8 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "Load Image (URL/Path)",   # Picture 1 — base image (kept)
         "Face Reference",          # Picture 2 — face source (extracted)
         "Load LoRA",               # dedicated head-swap LoRA (resolved at runtime)
+        "Prompt",                  # extra prompt, appended after the built-in one
+        "Concat Prompt (Positive)",  # built-in head_swap text + extra prompt
         "Flux2Scheduler",          # steps
         "CFG Guider",              # cfg (guidance)
         "RandomNoise",             # seed
@@ -80,6 +88,7 @@ def build_workflow(
     *,
     image: str,
     face: str,
+    prompt: str = "",
     steps: int = 0,
     cfg: float | None = None,
     seed: int = -1,
@@ -87,6 +96,10 @@ def build_workflow(
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta).
 
+    ``prompt`` is an OPTIONAL extra prompt: the workflow concatenates it
+    AFTER its built-in head_swap instructions (the ``Prompt`` node feeds a
+    StringConcatenate whose first part is the fixed text), so an empty
+    prompt runs the built-in instructions unchanged.
     ``lora_name`` is the head-swap LoRA exactly as the ComfyUI server lists
     it (see face_swap_image / _resolve_head_swap_lora); None keeps the
     workflow JSON default.
@@ -126,12 +139,18 @@ def build_workflow(
         nodes["CFG Guider"]["inputs"]["cfg"] = cfg
     nodes["RandomNoise"]["inputs"]["noise_seed"] = seed_arg
 
+    # Optional extra prompt — the concat node appends it AFTER the built-in
+    # head_swap text (the ``Prompt`` PrimitiveStringMultiline feeds the
+    # StringConcatenate's string_b; empty = built-in prompt unchanged).
+    nodes["Prompt"]["inputs"]["value"] = prompt
+
     meta = {
         "steps": steps,
         "cfg": cfg,
         "seed": seed_arg,
         "image": image,
         "face": face,
+        "prompt": prompt,
         "lora_name": lora_name,
     }
     return wf, meta
@@ -161,6 +180,7 @@ def face_swap_image(
     *,
     image: str,
     face: str,
+    prompt: str = "",
     steps: int = 0,
     cfg: float | None = None,
     seed: int = -1,
@@ -176,6 +196,7 @@ def face_swap_image(
             load_workflow(),
             image=image,
             face=face,
+            prompt=prompt,
             steps=steps,
             cfg=cfg,
             seed=seed,

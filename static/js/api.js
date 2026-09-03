@@ -154,7 +154,8 @@ function clearPrompt() {
 }
 
 // Disable/enable the action buttons that require a prompt. Tabs/buttons
-// without a prompt (Upscale, and the 🩹 Restore button) stay enabled.
+// without a required prompt (Upscale, the 🩹 Restore button, and Face swap
+// — its prompt is an OPTIONAL suffix) stay enabled.
 // While a generation runs (genLockActive) every action button is disabled
 // instead, so this returns early (see setGeneratingUi).
 function updateActionButtons() {
@@ -162,7 +163,7 @@ function updateActionButtons() {
   const prompt = (activePromptInput()?.value || '').trim();
   const btnCol = document.getElementById('btnCol');
   if (!btnCol) return;
-  if (currentTab === 'upscale' || currentTab === 'face_swap') return; // no prompt needed
+  if (currentTab === 'upscale' || currentTab === 'face_swap') return; // prompt never required
   const hasText = prompt.length > 0;
   btnCol.querySelectorAll('.btn-generate[data-requires-prompt]').forEach(btn => {
     btn.disabled = !hasText;

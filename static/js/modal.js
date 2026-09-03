@@ -31,9 +31,11 @@ const modalConfigs = {
   },
   face_swap: {
     title: 'Face Swap',
-    // Empty on purpose: no advanced fields yet (the head-swap LoRA / model /
-    // prompt are fixed in the workflow). A future version may add controls
-    // here — the modal shell and save plumbing already work with fields: [].
+    // Empty on purpose: no advanced fields yet (the head-swap LoRA is
+    // resolved against the server at runtime and the prompt is the OPTIONAL
+    // extra text in the bottom bar — appended after the built-in head_swap
+    // instructions). A future version may add controls here — the modal
+    // shell and save plumbing already work with fields: [].
     fields: [],
   },
   upscale: {

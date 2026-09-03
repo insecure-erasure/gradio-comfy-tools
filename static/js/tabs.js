@@ -63,8 +63,9 @@ function switchTab(name) {
       btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'face_swap':
-      // No editable prompt (the field is disabled — a future version) and
-      // no 🪄 refine: the single 🔄 action is always active (no catcher).
+      // The prompt is OPTIONAL (the workflow appends it after its built-in
+      // head_swap instructions): the single 🔄 action is always active (no
+      // catcher, no 🪄 refine).
       bar.style.display = 'flex';
       wrap.style.display = '';
       btnCol.innerHTML = '<button class="btn-generate" id="btnFaceSwap" onclick="generateFaceSwap()" title="Swap faces">🔄</button>';
@@ -159,8 +160,9 @@ function renderToolbar(tab) {
       <button class="btn-reset" onclick="resetEdit()" title="Reset">↺</button>
       <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
   } else if (tab === 'face_swap') {
-    // No model dropdown (the head-swap LoRA is fixed in the workflow); the
-    // ⚙️ advanced modal opens EMPTY for now (a future version).
+    // No model dropdown (the head-swap LoRA is resolved against the server
+    // at runtime); the ⚙️ advanced modal opens EMPTY for now (a future
+    // version).
     html += `<button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>
       <button class="btn-reset" onclick="resetFaceSwap()" title="Reset">↺</button>
       <button class="btn-reset btn-trash" onclick="trashCurrentTab()" title="Clear gallery">🗑️</button>`;
@@ -400,6 +402,7 @@ function promptModalGenerate() {
     case 'generate': generateImage(); break;
     case 'edit': generateEdit('edit'); break;
     case 'video': generateVideo(); break;
+    case 'face_swap': generateFaceSwap(); break; // prompt optional
   }
 }
 
@@ -424,10 +427,10 @@ function updatePromptModalActions() {
     generate: { glyph: '✨', title: 'Generate' },
     edit: { glyph: '🖌️', title: 'Edit' },
     video: { glyph: '🎬', title: 'Generate video' },
+    face_swap: { glyph: '🔄', title: 'Swap faces' },
   }[currentTab];
   if (!cfg) {
-    // Face swap (and Upscale, defensively): NO prompt actions at all — the
-    // 🪄 refine goes too (this tool has no editable prompt to refine).
+    // Upscale: NO prompt at all — no actions.
     btn.style.display = 'none';
     if (restore) restore.style.display = 'none';
     if (refine) refine.style.display = 'none';
@@ -435,7 +438,10 @@ function updatePromptModalActions() {
   }
   btn.style.display = '';
   if (restore) restore.style.display = currentTab === 'edit' ? '' : 'none';
-  if (refine) refine.style.display = '';
+  // 🪄 refine: generate/edit/video only — a face-swap prompt is an OPTIONAL
+  // suffix to the workflow's built-in head_swap text, so refining it alone
+  // would be misleading (no 🪄 in the bar either).
+  if (refine) refine.style.display = currentTab === 'face_swap' ? 'none' : '';
   if (_genStopOrig.has(btn)) return; // already the ⏹ stop button
   btn.textContent = cfg.glyph;
   btn.title = cfg.title;

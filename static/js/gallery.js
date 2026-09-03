@@ -114,13 +114,15 @@ function addGeneratedEntry(res, prompt) {
 // A FACE SWAP of (base + face) -> new result src: APPENDS a new entry to
 // the generated history (the base stays in the gallery — the swap is a new
 // image). ``before`` is the same-origin proxy URL of the base (the BEFORE
-// side of the comparison, persisted for restore). Called from face_swap.js
-// when a result lands; the pane ‹ › nav and ⛶ gallery use the COMPARISON
-// registry (addCompareEntry) instead — see paneGalleryCount.
-function addFaceSwapEntry(res, before) {
+// side of the comparison, persisted for restore). ``prompt`` is the user's
+// OPTIONAL extra prompt (shown via the gallery Show-prompt button when
+// present). Called from face_swap.js when a result lands; the pane ‹ › nav
+// and ⛶ gallery use the COMPARISON registry (addCompareEntry) instead —
+// see paneGalleryCount.
+function addFaceSwapEntry(res, before, prompt) {
   const src = res.display || res.src || res.url;
   window.galleryGenerated.push({
-    src, url: res.url || '', prompt: '', badge: '', filename: filenameFromUrl(src),
+    src, url: res.url || '', prompt: prompt || '', badge: '', filename: filenameFromUrl(src),
     originalPrompt: '', before: before || null, faceSwap: true,
   });
   savePersistedState();

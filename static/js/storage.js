@@ -247,7 +247,7 @@ function resetAllUserData() {
   window.galleryVideos = [];
   window.galleryComparisons = [];
   toolbarValues = { genFamily: 'krea2', vidVersion: 'wan21' };
-  promptsByTab = { generate: '', edit: '', video: '' };
+  promptsByTab = { generate: '', edit: '', video: '', face_swap: '' };
   window.advancedValues = {};
   currentTheme = 'dark';
   if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video', 'face_swap'].forEach(syncPaneNav);

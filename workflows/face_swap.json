@@ -87,7 +87,10 @@
   },
   "117": {
     "inputs": {
-      "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.\n",
+      "text": [
+        "300",
+        0
+      ],
       "clip": [
         "115",
         0
@@ -365,6 +368,29 @@
     "class_type": "LoadImageByUrlOrPath",
     "_meta": {
       "title": "Load Image (URL/Path)"
+    }
+  },
+  "300": {
+    "inputs": {
+      "string_a": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.\n",
+      "string_b": [
+        "301",
+        0
+      ],
+      "delimiter": ""
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concat Prompt (Positive)"
+    }
+  },
+  "301": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt"
     }
   },
   "116:191": {
