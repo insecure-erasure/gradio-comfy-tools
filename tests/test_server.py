@@ -501,7 +501,7 @@ def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
 
     def fake_face_swap(settings, **kwargs):
         received.update(kwargs)
-        return "http://comfy/view?filename=swapped.png&type=temp"
+        return "http://comfy/view?filename=swapped.png&type=temp", None
 
     monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
     resp = client.post(
@@ -517,6 +517,7 @@ def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
     assert received["seed"] == 7
     assert resp.json()["filename"] == "swapped.png"
     assert resp.json()["type"] == "temp"
+    assert "face_preview" not in resp.json()  # no face preview -> no extra key
 
 
 def test_api_face_swap_tool_error_becomes_400(client, tmp_config, monkeypatch):
@@ -526,6 +527,24 @@ def test_api_face_swap_tool_error_becomes_400(client, tmp_config, monkeypatch):
     monkeypatch.setattr(server, "face_swap_image", boom)
     resp = client.post("/api/face-swap", json={"image": "", "face": "f.png"})
     assert resp.status_code == 400
+
+
+def test_api_face_swap_includes_face_preview(client, tmp_config, monkeypatch):
+    def fake_face_swap(settings, **kwargs):
+        return (
+            "http://comfy/view?filename=swapped.png&type=temp",
+            "http://comfy/view?filename=face_crop.png&type=temp",
+        )
+
+    monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
+    resp = client.post("/api/face-swap", json={"image": "base.png", "face": "face.png"})
+    assert resp.status_code == 200
+    j = resp.json()
+    assert j["filename"] == "swapped.png"  # main result unchanged
+    fp = j["face_preview"]
+    assert fp["filename"] == "face_crop.png"
+    assert fp["type"] == "temp"
+    assert fp["display"].startswith("/media/face_crop.png")
 
 
 def test_index_serves_face_swap_tab(client, tmp_config):

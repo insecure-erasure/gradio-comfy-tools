@@ -173,6 +173,30 @@
     bottom: 12px;
     right: 84px;
   }
+  /* Extracted-face preview: after a face swap, the workflow's SECOND
+     RandomPreviewImage output ("Random Preview Image (face)" — the crop of
+     the face region, for checking the extraction) is shown as a SMALL box
+     bottom-RIGHT, sitting ABOVE the overlay buttons (🔗/👨🏻/🖼️ at
+     bottom:12px, 30px tall → top edge at 42px) so they stay clickable —
+     the mirror of .face-ref-overlay (bottom-left). ~10% of the canvas
+     width; removed like any preview (showResult / clearPane / reset). */
+  .face-extract-overlay {
+    position: absolute;
+    right: 12px;
+    bottom: 56px;
+    width: 10%;
+    min-width: 48px;
+    max-width: 140px;
+    max-height: 22%;
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 8px;
+    background: #000;
+    object-fit: contain;
+    opacity: .95;
+    box-shadow: 0 2px 10px rgba(0,0,0,.45);
+    z-index: 4;
+    pointer-events: none;
+  }
   /* The Face swap compare fills its canvas — let the OUTPUT PANE background
      (the app theme color) show through the letterbox instead of the shared
      .compare-slider black, so the canvas keeps the same look it had before
@@ -180,19 +204,12 @@
   #faceSwapCompare {
     background: transparent;
   }
-  /* The Face swap prompt field is permanently readonly (a future version
-     exposes the prompt) — make it read as such, but keep it clickable (it
-     opens the portrait prompt modal with the 👣 parameter chips). */
+  /* While a generation runs the prompt textarea is disabled + dimmed (the
+     generation lock in api.js); it becomes editable again when the job
+     settles. */
   .prompt-input-wrap textarea:disabled {
     opacity: .5;
     cursor: not-allowed;
-  }
-  .prompt-input-wrap textarea[readonly]:not(:disabled) {
-    opacity: .5;
-    cursor: pointer;
-  }
-  .prompt-input-wrap textarea[readonly]:not(:disabled):hover {
-    opacity: .7;
   }
 
   /* ── Form elements ─────────────────────────── */

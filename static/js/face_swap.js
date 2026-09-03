@@ -10,6 +10,10 @@
 // The prompt is OPTIONAL: the workflow appends it after its built-in
 // head_swap instructions (empty prompt = built-in only). Params (👣 steps /
 // 🎚️ CFG / 🌱 seed+🎲) live in the 👣 prompt-chip popover, like Edit.
+// When a result lands, the workflow's extracted-face preview (its SECOND
+// output node, "Random Preview Image (face)") is shown as a SMALL box
+// bottom-RIGHT, ABOVE the upload/chain overlay buttons — so the user can
+// verify the face extraction that fed the swap.
 
 const FS_PANE_ID = 'faceSwapOutputPane';
 
@@ -48,7 +52,7 @@ function fsPreviewBase(value) {
   // base preview. The FACE overlay is deliberately kept — the two sources
   // are independent (and stays as the reference once a result lands).
   pane.querySelectorAll('.compare-slider').forEach(el => { el.style.display = 'none'; });
-  pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live')
+  pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live, .face-extract-overlay')
     .forEach(el => el.remove());
   const img = document.createElement('img');
   img.className = 'source-preview';
@@ -61,6 +65,8 @@ function fsPreviewFace(value) {
   const pane = document.getElementById(FS_PANE_ID);
   if (!pane) return;
   pane.querySelectorAll('.face-ref-overlay').forEach(el => el.remove());
+  // A new face source invalidates the extraction shown from the last run.
+  pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   const img = document.createElement('img');
   img.className = 'face-ref-overlay';
   img.alt = 'Face reference';
@@ -193,6 +199,8 @@ function generateFaceSwap() {
   pane.classList.add('busy');
   spinner.classList.add('show');
   setGenerating(pane, true);
+  // Drop a stale extraction box from a previous result before the new run.
+  pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   showToast('Face swap submitted to ComfyUI...');
   startProgressPolling();
   setGeneratingUi(true, 'btnFaceSwap');
@@ -234,9 +242,23 @@ function generateFaceSwap() {
       addFaceSwapEntry(res, beforeSrc, prompt);
     } else {
       // Defensive fallback: plain result (the markup always has the slider).
-      pane.querySelectorAll('.source-preview, .face-ref-overlay, .output-placeholder, .preview-live')
+      pane.querySelectorAll('.source-preview, .face-ref-overlay, .output-placeholder, .preview-live, .face-extract-overlay')
         .forEach(el => el.remove());
       showResult(FS_PANE_ID, res, false);
+    }
+    // Extracted-face preview (the workflow's "Random Preview Image (face)"
+    // output — the crop of the face region): a small overlay box bottom-
+    // right, ABOVE the upload/chain buttons (which stay clickable), so the
+    // user can verify the extraction that fed the swap. Replaced on each
+    // new result; the API omits face_preview when the workflow has no such
+    // node.
+    pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
+    if (res.face_preview && res.face_preview.display) {
+      const extract = document.createElement('img');
+      extract.className = 'face-extract-overlay';
+      extract.alt = 'Extracted face';
+      extract.src = res.face_preview.display; // same-origin /media proxy
+      pane.appendChild(extract);
     }
     lastGeneratedUrl = res.url;
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted

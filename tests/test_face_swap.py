@@ -7,10 +7,14 @@ import pytest
 from tools import _common
 from tools.face_swap import (
     _HEAD_SWAP_LORA_NAME,
+    FACE_OUTPUT_TITLE,
+    MAIN_OUTPUT_TITLE,
     build_workflow,
     face_swap_image,
     load_workflow,
+    node_id_titles,
     resolve_workflow,
+    select_result_images,
     FaceSwapError,
 )
 from config import Settings
@@ -225,7 +229,7 @@ def test_face_swap_image_prompt_reaches_workflow(monkeypatch):
             captured["wf"] = wf
             return "pid-1"
 
-        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+        def wait_for_output(self, prompt_id, timeout=None, poll=None, until=None):
             return {"199": {"images": [{"filename": "x.png", "type": "output"}]}}
 
         def result_url(self, filename, type_="output"):
@@ -271,16 +275,17 @@ def test_face_swap_image_resolves_and_injects_installed_lora(monkeypatch):
             captured["wf"] = wf
             return "pid-1"
 
-        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+        def wait_for_output(self, prompt_id, timeout=None, poll=None, until=None):
             return {"199": {"images": [{"filename": "swapped.png", "subfolder": "", "type": "output"}]}}
 
         def result_url(self, filename, type_="output"):
             return f"http://comfy/view?filename={filename}&type={type_}"
 
     monkeypatch.setattr(fs, "ComfyClient", FakeClient)
-    url = fs.face_swap_image(Settings(), image="a.png", face="b.png", steps=8)
+    url, face_url = fs.face_swap_image(Settings(), image="a.png", face="b.png", steps=8)
 
     assert url == "http://comfy/view?filename=swapped.png&type=output"
+    assert face_url is None  # no face-preview node output in this history
     wf = captured["wf"]
     lora = resolve_workflow(wf)["Load LoRA"]["inputs"]
     # The EXACT server-listed name (backslashes on Windows) is injected, not
@@ -311,7 +316,7 @@ def test_face_swap_image_linux_listing_injects_forward_slash_name(monkeypatch):
             captured["wf"] = wf
             return "pid-1"
 
-        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+        def wait_for_output(self, prompt_id, timeout=None, poll=None, until=None):
             return {"199": {"images": [{"filename": "x.png", "type": "output"}]}}
 
         def result_url(self, filename, type_="output"):
@@ -345,3 +350,76 @@ def test_face_swap_image_missing_lora_raises_clear_error(monkeypatch):
     monkeypatch.setattr(fs, "ComfyClient", FakeClient)
     with pytest.raises(FaceSwapError, match="not installed"):
         fs.face_swap_image(Settings(), image="a.png", face="b.png")
+
+
+# --------------------------------------------------------------------------- #
+# Extracted-face preview — the workflow's SECOND output node
+# --------------------------------------------------------------------------- #
+def test_face_swap_image_returns_extracted_face_preview(monkeypatch):
+    import tools.face_swap as fs
+
+    captured = {}
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def list_loras(self):
+            return ["flux2\\bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"]
+
+        def queue_prompt(self, wf, client_id=None, extra_data=None):
+            captured["wf"] = wf
+            return "pid-1"
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None, until=None):
+            captured["until"] = until
+            # The face-preview node executes BEFORE the sampled result, so
+            # its output is recorded first in history.
+            return {
+                "302": {"images": [{"filename": "face_crop.png", "subfolder": "", "type": "output"}]},
+                "199": {"images": [{"filename": "swapped.png", "subfolder": "", "type": "output"}]},
+            }
+
+        def result_url(self, filename, type_="output"):
+            return f"http://comfy/view?filename={filename}&type={type_}"
+
+    monkeypatch.setattr(fs, "ComfyClient", FakeClient)
+    url, face_url = fs.face_swap_image(Settings(), image="a.png", face="b.png")
+
+    # The MAIN result wins even though the face preview was recorded first.
+    assert url == "http://comfy/view?filename=swapped.png&type=output"
+    assert face_url == "http://comfy/view?filename=face_crop.png&type=output"
+    # The until predicate: false while only the face preview exists, true
+    # once the main node's output is present.
+    until = captured["until"]
+    assert until({"302": {"images": [{"filename": "face_crop.png", "type": "output"}]}}) is False
+    assert until({"302": {"images": [{"filename": "face_crop.png", "type": "output"}]},
+                  "199": {"images": [{"filename": "swapped.png", "type": "output"}]}}) is True
+
+
+def test_select_result_images_is_order_independent(wf):
+    titles = node_id_titles(wf)
+    main = {"filename": "main.png", "type": "output"}
+    face = {"filename": "face.png", "type": "output"}
+    assert FACE_OUTPUT_TITLE in titles.values() and MAIN_OUTPUT_TITLE in titles.values()
+    # face node recorded first (it executes early)
+    assert select_result_images({"302": {"images": [face]}, "199": {"images": [main]}}, titles) == (main, face)
+    # main node recorded first
+    assert select_result_images({"199": {"images": [main]}, "302": {"images": [face]}}, titles) == (main, face)
+
+
+def test_select_result_images_missing_outputs(wf):
+    titles = node_id_titles(wf)
+    main = {"filename": "main.png", "type": "output"}
+    assert select_result_images({}, titles) == (None, None)
+    # outputs without a titles map (defensive) — everything counts as main
+    assert select_result_images({"199": {"images": [main]}}, {}) == (main, None)
+    # only the face preview (should not happen after until: main_done)
+    face_only = {"302": {"images": [{"filename": "face.png", "type": "output"}]}}
+    assert select_result_images(face_only, titles) == (None, {"filename": "face.png", "type": "output"})

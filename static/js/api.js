@@ -54,7 +54,7 @@ function showToast(msg) {
 function showResult(paneId, result, isVideo) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay, .face-extract-overlay').forEach(el => el.remove());
   if (isVideo) {
     // Custom player (player.js): bottom-centered ▶/⏸ + ⋮ controls and an
     // always-visible accent progress line — replaces the native controls
@@ -81,7 +81,7 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
-  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay').forEach(el => el.remove());
+  pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .preview-live, .face-ref-overlay, .face-extract-overlay').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';
     // Drop the gallery markers so a cleared result no longer appears in the

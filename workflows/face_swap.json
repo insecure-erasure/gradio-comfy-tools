@@ -224,6 +224,18 @@
       "title": "Random Preview Image"
     }
   },
+  "302": {
+    "inputs": {
+      "images": [
+        "283",
+        0
+      ]
+    },
+    "class_type": "RandomPreviewImage",
+    "_meta": {
+      "title": "Random Preview Image (face)"
+    }
+  },
   "270": {
     "inputs": {
       "conditioning": [

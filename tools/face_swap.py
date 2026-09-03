@@ -24,6 +24,12 @@ fixed first part, and the OPTIONAL user prompt (the ``Prompt``
 PrimitiveStringMultiline node — the text input in the UI) is appended after
 it, verbatim. An empty extra prompt leaves the built-in instructions
 unchanged.
+
+The workflow ends in TWO output preview nodes: the swapped result (``Random
+Preview Image``) and the extracted-face preview (``Random Preview Image
+(face)``, fed by the face-crop node). face_swap_image waits for the MAIN
+output (the face crop is recorded earlier) and returns both URLs, so the
+frontend can show the extracted face in its own overlay box.
 """
 
 from __future__ import annotations
@@ -43,6 +49,14 @@ WORKFLOW_FILE = "workflows/face_swap.json"
 # installed name from the server at runtime and injects it verbatim, mirroring
 # _RESTORE_LORA_NAME in tools/edit.py.
 _HEAD_SWAP_LORA_NAME = "bfs_head_v1_flux-klein_9b_step3750_rank64.safetensors"
+
+# The workflow's TWO output preview nodes (RandomPreviewImage): the main
+# result and the extracted-face preview, which is fed by the face-crop node
+# and can be recorded by ComfyUI BEFORE the sampled result. History outputs
+# are keyed by node id, so resolution goes through the titles of the
+# SUBMITTED workflow (see select_result_images).
+MAIN_OUTPUT_TITLE = "Random Preview Image"
+FACE_OUTPUT_TITLE = "Random Preview Image (face)"
 
 # The workflow's own defaults (mirrors the JSON, used when 0 / not provided).
 DEFAULT_STEPS = 6
@@ -175,6 +189,41 @@ def _resolve_head_swap_lora(client: ComfyClient) -> str:
     return found
 
 
+def node_id_titles(workflow: dict[str, dict]) -> dict[str, str]:
+    """node_id -> _meta.title (fallback class_type) of a workflow."""
+    return {
+        str(nid): (node.get("_meta", {}).get("title") or node.get("class_type") or str(nid))
+        for nid, node in workflow.items()
+    }
+
+
+def select_result_images(
+    outputs: dict[str, Any], titles: dict[str, str]
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """(main, face) image records from a ComfyUI history outputs dict.
+
+    The face-swap workflow has TWO RandomPreviewImage outputs — the main
+    result and the extracted-face preview, which can be recorded BEFORE the
+    sampled result (the crop runs early). History keys outputs by node id, so
+    the ids are mapped through ``titles`` (node id -> title, from the
+    workflow that was actually submitted). Any image whose node is not tagged
+    as the face output counts as the main result; each missing output is
+    None.
+    """
+    main: dict[str, Any] | None = None
+    face: dict[str, Any] | None = None
+    for nid, node_out in outputs.items():
+        images = node_out.get("images") or []
+        if not images:
+            continue
+        if titles.get(str(nid)) == FACE_OUTPUT_TITLE:
+            if face is None:
+                face = images[0]
+        elif main is None:
+            main = images[0]
+    return main, face
+
+
 def face_swap_image(
     settings: Settings,
     *,
@@ -185,8 +234,13 @@ def face_swap_image(
     cfg: float | None = None,
     seed: int = -1,
     timeout: float = 240.0,
-) -> str:
-    """Run the Face swap workflow and return the output image URL."""
+) -> tuple[str, str | None]:
+    """Run the Face swap workflow and return the output image URL(s).
+
+    Returns ``(url, face_preview_url)``: the swapped image plus the
+    extracted-face preview (the workflow's second RandomPreviewImage
+    output), or None for the preview when it is absent.
+    """
     with ComfyClient(settings=settings) as client:
         # The head-swap LoRA path is OS-dependent inside ComfyUI (subfolder
         # separators), so resolve the installed name from the server first
@@ -202,11 +256,28 @@ def face_swap_image(
             seed=seed,
             lora_name=lora_name,
         )
+        titles = node_id_titles(wf)
+
+        # The face-preview output can finish before the sampled result, so
+        # wait until the MAIN output exists (when the workflow has the face
+        # node; without it any output is the result — legacy behavior).
+        def _main_done(outputs: dict[str, Any]) -> bool:
+            main, _ = select_result_images(outputs, titles)
+            return main is not None or FACE_OUTPUT_TITLE not in titles.values()
+
         # preview_method: auto — the SamplerCustomAdvanced decodes its
         # intermediate latent each step and streams JPEG previews over the
         # WS, which server.py's job listener captures for the live preview
         # in the Face swap tab (same mechanism as Edit/Generate).
         prompt_id = client.queue_prompt(wf, extra_data={"preview_method": "auto"})
-        outputs = client.wait_for_output(prompt_id, timeout=timeout)
-    image_rec = _common.find_output_image(outputs)
-    return client.result_url(image_rec["filename"], image_rec.get("type", "output"))
+        outputs = client.wait_for_output(prompt_id, timeout=timeout, until=_main_done)
+    main_rec, face_rec = select_result_images(outputs, titles)
+    if main_rec is None:
+        main_rec = _common.find_output_image(outputs)  # raises when empty
+    url = client.result_url(main_rec["filename"], main_rec.get("type", "output"))
+    face_url = (
+        client.result_url(face_rec["filename"], face_rec.get("type", "output"))
+        if face_rec is not None
+        else None
+    )
+    return url, face_url

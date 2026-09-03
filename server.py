@@ -247,7 +247,10 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
                     threading.Thread(
                         target=_record_job_output,
                         args=(prompt_id, live_job_tool.get(prompt_id, "")),
-                        kwargs={"prompt": live_job_prompt.get(prompt_id, "")},
+                        kwargs={
+                            "prompt": live_job_prompt.get(prompt_id, ""),
+                            "titles": titles,
+                        },
                         daemon=True,
                     ).start()
                 _broadcast_progress(job)  # push the stage/value/preview update
@@ -289,7 +292,9 @@ def _start_job_listener(client_id: str, prompt_id: str, workflow: dict) -> None:
         _broadcast_progress(_jobs.get(prompt_id))  # push the "queued" state
 
 
-def _record_job_output(prompt_id: str, tool: str = "", prompt: str = "") -> None:
+def _record_job_output(
+    prompt_id: str, tool: str = "", prompt: str = "", titles: dict | None = None
+) -> None:
     """Best-effort: record a completed job's result URL from ComfyUI history.
 
     Called from a dedicated thread spawned by the job's WS listener on
@@ -298,6 +303,11 @@ def _record_job_output(prompt_id: str, tool: str = "", prompt: str = "") -> None
     disconnected mid-job. The handler's _mark_latest_done remains as a second,
     idempotent record path — whichever runs first wins, and _mark_job_result
     is safe to call twice.
+
+    ``titles`` is the node_id -> title map of the submitted workflow (the WS
+    listener has it); the Face swap workflow ends in TWO preview nodes, so
+    its result must be resolved by node title — never the first image
+    (the extracted-face preview is recorded first).
 
     WARNING: must never be called while holding _jobs_lock — it acquires the
     lock itself (via _mark_job_result) and threading.Lock is not reentrant;
@@ -312,10 +322,21 @@ def _record_job_output(prompt_id: str, tool: str = "", prompt: str = "") -> None
             # History is normally already populated when execution_success
             # fires; the generous timeout covers any tiny write lag.
             outputs = c.wait_for_output(prompt_id, timeout=60, poll=1)
-            try:
-                rec = _common.find_output_image(outputs)
-            except _common.WorkflowError:
-                rec = _common.find_output_video(outputs)
+            rec = None
+            if tool == "face_swap":
+                try:
+                    from tools.face_swap import select_result_images
+
+                    main, _ = select_result_images(outputs, titles or {})
+                    if main is not None:
+                        rec = main
+                except Exception:
+                    rec = None  # fall back to the generic pick below
+            if rec is None:
+                try:
+                    rec = _common.find_output_image(outputs)
+                except _common.WorkflowError:
+                    rec = _common.find_output_video(outputs)
             url = c.result_url(rec["filename"], rec.get("type", "output"))
         _mark_job_result(prompt_id, url, tool=tool, prompt=prompt)
     except Exception:
@@ -653,14 +674,16 @@ def api_edit(body: dict) -> dict:
 def api_face_swap(body: dict) -> dict:
     """Face swap: replace the head of `image` (base) with the face from
     `face` (Picture 2). An optional `prompt` is appended after the
-    workflow's built-in head_swap instructions. See tools/face_swap.py."""
+    workflow's built-in head_swap instructions. The response carries the
+    extracted-face preview too when the workflow produced one
+    (``face_preview``: same shape as the main result). See tools/face_swap.py."""
     s = _settings()
     try:
         global _pending_tool, _pending_prompt
         _pending_tool = "face_swap"
         _pending_prompt = str(body.get("prompt", ""))
         cfg_raw = body.get("cfg")
-        url = face_swap_image(
+        url, face_url = face_swap_image(
             s,
             image=str(body.get("image", "")),
             face=str(body.get("face", "")),
@@ -670,9 +693,12 @@ def api_face_swap(body: dict) -> dict:
             seed=int(body.get("seed", -1)),
         )
         _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt)
+        resp = _tool_response(url)
+        if face_url:
+            resp["face_preview"] = _tool_response(face_url)
+        return resp
     except Exception as e:
         raise HTTPException(400, str(e)) from e
-    return _tool_response(url)
 
 
 @app.post("/api/upscale")

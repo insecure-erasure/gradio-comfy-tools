@@ -187,11 +187,17 @@ class ComfyClient:
         prompt_id: str,
         timeout: float = 120.0,
         poll: float = 1.0,
+        until: Callable[[dict[str, Any]], bool] | None = None,
     ) -> dict[str, Any]:
         """Poll GET /history/{prompt_id} until outputs appear.
 
-        Returns the prompt's outputs dict. Raises TimeoutError after
-        ``timeout`` seconds without completion.
+        Returns the prompt's outputs dict. ``until`` optionally narrows the
+        completion condition: it is called with the outputs dict collected so
+        far and polling continues while it returns False. Used by Face swap,
+        whose extracted-face preview node can finish (and be recorded) long
+        before the sampled result — the caller waits for the MAIN preview
+        output specifically. Raises TimeoutError after ``timeout`` seconds
+        without completion.
         """
         url = self._url(f"/history/{prompt_id}")
         deadline = time.monotonic() + timeout
@@ -200,8 +206,9 @@ class ComfyClient:
             resp.raise_for_status()
             history = resp.json()
             entry = history.get(prompt_id)
-            if entry and entry.get("outputs"):
-                return entry["outputs"]
+            outputs = entry.get("outputs") if entry else None
+            if outputs and (until is None or until(outputs)):
+                return outputs
             if time.monotonic() >= deadline:
                 raise TimeoutError(
                     f"ComfyUI did not finish within {timeout:.0f}s (prompt {prompt_id})"

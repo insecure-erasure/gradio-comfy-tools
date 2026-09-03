@@ -424,3 +424,33 @@ def test_match_by_basename_case_insensitive_and_missing():
     assert _common.match_by_basename(names, "bfs_head_va1.safetensors") == "FLUX2\\BFS_HEAD_VA1.SAFETENSORS"
     assert _common.match_by_basename(names, "not-installed.safetensors") is None
     assert _common.match_by_basename([], "anything.safetensors") is None
+
+
+def test_wait_for_output_until_waits_for_predicate():
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/history/abc123"
+        calls["n"] += 1
+        if calls["n"] == 1:
+            # Partial outputs (e.g. the face preview finishing early) —
+            # the predicate is not satisfied yet.
+            return httpx.Response(200, json={"abc123": {"outputs": {"face": {"images": []}}}})
+        return httpx.Response(
+            200,
+            json={"abc123": {"outputs": {"face": {"images": []}, "main": {"images": [1]}}}},
+        )
+
+    client = make_client(handler)
+    outs = client.wait_for_output("abc123", timeout=10, poll=0.01, until=lambda o: "main" in o)
+    assert calls["n"] == 2
+    assert "main" in outs
+
+
+def test_wait_for_output_without_until_returns_first_outputs():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"abc123": {"outputs": {"face": {"images": []}}}})
+
+    client = make_client(handler)
+    outs = client.wait_for_output("abc123", timeout=10, poll=0.01)
+    assert "face" in outs

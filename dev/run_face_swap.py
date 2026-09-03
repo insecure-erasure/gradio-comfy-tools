@@ -46,7 +46,7 @@ def main() -> int:
         print(f"  prompt:       {args.prompt}")
 
     try:
-        url = face_swap_image(
+        url, face_url = face_swap_image(
             settings,
             image=args.image,
             face=args.face,
@@ -59,6 +59,8 @@ def main() -> int:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
     print(f"\nResult URL: {url}")
+    if face_url:
+        print(f"Extracted-face preview: {face_url}")
     return 0
 
 
