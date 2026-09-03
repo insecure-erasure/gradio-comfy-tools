@@ -10,10 +10,12 @@
 // The prompt is OPTIONAL: the workflow appends it after its built-in
 // head_swap instructions (empty prompt = built-in only). Params (👣 steps /
 // 🎚️ CFG / 🌱 seed+🎲) live in the 👣 prompt-chip popover, like Edit.
-// When a result lands, the workflow's extracted-face preview (its SECOND
+// When a face swap runs, the workflow's extracted-face preview (its SECOND
 // output node, "Random Preview Image (face)") is shown as a SMALL box
-// bottom-RIGHT, ABOVE the upload/chain overlay buttons — so the user can
-// verify the face extraction that fed the swap.
+// bottom-RIGHT, ABOVE the upload/chain overlay buttons — as soon as the
+// extraction node executes (BEFORE the sampling finishes), so the user can
+// verify the extraction early. Its PNG carries the alpha channel: the
+// transparent pixels show a small gray-tile checkerboard behind it.
 
 const FS_PANE_ID = 'faceSwapOutputPane';
 
@@ -246,12 +248,15 @@ function generateFaceSwap() {
         .forEach(el => el.remove());
       showResult(FS_PANE_ID, res, false);
     }
+    lastGeneratedUrl = res.url;
+    stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     // Extracted-face preview (the workflow's "Random Preview Image (face)"
-    // output — the crop of the face region): a small overlay box bottom-
-    // right, ABOVE the upload/chain buttons (which stay clickable), so the
-    // user can verify the extraction that fed the swap. Replaced on each
-    // new result; the API omits face_preview when the workflow has no such
-    // node.
+    // output — the face region with its alpha): a small overlay box
+    // bottom-right, ABOVE the upload/chain buttons (which stay clickable),
+    // so the user can verify the extraction that fed the swap. Painted
+    // AFTER stopProgressPolling, which clears the early overlay shown by
+    // the live progress (job settled: cancel or done); the API omits
+    // face_preview when the workflow has no such node.
     pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
     if (res.face_preview && res.face_preview.display) {
       const extract = document.createElement('img');
@@ -260,8 +265,6 @@ function generateFaceSwap() {
       extract.src = res.face_preview.display; // same-origin /media proxy
       pane.appendChild(extract);
     }
-    lastGeneratedUrl = res.url;
-    stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('face_swap', { url: res.url });
     showToast('🔄 Face swapped');
     if (btn) btn.disabled = false;

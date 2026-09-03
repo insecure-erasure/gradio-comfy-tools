@@ -537,6 +537,26 @@ function applyProgress(j) {
       pv.src = a.preview;
     }
   }
+  // Face swap extracted-face preview DURING the run: the workflow's second
+  // output node ("Random Preview Image (face)") executes BEFORE the
+  // sampling, so the backend pushes its /media path as soon as it exists
+  // (job.face_preview). Paint it immediately — no need to wait for the
+  // full swap — so the user can check the extraction early. Same tab
+  // gating as the live per-step preview; finalize() re-paints the
+  // authoritative overlay when the job lands.
+  if (liveJobTab === 'face_swap' && currentTab === 'face_swap' && a.face_preview) {
+    const pane = document.getElementById('faceSwapOutputPane');
+    if (pane) {
+      let ex = pane.querySelector('.face-extract-overlay');
+      if (!ex) {
+        ex = document.createElement('img');
+        ex.className = 'face-extract-overlay';
+        ex.alt = 'Extracted face';
+        pane.appendChild(ex);
+      }
+      if (ex.src !== a.face_preview) ex.src = a.face_preview;
+    }
+  }
 }
 
 // Polling fallback: fetch the current job state and paint it. Only active
@@ -593,6 +613,11 @@ function stopProgressPolling() {
   // Drop any live preview left in a pane (job settled: cancel or done). The
   // final result replaces it via showResult; on cancel nothing should linger.
   document.querySelectorAll('.preview-live').forEach(el => el.remove());
+  // Same for an EARLY-painted extracted-face overlay (the live progress
+  // pushed it the moment the workflow's face-preview node executed): on
+  // cancel nothing should linger; on success the per-tool finalize
+  // re-paints it AFTER this cleanup with the authoritative result.
+  document.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   // Restore whatever was hidden while the preview was painted (placeholder /
   // previous result / source preview), so a cancelled job keeps the pane as
   // it was. Elements removed by showResult are simply gone from the DOM.

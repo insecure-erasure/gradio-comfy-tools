@@ -173,13 +173,17 @@
     bottom: 12px;
     right: 84px;
   }
-  /* Extracted-face preview: after a face swap, the workflow's SECOND
-     RandomPreviewImage output ("Random Preview Image (face)" — the crop of
-     the face region, for checking the extraction) is shown as a SMALL box
-     bottom-RIGHT, sitting ABOVE the overlay buttons (🔗/👨🏻/🖼️ at
-     bottom:12px, 30px tall → top edge at 42px) so they stay clickable —
-     the mirror of .face-ref-overlay (bottom-left). ~10% of the canvas
-     width; removed like any preview (showResult / clearPane / reset). */
+  /* Extracted-face preview: after a face swap (and DURING the run, as soon
+     as the workflow's face-preview node executes), the extracted face — a
+     PNG with an alpha channel (JoinImageWithAlpha output) — is shown as a
+     SMALL box bottom-RIGHT, sitting ABOVE the overlay buttons (🔗/👨🏻/🖼️
+     at bottom:12px, 30px tall → top edge at 42px) so they stay clickable —
+     the mirror of .face-ref-overlay (bottom-left). The transparency is
+     revealed by a SMALL GRAY-TILE CHECKERBOARD behind the image (the
+     classic "this is a transparency" indicator): the box hugs the image
+     (width cap + max-height, height auto), so the tiles only show through
+     the PNG's transparent pixels. Removed like any preview
+     (showResult / clearPane / reset / a new run). */
   .face-extract-overlay {
     position: absolute;
     right: 12px;
@@ -188,11 +192,15 @@
     min-width: 48px;
     max-width: 140px;
     max-height: 22%;
-    border: 1px solid rgba(255,255,255,.3);
+    border: 1px solid rgba(255,255,255,.35);
     border-radius: 8px;
-    background: #000;
+    /* Checkerboard in gray tones — 8px tiles: the alpha channel shows as
+       the classic transparency mosaic. */
+    background-color: #e8e8e8;
+    background-image:
+      conic-gradient(#bdbdbd 25%, #e8e8e8 0 50%, #bdbdbd 0 75%, #e8e8e8 0);
+    background-size: 16px 16px;
     object-fit: contain;
-    opacity: .95;
     box-shadow: 0 2px 10px rgba(0,0,0,.45);
     z-index: 4;
     pointer-events: none;

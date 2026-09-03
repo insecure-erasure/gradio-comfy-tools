@@ -423,3 +423,18 @@ def test_select_result_images_missing_outputs(wf):
     # only the face preview (should not happen after until: main_done)
     face_only = {"302": {"images": [{"filename": "face.png", "type": "output"}]}}
     assert select_result_images(face_only, titles) == (None, {"filename": "face.png", "type": "output"})
+
+
+def test_build_workflow_busts_face_chain_cache(wf):
+    # A per-run cache_bust key lands on the Face Reference node (ComfyUI
+    # ignores it at execution but it varies the cache key, forcing the
+    # extraction chain to re-run so its preview node fires an 'executed'
+    # event — the early-preview mechanism depends on it).
+    built, _ = build_workflow(wf, image="a.png", face="b.png")
+    face_node = resolve_workflow(built)["Face Reference"]["inputs"]
+    assert "cache_bust" in face_node
+    assert face_node["cache_bust"].isdigit()
+    # The base node does NOT need it (no preview output on that chain).
+    assert "cache_bust" not in resolve_workflow(built)["Load Image (URL/Path)"]["inputs"]
+    # Deep-copy safety: the source workflow is not polluted.
+    assert "cache_bust" not in resolve_workflow(wf)["Face Reference"]["inputs"]

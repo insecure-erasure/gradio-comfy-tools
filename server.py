@@ -43,7 +43,7 @@ from starlette.requests import Request
 import comfy_client
 from config import Settings
 from tools.edit import edit_image, MODES
-from tools.face_swap import face_swap_image
+from tools.face_swap import FACE_OUTPUT_TITLE, face_swap_image
 from tools.generate import FAMILY_OPTIONS, generate_image
 from tools.upscale import upscale_image
 from tools.video import MODEL_VERSIONS, generate_video
@@ -229,6 +229,26 @@ def _listen_job_ws(base_url: str, client_id: str, prompt_id: str, titles: dict[s
                     elif t == "progress":
                         job["value"] = data.get("value")
                         job["max"] = data.get("max")
+                    elif t == "executed":
+                        # A node finished. For the Face swap workflow, the
+                        # extracted-face preview node executes BEFORE the
+                        # sampling: capture its output image so the UI can
+                        # show the extraction as soon as it exists (see
+                        # applyProgress in the frontend) instead of waiting
+                        # for the full result.
+                        if titles.get(str(data.get("node"))) == FACE_OUTPUT_TITLE:
+                            out = data.get("output")
+                            images = (
+                                (out.get("images") if isinstance(out, dict) else None)
+                                or (isinstance(out, dict) and (out.get("ui") or {}).get("images"))
+                            )
+                            if isinstance(images, list) and images:
+                                rec = images[0]
+                                if isinstance(rec, dict) and rec.get("filename"):
+                                    job["face_preview"] = (
+                                        f"/media/{rec['filename']}"
+                                        f"?type={rec.get('type', 'output')}"
+                                    )
                     elif t == "execution_success":
                         job["done"] = True
                     elif t == "execution_error":
@@ -383,7 +403,8 @@ _WS_SENTINEL = object()
 def _progress_payload(job: dict | None) -> dict:
     """The wire payload for one job state, shared by GET /api/progress and
     the /ws/progress push: {"active": {...}} while a job runs (the per-step
-    preview included when the job requested previews), {"active": None}
+    preview included when the job requested previews, and the Face swap's
+    extracted-face preview once its output node executed), {"active": None}
     otherwise."""
     if job is None or job.get("done"):
         return {"active": None}
@@ -391,6 +412,12 @@ def _progress_payload(job: dict | None) -> dict:
     pv = job.get("preview")
     if pv:
         active["preview"] = "data:image/jpeg;base64," + base64.b64encode(pv).decode("ascii")
+    # The face extraction (Face swap): same-origin /media path of the
+    # workflow's second output node, available from the moment it executed
+    # (long before the sampled result finishes).
+    fp = job.get("face_preview")
+    if fp:
+        active["face_preview"] = fp
     return {"active": active}
 
 

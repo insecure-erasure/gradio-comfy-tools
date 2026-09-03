@@ -1357,3 +1357,102 @@ def test_media_exists_transport_error(client, tmp_config, monkeypatch):
     assert resp.status_code == 200
     assert resp.json()["exists"] is False
     assert resp.json()["error"] == "transport"
+
+
+def test_listener_captures_face_preview_on_executed(client, tmp_config, monkeypatch):
+    """The WS listener captures the extracted-face preview the moment the
+    workflow's face-preview output node executes (BEFORE the sampling), so
+    the UI can show the extraction early — the payload then carries it."""
+    import time as _time
+    import websockets.sync.client as wsclient
+    import comfy_client as cc
+
+    class FakeClient:
+        def __init__(self, settings=None):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def wait_for_output(self, prompt_id, timeout=None, poll=None):
+            return {"199": {"images": [{"filename": "swapped.png", "type": "temp"}]}}
+
+        def result_url(self, filename, type_="output"):
+            return f"http://x/view?filename={filename}&type={type_}"
+
+    msgs = [
+        {
+            "type": "executed",
+            "data": {
+                "node": "302",
+                "output": {"images": [{"filename": "ComfyUI_temp_face.png", "subfolder": "", "type": "temp"}]},
+                "prompt_id": "pidex",
+            },
+        },
+        {"type": "execution_success", "data": {"prompt_id": "pidex"}},
+    ]
+
+    class FakeWS:
+        def __init__(self):
+            self.sent = []
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def send(self, msg):
+            self.sent.append(msg)
+
+        def __iter__(self):
+            for m in msgs:
+                yield json.dumps(m)
+
+    monkeypatch.setattr(cc, "ComfyClient", FakeClient)
+    monkeypatch.setattr(wsclient, "connect", lambda *a, **k: FakeWS())
+    wf = {
+        "199": {"class_type": "RandomPreviewImage", "_meta": {"title": "Random Preview Image"}},
+        "302": {"class_type": "RandomPreviewImage", "_meta": {"title": "Random Preview Image (face)"}},
+    }
+    server._start_job_listener("cid", "pidex", wf)
+    try:
+        deadline = _time.monotonic() + 5
+        fp = None
+        while _time.monotonic() < deadline:
+            with server._jobs_lock:
+                fp = server._jobs.get("pidex", {}).get("face_preview")
+            if fp:
+                break
+            _time.sleep(0.05)
+        assert fp == "/media/ComfyUI_temp_face.png?type=temp"
+        with server._jobs_lock:
+            assert server._jobs["pidex"]["done"] is True
+    finally:
+        if not server._jobs_lock.acquire(timeout=1):
+            server._jobs.clear()
+        else:
+            server._jobs.clear()
+            server._jobs_lock.release()
+
+
+def test_progress_payload_includes_face_preview():
+    """A running Face swap job whose face-preview node executed carries the
+    extracted-face /media path in the progress payload (painted early)."""
+    job = {
+        "prompt_id": "p1",
+        "started": 1,
+        "stage": "running",
+        "node": "302",
+        "node_title": "Random Preview Image (face)",
+        "done": False,
+        "face_preview": "/media/ComfyUI_temp_face.png?type=temp",
+    }
+    active = server._progress_payload(job)["active"]
+    assert active["face_preview"] == "/media/ComfyUI_temp_face.png?type=temp"
+    # absent when the face node has not executed yet
+    job2 = dict(job, face_preview=None)
+    assert "face_preview" not in server._progress_payload(job2)["active"]

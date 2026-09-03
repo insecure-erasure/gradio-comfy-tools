@@ -35,6 +35,7 @@ frontend can show the extracted face in its own overlay box.
 from __future__ import annotations
 
 import json
+import random
 from typing import Any
 
 from comfy_client import ComfyClient
@@ -145,6 +146,16 @@ def build_workflow(
     # nodes, same filename-vs-URL auto-detection as the other tools.
     _common.configure_image_node(nodes["Load Image (URL/Path)"]["inputs"], image)
     _common.configure_image_node(nodes["Face Reference"]["inputs"], face)
+
+    # Cache bust for the FACE chain (extraction + its preview node): ComfyUI
+    # caches node outputs across prompts — with the same face image the
+    # chain would NOT re-execute and would emit no 'executed' WS event, so
+    # the backend could not push the extracted-face preview mid-run (the
+    # whole point of the second output node). ComfyUI ignores undeclared
+    # input keys at execution, but they still vary the node's cache key, so
+    # a harmless per-run value forces the extraction to run (and its
+    # preview node to fire) on every job.
+    nodes["Face Reference"]["inputs"]["cache_bust"] = str(random.randint(0, 2**32))
 
     # Steps + CFG + seed (FLUX.2 guidance stack). cfg=None keeps the
     # workflow default (1.0); an explicit 0 is applied as-is (no guidance).
