@@ -597,13 +597,13 @@ survives tab switches mid-generation (`switchTab` re-asserts the lock with
 | `GET /` | renders the UI |
 | `GET /health` | server + ComfyUI health (version, base URL) |
 | `GET /api/settings` | global settings (server/media URL, api key presence) |
-| `GET /api/progress` | live progress of the most recent job (`{active: {stage, node, node_title, value, max, preview?} | null}` — `preview` is the latest per-step latent decode as a `data:image/jpeg;base64,…` URL, only while the job runs) |
+| `GET /api/progress` | live progress of the most recent job. While it runs: `{active: {stage, node, node_title, value, max, preview?, face_preview?}}` — `preview` is the latest per-step latent decode (`data:image/jpeg;base64,…`), `face_preview` is the Face swap's extracted-face `/media` path (available from the moment its preview node executed, BEFORE the sampled result). When it settled: `{active: null}` — or `{active: null, error}` when the job ended in a **ComfyUI execution error** (e.g. CUDA OOM): terminal, the UI must stop waiting. |
 | `GET /api/last-result` | URL of the last COMPLETED job (recovery when the frontend's in-flight fetch was aborted — background tab) |
 | `POST /api/cancel` | cancel the most recent job (interrupt running + delete pending) |
 | `POST /api/settings` | persist settings |
 | `GET /api/loras` | LoRA names from ComfyUI (`/models/loras`) |
 | `GET /api/diffusion-models` | diffusion model names (`/models/diffusion_models`) |
-| `POST /api/generate` / `edit` / `upscale` / `video` | run the tools |
+| `POST /api/generate` / `edit` / `upscale` / `video` | run the tools. Failures: **400** = terminal (bad request, or a ComfyUI execution error such as OOM — the job is dead, the `detail` carries the ComfyUI message); **408** = the backend's own wait timed out but ComfyUI may still be running (the WS listener records the result if it completes — the frontend keeps recovering). `POST /api/face-swap` additionally returns `face_preview` (same shape as the result) when the workflow produced its extracted-face output. |
 | `POST /api/refine-prompt` | 🪄 refine a prompt via the llama-server refiner (OpenAI-compatible; `stream:true` → SSE of deltas, `system_prompt` override) |
 | `GET /api/refiner-models` | model ids served by the llama.cpp router (`{models: [id…], default: id}` — `default` is what auto picks; `{models: [], default: ""}` when the refiner is not configured) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
@@ -627,7 +627,14 @@ survives tab switches mid-generation (`switchTab` re-asserts the lock with
   `tryRecoverResult`): if the in-flight fetch is aborted (background tab /
   suspension) the backend keeps running; on refocus the app polls
   `GET /api/last-result` and finishes the job, painting the result into the
-  pane as if the fetch had completed.
+  pane as if the fetch had completed. Recovery is ONLY for transport loss
+  and the recoverable 408 — a **real failure is terminal**: a ComfyUI
+  execution error (OOM, node error) fails the backend request fast (400
+  with the ComfyUI message — `wait_for_output` detects the error status in
+  history instead of polling to the timeout), and the progress payload
+  carries `{error}` so `applyProgress` releases the generating UI the
+  moment the error is known — even if the fetch already died — instead of
+  leaving the app "generating" until the 60s recovery safety net.
 
 ### 7.1 Galleries (`gallery.js`)
 

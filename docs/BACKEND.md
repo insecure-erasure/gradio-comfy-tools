@@ -47,12 +47,22 @@
   called with `(client_id, prompt_id, workflow)`).
 - `server.py` registers a hook that spawns a **daemon thread per job**: it
   opens a WebSocket to ComfyUI with the **same clientId** used for
-  `POST /prompt`, follows that prompt's events (`executing`/`progress`/
-  `execution_success`) and updates an in-memory `_jobs` store (stage, node,
-  node_title, value/max, done, error). The WS is best-effort: if it fails,
+  `POST /prompt`, follows that prompt's events
+  (`executing`/`progress`/`executed`/`execution_success`/
+  `execution_error`) and updates an in-memory `_jobs` store (stage, node,
+  node_title, value/max, done, error). On `execution_error` the job is
+  marked done with the ComfyUI message in `job["error"]`; on `executed` of
+  the Face swap workflow's extracted-face node ("Random Preview Image
+  (face)") the output image is captured as `job["face_preview"]` (a
+  same-origin `/media` path — the node executes BEFORE the sampling, so
+  the extraction is visible mid-run). The WS is best-effort: if it fails,
   the existing `wait_for_output` polling still completes the job.
 - `GET /api/progress` exposes the most recent active job — it is the payload
   source for the /ws/progress push and stays as the polling fallback.
+  Payload variants: `{active: {...}}` while running (with `preview` and, for
+  Face swap, `face_preview`), `{active: null}` when it settled cleanly, and
+  `{active: null, error}` when it ended in a **ComfyUI execution error** —
+  terminal, the UI stops waiting immediately (no result will ever come).
 - **Push to the browser**: every `_jobs` mutation (queued, stage, step
   value/max, per-step preview, completion) is broadcast over **`/ws/progress`**
   (`_broadcast_progress` + `_progress_payload` in `server.py`): the
@@ -89,6 +99,14 @@
   /interrupt`, empty body / Content-Length 0) stops the running prompt;
   `ComfyClient.cancel_prompt(pid)` (`POST /queue` `delete`) removes the
   pending one; the job is marked done so progress goes idle.
+- **Execution errors fail fast**: `wait_for_output` polls
+  `GET /history/{pid}` and now detects `status.status_str == "error"`
+  (the `execution_error` messages carry e.g. CUDA OOM) — it raises
+  `ComfyError` with the ComfyUI message instead of polling until the
+  timeout, so the tool endpoints surface the failure as a terminal **400**
+  in seconds. A plain `TimeoutError` (the backend's own wait ran out but
+  ComfyUI may still be running) maps to **408** so the frontend keeps the
+  recovery path.
 - Verified live: `queued` → `SamplerCustomAdvanced 1/8..8/8` → `VAE Decode`
   → `Random Preview Image` → done; `/interrupt` and `/queue delete` both
   return 200 on the live server; per-step previews confirmed for flux2,
