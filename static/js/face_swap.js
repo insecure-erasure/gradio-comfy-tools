@@ -253,10 +253,10 @@ function generateFaceSwap() {
     // Extracted-face preview (the workflow's "Random Preview Image (face)"
     // output — the face region with its alpha): a small overlay box
     // bottom-right, ABOVE the upload/chain buttons (which stay clickable),
-    // so the user can verify the extraction that fed the swap. Painted
-    // AFTER stopProgressPolling, which clears the early overlay shown by
-    // the live progress (job settled: cancel or done); the API omits
-    // face_preview when the workflow has no such node.
+    // so the user can verify the extraction that fed the swap. Any overlay
+    // painted EARLY by the live progress is replaced here with the
+    // authoritative one; the API omits face_preview when the workflow has
+    // no such node.
     pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
     if (res.face_preview && res.face_preview.display) {
       const extract = document.createElement('img');

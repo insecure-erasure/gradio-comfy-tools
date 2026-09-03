@@ -613,11 +613,6 @@ function stopProgressPolling() {
   // Drop any live preview left in a pane (job settled: cancel or done). The
   // final result replaces it via showResult; on cancel nothing should linger.
   document.querySelectorAll('.preview-live').forEach(el => el.remove());
-  // Same for an EARLY-painted extracted-face overlay (the live progress
-  // pushed it the moment the workflow's face-preview node executed): on
-  // cancel nothing should linger; on success the per-tool finalize
-  // re-paints it AFTER this cleanup with the authoritative result.
-  document.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   // Restore whatever was hidden while the preview was painted (placeholder /
   // previous result / source preview), so a cancelled job keeps the pane as
   // it was. Elements removed by showResult are simply gone from the DOM.
@@ -646,6 +641,15 @@ function clearJobMarker() {
 // their own release).
 function releaseGeneratingUi() {
   stopProgressPolling();
+  // A job settled WITHOUT a per-tool finalize (cancel / safety net / reload
+  // adoption): drop an EARLY-painted extracted-face overlay here — nothing
+  // will re-paint it. Deliberately NOT in stopProgressPolling: the per-tool
+  // success finalize calls stopProgressPolling and then paints the
+  // authoritative overlay, and the fetch's .finally() calls it AGAIN — a
+  // cleanup there would erase the just-painted overlay (the preview
+  // vanished when the swap finished). releaseGeneratingUi is never on the
+  // per-tool success path.
+  document.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   ['genOutputPane', 'editOutputPane', 'upscaleOutputPane', 'videoOutputPane', 'faceSwapOutputPane'].forEach(id => {
     const p = document.getElementById(id);
     if (p) { p.classList.remove('busy'); p.classList.remove('generating'); }
