@@ -1456,3 +1456,39 @@ def test_progress_payload_includes_face_preview():
     # absent when the face node has not executed yet
     job2 = dict(job, face_preview=None)
     assert "face_preview" not in server._progress_payload(job2)["active"]
+
+
+def test_api_generate_timeout_is_408_recoverable(client, tmp_config, monkeypatch):
+    """A backend wait timeout (the job may still be running on ComfyUI) is
+    a 408 — the frontend treats it as recoverable, unlike terminal 400s."""
+    def boom(settings, **kwargs):
+        raise TimeoutError("ComfyUI did not finish within 120s")
+
+    monkeypatch.setattr(server, "generate_image", boom)
+    resp = client.post("/api/generate", json={"prompt": "a cat"})
+    assert resp.status_code == 408
+    assert "did not finish" in resp.json()["detail"]
+
+
+def test_api_generate_oom_is_400_terminal(client, tmp_config, monkeypatch):
+    """A real ComfyUI execution failure (e.g. CUDA OOM) surfaces as a 400
+    with the ComfyUI message — terminal, nothing will finish."""
+    from comfy_client import ComfyError
+
+    def boom(settings, **kwargs):
+        raise ComfyError("CUDA out of memory")
+
+    monkeypatch.setattr(server, "generate_image", boom)
+    resp = client.post("/api/generate", json={"prompt": "a cat"})
+    assert resp.status_code == 400
+    assert "CUDA out of memory" in resp.json()["detail"]
+
+
+def test_progress_payload_carries_job_error():
+    """A job that ended in a ComfyUI execution error carries the message in
+    the payload, so the UI can stop waiting immediately."""
+    job_err = {"prompt_id": "p1", "started": 1, "done": True, "error": "CUDA out of memory"}
+    assert server._progress_payload(job_err) == {"active": None, "error": "CUDA out of memory"}
+    job_ok = {"prompt_id": "p2", "started": 1, "done": True}
+    assert server._progress_payload(job_ok) == {"active": None}
+    assert server._progress_payload(None) == {"active": None}

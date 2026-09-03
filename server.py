@@ -405,8 +405,14 @@ def _progress_payload(job: dict | None) -> dict:
     the /ws/progress push: {"active": {...}} while a job runs (the per-step
     preview included when the job requested previews, and the Face swap's
     extracted-face preview once its output node executed), {"active": None}
-    otherwise."""
-    if job is None or job.get("done"):
+    otherwise — plus {"error": msg} when the job ended in a ComfyUI
+    execution error (terminal: no result will ever come)."""
+    if job is None:
+        return {"active": None}
+    if job.get("done"):
+        err = job.get("error")
+        if err:
+            return {"active": None, "error": err}
         return {"active": None}
     active = {k: job.get(k) for k in ("prompt_id", "stage", "node", "node_title", "value", "max")}
     pv = job.get("preview")
@@ -670,6 +676,13 @@ def api_generate(body: dict) -> dict:
             model=str(body.get("model", "")),
         )
         _mark_latest_done(url, tool="generate", prompt=str(body.get("prompt", "")))
+    except TimeoutError as e:
+        # The backend's own wait timed out — the job may still be
+        # running on ComfyUI, so this is RECOVERABLE (408): the
+        # frontend keeps waiting and the WS listener records the
+        # result if it completes. Other errors (e.g. CUDA OOM) are
+        # terminal 400s — the job is dead.
+        raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -692,6 +705,13 @@ def api_edit(body: dict) -> dict:
             lora_config=str(body.get("lora_config", "[]")),
         )
         _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
+    except TimeoutError as e:
+        # The backend's own wait timed out — the job may still be
+        # running on ComfyUI, so this is RECOVERABLE (408): the
+        # frontend keeps waiting and the WS listener records the
+        # result if it completes. Other errors (e.g. CUDA OOM) are
+        # terminal 400s — the job is dead.
+        raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -724,6 +744,13 @@ def api_face_swap(body: dict) -> dict:
         if face_url:
             resp["face_preview"] = _tool_response(face_url)
         return resp
+    except TimeoutError as e:
+        # The backend's own wait timed out — the job may still be
+        # running on ComfyUI, so this is RECOVERABLE (408): the
+        # frontend keeps waiting and the WS listener records the
+        # result if it completes. Other errors (e.g. CUDA OOM) are
+        # terminal 400s — the job is dead.
+        raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
 
@@ -741,6 +768,13 @@ def api_upscale(body: dict) -> dict:
             seed=int(body.get("seed", -1)),
         )
         _mark_latest_done(url, tool="upscale")
+    except TimeoutError as e:
+        # The backend's own wait timed out — the job may still be
+        # running on ComfyUI, so this is RECOVERABLE (408): the
+        # frontend keeps waiting and the WS listener records the
+        # result if it completes. Other errors (e.g. CUDA OOM) are
+        # terminal 400s — the job is dead.
+        raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)
@@ -766,6 +800,13 @@ def api_video(body: dict) -> dict:
             diffusion=str(body.get("diffusion", "")),
         )
         _mark_latest_done(url, tool="video", prompt=str(body.get("prompt", "")))
+    except TimeoutError as e:
+        # The backend's own wait timed out — the job may still be
+        # running on ComfyUI, so this is RECOVERABLE (408): the
+        # frontend keeps waiting and the WS listener records the
+        # result if it completes. Other errors (e.g. CUDA OOM) are
+        # terminal 400s — the job is dead.
+        raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
     return _tool_response(url)

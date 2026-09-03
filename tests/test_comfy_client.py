@@ -454,3 +454,48 @@ def test_wait_for_output_without_until_returns_first_outputs():
     client = make_client(handler)
     outs = client.wait_for_output("abc123", timeout=10, poll=0.01)
     assert "face" in outs
+
+
+def test_wait_for_output_raises_on_execution_error():
+    """An errored prompt (e.g. CUDA OOM) must fail FAST with the ComfyUI
+    message — polling until the timeout would leave the UI stuck on a job
+    that is already dead."""
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "pid": {
+                    "outputs": {},
+                    "status": {
+                        "status_str": "error",
+                        "completed": False,
+                        "messages": [
+                            ["execution_start", {"prompt_id": "pid"}],
+                            ["execution_error", {"exception_message": "CUDA out of memory\nTraceback..."}],
+                        ],
+                    },
+                }
+            },
+        )
+
+    client = make_client(handler)
+    with pytest.raises(ComfyError, match="CUDA out of memory"):
+        client.wait_for_output("pid", timeout=5, poll=0.01)
+
+
+def test_wait_for_output_ignores_non_error_entries():
+    """No outputs yet and no error → keep polling (normal progress)."""
+    calls = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return httpx.Response(200, json={"pid": {}})  # running — no entry yet
+        return httpx.Response(
+            200,
+            json={"pid": {"outputs": {"2": {"images": [{"filename": "a.png", "type": "output"}]}}}},
+        )
+
+    client = make_client(handler)
+    outs = client.wait_for_output("pid", timeout=5, poll=0.01)
+    assert outs["2"]["images"][0]["filename"] == "a.png"

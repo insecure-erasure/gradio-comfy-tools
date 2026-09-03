@@ -78,6 +78,21 @@ function generateUpscale() {
     finalizeUpscale(res);
   }).catch(err => {
     const isAbort = err && err.name === 'AbortError';
+    if (!userCancelled && err && err.isHttp && err.status === 408) {
+      // The backend's own wait timed out (a long job) — ComfyUI may
+      // still be running and the WS listener records the result on
+      // completion; enter recovery like a lost fetch.
+      recoverPending = true;
+      return;
+    }
+    if (!userCancelled && err && err.isHttp) {
+      // The backend answered with a REAL failure (e.g. ComfyUI OOM /
+      // validation error / unreachable) — the job is dead, nothing
+      // will finish: terminal. .finally releases the UI.
+      syncResultUrl('w+', null);
+      showToast('❌ ' + (err.message || 'Generation failed'));
+      return;
+    }
     if (isAbort && !userCancelled) {
       recoverPending = true; // job still running — resolve on completion
       return;

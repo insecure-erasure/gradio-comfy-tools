@@ -29,6 +29,28 @@ class ComfyError(RuntimeError):
     """Semantic failure from the ComfyUI API (not an HTTP transport error)."""
 
 
+# --------------------------------------------------------------------------- #
+# History error detection (an execution failure, e.g. CUDA OOM)
+# --------------------------------------------------------------------------- #
+def _history_execution_error(entry: dict[str, Any]) -> str | None:
+    """Extract the execution-error message from a ComfyUI history entry.
+
+    An errored prompt writes ``status.status_str == "error"`` with a
+    ``["execution_error", {exception_message, ...}]`` entry in
+    ``status.messages`` (e.g. CUDA out of memory). Returns a short
+    message, or None when the entry is not an error.
+    """
+    status = entry.get("status") or {}
+    if status.get("status_str") != "error":
+        return None
+    for msg_type, data in status.get("messages") or []:
+        if msg_type == "execution_error" and isinstance(data, dict):
+            msg = (data.get("exception_message") or "").strip()
+            if msg:
+                return msg[:400]
+    return "ComfyUI reported an execution error"
+
+
 # Module-level hooks fired after every successful queue_prompt:
 # fn(client_id, prompt_id, workflow). server.py uses one to attach a
 # per-job WebSocket listener for live progress (see /api/progress).
@@ -206,6 +228,14 @@ class ComfyClient:
             resp.raise_for_status()
             history = resp.json()
             entry = history.get(prompt_id)
+            # The prompt FAILED (e.g. CUDA OOM / a node error): no outputs
+            # will ever appear — fail fast with the ComfyUI message instead
+            # of polling until the timeout (the UI would look stuck for
+            # minutes on a job that is already dead).
+            if isinstance(entry, dict):
+                error = _history_execution_error(entry)
+                if error:
+                    raise ComfyError(error)
             outputs = entry.get("outputs") if entry else None
             if outputs and (until is None or until(outputs)):
                 return outputs

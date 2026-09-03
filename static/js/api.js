@@ -23,7 +23,14 @@ async function api(path, body, timeoutMs) {
     if (!resp.ok) {
       let detail = resp.statusText;
       try { const j = await resp.json(); detail = j.detail || detail; } catch (e) {}
-      throw new Error(detail);
+      const err = new Error(detail);
+      // Mark backend answers so the per-tool catches can tell a REAL
+      // failure (the job is dead — terminal, e.g. ComfyUI OOM / bad
+      // request) from a transport loss (recoverable) and from the 408
+      // "backend wait timed out" (the job may still finish).
+      err.isHttp = true;
+      err.status = resp.status;
+      throw err;
     }
     return resp.json();
   } finally {
@@ -476,6 +483,18 @@ function applyProgress(j) {
   if (!el) return;
   const a = j && j.active;
   if (!a) {
+    // The job ended in a ComfyUI execution ERROR (e.g. CUDA OOM): terminal
+    // — no result will ever come. Release the generating UI right away (the
+    // backend also fails the in-flight fetch fast now; if it already died,
+    // this is what unblocks the UI instead of the 60s safety net).
+    if (j && j.error && !userCancelled) {
+      recoverPending = false;
+      clearTimeout(_recoverSettleTimer); _recoverSettleTimer = null;
+      clearTimeout(_recoverRetryTimer); _recoverRetryTimer = null;
+      showToast('❌ ' + j.error);
+      releaseGeneratingUi();
+      return;
+    }
     // The job finished (active:null). If the original fetch was lost
     // (aborted/timed out), recover the result now — and keep retrying on
     // every poll until it is found (the backend records it on completion;
