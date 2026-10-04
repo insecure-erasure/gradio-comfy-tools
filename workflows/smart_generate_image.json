@@ -16,19 +16,6 @@
       "title": "Empty Latent Image"
     }
   },
-  "42": {
-    "inputs": {
-      "stop_at_clip_layer": -1,
-      "clip": [
-        "68",
-        0
-      ]
-    },
-    "class_type": "CLIPSetLastLayer",
-    "_meta": {
-      "title": "CLIP Set Last Layer"
-    }
-  },
   "43": {
     "inputs": {
       "conditioning": [
@@ -67,7 +54,7 @@
         0
       ],
       "clip": [
-        "42",
+        "68",
         0
       ]
     },
