@@ -1,17 +1,18 @@
 # Comfy Tools
 
-Web application with four image and video tools powered by ComfyUI:
+Web application with five image and video tools powered by ComfyUI:
 
 | Tab | Tool | What it does |
 |---|---|---|
 | 🖼️ Generate | Image generation | Creates an image from a text description (model, resolution, steps, seed). |
 | ✏️ Edit | Image editing | Modifies an existing image (background, style…). The 🩹 Restore mode recovers damaged or low-quality images. |
+| 👨🏻 Face swap | Face swap | Swaps the face of a base image (Picture 1) with the face taken from a second image (Picture 2). |
 | 🔍 Upscale | Quality enhancement | Doubles the resolution of an image (SeedVR2). |
 | 🎬 Video | Video generation | Turns an image into an animated video (Wan 2.1 / Wan 2.2). |
 
 ## Requirements
 
-- A **ComfyUI** server reachable over the network (the models and nodes for all four workflows must be installed).
+- A **ComfyUI** server reachable over the network (the models and nodes for all five workflows must be installed).
 - Python 3.10+ to run the application.
 
 ## Getting started
@@ -37,14 +38,16 @@ Web application with four image and video tools powered by ComfyUI:
 - **Generate an image**: type a description in the prompt field (bottom
   bar in portrait, params pane in landscape) and press ✨.
 - **Edit / restore**: upload an image (📁), paste a URL, or use 🔗 to take the last generated image. Describe the change and press 🖌️ (edit) or 🩹 (restore).
+- **Face swap**: set the **base image** (🖼️ or 🔗) and the **face image** (👨🏻), optionally add extra instructions, and press 🔄.
 - **Upscale**: set the source image and press 🔍.
 - **Generate a video**: set the source image, describe the motion, and press 🎬.
 
-### Source images (Edit, Upscale, Video)
+### Source images (Edit, Face swap, Upscale, Video)
 
 - **📁** uploads a file from your computer.
 - **🔗** uses the last generated image.
 - **Paste a URL** and confirm with **✓** to validate and preview the image before processing.
+- **Face swap** uses two independent sources (base and face), each with its own field and upload button.
 
 ### During a generation
 

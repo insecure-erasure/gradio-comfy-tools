@@ -13,7 +13,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│ Nav: [☰] [🖼️ Generate] [🖍️ Edit] [🔍 Upscale] [🎬 Video]     │ [toolbar por tab ▸] │
+│ Nav: [☰] [🖼️ Generate] [🖍️ Edit] [👨🏻 Face swap] [🔍 Upscale] [🎬 Video] │ [toolbar por tab ▸] │
 ├───────────────────────────────┬───────────────────────────────┤
 │  Output pane (flex 6)         │  Params pane (flex 4)         │
 │  result / slider / video      │  prompt (fills the pane) +    │
@@ -24,19 +24,20 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 ```
 
 - **Nav** (`templates/partials/nav.html`): ☰ hamburger (settings menu) at the
-  left + 4 tab buttons (in **landscape**). The right side holds
+  left + 5 tab buttons (in **landscape**). The right side holds
   `#tabsToolbar`, a per-tab toolbar rebuilt by `renderToolbar(tab)` in
   `static/js/tabs.js`:
   - **Generate**: Model dropdown (Krea 2, FLUX.2 Klein, Z-Image Turbo —
     default **Krea 2**) + ⚙️ + ↺
   - **Edit**: ⚙️ + ↺ (no model selector)
+  - **Face swap**: ⚙️ + ↺ (no model selector)
   - **Upscale**: ↺ only (SeedVR2 fixed, no ⚙️)
   - **Video**: Model dropdown (Wan 2.1, Wan 2.2) + ⚙️ + ↺
 - **Portrait-only tabs dropdown**: on vertical displays (<1024px) the nav
-  bar is too small for four tab buttons, so they condense into a dropdown
+  bar is too small for five tab buttons, so they condense into a dropdown
   (`#tabsDropdown`): the trigger shows the ACTIVE tab as an **icon only**
   (no letters — they appear only when the menu opens) + a ▾ caret, and the
-  menu lists all four (icon + label, active one highlighted). The
+  menu lists all five (icon + label, active one highlighted). The
   inline `.tab-btn` stay in the DOM (hidden by `responsive.css`; landscape
   needs them and `switchTab` keeps marking the active one).
   `updateTabsDropdown()` (called at the end of `switchTab`) syncs the
@@ -52,15 +53,15 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
   hidden. The URL row sits **below** the prompt, pinned to the pane bottom.
-  There is **one INDEPENDENT textarea per tab** (generate/edit/video;
-  Upscale has none) inside the shared `.prompt-input-wrap` — each field
+  There is **one INDEPENDENT textarea per tab** (generate/edit/face_swap/
+  video; Upscale has none) inside the shared `.prompt-input-wrap` — each field
   keeps its own value permanently, so prompts can never mix.
   `switchTab()` only toggles which field is visible (`.prompt-input.active`),
   and `clearPrompt` (✕) clears only the active tab. `promptsByTab`
   (state.js) mirrors the fields for localStorage persistence (storage.js),
   restored once at startup.
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
-  URL row); the four tab buttons condense into the tabs
+  URL row); the five tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
   **compact single-line field** that CONTAINS the action chips (🩹/✨
   bottom-right, horizontal — the user can generate WITHOUT opening the
@@ -99,8 +100,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   inside the menu); the nav toolbar's **Model** label is hidden too
   (landscape keeps it). `.split` stacks to a
   column — output fills all available height, prompt at the
-  bottom bar. The Generate/Edit/Video **params panes are hidden** (their
-  controls live in the prompt chips → fullscreen prompt modal); Upscale
+  bottom bar. The Generate/Edit/Face swap/Video **params panes are hidden**
+  (their controls live in the prompt chips → fullscreen prompt modal); Upscale
   keeps its params pane (seed + 🔍 + URL row).
 - **< 768px**: more compact paddings.
 
@@ -110,6 +111,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 |---|---|---|---|
 | Generate | 🖼️ | `🪄` (refine prompt) + `✨` (needs prompt) | Yes |
 | Edit | 🖍️ | `🪄` (refine) + `🩹 Restore` (always active) + `🖌️ Edit` (needs prompt) — order 🪄 · 🩹 · 🖌️ | Yes |
+| Face swap | 👨🏻 | `🔄` (needs both source images; no refine) | Optional |
 | Upscale | 🔍 | `🔍` (no prompt needed) | No |
 | Video | 🎬 | `🪄` (refine) + `🎬` (needs prompt) | Yes |
 
@@ -149,11 +151,12 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   per-tab prompt store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
   the result row is **cleared** (progress + timing). `lastGeneratedUrl`
-  persists for chaining (🔗 fills the source field of Edit/Upscale/Video).
+  persists for chaining (🔗 fills the source field of Edit/Upscale/Video and
+  the **base** field of Face swap).
   It always points to the last **image** result (generate/edit/restore/
-  upscale) — generated videos never overwrite it (img2vid needs an image
+  face swap/upscale) — generated videos never overwrite it (img2vid needs an image
   source, so a video is never a valid chain target).
-- Shortcuts: `Ctrl+1..4` switches tabs; `Esc` closes the modal.
+- Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal.
 
 ## 3. Control inventory per tab
 
@@ -192,7 +195,28 @@ empty and the prompt fills it; see also deviation 14):
   separator and dice disappear). Its popover holds the `👣 Steps` stepper
   (1–15, default 6) and the `🌱 Seed` stepper + `🎲`.
 
-### 3.3 Upscale 🔍
+### 3.3 Face swap 👨🏻
+
+- **Output pane**: TWO source fields at the bottom — **base image**
+  (Picture 1, the image being edited, previewed full-canvas) and **face
+  image** (Picture 2, the face to copy, previewed as a small reference
+  overlay). Each field accepts a pasted URL (✓ validates) or an upload
+  (🖼️ base / 👨🏻 face); 🔗 fills the **base** with the last generated
+  image. The result is shown as a **compare slider** (Original | Face
+  swapped), like Edit.
+- **Toolbar**: ⚙️ + ↺ (no model dropdown; the head-swap LoRA is resolved
+  against the server at runtime).
+- **Prompt** (optional): extra instructions appended after the workflow's
+  built-in head-swap prompt (empty = built-in only).
+- **Params**: a single **👣 chip** over the prompt textarea (same design as
+  Edit). Its popover holds the `🎚️ CFG` stepper (0–8, step 0.1; 0 = no
+  guidance), the `👣 Steps` stepper (1–15, default 6) and the `🌱 Seed`
+  stepper + `🎲`.
+- **Extracted face**: while a swap runs, the workflow's extracted-face
+  output is shown early as a small overlay box so the extraction can be
+  verified before the result lands.
+
+### 3.4 Upscale 🔍
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
   the **compare slider** (Original | Upscaled).
@@ -208,7 +232,7 @@ empty and the prompt fills it; see also deviation 14):
   - **Landscape**: 🔍 sits at the bottom-right of the params pane, just
     above the result URL row.
 
-### 3.4 Video 🎬
+### 3.5 Video 🎬
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
   **custom video player** (`static/js/player.js`, replaces the native
@@ -579,11 +603,12 @@ survives tab switches mid-generation (`switchTab` re-asserts the lock with
   the current JS/CSS — a stale browser tab can never keep running old code
   after a deploy.
 - **`templates/partials/`**: nav, settings_menu, tab_generate, tab_edit,
-  tab_upscale, tab_video, bottom_bar, modal, gallery_overlay, toast, tooltip.
+  tab_face_swap, tab_upscale, tab_video, bottom_bar, modal, gallery_overlay,
+  toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, storage, api, player, refine, source, tabs, generate, edit, upscale,
-  video, gallery, restore, settings, modal, main.
+  state, storage, api, player, refine, source, tabs, generate, edit,
+  face_swap, upscale, video, gallery, restore, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, per-tab prompts, theme AND the galleries (`generated` /

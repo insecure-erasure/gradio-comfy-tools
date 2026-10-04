@@ -212,14 +212,38 @@ Other nodes (wan21 and wan22): `CLIPLoader (GGUF)`, `WanImageToVideo`, `KSampler
 
 **Frames guardrail**: `_MIN_FRAMES=81`, `_MAX_FRAMES=161`, only 4n+1 valid; snap to the **nearest** 4n+1: `snapped = ((n-1)//4)*4+1`, then `snapped += 4` when `n - snapped > 2` (clamped) — exact mirror of `_snap_to_valid_frames` in `generate_video/tool.py`; the mockup implements the same logic (`snapVideoFrames`). **Steps guardrail**: 4–10; wan22 rounds odd→even.
 
+### 5.5 Face swap 👨🏻 — `face_swap.json`
+
+Own workflow (not imported from `../../open-webui-comfy-tools`). The
+head-swap logic (face segmentation → mask → crop → alpha → reference
+latents) is fixed inside the JSON; the tool only injects the two sources,
+the sampling parameters and the optional extra prompt.
+
+| UI control (FRONTEND) | Backend parameter | Workflow node (title) |
+|---|---|---|
+| 🖼️ Base image (upload / 🔗 / URL) | `image` (filename or URL) | `Load Image (URL/Path)` |
+| 👨🏻 Face image (upload / URL) | `face` (filename or URL) | `Face Reference` |
+| Prompt (optional) | `prompt` (appended after the built-in head-swap instructions) | `Prompt` → `Concat Prompt (Positive)` (StringConcatenate) |
+| 🎚️ CFG (guidance) | `cfg` (0–8, step 0.1; 0 = no guidance) | `CFG Guider` |
+| 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
+| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `RandomNoise` |
+| — (runtime) | dedicated head-swap LoRA | `Load LoRA` (name resolved against `GET /models/loras`) |
+
+The workflow ends in TWO preview outputs — the swapped result (`Random
+Preview Image`) and the extracted-face crop (`Random Preview Image
+(face)`). Because the crop node runs BEFORE the sampler, the backend can
+record its image early (see §2) and return it as `face_preview` on
+`POST /api/face-swap` and `/api/last-result`.
+
 ## 6. Chaining (context between tools)
 
 - `lastGeneratedUrl` (per session): the output URL of the last IMAGE
-generation (generate / edit / restore / upscale), built as
+generation (generate / edit / restore / face swap / upscale), built as
 `{COMFYUI_MEDIA_BASE_URL}/view?filename=...&type=output`. **Persists across
   tab switches** so it can be used after generating in another tab.
 - Consumers: 📋 (copy — click the hint URL) and 🔗 (fills the source URL
-  field of Edit/Upscale/Video with `lastGeneratedUrl`).
+  field of Edit/Upscale/Video — and the **base** field of Face swap — with
+  `lastGeneratedUrl`).
 - Videos never become `lastGeneratedUrl`: all three consumers need an IMAGE
   source (img2img / img2vid), so a generated video is never chainable. In a
   session, `video.js`/`finalizeRecoveredJob` only record the URL in the

@@ -24,6 +24,7 @@ expected result. Do not move to the next phase until the user validates it.
 | A4 | Video: `tools/video.py` + `dev/run_video.py` | ✅ |
 | A5 | Chaining: `dev/run_chain.py` + `normalize_source` | ✅ |
 | A6 | Acceptance: `check_env.py` OK, 55 tests green, chains validated | ✅ |
+| A7 | Face swap: `tools/face_swap.py` + `face_swap.json` + `/api/face-swap` + face-swap tab (two sources, compare slider) | ✅ |
 
 Details of each A-phase remain below as reference (input contracts, per-node
 injections, manual validation steps).
@@ -33,7 +34,7 @@ injections, manual validation steps).
 ## A0. Foundations (shared infrastructure)
 
 ### Goal
-Reusable base for all 4 tabs: ComfyUI REST client, configuration and workflow
+Reusable base for all tabs: ComfyUI REST client, configuration and workflow
 injection helpers. Delivered with tests and a real smoke test against the server.
 
 ### Files
@@ -245,6 +246,7 @@ mockup directly.
 | `GET /health` | server + ComfyUI health | ✅ |
 | `POST /api/generate` | Generate tab | ✅ |
 | `POST /api/edit` | Edit tab (mode edit/restore) | ✅ |
+| `POST /api/face-swap` | Face swap tab (base + face image) | ✅ |
 | `POST /api/upscale` | Upscale tab | ✅ |
 | `POST /api/video` | Video tab | ✅ |
 | `POST /api/upload` | 📁 upload → ComfyUI temp filename | ✅ |
@@ -260,6 +262,7 @@ mockup directly.
 |---|---|---|
 | Generate 🖼️ | model dropdown (Krea 2 default) + ⚙️ + ↺ in nav toolbar; parameters as prompt chips (📏 dims + 👣 steps/seed, popover each — `refactor/unify-action-buttons`); LoRA row editor + model dropdown in ⚙️ modal; submit → image + URL + 📋; spinner; button disabled with empty prompt; reset | ✅ |
 | Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore; 🩹 always active), before/after compare slider, spinner; params as 👣 chip (steps/seed — `refactor/unify-action-buttons`) | ✅ |
+| Face swap 👨🏻 | two source fields (base 🖼️ + face 👨🏻) with per-field URL/✓/upload, 🔗 previous → base, before/after compare slider, extracted-face overlay; optional prompt; params (CFG/steps/seed) as 👣 chip | ✅ |
 | Upscale 🔍 | special layouts (portrait: seed + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, reset; seed control stays directly in the pane (no chip — no prompt textarea) | ✅ |
 | Video 🎬 | real `<video>` player, Wan 2.1/2.2, frames/steps/seed as 🎞️+👣 chips (`refactor/unify-action-buttons`); ⚙️ modal varies by version (wan22 dual high/low models + LoRAs, per-version config store); negative prompt in modal | ✅ |
 
@@ -284,7 +287,7 @@ mockup directly.
   persisted to `~/.gradio-comfy-tools.json`; values shown in the menu.
 - Modular structure: `templates/index.html` + `templates/partials/*.html`
   (Jinja2 includes), `static/js/{state,storage,api,player,refine,source,tabs,
-  generate,edit,upscale,video,gallery,settings,modal,main}.js`,
+  generate,edit,face_swap,upscale,video,gallery,settings,modal,main}.js`,
   `static/css/{base,layout,components,responsive}.css`. Smoke-tested in a
   DOM (jsdom): all tab flows, resets, settings and modal wiring verified —
   24/24 checks, no JS errors.
@@ -305,7 +308,7 @@ mockup directly.
   values, toolbar selections and theme survive page reloads.
 - Video tab: **custom player** (`static/js/player.js` — bottom-centered
   ▶/⏸ + ⋮ controls, accent progress line, click/dblclick + fullscreen ⛶
-  button; see docs/FRONTEND.md §3.4), Wan 2.1/2.2 selector,
+  button; see docs/FRONTEND.md §3.5), Wan 2.1/2.2 selector,
   frames/steps/seed wired to `/api/video`; negative prompt in the modal.
 - Upscale tab: special compact layouts (portrait seed+🔍 in pane; landscape
   🔍 above URL row).
@@ -488,7 +491,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   fullscreen, kept in sync by `fullscreenchange`), **single click toggles
   play/pause, double click toggles fullscreen** (controls excluded),
   portrait uses larger touch targets. Autoplay muted loop kept. See
-  docs/FRONTEND.md §3.4.
+  docs/FRONTEND.md §3.5.
 - **DONE (2026-08-10)**: video player polish — the ▶/⏸ button now **follows
   the playback state** (⏸ playing / ▶ paused, synced via `play`/`pause`/
   `ended`; previously the glyph froze on ⏸ because `setGlyph` was only
@@ -503,7 +506,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   the page). The 12px hit area is flush with the pane's bottom overlay
   buttons (📁/🔗, URL field — bottom:12px) so they stay fully clickable.
   `role=slider` + aria attrs on the bar; a `seeked` listener repaints the
-  fill when paused. See docs/FRONTEND.md §3.4.
+  fill when paused. See docs/FRONTEND.md §3.5.
 - **DONE (2026-08-08)**: **fullscreen preview for images** — ported from the
   reference (`smart_generate_image` / `edit_image` / `upscale_image`),
   adapted to this single-page app. Implemented in `static/js/gallery.js` +
@@ -620,10 +623,10 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   `openCompareFullscreen(kind)` still positions correctly, and the real
   `generateEdit`/`generateUpscale` flows register their comparisons.
 - **FIX (2026-08-08)**: **portrait tabs dropdown** — the nav bar is too
-  small on vertical displays (<1024px), so the four tab buttons condense
+  small on vertical displays (<1024px), so the five tab buttons condense
   into a dropdown (`#tabsDropdown` in `nav.html`): the trigger shows the
   ACTIVE tab (icon only + ▾ caret; the labels appear only when the menu
-  opens) and the menu lists all four with the
+  opens) and the menu lists all five with the
   active one highlighted. The inline `.tab-btn` stay in the DOM (hidden by
   `responsive.css`; landscape keeps them). `updateTabsDropdown()` syncs
   the trigger icon + highlight at the end of `switchTab`; open/close is
@@ -733,5 +736,5 @@ across all 4 files; `pytest` stays green (91 passed).
 - `pytest` green (91 passed, no behaviour change). ✅
 - DOM/coverage check: rendered the page via Jinja2 + grepped every selector
   against templates/ + static/js/ (static DOM + runtime-generated classes). ✅
-- Visual regression: still needs a manual click-through of the 4 tabs
+- Visual regression: still needs a manual click-through of the 5 tabs
   (portrait + landscape) by the user.

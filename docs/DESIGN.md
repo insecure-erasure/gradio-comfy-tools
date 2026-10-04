@@ -7,7 +7,7 @@
 
 ## Overview
 
-Unified web interface that consolidates four ComfyUI-powered tools into a
+Unified web interface that consolidates five ComfyUI-powered tools into a
 single multi-tab web application. Each tool occupies its own tab, sharing a
 consistent layout: generation output on the left, parameters on the right,
 and a full-width prompt bar at the bottom.
@@ -16,6 +16,7 @@ and a full-width prompt bar at the bottom.
 |---|---|---|---|
 | 🖼️ Generate | smart_generate_image | `smart_generate_image.json` | `smart_generate_image/` |
 | ✏️ Edit | edit_image | `edit_image.json` | `edit_image/` |
+| 👨🏻 Face swap | face_swap | `face_swap.json` | — (own workflow) |
 | 🔍 Upscale | upscale_image | `seedvr2_upscale.json` | `upscale_image/` |
 | 🎬 Video | generate_video | `generate_video.json`, `generate_video_wan22.json` | `generate_video/` |
 
@@ -33,7 +34,7 @@ and a full-width prompt bar at the bottom.
 ┌───────────────────────────────────────────────────────────────┐
 │ server.py  (FastAPI — serves the UI + API)                     │
 │   GET /                        templates/index.html (the UI)   │
-│   POST /api/{generate,edit,upscale,video,upload}               │
+│   POST /api/{generate,edit,face-swap,upscale,video,upload}     │
 │   POST /api/check-image         (validate a source URL/filename)│
 │   GET /api/progress · POST /api/cancel  (live progress + stop) │
 │   GET /media/{filename}?type=  same-origin proxy of results    │
@@ -57,7 +58,7 @@ and a full-width prompt bar at the bottom.
 Generation flow:
 
 1. The user fills in parameters (via the prompt chips) and prompt, then
-   clicks the action button (✨/🖌️/🩹/🔍/🎬) — in the prompt (landscape)
+   clicks the action button (✨/🖌️/🩹/🔄/🔍/🎬) — in the prompt (landscape)
    or the bottom bar / prompt modal (portrait).
 2. `static/js/*` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
 3. `server.py` calls `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
