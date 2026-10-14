@@ -88,7 +88,7 @@ function generateFields() {
   ];
   if (toolbarValues.genFamily === 'zimage') {
     fields.push({ label: 'Increase randomness', type: 'checkbox', key: 'variability', onchange: 'onVariabilityToggle(this)' });
-    fields.push({ label: 'Initial conditioning', type: 'text', key: 'initial_conditioning', placeholder: 'Conditioning for the first sampler step (default: empty)', disabled: true });
+    fields.push({ type: 'text', key: 'initial_conditioning', placeholder: 'initial conditioning', disabled: true });
   }
   return fields;
 }
@@ -147,7 +147,8 @@ function renderField(f) {
     return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
       + `<textarea data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></textarea></div>`;
   }
-  return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
+  return `<div class="field" data-key="${f.key || ''}">`
+    + (f.label ? `<label>${f.label}</label>` : '')
     + `<input type="text" data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"${f.disabled ? ' disabled' : ''}></div>`;
 }
 

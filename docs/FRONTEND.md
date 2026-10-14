@@ -459,7 +459,7 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 | Tab | Fields |
 |---|---|
-| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only when the selected family is Z-Image Turbo) · `Initial conditioning` (text, below the checkbox and enabled only while it is checked) |
+| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only when the selected family is Z-Image Turbo) · `initial conditioning` (text input rendered as its own lowercase placeholder, below the checkbox and enabled/dimmed only while it is checked) |
 | Edit | LoRA editor |
 | Upscale | *(none)* |
 | Video (wan21) | `Diffusion model` (dropdown) · LoRA editor · `Negative prompt` (bottom) |

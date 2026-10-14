@@ -317,6 +317,14 @@
     transition: .15s;
     width: 100%;
   }
+  /* Disabled inputs (e.g. the gated "initial conditioning" field in the
+     Generate modal) must read as unavailable, not as an empty box. */
+  .field input[type="text"]:disabled,
+  .field input[type="number"]:disabled,
+  .field textarea:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
   /* Diffusion model selects in the modal: label beside the dropdown (row),
      saving vertical space (the wan22 modal stacks HIGH/LOW sections). */
   .field.field-row-label {
