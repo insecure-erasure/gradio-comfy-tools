@@ -145,6 +145,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
 | Modal: Model name | `model` (.safetensors, overrides the family default) | `Load Diffusion Model` |
+| Modal: **Increase randomness** (Z-Image Turbo only) | `variability` (bool) | selects `zit_var.json` instead (see below) |
 
 Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `Switch (SIGMAS)`, `VAE Decode`; output: `Random Preview Image`.
 
@@ -155,6 +156,33 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 | Z-Image Turbo | zImageTurbo-mxfp8.safetensors | qwen3_4b_instruct_2507_mxfp8 | Z-Image_half_natural_vae | 16 | 1.0 | 10 | euler | simple |
 | Krea 2 | krea2_turbo_mixed_nvfp4 | qwen3_vl_4b_instruct_mxfp8 | qwen_image_vae | 8 | 1.0 | 8 | euler | simple |
 | FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 64 | 1.0 | 8 | euler | (flux.2) |
+
+**Increase randomness (Z-Image Turbo only)** — `workflows/zit_var.json`
+
+When the advanced checkbox is on (and only for `family=zimage`), the request
+builds `zit_var.json` instead of `smart_generate_image.json`
+(`build_variability_workflow` in `tools/generate.py`). It is a two-stage
+sampler graph: the first step runs with `res_multistep` + `ModelSamplingAuraFlow`
+shift 7 while its prompt is suppressed for the first 10.5% of the timestep
+range (`ConditioningSetTimestepRange` + `ConditioningCombine`); the rest
+continues with `euler` + shift 2.5. Removing the prompt's lock on the very
+first step makes the seed change the image far more than the single-stage
+workflow.
+
+| UI control | Backend parameter | Workflow node (title) |
+|---|---|---|
+| Prompt | `prompt` | `Prompt here` |
+| AR dropdown | `aspect_ratio` (w:h) | `Aspect ratio` (`StringConcatenate`) |
+| MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
+| Steps (auto per family) | `steps` | `KSampler (Advanced) 1` **and** `2` (same value) |
+| Seed + 🎲 | `seed` | `KSampler (Advanced) 1` **only** |
+| LoRAs | `lora_config` | `Power Lora Loader (rgthree)` (feeds stage 2 only — deliberate) |
+| Model name | `model` | `Load Diffusion Model` |
+| — (fixed in JSON) | — | `KSampler (Advanced) 2` seed: ComfyUI ignores `noise_seed` with `add_noise: disable`, so it stays 0 |
+
+The sampler/scheduler/shift/cfg and the model routing (stage 1 uses the raw
+UNET, stage 2 the LoRA-adjusted one) are **fixed by the technique** and are
+never overridden. `variability` with any non-zimage family is rejected (`400`).
 
 ### 5.2 Edit ✏️ — `edit_image.json`
 

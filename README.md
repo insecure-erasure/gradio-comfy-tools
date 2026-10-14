@@ -70,6 +70,8 @@ Web application with five image and video tools powered by ComfyUI:
   URL and results URL) and the prompt-refiner settings (Refiner URL,
   **model selector** and system prompt for the 🪄 button).
 - **⚙️** (per tab): advanced options — model, LoRAs, video negative prompt.
+  In **Generate**, `Increase randomness` (Z-Image Turbo only) switches to a
+  two-stage workflow that makes the seed affect the image much more.
 
 ### Prompt refiner model (llama.cpp router)
 

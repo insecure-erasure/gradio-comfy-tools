@@ -22,6 +22,8 @@ function generateImage() {
   const adv = (window.advancedValues && window.advancedValues.generate) || {};
   const loraConfig = adv.lora || '[]';
   const model = adv.model || '';
+  // "Increase randomness" only applies to Z-Image Turbo (two-stage workflow).
+  const variability = !!adv.variability && family === 'zimage';
 
   if (!prompt.trim()) return showToast('Please write a prompt first');
 
@@ -54,7 +56,7 @@ function generateImage() {
 
   api('/api/generate', {
     family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
-    steps: parseInt(steps), seed, lora_config: loraConfig, model,
+    steps: parseInt(steps), seed, lora_config: loraConfig, model, variability,
   }).then(res => {
     finalizeGenerate(res);
   }).catch(err => {
@@ -142,6 +144,12 @@ function onModelFamilyChange() {
   const sel = document.getElementById('genModelFamily');
   const opt = sel.options[sel.selectedIndex];
   toolbarValues.genFamily = sel.value;  // persist across tab switches
+
+  // "Increase randomness" is Z-Image only: drop it when the family changes
+  // away so a stale true can never reach the backend.
+  if (sel.value !== 'zimage' && window.advancedValues?.generate) {
+    window.advancedValues.generate.variability = false;
+  }
 
   // Update steps input
   const steps = parseInt(opt.getAttribute('data-steps')) || 8;

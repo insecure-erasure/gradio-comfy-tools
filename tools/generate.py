@@ -1,9 +1,13 @@
-"""Generate tool — smart_generate_image.json workflow.
+"""Generate tool — smart_generate_image.json (+ the zit_var.json variant).
 
 Injects the model family config (model / CLIP / VAE / cfg / steps / sampler /
 scheduler), the prompt, the resolution (megapixel + aspect ratio via
 Flux Resolution Calc), steps, seed and LoRAs into the workflow, then submits
 it via ComfyClient and returns the output image URL.
+
+``build_variability_workflow`` is the Z-Image Turbo "Increase randomness"
+variant (zit_var.json): a two-stage sampler graph where only the injection
+map changes (prompt/resolution/steps/seed/LoRAs), never the technique.
 
 MODEL_CONFIGS mirrors the reference smart_generate_image/tool.py.
 """
@@ -21,6 +25,10 @@ from tools import _common
 from tools._common import WorkflowError
 
 WORKFLOW_FILE = "workflows/smart_generate_image.json"
+# Z-Image Turbo "Increase randomness" variant: a two-stage sampler graph that
+# makes the seed matter much more than the single-stage workflow above.
+VARIABILITY_WORKFLOW_FILE = "workflows/zit_var.json"
+VARIABILITY_FAMILY = "zimage"
 
 MODEL_CONFIGS: dict[str, dict[str, Any]] = {
     "zimage": {
@@ -74,14 +82,22 @@ class GenerateError(ValueError):
 
 
 def load_workflow() -> dict[str, dict]:
-    from pathlib import Path
-
     return _common.load_workflow_json(WORKFLOW_FILE)
+
+
+def load_variability_workflow() -> dict[str, dict]:
+    """Load the Z-Image Turbo high-variability workflow (zit_var.json)."""
+    return _common.load_workflow_json(VARIABILITY_WORKFLOW_FILE)
+
+
+def _resolve_nodes(workflow: dict[str, dict], titles: list[str]) -> dict[str, dict]:
+    """Resolve each title to its node (raises on missing/ambiguous titles)."""
+    return {t: _common.resolve_node(workflow, t)[1] for t in titles}
 
 
 def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
     """Resolve all Generate workflow nodes by _meta.title."""
-    titles = [
+    return _resolve_nodes(workflow, [
         "Load Diffusion Model",
         "Load CLIP",
         "Load VAE",
@@ -96,12 +112,23 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "RandomNoise",
         "Power Lora Loader (rgthree)",
         "Random Preview Image",
-    ]
-    resolved: dict[str, dict] = {}
-    for t in titles:
-        _, node = _common.resolve_node(workflow, t)
-        resolved[t] = node
-    return resolved
+    ])
+
+
+def resolve_variability_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
+    """Resolve the high-variability workflow nodes by _meta.title."""
+    return _resolve_nodes(workflow, [
+        "Load Diffusion Model",
+        "Load CLIP",
+        "Load VAE",
+        "Aspect ratio",
+        "Flux Resolution Calc",
+        "Prompt here",
+        "Power Lora Loader (rgthree)",
+        "KSampler (Advanced) 1",
+        "KSampler (Advanced) 2",
+        "Random Preview Image",
+    ])
 
 
 def normalize_aspect_ratio(raw: str) -> tuple[int, int]:
@@ -124,6 +151,47 @@ def normalize_aspect_ratio(raw: str) -> tuple[int, int]:
     return w // g, h // g
 
 
+def _normalize_params(
+    *,
+    prompt: str,
+    steps: int,
+    family_cfg: dict[str, Any],
+    megapixel: float,
+    aspect_ratio: str,
+    seed: int,
+    lora_config: str,
+    model: str,
+) -> dict[str, Any]:
+    """Validate + normalize the parameters shared by both Generate workflows.
+
+    ``family_cfg`` supplies the default step count. Returns the normalized
+    model/prompt/steps, the reduced W:H and the resolved seed + parsed LoRAs,
+    so each builder only has to map them onto its own nodes.
+    """
+    model = model.strip()
+    if model.endswith((".json", ".yaml", ".yml")):
+        raise GenerateError("model must be a model filename, not a workflow file")
+    prompt = prompt.strip()
+    if not prompt:
+        raise GenerateError("prompt must not be empty")
+    if steps == 0:
+        steps = int(family_cfg["steps"])
+    if not (MIN_STEPS <= steps <= MAX_STEPS):
+        raise GenerateError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
+    if not (0.1 <= megapixel <= 2.0):
+        raise GenerateError(f"megapixel must be in [0.1, 2.0], got {megapixel}")
+    reduced_w, reduced_h = normalize_aspect_ratio(aspect_ratio)
+    return {
+        "model": model,
+        "prompt": prompt,
+        "steps": steps,
+        "reduced_w": reduced_w,
+        "reduced_h": reduced_h,
+        "seed": _common.resolve_seed(seed),
+        "loras": _common.parse_lora_config(lora_config),
+    }
+
+
 def build_workflow(
     workflow: dict[str, dict],
     *,
@@ -141,31 +209,26 @@ def build_workflow(
     Returns ``(workflow, meta)`` where ``meta`` carries resolved info for
     logging/tests: reduced W:H, resolved steps, resolved seed, family config.
     """
-    model = model.strip()
-    if model.endswith((".json", ".yaml", ".yml")):
-        raise GenerateError("model must be a model filename, not a workflow file")
     if family not in MODEL_CONFIGS:
         raise GenerateError(f"Unknown family {family!r}; options: {FAMILY_OPTIONS}")
-    prompt = prompt.strip()
-    if not prompt:
-        raise GenerateError("prompt must not be empty")
     cfg = MODEL_CONFIGS[family]
-    if steps == 0:
-        steps = int(cfg["steps"])
-    if not (MIN_STEPS <= steps <= MAX_STEPS):
-        raise GenerateError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
-    if not (0.1 <= megapixel <= 2.0):
-        raise GenerateError(f"megapixel must be in [0.1, 2.0], got {megapixel}")
-    reduced_w, reduced_h = normalize_aspect_ratio(aspect_ratio)
-    seed_arg = _common.resolve_seed(seed)
-    loras = _common.parse_lora_config(lora_config)
+    p = _normalize_params(
+        prompt=prompt,
+        steps=steps,
+        family_cfg=cfg,
+        megapixel=megapixel,
+        aspect_ratio=aspect_ratio,
+        seed=seed,
+        lora_config=lora_config,
+        model=model,
+    )
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)
 
     # Model config — ``model`` (from the ⚙️ advanced modal) overrides the
     # family default when provided.
-    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = model or cfg["model"]
+    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
     nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
     nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
     nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
@@ -174,14 +237,14 @@ def build_workflow(
     nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
     nodes["Flux Resolution Calc"]["inputs"]["aspect_ratio"] = "2:3 (Classic Portrait)"
     nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(cfg["vae_scale_factor"])
-    nodes["Aspect ratio"]["inputs"]["string_a"] = str(reduced_w)
-    nodes["Aspect ratio"]["inputs"]["string_b"] = str(reduced_h)
+    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
+    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
 
     # Prompt / steps / seed / cfg / sampler
-    nodes["Prompt"]["inputs"]["value"] = prompt
-    nodes["Steps"]["inputs"]["value"] = steps
-    nodes["BasicScheduler"]["inputs"]["steps"] = steps
-    nodes["RandomNoise"]["inputs"]["noise_seed"] = seed_arg
+    nodes["Prompt"]["inputs"]["value"] = p["prompt"]
+    nodes["Steps"]["inputs"]["value"] = p["steps"]
+    nodes["BasicScheduler"]["inputs"]["steps"] = p["steps"]
+    nodes["RandomNoise"]["inputs"]["noise_seed"] = p["seed"]
     nodes["CFGGuider"]["inputs"]["cfg"] = cfg["cfg"]
     nodes["KSamplerSelect"]["inputs"]["sampler_name"] = cfg["sampler"]
 
@@ -195,15 +258,94 @@ def build_workflow(
     nodes["Switch (SIGMAS)"]["inputs"]["select"] = cfg["sigma_selector_index"]
 
     # LoRAs
-    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], loras)
+    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
 
     meta = {
         "family": family,
-        "reduced_w": reduced_w,
-        "reduced_h": reduced_h,
-        "steps": steps,
-        "seed": seed_arg,
+        "reduced_w": p["reduced_w"],
+        "reduced_h": p["reduced_h"],
+        "steps": p["steps"],
+        "seed": p["seed"],
         "megapixel": megapixel,
+    }
+    return wf, meta
+
+
+def build_variability_workflow(
+    workflow: dict[str, dict],
+    *,
+    family: str = VARIABILITY_FAMILY,
+    prompt: str = "",
+    aspect_ratio: str = DEFAULT_ASPECT_RATIO,
+    megapixel: float = DEFAULT_MEGAPIXEL,
+    steps: int = 0,
+    seed: int = -1,
+    lora_config: str = "[]",
+    model: str = "",
+) -> tuple[dict[str, dict], dict[str, Any]]:
+    """Inject parameters into a copy of the high-variability workflow.
+
+    Z-Image Turbo only. The two-stage sampler technique is fixed in the
+    workflow and must NOT be overridden: res_multistep + shift 7 for the
+    first step, euler + shift 2.5 afterwards, the timestep-gated
+    conditioning and cfg 1. Only prompt, resolution, steps, seed, LoRAs and
+    the model override are injected.
+
+    The seed goes to ``KSampler (Advanced) 1`` only. ``KSampler (Advanced)
+    2`` runs with ``add_noise: disable`` (ComfyUI ignores its ``noise_seed``)
+    so it stays at its fixed 0. The same step count goes to both stages —
+    they split a single 0..N schedule. The LoRA loader feeds the second
+    stage only, which is deliberate.
+    """
+    if family != VARIABILITY_FAMILY:
+        raise GenerateError(
+            f"Variability mode is only available for {VARIABILITY_FAMILY!r} "
+            f"(Z-Image Turbo), got {family!r}"
+        )
+    cfg = MODEL_CONFIGS[VARIABILITY_FAMILY]
+    p = _normalize_params(
+        prompt=prompt,
+        steps=steps,
+        family_cfg=cfg,
+        megapixel=megapixel,
+        aspect_ratio=aspect_ratio,
+        seed=seed,
+        lora_config=lora_config,
+        model=model,
+    )
+
+    wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
+    nodes = resolve_variability_workflow(wf)
+
+    # Model config (zimage; ``model`` from the advanced modal overrides)
+    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
+    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
+    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
+    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
+
+    # Resolution (custom ratio via the StringConcatenate node)
+    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
+    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(cfg["vae_scale_factor"])
+    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
+    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
+
+    # Prompt + LoRAs
+    nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
+    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
+
+    # Same step count in both stages; seed only in the first stage
+    nodes["KSampler (Advanced) 1"]["inputs"]["steps"] = p["steps"]
+    nodes["KSampler (Advanced) 2"]["inputs"]["steps"] = p["steps"]
+    nodes["KSampler (Advanced) 1"]["inputs"]["noise_seed"] = p["seed"]
+
+    meta = {
+        "family": family,
+        "reduced_w": p["reduced_w"],
+        "reduced_h": p["reduced_h"],
+        "steps": p["steps"],
+        "seed": p["seed"],
+        "megapixel": megapixel,
+        "variability": True,
     }
     return wf, meta
 
@@ -220,20 +362,40 @@ def generate_image(
     lora_config: str = "[]",
     model: str = "",
     timeout: float = 120.0,
+    variability: bool = False,
 ) -> str:
-    """Run the Generate workflow and return the output image URL."""
-    workflow = load_workflow()
-    wf, meta = build_workflow(
-        workflow,
-        family=family,
-        prompt=prompt,
-        aspect_ratio=aspect_ratio,
-        megapixel=megapixel,
-        steps=steps,
-        seed=seed,
-        lora_config=lora_config,
-        model=model,
-    )
+    """Run the Generate workflow and return the output image URL.
+
+    ``variability=True`` (the "Increase randomness" advanced option) selects
+    the Z-Image Turbo high-variability workflow; it is rejected for any other
+    family.
+    """
+    if variability:
+        workflow = load_variability_workflow()
+        wf, meta = build_variability_workflow(
+            workflow,
+            family=family,
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            megapixel=megapixel,
+            steps=steps,
+            seed=seed,
+            lora_config=lora_config,
+            model=model,
+        )
+    else:
+        workflow = load_workflow()
+        wf, meta = build_workflow(
+            workflow,
+            family=family,
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            megapixel=megapixel,
+            steps=steps,
+            seed=seed,
+            lora_config=lora_config,
+            model=model,
+        )
     with ComfyClient(settings=settings) as client:
         # preview_method: auto — the sampler decodes its intermediate latent
         # each step (tiny VAE / latent2rgb) and streams JPEG previews over

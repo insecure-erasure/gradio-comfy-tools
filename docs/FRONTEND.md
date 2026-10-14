@@ -459,7 +459,7 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 | Tab | Fields |
 |---|---|
-| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor |
+| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only when the selected family is Z-Image Turbo) |
 | Edit | LoRA editor |
 | Upscale | *(none)* |
 | Video (wan21) | `Diffusion model` (dropdown) · LoRA editor · `Negative prompt` (bottom) |

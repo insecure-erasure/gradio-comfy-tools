@@ -8,9 +8,13 @@ from tools import _common
 from tools.generate import (
     FAMILY_OPTIONS,
     MODEL_CONFIGS,
+    VARIABILITY_FAMILY,
+    build_variability_workflow,
     build_workflow,
+    load_variability_workflow,
     load_workflow,
     normalize_aspect_ratio,
+    resolve_variability_workflow,
     resolve_workflow,
     GenerateError,
 )
@@ -162,3 +166,113 @@ def test_deep_copy_not_mutating_source(wf):
     built, _ = build_workflow(wf, family="krea2", prompt="hi", steps=15)
     assert wf["484"]["inputs"]["value"] == 8  # untouched original (krea2 default steps 8)
     assert built["484"]["inputs"]["value"] == 15
+
+
+# --------------------------------------------------------------------------- #
+# Variability workflow (zit_var.json) — Z-Image Turbo "Increase randomness"
+# --------------------------------------------------------------------------- #
+@pytest.fixture
+def vwf():
+    return load_variability_workflow()
+
+
+def test_variability_resolve_titles(vwf):
+    nodes = resolve_variability_workflow(vwf)
+    for t in [
+        "Load Diffusion Model",
+        "Load CLIP",
+        "Load VAE",
+        "Aspect ratio",
+        "Flux Resolution Calc",
+        "Prompt here",
+        "Power Lora Loader (rgthree)",
+        "KSampler (Advanced) 1",
+        "KSampler (Advanced) 2",
+        "Random Preview Image",
+    ]:
+        assert t in nodes, f"missing node {t}"
+
+
+def test_variability_build_defaults(vwf):
+    built, meta = build_variability_workflow(vwf, prompt="hello")
+    assert meta["variability"] is True
+    assert meta["family"] == VARIABILITY_FAMILY
+    nodes = resolve_variability_workflow(built)
+    # zimage config
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "zImageTurbo-mxfp8.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["clip_name"] == "qwen3_4b_instruct_2507_mxfp8.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["type"] == "lumina2"
+    assert nodes["Load VAE"]["inputs"]["vae_name"] == "Z-Image_half_natural_vae.safetensors"
+    # resolution
+    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
+    assert nodes["Aspect ratio"]["inputs"]["string_a"] == "2"
+    assert nodes["Aspect ratio"]["inputs"]["string_b"] == "3"
+    assert nodes["Prompt here"]["inputs"]["text"] == "hello"
+    # steps go to BOTH stages (same value)
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["steps"] == 10
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["steps"] == 10
+    # seed goes to stage 1 only; stage 2 stays fixed at 0
+    assert 0 <= nodes["KSampler (Advanced) 1"]["inputs"]["noise_seed"] <= _common.COMFY_SEED_MAX
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["noise_seed"] == 0
+    # the technique (samplers/schedulers/shifts/cfg) is never touched
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["sampler_name"] == "res_multistep"
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["sampler_name"] == "euler"
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["cfg"] == 1
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["add_noise"] == "disable"
+
+
+def test_variability_explicit_params(vwf):
+    built, meta = build_variability_workflow(
+        vwf, prompt="hi", aspect_ratio="16:9", megapixel=2.0, steps=12, seed=42
+    )
+    assert (meta["reduced_w"], meta["reduced_h"]) == (16, 9)
+    nodes = resolve_variability_workflow(built)
+    assert nodes["Aspect ratio"]["inputs"]["string_a"] == "16"
+    assert nodes["Aspect ratio"]["inputs"]["string_b"] == "9"
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["steps"] == 12
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["steps"] == 12
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["noise_seed"] == 42
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["noise_seed"] == 0
+
+
+def test_variability_model_override_and_loras(vwf):
+    built, _ = build_variability_workflow(
+        vwf,
+        prompt="hi",
+        model="my-custom.safetensors",
+        lora_config='[{"name": "zit/foo.safetensors", "strength": 0.8}]',
+    )
+    nodes = resolve_variability_workflow(built)
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "my-custom.safetensors"
+    loader = nodes["Power Lora Loader (rgthree)"]["inputs"]
+    assert loader["lora_1"]["on"] is True
+    assert loader["lora_1"]["lora"] == "zit/foo.safetensors"
+    assert loader["lora_1"]["strength"] == 0.8
+
+
+def test_variability_rejects_other_families(vwf):
+    # empirical: the two-stage graph does not behave the same on Krea 2 / FLUX.2
+    for family in ("krea2", "flux2", "nope"):
+        with pytest.raises(GenerateError):
+            build_variability_workflow(vwf, family=family, prompt="hi")
+
+
+def test_variability_validations(vwf):
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="   ")
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="hi", steps=99)
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="hi", megapixel=5.0)
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="hi", aspect_ratio="bogus")
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="hi", model="../evil.json")
+
+
+def test_variability_deep_copy_not_mutating_source(vwf):
+    built, _ = build_variability_workflow(vwf, prompt="hi", steps=12, seed=7)
+    assert vwf["75"]["inputs"]["steps"] == 10
+    assert vwf["75"]["inputs"]["noise_seed"] == 0
+    assert built["75"]["inputs"]["steps"] == 12
+    assert built["75"]["inputs"]["noise_seed"] == 7

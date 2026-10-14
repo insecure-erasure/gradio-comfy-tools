@@ -78,6 +78,20 @@ function videoFields() {
   ];
 }
 
+// Fields for the Generate tab. The "Increase randomness" toggle only makes
+// sense for Z-Image Turbo (it selects the two-stage zit_var workflow); for
+// Krea 2 / FLUX.2 the option is hidden entirely.
+function generateFields() {
+  const fields = [
+    { label: 'Model name', type: 'select', key: 'model', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
+    { label: 'LoRA config', type: 'lora', path: 'main' },
+  ];
+  if (toolbarValues.genFamily === 'zimage') {
+    fields.push({ label: 'Increase randomness', type: 'checkbox', key: 'variability' });
+  }
+  return fields;
+}
+
 function openAdvancedModal() {
   openModal(currentTab);
 }
@@ -117,6 +131,10 @@ function renderField(f) {
       + `<button class="btn btn-secondary btn-add-lora" id="btnAddLora-${path}" onclick="addModalLoraRow('${path}')">＋ Add LoRA</button>`
       + `</div>`;
   }
+  if (f.type === 'checkbox') {
+    return `<div class="field field-row-label" data-key="${f.key || ''}"><label>${f.label}</label>`
+      + `<input type="checkbox" data-key="${f.key || ''}"></div>`;
+  }
   if (f.type === 'textarea') {
     return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
       + `<textarea data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></textarea></div>`;
@@ -130,6 +148,8 @@ function openModal(tab) {
   let cfg = modalConfigs[tab];
   if (tab === 'video') {
     cfg = { ...cfg, fields: videoFields() };
+  } else if (tab === 'generate') {
+    cfg = { ...cfg, fields: generateFields() };
   }
   const backdrop = document.getElementById('modalBackdrop');
   const modalBox = document.getElementById('modalBox');
@@ -172,7 +192,10 @@ function openModal(tab) {
         : label === 'Negative prompt' ? 'negative'
         : null;
     }
-    if (key && store[key] !== undefined) f.value = store[key];
+    if (key && store[key] !== undefined) {
+      if (f.type === 'checkbox') f.checked = !!store[key];
+      else f.value = store[key];
+    }
   });
 
   // Pre-select model dropdowns from saved values (data-key carries the
@@ -226,12 +249,13 @@ function saveAdvanced() {
   const values = {};
   fields.forEach(f => {
     const key = f.getAttribute('data-key') || f.previousElementSibling?.textContent || 'field';
-    values[key] = f.value;
+    values[key] = f.type === 'checkbox' ? f.checked : f.value;
   });
   if (!window.advancedValues) window.advancedValues = {};
 
   let cfg = modalConfigs[currentModalTab];
   if (currentModalTab === 'video') cfg = { ...cfg, fields: videoFields() };
+  else if (currentModalTab === 'generate') cfg = { ...cfg, fields: generateFields() };
 
   // Start from the previously saved state so switching wan21 <-> wan22 keeps
   // the other version's configuration.
@@ -287,6 +311,8 @@ function saveAdvanced() {
         if (label === 'Model name') mapped.model = values['model'] || values[label] || '';
       } else if (f.type === 'textarea') {
         if (label === 'Negative prompt') mapped.negative = values['negative'] || values[label] || '';
+      } else if (f.type === 'checkbox') {
+        if (f.key) mapped[f.key] = !!values[f.key];
       }
     });
   }

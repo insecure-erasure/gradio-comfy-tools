@@ -686,6 +686,7 @@ def api_generate(body: dict) -> dict:
             seed=int(body.get("seed", -1)),
             lora_config=str(body.get("lora_config", "[]")),
             model=str(body.get("model", "")),
+            variability=bool(body.get("variability", False)),
         )
         _mark_latest_done(url, tool="generate", prompt=str(body.get("prompt", "")))
     except TimeoutError as e:
