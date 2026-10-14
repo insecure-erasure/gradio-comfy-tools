@@ -87,9 +87,17 @@ function generateFields() {
     { label: 'LoRA config', type: 'lora', path: 'main' },
   ];
   if (toolbarValues.genFamily === 'zimage') {
-    fields.push({ label: 'Increase randomness', type: 'checkbox', key: 'variability' });
+    fields.push({ label: 'Increase randomness', type: 'checkbox', key: 'variability', onchange: 'onVariabilityToggle(this)' });
+    fields.push({ label: 'Initial conditioning', type: 'text', key: 'initial_conditioning', placeholder: 'Conditioning for the first sampler step (default: empty)', disabled: true });
   }
   return fields;
+}
+
+// Enables the "Initial conditioning" input only while "Increase randomness" is
+// checked (it feeds the zit_var workflow's initial conditioning node).
+function onVariabilityToggle(cb) {
+  const input = document.querySelector('#modalBody input[data-key="initial_conditioning"]');
+  if (input) input.disabled = !cb.checked;
 }
 
 function openAdvancedModal() {
@@ -133,14 +141,14 @@ function renderField(f) {
   }
   if (f.type === 'checkbox') {
     return `<div class="field field-row-label" data-key="${f.key || ''}"><label>${f.label}</label>`
-      + `<input type="checkbox" data-key="${f.key || ''}"></div>`;
+      + `<input type="checkbox" data-key="${f.key || ''}"${f.onchange ? ` onchange="${f.onchange}"` : ''}></div>`;
   }
   if (f.type === 'textarea') {
     return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
       + `<textarea data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></textarea></div>`;
   }
   return `<div class="field" data-key="${f.key || ''}"><label>${f.label}</label>`
-    + `<input type="text" data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"></div>`;
+    + `<input type="text" data-key="${f.key || ''}" placeholder="${f.placeholder || ''}"${f.disabled ? ' disabled' : ''}></div>`;
 }
 
 function openModal(tab) {
@@ -197,6 +205,10 @@ function openModal(tab) {
       else f.value = store[key];
     }
   });
+
+  // The variability toggle gates its "Initial conditioning" input.
+  const vcb = document.querySelector('#modalBody input[data-key="variability"]');
+  if (vcb) onVariabilityToggle(vcb);
 
   // Pre-select model dropdowns from saved values (data-key carries the
   // store key: model / diffusion / diffusionHigh / diffusionLow; the
@@ -313,6 +325,9 @@ function saveAdvanced() {
         if (label === 'Negative prompt') mapped.negative = values['negative'] || values[label] || '';
       } else if (f.type === 'checkbox') {
         if (f.key) mapped[f.key] = !!values[f.key];
+      } else if (f.key) {
+        // Plain text inputs (e.g. initial_conditioning) map straight through.
+        mapped[f.key] = values[f.key];
       }
     });
   }

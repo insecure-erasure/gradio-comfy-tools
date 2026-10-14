@@ -24,6 +24,7 @@ function generateImage() {
   const model = adv.model || '';
   // "Increase randomness" only applies to Z-Image Turbo (two-stage workflow).
   const variability = !!adv.variability && family === 'zimage';
+  const initialConditioning = variability ? (adv.initial_conditioning || '') : '';
 
   if (!prompt.trim()) return showToast('Please write a prompt first');
 
@@ -57,6 +58,7 @@ function generateImage() {
   api('/api/generate', {
     family, prompt, aspect_ratio: ar, megapixel: parseFloat(mp),
     steps: parseInt(steps), seed, lora_config: loraConfig, model, variability,
+    initial_conditioning: initialConditioning,
   }).then(res => {
     finalizeGenerate(res);
   }).catch(err => {

@@ -7,7 +7,8 @@ it via ComfyClient and returns the output image URL.
 
 ``build_variability_workflow`` is the Z-Image Turbo "Increase randomness"
 variant (zit_var.json): a two-stage sampler graph where only the injection
-map changes (prompt/resolution/steps/seed/LoRAs), never the technique.
+map changes (prompt/resolution/steps/seed/LoRAs/initial conditioning), never
+the technique.
 
 MODEL_CONFIGS mirrors the reference smart_generate_image/tool.py.
 """
@@ -124,6 +125,7 @@ def resolve_variability_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "Aspect ratio",
         "Flux Resolution Calc",
         "Prompt here",
+        "Initial conditioning",
         "Power Lora Loader (rgthree)",
         "KSampler (Advanced) 1",
         "KSampler (Advanced) 2",
@@ -282,14 +284,15 @@ def build_variability_workflow(
     seed: int = -1,
     lora_config: str = "[]",
     model: str = "",
+    initial_conditioning: str = "",
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the high-variability workflow.
 
     Z-Image Turbo only. The two-stage sampler technique is fixed in the
     workflow and must NOT be overridden: res_multistep + shift 7 for the
     first step, euler + shift 2.5 afterwards, the timestep-gated
-    conditioning and cfg 1. Only prompt, resolution, steps, seed, LoRAs and
-    the model override are injected.
+    conditioning and cfg 1. Only prompt, resolution, steps, seed, LoRAs, the
+    model override and the initial conditioning are injected.
 
     The seed goes to ``KSampler (Advanced) 1`` only. ``KSampler (Advanced)
     2`` runs with ``add_noise: disable`` (ComfyUI ignores its ``noise_seed``)
@@ -331,6 +334,9 @@ def build_variability_workflow(
 
     # Prompt + LoRAs
     nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
+    # Conditioning used instead of the prompt for the first timestep slice;
+    # defaults to "" — the workflow's original behaviour.
+    nodes["Initial conditioning"]["inputs"]["text"] = initial_conditioning.strip()
     _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
 
     # Same step count in both stages; seed only in the first stage
@@ -363,12 +369,14 @@ def generate_image(
     model: str = "",
     timeout: float = 120.0,
     variability: bool = False,
+    initial_conditioning: str = "",
 ) -> str:
     """Run the Generate workflow and return the output image URL.
 
     ``variability=True`` (the "Increase randomness" advanced option) selects
     the Z-Image Turbo high-variability workflow; it is rejected for any other
-    family.
+    family. ``initial_conditioning`` is the conditioning that replaces the
+    prompt for the first timestep slice of that workflow (ignored otherwise).
     """
     if variability:
         workflow = load_variability_workflow()
@@ -382,6 +390,7 @@ def generate_image(
             seed=seed,
             lora_config=lora_config,
             model=model,
+            initial_conditioning=initial_conditioning,
         )
     else:
         workflow = load_workflow()

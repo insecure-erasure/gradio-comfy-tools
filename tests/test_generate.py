@@ -185,6 +185,7 @@ def test_variability_resolve_titles(vwf):
         "Aspect ratio",
         "Flux Resolution Calc",
         "Prompt here",
+        "Initial conditioning",
         "Power Lora Loader (rgthree)",
         "KSampler (Advanced) 1",
         "KSampler (Advanced) 2",
@@ -248,6 +249,15 @@ def test_variability_model_override_and_loras(vwf):
     assert loader["lora_1"]["on"] is True
     assert loader["lora_1"]["lora"] == "zit/foo.safetensors"
     assert loader["lora_1"]["strength"] == 0.8
+
+
+def test_variability_initial_conditioning(vwf):
+    # Default: the workflow's original empty conditioning ("").
+    built, _ = build_variability_workflow(vwf, prompt="hi")
+    assert resolve_variability_workflow(built)["Initial conditioning"]["inputs"]["text"] == ""
+    # The advanced "Initial conditioning" field overrides it (stripped).
+    built2, _ = build_variability_workflow(vwf, prompt="hi", initial_conditioning="  blurry  ")
+    assert resolve_variability_workflow(built2)["Initial conditioning"]["inputs"]["text"] == "blurry"
 
 
 def test_variability_rejects_other_families(vwf):

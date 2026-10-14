@@ -178,6 +178,7 @@ workflow.
 | Seed + 🎲 | `seed` | `KSampler (Advanced) 1` **only** |
 | LoRAs | `lora_config` | `Power Lora Loader (rgthree)` (feeds stage 2 only — deliberate) |
 | Model name | `model` | `Load Diffusion Model` |
+| Modal: Initial conditioning | `initial_conditioning` | `Initial conditioning` (replaces the prompt conditioning for the first timestep slice; `""` keeps the original behaviour) |
 | — (fixed in JSON) | — | `KSampler (Advanced) 2` seed: ComfyUI ignores `noise_seed` with `add_noise: disable`, so it stays 0 |
 
 The sampler/scheduler/shift/cfg and the model routing (stage 1 uses the raw
