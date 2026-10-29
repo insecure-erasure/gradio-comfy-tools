@@ -100,4 +100,4 @@ toolbar options.
 | 1 | `4db032b` refactor(generate): centralize family config in FAMILY_CONFIGS |
 | 2 | `b23a4ae` refactor(generate): share common workflow injection helpers |
 | 3 | `1ca4e62` docs(generate): describe FAMILY_CONFIGS and shared injection helpers |
-| 4 | (frontend FAMILY_DEFAULTS; see branch history) |
+| 4 | `20d11e4` refactor(generate): single frontend source for family defaults |
