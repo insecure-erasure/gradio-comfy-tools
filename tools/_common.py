@@ -217,20 +217,36 @@ def parse_lora_config(raw: str) -> list[Any]:
 def apply_loras(loader_inputs: dict[str, Any], loras: list[Any]) -> None:
     """Fill the Power Lora Loader slots from a parsed lora_config.
 
-    Applied positionally to ``lora_1..lora_N``; grows the workflow with extra
-    slots when there are more LoRAs than the loader defines (rgthree nodes use
+    Existing ``lora_*`` slots are filled in numeric order. Workflows exported
+    with gaps (e.g. only ``lora_2``) are supported; when there are no slots,
+    ``lora_1..lora_N`` are created. Additional slots are appended when there
+    are more LoRAs than the loader defines (rgthree nodes use
     FlexibleOptionalInputType, like the reference). An empty name disables the
     slot. Any numeric strength is applied as-is — 0, fractional (0<|s|<1) and
     negative strengths are all valid in ComfyUI and must NOT disable the slot.
     """
-    max_slots = sum(1 for k in loader_inputs if k.startswith("lora_"))
-    for i in range(max_slots + 1, len(loras) + 1):
-        loader_inputs[f"lora_{i}"] = {"on": False, "lora": "", "strength": 0}
+    def slot_index(key: str) -> int:
+        try:
+            return int(key.rsplit("_", 1)[1])
+        except (IndexError, ValueError):
+            return 0
 
-    for i, item in enumerate(loras, start=1):
-        slot = f"lora_{i}"
-        if slot not in loader_inputs:
-            break
+    slots = sorted(
+        (k for k in loader_inputs if k.startswith("lora_") and slot_index(k) > 0),
+        key=slot_index,
+    )
+    if not slots:
+        slots = [f"lora_{i}" for i in range(1, len(loras) + 1)]
+    else:
+        next_index = slot_index(slots[-1]) + 1
+        while len(slots) < len(loras):
+            slots.append(f"lora_{next_index}")
+            next_index += 1
+
+    for slot in slots:
+        loader_inputs.setdefault(slot, {"on": False, "lora": "", "strength": 0})
+
+    for slot, item in zip(slots, loras):
         if isinstance(item, str):
             name, strength = item, 1.0
         elif isinstance(item, dict):

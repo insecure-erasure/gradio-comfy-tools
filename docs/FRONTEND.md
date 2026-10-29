@@ -172,7 +172,7 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 
 With **Increase randomness** enabled the step budget and rounding come from
 the variability config instead: Z-Image Turbo 10 steps / 16, Krea 2 9 steps /
-16.
+16, FLUX.2 8 steps / 16.
 
 **Parameter chips** (overlaid on the prompt textarea — the params pane is
 empty and the prompt fills it; see also deviation 14):
@@ -463,7 +463,7 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 | Tab | Fields |
 |---|---|
-| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only for the supported families: Z-Image Turbo and Krea 2) · `initial conditioning` (text input rendered as its own lowercase placeholder, below the checkbox and enabled/dimmed only while it is checked) |
+| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only for the supported families: Z-Image Turbo, Krea 2 and FLUX.2) · `initial conditioning` (text input rendered as its own lowercase placeholder, below the checkbox and enabled/dimmed only while it is checked) |
 | Edit | LoRA editor |
 | Upscale | *(none)* |
 | Video (wan21) | `Diffusion model` (dropdown) · LoRA editor · `Negative prompt` (bottom) |

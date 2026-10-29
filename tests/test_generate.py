@@ -16,6 +16,7 @@ from tools.generate import (
     load_variability_workflow,
     load_workflow,
     normalize_aspect_ratio,
+    resolve_flux2_variability_workflow,
     resolve_variability_workflow,
     resolve_workflow,
     GenerateError,
@@ -184,6 +185,11 @@ def vwf():
     return load_variability_workflow()
 
 
+@pytest.fixture
+def fvwf():
+    return load_variability_workflow("flux2")
+
+
 def test_variability_resolve_titles(vwf):
     nodes = resolve_variability_workflow(vwf)
     for t in [
@@ -257,8 +263,123 @@ def test_variability_build_krea2_defaults(vwf):
     assert nodes["KSampler (Advanced) 2"]["inputs"]["sampler_name"] == "euler"
 
 
+def test_flux2_variability_resolve_titles(fvwf):
+    nodes = resolve_flux2_variability_workflow(fvwf)
+    for t in [
+        "Load Diffusion Model",
+        "Load CLIP",
+        "Load VAE",
+        "Aspect ratio",
+        "Flux Resolution Calc",
+        "Prompt here",
+        "Initial conditioning",
+        "ConditioningTimestepThreshold",
+        "Power Lora Loader (rgthree)",
+        "Flux2Scheduler",
+        "SplitSigmas",
+        "SamplerCustomAdvanced 1",
+        "SamplerCustomAdvanced 2",
+        "DisableNoise",
+        "RandomNoise",
+        "CFGGuider 1",
+        "CFGGuider 2",
+        "KSamplerSelect 1",
+        "KSamplerSelect 2",
+        "Random Preview Image",
+    ]:
+        assert t in nodes, f"missing node {t}"
+
+
+def test_flux2_variability_build_defaults(fvwf):
+    built, meta = build_variability_workflow(fvwf, family="flux2", prompt="hello")
+    assert meta["family"] == "flux2"
+    assert meta["steps"] == 8
+    assert meta["timestep_threshold"] == 0.13
+    assert meta["divisible_by"] == 16
+    assert meta["workflow"] == "flux2_var.json"
+    nodes = resolve_flux2_variability_workflow(built)
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "flux-2-klein-9b-nvfp4.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["clip_name"] == "qwen_3_8b_nvfp4.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["type"] == "flux2"
+    assert nodes["Load VAE"]["inputs"]["vae_name"] == "flux2-vae-small-bf16.safetensors"
+    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
+    assert nodes["ConditioningTimestepThreshold"]["inputs"]["value"] == 0.13
+    assert nodes["Prompt here"]["inputs"]["text"] == "hello"
+    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 8
+    assert nodes["SplitSigmas"]["inputs"]["step"] == 1
+    assert nodes["KSamplerSelect 1"]["inputs"]["sampler_name"] == "res_multistep"
+    assert nodes["KSamplerSelect 2"]["inputs"]["sampler_name"] == "euler"
+    assert nodes["CFGGuider 1"]["inputs"]["cfg"] == 1
+    assert nodes["CFGGuider 2"]["inputs"]["cfg"] == 1
+    assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= _common.COMFY_SEED_MAX
+
+    # One schedule split at step 1: high -> stage 1, low -> stage 2, and
+    # stage 2 continues from stage 1's latent with no new noise.
+    split_id, _ = _common.resolve_node(built, "SplitSigmas")
+    stage1_id, _ = _common.resolve_node(built, "SamplerCustomAdvanced 1")
+    stage2_id, _ = _common.resolve_node(built, "SamplerCustomAdvanced 2")
+    disable_id, _ = _common.resolve_node(built, "DisableNoise")
+    assert built[stage1_id]["inputs"]["sigmas"] == [split_id, 0]
+    assert built[stage2_id]["inputs"]["sigmas"] == [split_id, 1]
+    assert built[stage2_id]["inputs"]["noise"] == [disable_id, 0]
+    assert built[stage2_id]["inputs"]["latent_image"] == [stage1_id, 0]
+
+
+def test_flux2_variability_explicit_params(fvwf):
+    built, meta = build_variability_workflow(
+        fvwf,
+        family="flux2",
+        prompt="hi",
+        aspect_ratio="16:9",
+        megapixel=2.0,
+        steps=12,
+        seed=42,
+    )
+    assert (meta["reduced_w"], meta["reduced_h"]) == (16, 9)
+    nodes = resolve_flux2_variability_workflow(built)
+    assert nodes["Aspect ratio"]["inputs"]["string_a"] == "16"
+    assert nodes["Aspect ratio"]["inputs"]["string_b"] == "9"
+    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 12
+    assert nodes["SplitSigmas"]["inputs"]["step"] == 1
+    assert nodes["RandomNoise"]["inputs"]["noise_seed"] == 42
+
+
+def test_flux2_variability_model_lora_and_conditioning(fvwf):
+    built, _ = build_variability_workflow(
+        fvwf,
+        family="flux2",
+        prompt="hi",
+        model="my-custom.safetensors",
+        lora_config='[{"name": "flux2/foo.safetensors", "strength": 0.8}]',
+        initial_conditioning="  blurry  ",
+    )
+    nodes = resolve_flux2_variability_workflow(built)
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "my-custom.safetensors"
+    assert nodes["Initial conditioning"]["inputs"]["text"] == "blurry"
+    loader = nodes["Power Lora Loader (rgthree)"]["inputs"]
+    # The workflow only defines lora_2; apply_loras must fill it.
+    assert loader["lora_2"]["on"] is True
+    assert loader["lora_2"]["lora"] == "flux2/foo.safetensors"
+    assert loader["lora_2"]["strength"] == 0.8
+
+
+def test_flux2_variability_validations(fvwf):
+    with pytest.raises(GenerateError):
+        build_variability_workflow(fvwf, family="flux2", prompt="hi", steps=1)
+    with pytest.raises(GenerateError):
+        build_variability_workflow(fvwf, family="flux2", prompt="   ")
+
+
+def test_flux2_variability_deep_copy_not_mutating_source(fvwf):
+    built, _ = build_variability_workflow(fvwf, family="flux2", prompt="hi", steps=12, seed=7)
+    assert fvwf["100"]["inputs"]["steps"] == 8
+    assert fvwf["103"]["inputs"]["noise_seed"] == 0
+    assert built["100"]["inputs"]["steps"] == 12
+    assert built["103"]["inputs"]["noise_seed"] == 7
+
+
 def test_variability_family_configs_cover_supported_families():
-    assert set(VARIABILITY_CONFIGS) == {"zimage", "krea2"}
+    assert set(VARIABILITY_CONFIGS) == {"zimage", "krea2", "flux2"}
     assert set(VARIABILITY_FAMILIES) == set(VARIABILITY_CONFIGS)
     assert VARIABILITY_FAMILY in VARIABILITY_CONFIGS
 
@@ -302,10 +423,10 @@ def test_variability_initial_conditioning(vwf):
 
 
 def test_variability_rejects_other_families(vwf):
-    # empirical: the two-stage graph does not behave the same on FLUX.2
-    for family in ("flux2", "nope"):
-        with pytest.raises(GenerateError):
-            build_variability_workflow(vwf, family=family, prompt="hi")
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, family="nope", prompt="hi")
+    with pytest.raises(GenerateError):
+        load_variability_workflow("nope")
 
 
 def test_variability_validations(vwf):

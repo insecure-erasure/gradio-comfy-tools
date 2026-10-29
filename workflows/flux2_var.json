@@ -1,0 +1,410 @@
+{
+  "34": {
+    "inputs": {
+      "vae_name": "flux2-vae-small-bf16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "35": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "89",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Prompt here"
+    }
+  },
+  "39": {
+    "inputs": {
+      "samples": [
+        "104",
+        0
+      ],
+      "vae": [
+        "34",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "50": {
+    "inputs": {
+      "width": [
+        "51",
+        0
+      ],
+      "height": [
+        "51",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
+  "51": {
+    "inputs": {
+      "megapixel": "1.0",
+      "aspect_ratio": "2:3 (Classic Portrait)",
+      "divisible_by": "16",
+      "custom_ratio": true,
+      "custom_aspect_ratio": [
+        "96",
+        0
+      ]
+    },
+    "class_type": "FluxResolutionNode",
+    "_meta": {
+      "title": "Flux Resolution Calc"
+    }
+  },
+  "73": {
+    "inputs": {
+      "shift": 7,
+      "model": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow 1"
+    }
+  },
+  "87": {
+    "inputs": {
+      "shift": 2.5,
+      "model": [
+        "88",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow 2"
+    }
+  },
+  "88": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "lora_2": {
+        "on": false,
+        "lora": "flux2/HighDetail.safetensors",
+        "strength": 1
+      },
+      "➕ Add Lora": "",
+      "model": [
+        "95",
+        0
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "89": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_nvfp4.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "94": {
+    "inputs": {
+      "conditioning": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "Conditioning Zero Out"
+    }
+  },
+  "95": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-nvfp4.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "96": {
+    "inputs": {
+      "string_a": "",
+      "string_b": "",
+      "delimiter": ":"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Aspect ratio"
+    }
+  },
+  "97": {
+    "inputs": {
+      "images": [
+        "39",
+        0
+      ]
+    },
+    "class_type": "RandomPreviewImage",
+    "_meta": {
+      "title": "Random Preview Image"
+    }
+  },
+  "98": {
+    "inputs": {
+      "noise": [
+        "103",
+        0
+      ],
+      "guider": [
+        "101",
+        0
+      ],
+      "sampler": [
+        "102",
+        0
+      ],
+      "sigmas": [
+        "109",
+        0
+      ],
+      "latent_image": [
+        "50",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced 1"
+    }
+  },
+  "100": {
+    "inputs": {
+      "steps": 8,
+      "width": [
+        "51",
+        0
+      ],
+      "height": [
+        "51",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "101": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "73",
+        0
+      ],
+      "positive": [
+        "90:64",
+        0
+      ],
+      "negative": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFGGuider 1"
+    }
+  },
+  "102": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect 1"
+    }
+  },
+  "103": {
+    "inputs": {
+      "noise_seed": 0
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "104": {
+    "inputs": {
+      "noise": [
+        "110",
+        0
+      ],
+      "guider": [
+        "107",
+        0
+      ],
+      "sampler": [
+        "105",
+        0
+      ],
+      "sigmas": [
+        "109",
+        1
+      ],
+      "latent_image": [
+        "98",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced 2"
+    }
+  },
+  "105": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect 2"
+    }
+  },
+  "107": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "87",
+        0
+      ],
+      "positive": [
+        "35",
+        0
+      ],
+      "negative": [
+        "94",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFGGuider 2"
+    }
+  },
+  "109": {
+    "inputs": {
+      "step": 1,
+      "sigmas": [
+        "100",
+        0
+      ]
+    },
+    "class_type": "SplitSigmas",
+    "_meta": {
+      "title": "SplitSigmas"
+    }
+  },
+  "110": {
+    "inputs": {},
+    "class_type": "DisableNoise",
+    "_meta": {
+      "title": "DisableNoise"
+    }
+  },
+  "90:93": {
+    "inputs": {
+      "value": 0.13
+    },
+    "class_type": "FloatConstant",
+    "_meta": {
+      "title": "ConditioningTimestepThreshold"
+    }
+  },
+  "90:36": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "89",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Initial conditioning"
+    }
+  },
+  "90:63": {
+    "inputs": {
+      "start": [
+        "90:93",
+        0
+      ],
+      "end": 1,
+      "conditioning": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "90:62": {
+    "inputs": {
+      "start": 0,
+      "end": [
+        "90:93",
+        0
+      ],
+      "conditioning": [
+        "90:36",
+        0
+      ]
+    },
+    "class_type": "ConditioningSetTimestepRange",
+    "_meta": {
+      "title": "ConditioningSetTimestepRange"
+    }
+  },
+  "90:64": {
+    "inputs": {
+      "conditioning_1": [
+        "90:62",
+        0
+      ],
+      "conditioning_2": [
+        "90:63",
+        0
+      ]
+    },
+    "class_type": "ConditioningCombine",
+    "_meta": {
+      "title": "Conditioning (Combine)"
+    }
+  }
+}

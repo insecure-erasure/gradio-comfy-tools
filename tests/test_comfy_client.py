@@ -378,6 +378,15 @@ def test_apply_loras_grows_and_fills():
     assert inputs["lora_3"] == {"on": True, "lora": "c.sft", "strength": 1}
 
 
+def test_apply_loras_handles_sparse_slots():
+    # Workflows exported with gaps (e.g. only lora_2) must still receive the
+    # configured LoRAs: fill the existing slots in numeric order.
+    inputs = {"lora_2": {"on": False, "lora": "", "strength": 0}}
+    _common.apply_loras(inputs, ["a.sft", {"name": "b.sft", "strength": 0.5}])
+    assert inputs["lora_2"] == {"on": True, "lora": "a.sft", "strength": 1}
+    assert inputs["lora_3"] == {"on": True, "lora": "b.sft", "strength": 0.5}
+
+
 def test_apply_loras_disables_empty_but_applies_zero_strength():
     inputs = {"lora_1": {"on": False, "lora": "", "strength": 1}}
     # Empty name still disables the slot.

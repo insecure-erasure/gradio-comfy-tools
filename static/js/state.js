@@ -22,8 +22,8 @@ let toolbarValues = {
 
 // "Increase randomness" two-stage workflow — families that support it and
 // their per-family defaults. Mirrors VARIABILITY_CONFIGS in tools/generate.py.
-const VARIABILITY_FAMILIES = ['zimage', 'krea2'];
-const VARIABILITY_STEPS = { zimage: 10, krea2: 9 };
+const VARIABILITY_FAMILIES = ['zimage', 'krea2', 'flux2'];
+const VARIABILITY_STEPS = { zimage: 10, krea2: 9, flux2: 8 };
 
 // Per-tab prompt text — each tab (generate/edit/video/face_swap) has its
 // OWN textarea element (#promptInput<Cap>), so values never mix;

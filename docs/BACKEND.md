@@ -157,30 +157,41 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 | Krea 2 | krea2_turbo_mixed_nvfp4 | qwen3_vl_4b_instruct_mxfp8 | qwen_image_vae | 16 | 1.0 | 8 | euler | simple |
 | FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 16 | 1.0 | 8 | euler | (flux.2) |
 
-**Increase randomness (Z-Image Turbo / Krea 2)** — `workflows/dit_var.json`
+**Increase randomness (Z-Image Turbo / Krea 2 / FLUX.2)**
 
 When the advanced checkbox is on (and the family supports it), the request
-builds `dit_var.json` instead of `smart_generate_image.json`
-(`build_variability_workflow` in `tools/generate.py`). It is a two-stage
-sampler graph: the first step runs with `res_multistep` + `ModelSamplingAuraFlow`
-shift 7 while its prompt is suppressed for the first timestep slice
-(`ConditioningSetTimestepRange` + `ConditioningCombine`); the rest continues
-with `euler` + shift 2.5. Removing the prompt's lock on the very first step
-makes the seed change the image far more than the single-stage workflow.
-The same graph serves both families (validated experimentally with Krea 2);
-only the model stack, the step budget, the threshold and the resolution
-multiple change (`VARIABILITY_CONFIGS`):
+builds a two-stage variability workflow instead of `smart_generate_image.json`
+(`build_variability_workflow` in `tools/generate.py`):
 
-| Family | Model / text encoder / VAE | default steps | threshold | divisible_by |
-|---|---|---|---|---|
-| Z-Image Turbo | zImageTurbo-mxfp8 / qwen3_4b_instruct_2507_mxfp8 / Z-Image_half_natural_vae | 10 | 0.105 | 16 |
-| Krea 2 | krea2_turbo_mixed_nvfp4 / qwen3_vl_4b_instruct_mxfp8 / qwen_image_vae | 9 | 0.112 | 16 |
+- **Z-Image Turbo / Krea 2** → `workflows/dit_var.json`. The first step runs
+  with `res_multistep` + `ModelSamplingAuraFlow` shift 7 while its prompt is
+  suppressed for the first timestep slice (`ConditioningSetTimestepRange` +
+  `ConditioningCombine`); the rest continues with `euler` + shift 2.5.
+- **FLUX.2** → `workflows/flux2_var.json`. One `Flux2Scheduler` feeds
+  `SplitSigmas(step=1)`: stage 1 takes the high sigmas (1 step,
+  `res_multistep`, shift 7) and stage 2 the low sigmas (N-1 steps, `euler`,
+  shift 2.5). Stage 2 continues from stage 1's latent with `DisableNoise`, so
+  it follows the same schedule without adding new noise. Stage 1 uses the
+  timestep-gated conditioning exactly like `dit_var.json`.
 
-Why 16 for Krea 2: the official Krea-2 inference code aligns width/height to
-a multiple of 16 (Qwen-Image VAE 8× × Krea-2 patch size 2). ComfyUI's Krea-2
+Removing the prompt's lock on the very first step makes the seed change the
+image far more than the single-stage workflow. Per-family knobs
+(`VARIABILITY_CONFIGS`):
+
+| Family | Workflow | Model / text encoder / VAE | default steps | threshold | divisible_by |
+|---|---|---|---|---|---|
+| Z-Image Turbo | `dit_var.json` | zImageTurbo-mxfp8 / qwen3_4b_instruct_2507_mxfp8 / Z-Image_half_natural_vae | 10 | 0.105 | 16 |
+| Krea 2 | `dit_var.json` | krea2_turbo_mixed_nvfp4 / qwen3_vl_4b_instruct_mxfp8 / qwen_image_vae | 9 | 0.112 | 16 |
+| FLUX.2 Klein | `flux2_var.json` | flux-2-klein-9b-nvfp4 / qwen_3_8b_nvfp4 / flux2-vae-small-bf16 | 8 | 0.13 | 16 |
+
+Why 16: the official Krea-2 inference code aligns width/height to a multiple
+of 16 (Qwen-Image VAE 8× × Krea-2 patch size 2), and FLUX.2 uses a 16× VAE
+with `patch_size=1` (BFL/ComfyUI require multiples of 16). ComfyUI's Krea-2
 template uses `multiple=8`, which works because the model pads odd latents
-internally; this project aligns both the standard and variability paths to
-16 to avoid that padding. 64 is valid but unnecessarily restrictive.
+internally; this project aligns both the standard and variability paths to 16
+to avoid that padding.
+
+**dit_var mapping** (Z-Image Turbo / Krea 2):
 
 | UI control | Backend parameter | Workflow node (title) |
 |---|---|---|
@@ -195,10 +206,23 @@ internally; this project aligns both the standard and variability paths to
 | — (per family) | — | `ConditioningTimestepThreshold` (`90:93`): 0.105 (Z-Image) / 0.112 (Krea 2) |
 | — (fixed in JSON) | — | `KSampler (Advanced) 2` seed: ComfyUI ignores `noise_seed` with `add_noise: disable`, so it stays 0 |
 
+**flux2_var mapping** (FLUX.2 Klein):
+
+| UI control | Backend parameter | Workflow node (title) |
+|---|---|---|
+| Prompt | `prompt` | `Prompt here` |
+| AR dropdown | `aspect_ratio` (w:h) | `Aspect ratio` (`StringConcatenate`) |
+| MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
+| Steps (total) | `steps` | `Flux2Scheduler` (the graph splits it 1 + N-1 via `SplitSigmas step=1`) |
+| Seed + 🎲 | `seed` | `RandomNoise` (stage 1; stage 2 uses `DisableNoise`) |
+| LoRAs | `lora_config` | `Power Lora Loader (rgthree)` (feeds stage 2 only — deliberate) |
+| Model name | `model` | `Load Diffusion Model` |
+| Modal: Initial conditioning | `initial_conditioning` | `Initial conditioning` (used by stage 1) |
+| — (per family) | — | `ConditioningTimestepThreshold`: 0.13 |
+
 The sampler/scheduler/shift/cfg and the model routing (stage 1 uses the raw
 UNET, stage 2 the LoRA-adjusted one) are **fixed by the technique** and are
-never overridden. `variability` with any other family (FLUX.2) is rejected
-(`400`).
+never overridden. `variability` with any other family is rejected (`400`).
 
 ### 5.2 Edit ✏️ — `edit_image.json`
 

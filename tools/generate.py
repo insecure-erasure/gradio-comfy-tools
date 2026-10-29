@@ -1,15 +1,16 @@
-"""Generate tool — smart_generate_image.json (+ the dit_var.json variant).
+"""Generate tool — smart_generate_image.json (+ the variability variants).
 
 Injects the model family config (model / CLIP / VAE / cfg / steps / sampler /
 scheduler), the prompt, the resolution (megapixel + aspect ratio via
 Flux Resolution Calc), steps, seed and LoRAs into the workflow, then submits
 it via ComfyClient and returns the output image URL.
 
-``build_variability_workflow`` is the "Increase randomness" variant
-(dit_var.json): a two-stage sampler graph shared by Z-Image Turbo and Krea 2
-where only the injection map changes (model stack, prompt/resolution/steps/
-seed/LoRAs/initial conditioning and the first-step threshold), never the
-technique.
+``build_variability_workflow`` is the "Increase randomness" variant:
+Z-Image Turbo and Krea 2 share ``dit_var.json`` (KSamplerAdvanced split
+schedule); FLUX.2 uses ``flux2_var.json`` (Flux2Scheduler + SplitSigmas +
+two SamplerCustomAdvanced stages). Only the injection map changes (model
+stack, prompt/resolution/steps/seed/LoRAs/initial conditioning and the
+first-step threshold), never the technique.
 
 MODEL_CONFIGS mirrors the reference smart_generate_image/tool.py, except
 ``vae_scale_factor``, which is 16 for every family here so the resolution
@@ -30,10 +31,16 @@ from tools import _common
 from tools._common import WorkflowError
 
 WORKFLOW_FILE = "workflows/smart_generate_image.json"
-# "Increase randomness" variant: a two-stage sampler graph that makes the
-# seed matter much more than the single-stage workflow above. The same graph
-# serves every family listed in VARIABILITY_CONFIGS below.
+# "Increase randomness" variants. Z-Image Turbo and Krea 2 share dit_var.json
+# (KSamplerAdvanced split schedule); FLUX.2 uses flux2_var.json
+# (Flux2Scheduler + SplitSigmas + two SamplerCustomAdvanced stages).
 VARIABILITY_WORKFLOW_FILE = "workflows/dit_var.json"
+FLUX2_VARIABILITY_WORKFLOW_FILE = "workflows/flux2_var.json"
+VARIABILITY_WORKFLOW_FILES = {
+    "zimage": VARIABILITY_WORKFLOW_FILE,
+    "krea2": VARIABILITY_WORKFLOW_FILE,
+    "flux2": FLUX2_VARIABILITY_WORKFLOW_FILE,
+}
 VARIABILITY_FAMILY = "zimage"  # default family for variability mode
 
 MODEL_CONFIGS: dict[str, dict[str, Any]] = {
@@ -77,15 +84,14 @@ MODEL_CONFIGS: dict[str, dict[str, Any]] = {
 
 FAMILY_OPTIONS = list(MODEL_CONFIGS.keys())
 
-# Per-family knobs for the two-stage "Increase randomness" workflow. The
-# technique itself (res_multistep + shift 7 for step 0, euler + shift 2.5
-# afterwards, cfg 1 and the timestep-gated conditioning) is fixed in
-# dit_var.json and is shared by both families — validated with Krea 2 too.
-# Only the model stack (MODEL_CONFIGS), the step budget and the first-step
-# threshold change per family. ``divisible_by`` is 16 for both: Z-Image Turbo
-# uses its VAE scale factor, and Krea 2 aligns to 16 as its official inference
-# code does (Qwen-Image VAE 8x x Krea 2 patch 2), avoiding the internal
-# circular padding ComfyUI applies for odd latent dimensions.
+# Per-family knobs for the "Increase randomness" workflows. The technique is
+# fixed by each workflow: Z-Image Turbo and Krea 2 share dit_var.json
+# (res_multistep + shift 7 for step 0, euler + shift 2.5 afterwards, cfg 1 and
+# the timestep-gated conditioning); FLUX.2 uses flux2_var.json
+# (Flux2Scheduler + SplitSigmas(step=1) + two SamplerCustomAdvanced stages,
+# stage 2 continuing with DisableNoise). Only the model stack, the step budget,
+# the first-step threshold and the resolution grid change per family.
+# ``divisible_by`` is 16 for every family (each model's native grid).
 VARIABILITY_CONFIGS: dict[str, dict[str, Any]] = {
     "zimage": {
         "steps": 10,
@@ -95,6 +101,11 @@ VARIABILITY_CONFIGS: dict[str, dict[str, Any]] = {
     "krea2": {
         "steps": 9,
         "timestep_threshold": 0.112,
+        "divisible_by": 16,
+    },
+    "flux2": {
+        "steps": 8,
+        "timestep_threshold": 0.13,
         "divisible_by": 16,
     },
 }
@@ -118,9 +129,15 @@ def load_workflow() -> dict[str, dict]:
     return _common.load_workflow_json(WORKFLOW_FILE)
 
 
-def load_variability_workflow() -> dict[str, dict]:
-    """Load the high-variability workflow (dit_var.json)."""
-    return _common.load_workflow_json(VARIABILITY_WORKFLOW_FILE)
+def load_variability_workflow(family: str = VARIABILITY_FAMILY) -> dict[str, dict]:
+    """Load the high-variability workflow for ``family``."""
+    try:
+        path = VARIABILITY_WORKFLOW_FILES[family]
+    except KeyError:
+        raise GenerateError(
+            f"No variability workflow for {family!r}; options: {VARIABILITY_FAMILIES}"
+        ) from None
+    return _common.load_workflow_json(path)
 
 
 def _resolve_nodes(workflow: dict[str, dict], titles: list[str]) -> dict[str, dict]:
@@ -149,7 +166,7 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
 
 
 def resolve_variability_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
-    """Resolve the high-variability workflow nodes by _meta.title."""
+    """Resolve the dit_var.json (Z-Image Turbo / Krea 2) nodes by title."""
     return _resolve_nodes(workflow, [
         "Load Diffusion Model",
         "Load CLIP",
@@ -162,6 +179,32 @@ def resolve_variability_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "Power Lora Loader (rgthree)",
         "KSampler (Advanced) 1",
         "KSampler (Advanced) 2",
+        "Random Preview Image",
+    ])
+
+
+def resolve_flux2_variability_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
+    """Resolve the flux2_var.json (FLUX.2) nodes by title."""
+    return _resolve_nodes(workflow, [
+        "Load Diffusion Model",
+        "Load CLIP",
+        "Load VAE",
+        "Aspect ratio",
+        "Flux Resolution Calc",
+        "Prompt here",
+        "Initial conditioning",
+        "ConditioningTimestepThreshold",
+        "Power Lora Loader (rgthree)",
+        "Flux2Scheduler",
+        "SplitSigmas",
+        "SamplerCustomAdvanced 1",
+        "SamplerCustomAdvanced 2",
+        "DisableNoise",
+        "RandomNoise",
+        "CFGGuider 1",
+        "CFGGuider 2",
+        "KSamplerSelect 1",
+        "KSamplerSelect 2",
         "Random Preview Image",
     ])
 
@@ -306,6 +349,89 @@ def build_workflow(
     return wf, meta
 
 
+def _build_flux2_variability_workflow(
+    workflow: dict[str, dict],
+    *,
+    family: str = "flux2",
+    prompt: str = "",
+    aspect_ratio: str = DEFAULT_ASPECT_RATIO,
+    megapixel: float = DEFAULT_MEGAPIXEL,
+    steps: int = 0,
+    seed: int = -1,
+    lora_config: str = "[]",
+    model: str = "",
+    initial_conditioning: str = "",
+) -> tuple[dict[str, dict], dict[str, Any]]:
+    """Inject parameters into the FLUX.2 high-variability workflow.
+
+    ``flux2_var.json`` runs a single ``Flux2Scheduler`` through
+    ``SplitSigmas(step=1)``: stage 1 consumes the high sigmas (one step) and
+    stage 2 the low sigmas (steps - 1), reusing stage 1's latent with
+    ``DisableNoise`` so it continues the same schedule. The samplers
+    (res_multistep / euler), shifts, cfg and graph topology are fixed by the
+    technique; only the model stack, prompt, resolution, steps, seed, LoRAs,
+    initial conditioning and first-step threshold are injected.
+    """
+    if family != "flux2":
+        raise GenerateError(f"FLUX.2 variability requires family='flux2', got {family!r}")
+    cfg = MODEL_CONFIGS[family]
+    vcfg = VARIABILITY_CONFIGS[family]
+    p = _normalize_params(
+        prompt=prompt,
+        steps=steps,
+        family_cfg=vcfg,
+        megapixel=megapixel,
+        aspect_ratio=aspect_ratio,
+        seed=seed,
+        lora_config=lora_config,
+        model=model,
+    )
+    if p["steps"] < MIN_VARIABILITY_STEPS:
+        raise GenerateError(
+            f"steps must be >= {MIN_VARIABILITY_STEPS} in variability mode "
+            f"(stage 1 takes one step, stage 2 the remaining steps), got {p['steps']}"
+        )
+
+    wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
+    nodes = resolve_flux2_variability_workflow(wf)
+
+    # Model stack (MODEL_CONFIGS["flux2"] defaults; ``model`` overrides the UNET)
+    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
+    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
+    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
+    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
+
+    # Resolution (custom ratio via the StringConcatenate node)
+    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
+    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(vcfg["divisible_by"])
+    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
+    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
+
+    # Prompt + initial conditioning + first-step threshold
+    nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
+    nodes["Initial conditioning"]["inputs"]["text"] = initial_conditioning.strip()
+    nodes["ConditioningTimestepThreshold"]["inputs"]["value"] = vcfg["timestep_threshold"]
+    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
+
+    # One schedule split at step 1; the seed feeds stage 1's RandomNoise.
+    nodes["Flux2Scheduler"]["inputs"]["steps"] = p["steps"]
+    nodes["RandomNoise"]["inputs"]["noise_seed"] = p["seed"]
+
+    meta = {
+        "family": family,
+        "reduced_w": p["reduced_w"],
+        "reduced_h": p["reduced_h"],
+        "steps": p["steps"],
+        "seed": p["seed"],
+        "megapixel": megapixel,
+        "divisible_by": vcfg["divisible_by"],
+        "timestep_threshold": vcfg["timestep_threshold"],
+        "variability": True,
+        "workflow": "flux2_var.json",
+    }
+    return wf, meta
+
+
 def build_variability_workflow(
     workflow: dict[str, dict],
     *,
@@ -321,24 +447,36 @@ def build_variability_workflow(
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the high-variability workflow.
 
-    Available for every family in ``VARIABILITY_CONFIGS`` (Z-Image Turbo and
-    Krea 2). The two-stage sampler technique is fixed in the workflow and
-    must NOT be overridden: res_multistep + shift 7 for the first step,
-    euler + shift 2.5 afterwards, the timestep-gated conditioning and cfg 1
-    (validated experimentally with Krea 2 as well). Only the model stack,
+    Z-Image Turbo and Krea 2 use ``dit_var.json`` (this function); FLUX.2 is
+    dispatched to ``_build_flux2_variability_workflow`` because it uses the
+    Flux2Scheduler + SplitSigmas graph. The two-stage sampler technique is
+    fixed in each workflow and must NOT be overridden. Only the model stack,
     prompt, resolution, steps, seed, LoRAs, the model override, the initial
     conditioning and the family-specific first-step threshold are injected.
 
-    The seed goes to ``KSampler (Advanced) 1`` only. ``KSampler (Advanced)
-    2`` runs with ``add_noise: disable`` (ComfyUI ignores its ``noise_seed``)
-    so it stays at its fixed 0. The same step count goes to both stages —
-    they split a single 0..N schedule. The LoRA loader feeds the second
-    stage only, which is deliberate.
+    For dit_var, the seed goes to ``KSampler (Advanced) 1`` only. ``KSampler
+    (Advanced) 2`` runs with ``add_noise: disable`` (ComfyUI ignores its
+    ``noise_seed``) so it stays at its fixed 0. The same step count goes to
+    both stages — they split a single 0..N schedule. The LoRA loader feeds
+    the second stage only, which is deliberate.
     """
+    if family == "flux2":
+        return _build_flux2_variability_workflow(
+            workflow,
+            family=family,
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            megapixel=megapixel,
+            steps=steps,
+            seed=seed,
+            lora_config=lora_config,
+            model=model,
+            initial_conditioning=initial_conditioning,
+        )
     if family not in VARIABILITY_CONFIGS:
         raise GenerateError(
             f"Variability mode is only available for {VARIABILITY_FAMILIES} "
-            f"(Z-Image Turbo / Krea 2), got {family!r}"
+            f"(Z-Image Turbo / Krea 2 / FLUX.2), got {family!r}"
         )
     cfg = MODEL_CONFIGS[family]
     vcfg = VARIABILITY_CONFIGS[family]
@@ -399,6 +537,7 @@ def build_variability_workflow(
         "divisible_by": vcfg["divisible_by"],
         "timestep_threshold": vcfg["timestep_threshold"],
         "variability": True,
+        "workflow": "dit_var.json",
     }
     return wf, meta
 
@@ -421,13 +560,13 @@ def generate_image(
     """Run the Generate workflow and return the output image URL.
 
     ``variability=True`` (the "Increase randomness" advanced option) selects
-    the two-stage high-variability workflow; it works for Z-Image Turbo and
-    Krea 2 and is rejected for any other family. ``initial_conditioning`` is
-    the conditioning that replaces the prompt for the first timestep slice of
-    that workflow (ignored otherwise).
+    the two-stage high-variability workflow for the family: dit_var.json for
+    Z-Image Turbo / Krea 2, flux2_var.json for FLUX.2. Other families are
+    rejected. ``initial_conditioning`` is the conditioning that replaces the
+    prompt for the first timestep slice of that workflow (ignored otherwise).
     """
     if variability:
-        workflow = load_variability_workflow()
+        workflow = load_variability_workflow(family)
         wf, meta = build_variability_workflow(
             workflow,
             family=family,

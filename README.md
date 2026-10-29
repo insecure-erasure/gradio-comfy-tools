@@ -70,10 +70,10 @@ Web application with five image and video tools powered by ComfyUI:
   URL and results URL) and the prompt-refiner settings (Refiner URL,
   **model selector** and system prompt for the 🪄 button).
 - **⚙️** (per tab): advanced options — model, LoRAs, video negative prompt.
-  In **Generate**, `Increase randomness` (Z-Image Turbo and Krea 2) switches
-  to a two-stage workflow that makes the seed affect the image much more;
-  below it, `Initial conditioning` optionally sets the text conditioning used
-  on the first sampler step (enabled only while the checkbox is on).
+  In **Generate**, `Increase randomness` (Z-Image Turbo, Krea 2 and FLUX.2)
+  switches to a two-stage workflow that makes the seed affect the image much
+  more; below it, `Initial conditioning` optionally sets the text conditioning
+  used on the first sampler step (enabled only while the checkbox is on).
 
 ### Prompt refiner model (llama.cpp router)
 
