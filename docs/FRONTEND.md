@@ -174,6 +174,11 @@ With **Increase randomness** enabled the step budget and rounding come from
 the variability config instead: Z-Image Turbo 10 steps / 16, Krea 2 9 steps /
 16, FLUX.2 8 steps / 16.
 
+The per-family defaults (labels, auto steps, VAE scale and variability step
+budget) come from `FAMILY_DEFAULTS` in `static/js/state.js`, the frontend
+mirror of `FAMILY_CONFIGS` in `tools/generate.py`. The toolbar options are
+built from that object; `tabs.js` no longer carries `data-steps`/`data-vae`.
+
 **Parameter chips** (overlaid on the prompt textarea — the params pane is
 empty and the prompt fills it; see also deviation 14):
 - **📏 Dimensions** — shows the current **aspect ratio** (e.g. `2:3`). Its

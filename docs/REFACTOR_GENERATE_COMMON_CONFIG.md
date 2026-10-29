@@ -2,7 +2,7 @@
 
 Branch: `refactor/generate-common-config`
 Base: `b448507`
-Status: **in progress**
+Status: **complete**
 
 Goal: one source of truth for the Generate family configuration and shared
 injection helpers, without changing workflow JSONs, sampling behaviour or the
@@ -15,7 +15,7 @@ public API.
       model override + LoRA).
 - [x] Save them to `/tmp/generate_refactor_baseline/` with a `manifest.json`
       (sha256 + meta).
-- [ ] Re-run the matrix after each phase and diff against the baseline.
+- [x] Re-run the matrix after each phase and diff against the baseline.
 
 Baseline commit: `b448507`.
 
@@ -58,11 +58,18 @@ Result: 180 tests pass (docs-only change).
 
 ## Phase 4 (optional) — Frontend defaults
 
-- [ ] Decide whether to include the light `FAMILY_DEFAULTS` JS unification.
-- [ ] If included: `state.js`, `tabs.js`, `generate.js`; remove duplicated
+- [x] Decide whether to include the light `FAMILY_DEFAULTS` JS unification.
+- [x] If included: `state.js`, `tabs.js`, `generate.js`; remove duplicated
       `data-steps`/`data-vae`.
-- [ ] `node --check` + e2e smoke if available.
-- [ ] Update `docs/FRONTEND.md`.
+- [x] `node --check` + e2e smoke if available.
+- [x] Update `docs/FRONTEND.md`.
+
+Result: `FAMILY_DEFAULTS` is the single frontend source for labels/steps/vae
+and derives `VARIABILITY_FAMILIES`/`VARIABILITY_STEPS`. `tabs.js` builds the
+options from it; `generate.js` reads steps/vae from it. The full Puppeteer e2e
+could not run here (puppeteer/chrome not installed), so validation was Python
+tests + `node --check` + a Node `vm` smoke test of the derived values and
+toolbar options.
 
 ## Test log
 
@@ -74,7 +81,9 @@ Result: 180 tests pass (docs-only change).
 | 2 | `venv/bin/python -m pytest -q` | 180 passed |
 | 2 | `diff -r /tmp/generate_refactor_baseline /tmp/generate_refactor_phase2` | no differences |
 | 3 | `venv/bin/python -m pytest -q` | 180 passed |
-| 4 | pending | — |
+| 4 | `venv/bin/python -m pytest -q` | 180 passed |
+| 4 | `node --check state.js tabs.js generate.js modal.js` | OK |
+| 4 | Node `vm` smoke (defaults/options/steps) | OK |
 
 ## Notes / decisions
 
@@ -83,3 +92,12 @@ Result: 180 tests pass (docs-only change).
   derived views so existing imports/tests keep working.
 - Any existing test that needs an assertion change is a signal that behaviour
   changed; the refactor should be behaviour-preserving.
+
+## Commits
+
+| Phase | Commit |
+|---|---|
+| 1 | `4db032b` refactor(generate): centralize family config in FAMILY_CONFIGS |
+| 2 | `b23a4ae` refactor(generate): share common workflow injection helpers |
+| 3 | `1ca4e62` docs(generate): describe FAMILY_CONFIGS and shared injection helpers |
+| 4 | (frontend FAMILY_DEFAULTS; see branch history) |

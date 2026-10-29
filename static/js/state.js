@@ -20,10 +20,22 @@ let toolbarValues = {
   vidVersion: 'wan21',
 };
 
-// "Increase randomness" two-stage workflow — families that support it and
-// their per-family defaults. Mirrors VARIABILITY_CONFIGS in tools/generate.py.
-const VARIABILITY_FAMILIES = ['zimage', 'krea2', 'flux2'];
-const VARIABILITY_STEPS = { zimage: 10, krea2: 9, flux2: 8 };
+// Per-family defaults for the Generate tab. Single frontend source for the
+// toolbar labels, auto steps, resolution grid and variability step budgets;
+// mirrors FAMILY_CONFIGS in tools/generate.py (keep in sync).
+const FAMILY_DEFAULTS = {
+  krea2:  { label: 'Krea 2',        steps: 8,  vae: 16, varSteps: 9  },
+  flux2:  { label: 'FLUX.2 Klein',  steps: 8,  vae: 16, varSteps: 8  },
+  zimage: { label: 'Z-Image Turbo', steps: 10, vae: 16, varSteps: 10 },
+};
+
+// Families whose two-stage "Increase randomness" workflow is supported.
+const VARIABILITY_STEPS = Object.fromEntries(
+  Object.entries(FAMILY_DEFAULTS)
+    .filter(([, d]) => d.varSteps > 0)
+    .map(([key, d]) => [key, d.varSteps])
+);
+const VARIABILITY_FAMILIES = Object.keys(VARIABILITY_STEPS);
 
 // Per-tab prompt text — each tab (generate/edit/video/face_swap) has its
 // OWN textarea element (#promptInput<Cap>), so values never mix;

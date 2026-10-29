@@ -182,19 +182,19 @@ function onModelFamilyChange() {
 function syncVariabilitySteps() {
   const sel = document.getElementById('genModelFamily');
   if (!sel) return;
-  const opt = sel.options[sel.selectedIndex];
+  const defaults = FAMILY_DEFAULTS[sel.value] || {};
   const adv = (window.advancedValues && window.advancedValues.generate) || {};
   const on = !!adv.variability && VARIABILITY_FAMILIES.includes(sel.value);
-  const fallback = parseInt(opt?.getAttribute('data-steps')) || 8;
-  const steps = on ? (VARIABILITY_STEPS[sel.value] || fallback) : fallback;
+  const fallback = parseInt(defaults.steps) || 8;
+  const steps = on ? (parseInt(defaults.varSteps) || fallback) : fallback;
   const input = document.getElementById('genSteps');
   if (input) input.value = steps;
 }
 
 function recalcResolution() {
   const sel = document.getElementById('genModelFamily');
-  const opt = sel.options[sel.selectedIndex];
-  const vaeScale = parseInt(opt.getAttribute('data-vae')) || 16;
+  const defaults = FAMILY_DEFAULTS[sel.value] || {};
+  const vaeScale = parseInt(defaults.vae) || 16;
 
   const arSel = document.getElementById('genAspectRatio');
   const arOpt = arSel.options[arSel.selectedIndex];
