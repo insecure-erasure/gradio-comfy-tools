@@ -170,7 +170,7 @@ high/low path), 4n+1 frames, steps, seed, prompt and negative.
 | Parameter | Type / default | Rules |
 |---|---|---|
 | `image` | str (filename or URL) | auto-detection same as Edit |
-| `model_version` | `"wan21"` / `"wan22"` | selects workflow + video `MODEL_CONFIGS` |
+| `model_version` | `"wan21"` / `"wan22"` | selects workflow + video `VIDEO_MODEL_CONFIGS` |
 | `prompt` | str | — |
 | `negative_prompt` | str, default "" | empty → workflow default |
 | `frames` | int, default 81 | snap to nearest 4n+1: `snapped=((n-1)//4)*4+1; +=4 if n-snapped>2`; clamp [81,161] |

@@ -357,7 +357,7 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 - `vae_scale` per family: 16 for Krea 2, FLUX.2 and Z-Image Turbo.
 - Changing family sets steps automatically and recalculates W/H
   (`onModelFamilyChange` in `generate.js`). The init calls it so the default
-  Krea 2 loads with steps 8 and vae-8 resolution.
+  Krea 2 loads with steps 8 and VAE scale 16.
 
 ### 4.2 Seed + 🎲 (all tabs)
 

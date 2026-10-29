@@ -150,7 +150,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
 | Modal: Model name | `model` (.safetensors, overrides the family default) | `Load Diffusion Model` |
-| Modal: **Increase randomness** (Z-Image Turbo / Krea 2) | `variability` (bool) | selects `dit_var.json` instead (see below) |
+| Modal: **Increase randomness** (Z-Image Turbo / Krea 2 / FLUX.2) | `variability` (bool) | selects `dit_var.json` (Z-Image/Krea 2) or `flux2_var.json` (FLUX.2) instead (see below) |
 
 Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `Switch (SIGMAS)`, `VAE Decode`; output: `Random Preview Image`.
 
