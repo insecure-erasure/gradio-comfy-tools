@@ -12,10 +12,11 @@ two SamplerCustomAdvanced stages). Only the injection map changes (model
 stack, prompt/resolution/steps/seed/LoRAs/initial conditioning and the
 first-step threshold), never the technique.
 
-MODEL_CONFIGS mirrors the reference smart_generate_image/tool.py, except
-``vae_scale_factor``, which is 16 for every family here so the resolution
-aligns with each model's native grid (Krea 2 and FLUX.2 official inference
-align to 16; the reference used 8 for Krea 2 and 64 for FLUX.2).
+``FAMILY_CONFIGS`` is the single source of truth for the family data.
+``MODEL_CONFIGS`` and ``VARIABILITY_CONFIGS`` are derived views kept for
+compatibility. ``vae_scale_factor`` is 16 for every family here so the
+resolution aligns with each model's native grid (Krea 2 and FLUX.2 official
+inference align to 16; the reference used 8 for Krea 2 and 64 for FLUX.2).
 """
 
 from __future__ import annotations
@@ -31,85 +32,108 @@ from tools import _common
 from tools._common import WorkflowError
 
 WORKFLOW_FILE = "workflows/smart_generate_image.json"
-# "Increase randomness" variants. Z-Image Turbo and Krea 2 share dit_var.json
-# (KSamplerAdvanced split schedule); FLUX.2 uses flux2_var.json
-# (Flux2Scheduler + SplitSigmas + two SamplerCustomAdvanced stages).
-VARIABILITY_WORKFLOW_FILE = "workflows/dit_var.json"
-FLUX2_VARIABILITY_WORKFLOW_FILE = "workflows/flux2_var.json"
-VARIABILITY_WORKFLOW_FILES = {
-    "zimage": VARIABILITY_WORKFLOW_FILE,
-    "krea2": VARIABILITY_WORKFLOW_FILE,
-    "flux2": FLUX2_VARIABILITY_WORKFLOW_FILE,
-}
 VARIABILITY_FAMILY = "zimage"  # default family for variability mode
 
-MODEL_CONFIGS: dict[str, dict[str, Any]] = {
+# Single source of truth for the Generate families. ``standard`` feeds the
+# single-stage workflow; ``variability`` feeds the two-stage "Increase
+# randomness" workflow (Z-Image/Krea 2 share dit_var.json; FLUX.2 uses
+# flux2_var.json). MODEL_CONFIGS / VARIABILITY_CONFIGS /
+# VARIABILITY_WORKFLOW_FILES below are derived views kept for compatibility.
+FAMILY_CONFIGS: dict[str, dict[str, Any]] = {
     "zimage": {
         "model": "zImageTurbo-mxfp8.safetensors",
         "text_encoder": "qwen3_4b_instruct_2507_mxfp8.safetensors",
         "vae": "Z-Image_half_natural_vae.safetensors",
-        "vae_scale_factor": 16,
-        "cfg": 1.0,
-        "steps": 10,
-        "sampler": "euler",
-        "scheduler": "simple",
         "clip_type": "lumina2",
-        "sigma_selector_index": 1,
+        "standard": {
+            "vae_scale_factor": 16,
+            "cfg": 1.0,
+            "steps": 10,
+            "sampler": "euler",
+            "scheduler": "simple",
+            "sigma_selector_index": 1,
+        },
+        "variability": {
+            "workflow": "workflows/dit_var.json",
+            "steps": 10,
+            "timestep_threshold": 0.105,
+            "divisible_by": 16,
+        },
     },
     "krea2": {
         "model": "krea2_turbo_mixed_nvfp4.safetensors",
         "text_encoder": "qwen3_vl_4b_instruct_mxfp8.safetensors",
         "vae": "qwen_image_vae.safetensors",
-        "vae_scale_factor": 16,
-        "cfg": 1.0,
-        "steps": 8,
-        "sampler": "euler",
-        "scheduler": "simple",
         "clip_type": "krea2",
-        "sigma_selector_index": 1,
+        "standard": {
+            "vae_scale_factor": 16,
+            "cfg": 1.0,
+            "steps": 8,
+            "sampler": "euler",
+            "scheduler": "simple",
+            "sigma_selector_index": 1,
+        },
+        "variability": {
+            "workflow": "workflows/dit_var.json",
+            "steps": 9,
+            "timestep_threshold": 0.112,
+            "divisible_by": 16,
+        },
     },
     "flux2": {
         "model": "flux-2-klein-9b-nvfp4.safetensors",
         "text_encoder": "qwen_3_8b_nvfp4.safetensors",
         "vae": "flux2-vae-small-bf16.safetensors",
-        "vae_scale_factor": 16,
-        "cfg": 1.0,
-        "steps": 8,
-        "sampler": "euler",
-        "scheduler": "",
         "clip_type": "flux2",
-        "sigma_selector_index": 2,
+        "standard": {
+            "vae_scale_factor": 16,
+            "cfg": 1.0,
+            "steps": 8,
+            "sampler": "euler",
+            "scheduler": "",
+            "sigma_selector_index": 2,
+        },
+        "variability": {
+            "workflow": "workflows/flux2_var.json",
+            "steps": 8,
+            "timestep_threshold": 0.13,
+            "divisible_by": 16,
+        },
     },
 }
 
-FAMILY_OPTIONS = list(MODEL_CONFIGS.keys())
+# Derived views with the same shapes/keys as the previous hand-written dicts.
+MODEL_CONFIGS: dict[str, dict[str, Any]] = {
+    family: {
+        "model": cfg["model"],
+        "text_encoder": cfg["text_encoder"],
+        "vae": cfg["vae"],
+        "vae_scale_factor": cfg["standard"]["vae_scale_factor"],
+        "cfg": cfg["standard"]["cfg"],
+        "steps": cfg["standard"]["steps"],
+        "sampler": cfg["standard"]["sampler"],
+        "scheduler": cfg["standard"]["scheduler"],
+        "clip_type": cfg["clip_type"],
+        "sigma_selector_index": cfg["standard"]["sigma_selector_index"],
+    }
+    for family, cfg in FAMILY_CONFIGS.items()
+}
 
-# Per-family knobs for the "Increase randomness" workflows. The technique is
-# fixed by each workflow: Z-Image Turbo and Krea 2 share dit_var.json
-# (res_multistep + shift 7 for step 0, euler + shift 2.5 afterwards, cfg 1 and
-# the timestep-gated conditioning); FLUX.2 uses flux2_var.json
-# (Flux2Scheduler + SplitSigmas(step=1) + two SamplerCustomAdvanced stages,
-# stage 2 continuing with DisableNoise). Only the model stack, the step budget,
-# the first-step threshold and the resolution grid change per family.
-# ``divisible_by`` is 16 for every family (each model's native grid).
 VARIABILITY_CONFIGS: dict[str, dict[str, Any]] = {
-    "zimage": {
-        "steps": 10,
-        "timestep_threshold": 0.105,
-        "divisible_by": 16,
-    },
-    "krea2": {
-        "steps": 9,
-        "timestep_threshold": 0.112,
-        "divisible_by": 16,
-    },
-    "flux2": {
-        "steps": 8,
-        "timestep_threshold": 0.13,
-        "divisible_by": 16,
-    },
+    family: {
+        "steps": cfg["variability"]["steps"],
+        "timestep_threshold": cfg["variability"]["timestep_threshold"],
+        "divisible_by": cfg["variability"]["divisible_by"],
+    }
+    for family, cfg in FAMILY_CONFIGS.items()
 }
 
+VARIABILITY_WORKFLOW_FILES: dict[str, str] = {
+    family: cfg["variability"]["workflow"]
+    for family, cfg in FAMILY_CONFIGS.items()
+}
+
+FAMILY_OPTIONS = list(FAMILY_CONFIGS.keys())
 VARIABILITY_FAMILIES = list(VARIABILITY_CONFIGS.keys())
 
 DEFAULT_FAMILY = "zimage"

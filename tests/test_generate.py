@@ -6,12 +6,14 @@ import pytest
 
 from tools import _common
 from tools.generate import (
+    FAMILY_CONFIGS,
     FAMILY_OPTIONS,
     MODEL_CONFIGS,
     RANDOM_NOISE_SEED_MAX,
     VARIABILITY_CONFIGS,
     VARIABILITY_FAMILY,
     VARIABILITY_FAMILIES,
+    VARIABILITY_WORKFLOW_FILES,
     build_variability_workflow,
     build_workflow,
     load_variability_workflow,
@@ -393,6 +395,26 @@ def test_variability_family_configs_cover_supported_families():
     assert set(VARIABILITY_CONFIGS) == {"zimage", "krea2", "flux2"}
     assert set(VARIABILITY_FAMILIES) == set(VARIABILITY_CONFIGS)
     assert VARIABILITY_FAMILY in VARIABILITY_CONFIGS
+
+
+def test_family_configs_single_source():
+    assert set(FAMILY_CONFIGS) == set(MODEL_CONFIGS)
+    assert set(FAMILY_CONFIGS) == set(VARIABILITY_CONFIGS)
+    assert set(FAMILY_CONFIGS) == set(VARIABILITY_WORKFLOW_FILES)
+    assert FAMILY_OPTIONS == list(FAMILY_CONFIGS)
+
+    for family, cfg in FAMILY_CONFIGS.items():
+        assert MODEL_CONFIGS[family]["model"] == cfg["model"]
+        assert MODEL_CONFIGS[family]["text_encoder"] == cfg["text_encoder"]
+        assert MODEL_CONFIGS[family]["vae"] == cfg["vae"]
+        assert MODEL_CONFIGS[family]["clip_type"] == cfg["clip_type"]
+        for key, value in cfg["standard"].items():
+            assert MODEL_CONFIGS[family][key] == value
+        for key, value in cfg["variability"].items():
+            if key == "workflow":
+                assert VARIABILITY_WORKFLOW_FILES[family] == value
+            else:
+                assert VARIABILITY_CONFIGS[family][key] == value
 
 
 def test_variability_explicit_params(vwf):
