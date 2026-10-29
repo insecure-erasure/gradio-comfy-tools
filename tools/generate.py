@@ -1,4 +1,4 @@
-"""Generate tool — smart_generate_image.json (+ the zit_var.json variant).
+"""Generate tool — smart_generate_image.json (+ the dit_var.json variant).
 
 Injects the model family config (model / CLIP / VAE / cfg / steps / sampler /
 scheduler), the prompt, the resolution (megapixel + aspect ratio via
@@ -6,7 +6,7 @@ Flux Resolution Calc), steps, seed and LoRAs into the workflow, then submits
 it via ComfyClient and returns the output image URL.
 
 ``build_variability_workflow`` is the "Increase randomness" variant
-(zit_var.json): a two-stage sampler graph shared by Z-Image Turbo and Krea 2
+(dit_var.json): a two-stage sampler graph shared by Z-Image Turbo and Krea 2
 where only the injection map changes (model stack, prompt/resolution/steps/
 seed/LoRAs/initial conditioning and the first-step threshold), never the
 technique.
@@ -33,7 +33,7 @@ WORKFLOW_FILE = "workflows/smart_generate_image.json"
 # "Increase randomness" variant: a two-stage sampler graph that makes the
 # seed matter much more than the single-stage workflow above. The same graph
 # serves every family listed in VARIABILITY_CONFIGS below.
-VARIABILITY_WORKFLOW_FILE = "workflows/zit_var.json"
+VARIABILITY_WORKFLOW_FILE = "workflows/dit_var.json"
 VARIABILITY_FAMILY = "zimage"  # default family for variability mode
 
 MODEL_CONFIGS: dict[str, dict[str, Any]] = {
@@ -80,7 +80,7 @@ FAMILY_OPTIONS = list(MODEL_CONFIGS.keys())
 # Per-family knobs for the two-stage "Increase randomness" workflow. The
 # technique itself (res_multistep + shift 7 for step 0, euler + shift 2.5
 # afterwards, cfg 1 and the timestep-gated conditioning) is fixed in
-# zit_var.json and is shared by both families — validated with Krea 2 too.
+# dit_var.json and is shared by both families — validated with Krea 2 too.
 # Only the model stack (MODEL_CONFIGS), the step budget and the first-step
 # threshold change per family. ``divisible_by`` is 16 for both: Z-Image Turbo
 # uses its VAE scale factor, and Krea 2 aligns to 16 as its official inference
@@ -119,7 +119,7 @@ def load_workflow() -> dict[str, dict]:
 
 
 def load_variability_workflow() -> dict[str, dict]:
-    """Load the high-variability workflow (zit_var.json)."""
+    """Load the high-variability workflow (dit_var.json)."""
     return _common.load_workflow_json(VARIABILITY_WORKFLOW_FILE)
 
 

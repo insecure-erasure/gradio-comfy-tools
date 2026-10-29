@@ -176,7 +176,7 @@ def test_deep_copy_not_mutating_source(wf):
 
 
 # --------------------------------------------------------------------------- #
-# Variability workflow (zit_var.json) — "Increase randomness" (Z-Image Turbo /
+# Variability workflow (dit_var.json) — "Increase randomness" (Z-Image Turbo /
 # Krea 2)
 # --------------------------------------------------------------------------- #
 @pytest.fixture

@@ -94,7 +94,7 @@ function generateFields() {
 }
 
 // Enables the "Initial conditioning" input only while "Increase randomness" is
-// checked (it feeds the zit_var workflow's initial conditioning node).
+// checked (it feeds the dit_var workflow's initial conditioning node).
 function onVariabilityToggle(cb) {
   const input = document.querySelector('#modalBody input[data-key="initial_conditioning"]');
   if (input) input.disabled = !cb.checked;

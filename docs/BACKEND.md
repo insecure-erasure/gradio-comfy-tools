@@ -145,7 +145,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
 | Modal: Model name | `model` (.safetensors, overrides the family default) | `Load Diffusion Model` |
-| Modal: **Increase randomness** (Z-Image Turbo / Krea 2) | `variability` (bool) | selects `zit_var.json` instead (see below) |
+| Modal: **Increase randomness** (Z-Image Turbo / Krea 2) | `variability` (bool) | selects `dit_var.json` instead (see below) |
 
 Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `Switch (SIGMAS)`, `VAE Decode`; output: `Random Preview Image`.
 
@@ -157,10 +157,10 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 | Krea 2 | krea2_turbo_mixed_nvfp4 | qwen3_vl_4b_instruct_mxfp8 | qwen_image_vae | 16 | 1.0 | 8 | euler | simple |
 | FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 16 | 1.0 | 8 | euler | (flux.2) |
 
-**Increase randomness (Z-Image Turbo / Krea 2)** — `workflows/zit_var.json`
+**Increase randomness (Z-Image Turbo / Krea 2)** — `workflows/dit_var.json`
 
 When the advanced checkbox is on (and the family supports it), the request
-builds `zit_var.json` instead of `smart_generate_image.json`
+builds `dit_var.json` instead of `smart_generate_image.json`
 (`build_variability_workflow` in `tools/generate.py`). It is a two-stage
 sampler graph: the first step runs with `res_multistep` + `ModelSamplingAuraFlow`
 shift 7 while its prompt is suppressed for the first timestep slice
