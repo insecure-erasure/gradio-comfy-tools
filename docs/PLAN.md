@@ -92,7 +92,7 @@ Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 | `Load CLIP` (CLIPLoader) | `clip_name` per family |
 | `Load VAE` (VAELoader) | `vae_name` per family |
 | `Prompt` (PrimitiveStringMultiline) | `value` = prompt |
-| `Flux Resolution Calc` | `megapixel`, `divisible_by` = `vae_scale_factor` (16/8/64) |
+| `Flux Resolution Calc` | `megapixel`, `divisible_by` = `vae_scale_factor` (16/16/16) |
 | `Aspect ratio` (StringConcatenate) | `string_a`/`string_b` = reduced W:H (GCD + MP) |
 | `Steps` (easy int) | `value` = steps |
 | `RandomNoise` / `KSamplerSelect` | `noise_seed` / sampler per family |

@@ -166,9 +166,13 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 
 | Model | auto steps | vae scale |
 |---|---|---|
-| Krea 2 (default) | 8 | 8 |
-| FLUX.2 Klein | 8 | 64 |
+| Krea 2 (default) | 8 | 16 |
+| FLUX.2 Klein | 8 | 16 |
 | Z-Image Turbo | 10 | 16 |
+
+With **Increase randomness** enabled the step budget and rounding come from
+the variability config instead: Z-Image Turbo 10 steps / 16, Krea 2 9 steps /
+16.
 
 **Parameter chips** (overlaid on the prompt textarea — the params pane is
 empty and the prompt fills it; see also deviation 14):
@@ -345,7 +349,7 @@ width  = max(vae_scale, round(raw_w / vae_scale) × vae_scale)
 height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 ```
 
-- `vae_scale` per family (Krea 2=8, FLUX.2=64, Z-Image=16).
+- `vae_scale` per family: 16 for Krea 2, FLUX.2 and Z-Image Turbo.
 - Changing family sets steps automatically and recalculates W/H
   (`onModelFamilyChange` in `generate.js`). The init calls it so the default
   Krea 2 loads with steps 8 and vae-8 resolution.
@@ -459,7 +463,7 @@ Reachable from Generate, Edit and Video (toolbar ⚙️); Upscale has no gear.
 
 | Tab | Fields |
 |---|---|
-| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only when the selected family is Z-Image Turbo) · `initial conditioning` (text input rendered as its own lowercase placeholder, below the checkbox and enabled/dimmed only while it is checked) |
+| Generate | `Model name` (dropdown from `/models/diffusion_models`) · LoRA editor · `Increase randomness` (checkbox, rendered only for the supported families: Z-Image Turbo and Krea 2) · `initial conditioning` (text input rendered as its own lowercase placeholder, below the checkbox and enabled/dimmed only while it is checked) |
 | Edit | LoRA editor |
 | Upscale | *(none)* |
 | Video (wan21) | `Diffusion model` (dropdown) · LoRA editor · `Negative prompt` (bottom) |

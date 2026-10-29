@@ -148,8 +148,8 @@ function renderToolbar(tab) {
   if (tab === 'generate') {
     html += `<div class="toolbar-model"><label>Model</label>
       <select id="genModelFamily" onchange="onModelFamilyChange(); savePersistedState()">
-        <option value="krea2" data-key="krea2" data-steps="8" data-vae="8">Krea 2</option>
-        <option value="flux2" data-key="flux2" data-steps="8" data-vae="64">FLUX.2 Klein</option>
+        <option value="krea2" data-key="krea2" data-steps="8" data-vae="16">Krea 2</option>
+        <option value="flux2" data-key="flux2" data-steps="8" data-vae="16">FLUX.2 Klein</option>
         <option value="zimage" data-key="zimage" data-steps="10" data-vae="16">Z-Image Turbo</option>
       </select></div>
       <button class="btn-gear-inline" onclick="openAdvancedModal()" title="Advanced parameters">⚙️</button>

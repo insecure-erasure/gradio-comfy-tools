@@ -79,14 +79,14 @@ function videoFields() {
 }
 
 // Fields for the Generate tab. The "Increase randomness" toggle only makes
-// sense for Z-Image Turbo (it selects the two-stage zit_var workflow); for
-// Krea 2 / FLUX.2 the option is hidden entirely.
+// sense for the families whose two-stage workflow is supported (Z-Image Turbo
+// and Krea 2); for FLUX.2 the option is hidden entirely.
 function generateFields() {
   const fields = [
     { label: 'Model name', type: 'select', key: 'model', placeholder: 'Default from model family (e.g. zImageTurbo-mxfp8.safetensors)' },
     { label: 'LoRA config', type: 'lora', path: 'main' },
   ];
-  if (toolbarValues.genFamily === 'zimage') {
+  if (VARIABILITY_FAMILIES.includes(toolbarValues.genFamily)) {
     fields.push({ label: 'Increase randomness', type: 'checkbox', key: 'variability', onchange: 'onVariabilityToggle(this)' });
     fields.push({ type: 'text', key: 'initial_conditioning', placeholder: 'initial conditioning', disabled: true });
   }
@@ -334,6 +334,14 @@ function saveAdvanced() {
   }
 
   window.advancedValues[currentModalTab] = mapped;
+  // Generate: the variability toggle changes the effective step budget and
+  // resolution rounding, so refresh those derived fields when it flips.
+  if (currentModalTab === 'generate') {
+    if (!!prev.variability !== !!mapped.variability && typeof syncVariabilitySteps === 'function') {
+      syncVariabilitySteps();
+    }
+    if (typeof recalcResolution === 'function') recalcResolution();
+  }
   savePersistedState();
   showToast('Advanced parameters saved');
   closeModal();

@@ -22,8 +22,9 @@ function generateImage() {
   const adv = (window.advancedValues && window.advancedValues.generate) || {};
   const loraConfig = adv.lora || '[]';
   const model = adv.model || '';
-  // "Increase randomness" only applies to Z-Image Turbo (two-stage workflow).
-  const variability = !!adv.variability && family === 'zimage';
+  // "Increase randomness" only applies to the families whose two-stage
+  // workflow is supported (Z-Image Turbo and Krea 2).
+  const variability = !!adv.variability && VARIABILITY_FAMILIES.includes(family);
   const initialConditioning = variability ? (adv.initial_conditioning || '') : '';
 
   if (!prompt.trim()) return showToast('Please write a prompt first');
@@ -144,18 +145,16 @@ function onSeedRandomToggle() {
 // ── Model family -> auto steps + W/H calc ──
 function onModelFamilyChange() {
   const sel = document.getElementById('genModelFamily');
-  const opt = sel.options[sel.selectedIndex];
   toolbarValues.genFamily = sel.value;  // persist across tab switches
 
-  // "Increase randomness" is Z-Image only: drop it when the family changes
-  // away so a stale true can never reach the backend.
-  if (sel.value !== 'zimage' && window.advancedValues?.generate) {
+  // "Increase randomness" is not available for every family: drop it when
+  // the family changes away so a stale true can never reach the backend.
+  if (!VARIABILITY_FAMILIES.includes(sel.value) && window.advancedValues?.generate) {
     window.advancedValues.generate.variability = false;
   }
 
-  // Update steps input
-  const steps = parseInt(opt.getAttribute('data-steps')) || 8;
-  document.getElementById('genSteps').value = steps;
+  // Update steps input (variability mode has its own per-family default)
+  syncVariabilitySteps();
   updatePromptChips();
 
   // Show/hide custom ratio fields (dead code in the mockup — kept for parity)
@@ -175,6 +174,21 @@ function onModelFamilyChange() {
   if (mp > 2) mpInput.value = 2;
 
   recalcResolution();
+}
+
+// Steps default for the active family, taking the variability workflow's own
+// budget into account (Z-Image 10, Krea 2 9). Called on family changes and
+// when the advanced modal flips the checkbox.
+function syncVariabilitySteps() {
+  const sel = document.getElementById('genModelFamily');
+  if (!sel) return;
+  const opt = sel.options[sel.selectedIndex];
+  const adv = (window.advancedValues && window.advancedValues.generate) || {};
+  const on = !!adv.variability && VARIABILITY_FAMILIES.includes(sel.value);
+  const fallback = parseInt(opt?.getAttribute('data-steps')) || 8;
+  const steps = on ? (VARIABILITY_STEPS[sel.value] || fallback) : fallback;
+  const input = document.getElementById('genSteps');
+  if (input) input.value = steps;
 }
 
 function recalcResolution() {

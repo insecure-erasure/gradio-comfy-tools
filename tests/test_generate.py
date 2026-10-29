@@ -8,7 +8,9 @@ from tools import _common
 from tools.generate import (
     FAMILY_OPTIONS,
     MODEL_CONFIGS,
+    VARIABILITY_CONFIGS,
     VARIABILITY_FAMILY,
+    VARIABILITY_FAMILIES,
     build_variability_workflow,
     build_workflow,
     load_variability_workflow,
@@ -26,14 +28,19 @@ def wf():
 
 
 def test_families_match_reference():
-    # spot-check against MODEL_CONFIGS in smart_generate_image/tool.py
+    # spot-check the family configs (Krea 2 aligns to 16, not the reference's
+    # VAE scale of 8 — see docs/BACKEND.md §5.1)
     z = MODEL_CONFIGS["zimage"]
     assert z["model"] == "zImageTurbo-mxfp8.safetensors"
     assert z["vae_scale_factor"] == 16
     assert z["clip_type"] == "lumina2"
+    k = MODEL_CONFIGS["krea2"]
+    assert k["vae"] == "qwen_image_vae.safetensors"
+    assert k["vae_scale_factor"] == 16
+    assert k["clip_type"] == "krea2"
     f = MODEL_CONFIGS["flux2"]
     assert f["model"] == "flux-2-klein-9b-nvfp4.safetensors"
-    assert f["vae_scale_factor"] == 64
+    assert f["vae_scale_factor"] == 16
     assert f["sigma_selector_index"] == 2
     assert f["scheduler"] == ""
 
@@ -87,7 +94,7 @@ def test_build_workflow_flux2(wf):
     built, meta = build_workflow(wf, family="flux2", prompt="hello", steps=8, seed=42)
     nodes = resolve_workflow(built)
     assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "flux-2-klein-9b-nvfp4.safetensors"
-    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "64"
+    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
     # flux2 leaves scheduler empty (uses Flux2Scheduler)
     assert nodes["BasicScheduler"]["inputs"]["scheduler"] == "simple"  # workflow default
     assert nodes["Switch (SIGMAS)"]["inputs"]["select"] == 2
@@ -102,7 +109,7 @@ def test_build_workflow_explicit_params(wf):
     nodes = resolve_workflow(built)
     assert nodes["Aspect ratio"]["inputs"]["string_a"] == "16"
     assert nodes["Aspect ratio"]["inputs"]["string_b"] == "9"
-    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "8"
+    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
     assert nodes["Flux Resolution Calc"]["inputs"]["megapixel"] == "2.0"
     assert nodes["Steps"]["inputs"]["value"] == 15
     assert nodes["RandomNoise"]["inputs"]["noise_seed"] == 7
@@ -169,7 +176,8 @@ def test_deep_copy_not_mutating_source(wf):
 
 
 # --------------------------------------------------------------------------- #
-# Variability workflow (zit_var.json) — Z-Image Turbo "Increase randomness"
+# Variability workflow (zit_var.json) — "Increase randomness" (Z-Image Turbo /
+# Krea 2)
 # --------------------------------------------------------------------------- #
 @pytest.fixture
 def vwf():
@@ -186,6 +194,7 @@ def test_variability_resolve_titles(vwf):
         "Flux Resolution Calc",
         "Prompt here",
         "Initial conditioning",
+        "ConditioningTimestepThreshold",
         "Power Lora Loader (rgthree)",
         "KSampler (Advanced) 1",
         "KSampler (Advanced) 2",
@@ -208,6 +217,7 @@ def test_variability_build_defaults(vwf):
     assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
     assert nodes["Aspect ratio"]["inputs"]["string_a"] == "2"
     assert nodes["Aspect ratio"]["inputs"]["string_b"] == "3"
+    assert nodes["ConditioningTimestepThreshold"]["inputs"]["value"] == 0.105
     assert nodes["Prompt here"]["inputs"]["text"] == "hello"
     # steps go to BOTH stages (same value)
     assert nodes["KSampler (Advanced) 1"]["inputs"]["steps"] == 10
@@ -220,6 +230,37 @@ def test_variability_build_defaults(vwf):
     assert nodes["KSampler (Advanced) 2"]["inputs"]["sampler_name"] == "euler"
     assert nodes["KSampler (Advanced) 1"]["inputs"]["cfg"] == 1
     assert nodes["KSampler (Advanced) 2"]["inputs"]["add_noise"] == "disable"
+
+
+def test_variability_build_krea2_defaults(vwf):
+    """Krea 2 uses the same graph with its own model stack and 9 steps."""
+    built, meta = build_variability_workflow(vwf, family="krea2", prompt="hello")
+    assert meta["family"] == "krea2"
+    assert meta["steps"] == 9
+    assert meta["timestep_threshold"] == 0.112
+    nodes = resolve_variability_workflow(built)
+    assert nodes["Load Diffusion Model"]["inputs"]["unet_name"] == "krea2_turbo_mixed_nvfp4.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["clip_name"] == "qwen3_vl_4b_instruct_mxfp8.safetensors"
+    assert nodes["Load CLIP"]["inputs"]["type"] == "krea2"
+    assert nodes["Load VAE"]["inputs"]["vae_name"] == "qwen_image_vae.safetensors"
+    assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
+    assert nodes["ConditioningTimestepThreshold"]["inputs"]["value"] == 0.112
+    # schedule split: 0 -> 1 (stage 1) and 1 -> 10000 (stage 2), steps 9
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["steps"] == 9
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["start_at_step"] == 0
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["end_at_step"] == 1
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["steps"] == 9
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["start_at_step"] == 1
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["end_at_step"] == 10000
+    # the technique is shared with Z-Image Turbo
+    assert nodes["KSampler (Advanced) 1"]["inputs"]["sampler_name"] == "res_multistep"
+    assert nodes["KSampler (Advanced) 2"]["inputs"]["sampler_name"] == "euler"
+
+
+def test_variability_family_configs_cover_supported_families():
+    assert set(VARIABILITY_CONFIGS) == {"zimage", "krea2"}
+    assert set(VARIABILITY_FAMILIES) == set(VARIABILITY_CONFIGS)
+    assert VARIABILITY_FAMILY in VARIABILITY_CONFIGS
 
 
 def test_variability_explicit_params(vwf):
@@ -261,8 +302,8 @@ def test_variability_initial_conditioning(vwf):
 
 
 def test_variability_rejects_other_families(vwf):
-    # empirical: the two-stage graph does not behave the same on Krea 2 / FLUX.2
-    for family in ("krea2", "flux2", "nope"):
+    # empirical: the two-stage graph does not behave the same on FLUX.2
+    for family in ("flux2", "nope"):
         with pytest.raises(GenerateError):
             build_variability_workflow(vwf, family=family, prompt="hi")
 
@@ -272,6 +313,9 @@ def test_variability_validations(vwf):
         build_variability_workflow(vwf, prompt="   ")
     with pytest.raises(GenerateError):
         build_variability_workflow(vwf, prompt="hi", steps=99)
+    # 1 step would leave the second sampler with nothing to run
+    with pytest.raises(GenerateError):
+        build_variability_workflow(vwf, prompt="hi", steps=1)
     with pytest.raises(GenerateError):
         build_variability_workflow(vwf, prompt="hi", megapixel=5.0)
     with pytest.raises(GenerateError):
@@ -284,5 +328,14 @@ def test_variability_deep_copy_not_mutating_source(vwf):
     built, _ = build_variability_workflow(vwf, prompt="hi", steps=12, seed=7)
     assert vwf["75"]["inputs"]["steps"] == 10
     assert vwf["75"]["inputs"]["noise_seed"] == 0
+    assert vwf["90:93"]["inputs"]["value"] == 0.105
     assert built["75"]["inputs"]["steps"] == 12
     assert built["75"]["inputs"]["noise_seed"] == 7
+
+
+def test_variability_krea2_not_mutating_source(vwf):
+    built, _ = build_variability_workflow(vwf, family="krea2", prompt="hi")
+    assert vwf["90:93"]["inputs"]["value"] == 0.105
+    assert vwf["89"]["inputs"]["clip_name"] == "qwen3_4b_instruct_2507_mxfp8.safetensors"
+    assert built["90:93"]["inputs"]["value"] == 0.112
+    assert built["89"]["inputs"]["clip_name"] == "qwen3_vl_4b_instruct_mxfp8.safetensors"
