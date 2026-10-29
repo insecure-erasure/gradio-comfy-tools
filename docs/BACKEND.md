@@ -116,6 +116,11 @@
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../../open-webui-comfy-tools` (listed in the contract tables of §5).
 
+The Generate builders share a common trunk through the `_inject_model_stack`,
+`_inject_resolution`, `_inject_prompt`, `_inject_variability_conditioning` and
+`_inject_loras` helpers in `tools/generate.py`; each builder keeps only the
+technique-specific nodes (steps/scheduler/sampler/seed).
+
 Workflow JSONs are copied from `../../open-webui-comfy-tools/<tool>/` into `workflows/` (unmodified unless documented).
 
 ## 4. Configuration model
@@ -149,7 +154,8 @@ Precedence: `UI control / global setting  >  workflow default`
 
 Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `Switch (SIGMAS)`, `VAE Decode`; output: `Random Preview Image`.
 
-**Family config** (same as `MODEL_CONFIGS` in `smart_generate_image/tool.py`):
+**Family config** (single source: `FAMILY_CONFIGS` in `tools/generate.py`;
+`MODEL_CONFIGS` is the derived standard view):
 
 | Family | Model | Text encoder | VAE | vae_scale | cfg | steps | sampler | scheduler |
 |---|---|---|---|---|---|---|---|---|
@@ -176,7 +182,8 @@ builds a two-stage variability workflow instead of `smart_generate_image.json`
 
 Removing the prompt's lock on the very first step makes the seed change the
 image far more than the single-stage workflow. Per-family knobs
-(`VARIABILITY_CONFIGS`):
+(`FAMILY_CONFIGS[family]["variability"]`; `VARIABILITY_CONFIGS` is the derived
+view):
 
 | Family | Workflow | Model / text encoder / VAE | default steps | threshold | divisible_by |
 |---|---|---|---|---|---|

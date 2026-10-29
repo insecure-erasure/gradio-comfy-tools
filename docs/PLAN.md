@@ -77,7 +77,7 @@ Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 ### Input contract
 | Parameter | Type / default | Rules |
 |---|---|---|
-| `family` | select: `zimage` / `krea2` / `flux2` (backend default `zimage`; the UI sends `krea2` by default) | selects `MODEL_CONFIGS` (model, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
+| `family` | select: `zimage` / `krea2` / `flux2` (backend default `zimage`; the UI sends `krea2` by default) | selects `FAMILY_CONFIGS` (standard view: `MODEL_CONFIGS`: model, clip, vae, vae_scale, cfg, steps, sampler, scheduler) |
 | `prompt` | str, default "" | required in practice (validated non-empty) |
 | `aspect_ratio` | str "W:H" | normalized by GCD; default 2:3 |
 | `megapixel` | float, default 1.0 | controls total resolution (independent of AR) |

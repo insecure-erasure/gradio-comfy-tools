@@ -48,11 +48,13 @@ empty.
 
 ## Phase 3 — Documentation
 
-- [ ] `docs/BACKEND.md`: family config single source + §3 injection helpers.
-- [ ] `docs/PLAN.md`: update `MODEL_CONFIGS` reference.
-- [ ] `tools/generate.py` docstring/comments.
-- [ ] `docs/FRONTEND.md` only if Phase 4 is done.
-- [ ] Run pytest (docs-only change, no behaviour change expected).
+- [x] `docs/BACKEND.md`: family config single source + §3 injection helpers.
+- [x] `docs/PLAN.md`: update `MODEL_CONFIGS` reference.
+- [x] `tools/generate.py` docstring/comments.
+- [x] `docs/FRONTEND.md` only if Phase 4 is done.
+- [x] Run pytest (docs-only change, no behaviour change expected).
+
+Result: 180 tests pass (docs-only change).
 
 ## Phase 4 (optional) — Frontend defaults
 
@@ -71,7 +73,7 @@ empty.
 | 1 | `diff -r /tmp/generate_refactor_baseline /tmp/generate_refactor_phase1` | no differences |
 | 2 | `venv/bin/python -m pytest -q` | 180 passed |
 | 2 | `diff -r /tmp/generate_refactor_baseline /tmp/generate_refactor_phase2` | no differences |
-| 3 | pending | — |
+| 3 | `venv/bin/python -m pytest -q` | 180 passed |
 | 4 | pending | — |
 
 ## Notes / decisions
