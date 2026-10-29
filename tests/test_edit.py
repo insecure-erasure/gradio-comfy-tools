@@ -40,6 +40,16 @@ def test_build_workflow_edit_filename(wf):
     assert meta["restore_lora"] is False
 
 
+def test_build_workflow_preserves_uint64_seed(wf):
+    # RandomNoise.noise_seed accepts uint64; Edit must not clamp to uint32.
+    seed = 99910461318452
+    built, meta = build_workflow(
+        wf, image="ComfyUI_prev_00001_.png", mode="edit", prompt="x", seed=seed
+    )
+    assert resolve_workflow(built)["RandomNoise"]["inputs"]["noise_seed"] == seed
+    assert meta["seed"] == seed
+
+
 def test_build_workflow_edit_url(wf):
     built, _ = build_workflow(
         wf, image="https://example.com/img.png", mode="edit", prompt="x"

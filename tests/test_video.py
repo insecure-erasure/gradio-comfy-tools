@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from tools import _common
 from tools.video import (
     MODEL_VERSIONS,
     VIDEO_MODEL_CONFIGS,
@@ -70,6 +71,24 @@ def test_build_workflow_wan21_frames_snap(wf21):
     nodes = resolve_workflow(built, is_dual=False)
     assert nodes["WanImageToVideo"]["inputs"]["length"] == 101  # nearest 4n+1
     assert meta["frames"] == 101
+
+
+def test_build_workflow_seed_uses_easy_seed_range(wf21):
+    # EasySeed caps its seed at 2**50.
+    seed = _common.EASY_SEED_MAX
+    built, meta = build_workflow(
+        wf21, "wan21", image="a.png", prompt="x", frames=81, steps=4, seed=seed
+    )
+    assert resolve_workflow(built, is_dual=False)["EasySeed"]["inputs"]["seed"] == seed
+    assert meta["seed"] == seed
+
+
+def test_build_workflow_seed_clamped_to_easy_seed_max(wf21):
+    built, meta = build_workflow(
+        wf21, "wan21", image="a.png", prompt="x", frames=81, steps=4, seed=10**18
+    )
+    assert meta["seed"] == _common.EASY_SEED_MAX
+    assert resolve_workflow(built, is_dual=False)["EasySeed"]["inputs"]["seed"] == _common.EASY_SEED_MAX
 
 
 def test_build_workflow_wan22_dual(wf22):

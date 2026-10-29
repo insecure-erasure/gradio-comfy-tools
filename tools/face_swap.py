@@ -127,7 +127,7 @@ def build_workflow(
         raise FaceSwapError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
     if cfg is not None and not (MIN_CFG <= cfg <= MAX_CFG):
         raise FaceSwapError(f"cfg must be in [{MIN_CFG:g}, {MAX_CFG:g}], got {cfg:g}")
-    seed_arg = _common.resolve_seed(seed)
+    seed_arg = _common.resolve_seed(seed, max_value=_common.UINT64_SEED_MAX)
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)

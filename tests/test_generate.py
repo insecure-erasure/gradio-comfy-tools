@@ -8,6 +8,7 @@ from tools import _common
 from tools.generate import (
     FAMILY_OPTIONS,
     MODEL_CONFIGS,
+    RANDOM_NOISE_SEED_MAX,
     VARIABILITY_CONFIGS,
     VARIABILITY_FAMILY,
     VARIABILITY_FAMILIES,
@@ -84,7 +85,7 @@ def test_build_workflow_defaults(wf):
     # steps default 10, seed resolved (random for -1)
     assert nodes["Steps"]["inputs"]["value"] == 10
     assert nodes["BasicScheduler"]["inputs"]["steps"] == 10
-    assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= _common.COMFY_SEED_MAX
+    assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= RANDOM_NOISE_SEED_MAX
     assert nodes["CFGGuider"]["inputs"]["cfg"] == 1.0
     assert nodes["KSamplerSelect"]["inputs"]["sampler_name"] == "euler"
     assert nodes["BasicScheduler"]["inputs"]["scheduler"] == "simple"
@@ -229,7 +230,7 @@ def test_variability_build_defaults(vwf):
     assert nodes["KSampler (Advanced) 1"]["inputs"]["steps"] == 10
     assert nodes["KSampler (Advanced) 2"]["inputs"]["steps"] == 10
     # seed goes to stage 1 only; stage 2 stays fixed at 0
-    assert 0 <= nodes["KSampler (Advanced) 1"]["inputs"]["noise_seed"] <= _common.COMFY_SEED_MAX
+    assert 0 <= nodes["KSampler (Advanced) 1"]["inputs"]["noise_seed"] <= RANDOM_NOISE_SEED_MAX
     assert nodes["KSampler (Advanced) 2"]["inputs"]["noise_seed"] == 0
     # the technique (samplers/schedulers/shifts/cfg) is never touched
     assert nodes["KSampler (Advanced) 1"]["inputs"]["sampler_name"] == "res_multistep"
@@ -311,7 +312,7 @@ def test_flux2_variability_build_defaults(fvwf):
     assert nodes["KSamplerSelect 2"]["inputs"]["sampler_name"] == "euler"
     assert nodes["CFGGuider 1"]["inputs"]["cfg"] == 1
     assert nodes["CFGGuider 2"]["inputs"]["cfg"] == 1
-    assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= _common.COMFY_SEED_MAX
+    assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= RANDOM_NOISE_SEED_MAX
 
     # One schedule split at step 1: high -> stage 1, low -> stage 2, and
     # stage 2 continues from stage 1's latent with no new noise.
@@ -368,6 +369,16 @@ def test_flux2_variability_validations(fvwf):
         build_variability_workflow(fvwf, family="flux2", prompt="hi", steps=1)
     with pytest.raises(GenerateError):
         build_variability_workflow(fvwf, family="flux2", prompt="   ")
+
+
+def test_flux2_variability_preserves_uint64_seed(fvwf):
+    # RandomNoise.noise_seed accepts uint64; the Generate seed must not be
+    # clamped to uint32 for this flow.
+    seed = 99910461318452
+    built, meta = build_variability_workflow(fvwf, family="flux2", prompt="hi", seed=seed)
+    nodes = resolve_flux2_variability_workflow(built)
+    assert meta["seed"] == seed
+    assert nodes["RandomNoise"]["inputs"]["noise_seed"] == seed
 
 
 def test_flux2_variability_deep_copy_not_mutating_source(fvwf):

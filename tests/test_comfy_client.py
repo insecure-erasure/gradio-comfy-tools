@@ -339,6 +339,10 @@ def test_resolve_seed():
     assert 0 <= s <= _common.COMFY_SEED_MAX
     assert _common.resolve_seed(42) == 42
     assert _common.resolve_seed(10**30) == _common.COMFY_SEED_MAX
+    # Nodes that accept the full uint64 range (e.g. RandomNoise) can opt out
+    # of the uint32 clamp.
+    assert _common.resolve_seed(99910461318452, max_value=2**64 - 1) == 99910461318452
+    assert _common.resolve_seed(10**30, max_value=2**64 - 1) == 2**64 - 1
 
 
 def test_parse_lora_config():

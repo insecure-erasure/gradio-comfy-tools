@@ -15,10 +15,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-# Seed ranges: KSampler accepts uint64; some nodes (SeedVR2VideoUpscaler)
-# cap at uint32. resolve_seed uses a safe default of uint32 so it works
-# across all workflows.
-COMFY_SEED_MAX = 4294967295  # uint32 (safe across all workflow nodes)
+# Seed ranges differ per node. resolve_seed() takes the node's max so a
+# user-provided seed is never clamped more than necessary.
+COMFY_SEED_MAX = 4294967295  # uint32: SeedVR2VideoUpscaler
+UINT64_SEED_MAX = 0xFFFFFFFFFFFFFFFF  # RandomNoise / KSampler / KSamplerAdvanced
+EASY_SEED_MAX = 1125899906842624  # comfyui-easy-use "easy seed" (2**50)
 
 # WAN temporal VAE stride: valid frame counts are 4n+1
 VIDEO_MIN_FRAMES = 81
@@ -138,11 +139,16 @@ def configure_image_node(node_inputs: dict[str, Any], image: str) -> None:
 # --------------------------------------------------------------------------- #
 # Seed / frames
 # --------------------------------------------------------------------------- #
-def resolve_seed(seed: int) -> int:
-    """-1 -> random uint64; >=0 -> clamped to the ComfyUI seed range."""
+def resolve_seed(seed: int, max_value: int = COMFY_SEED_MAX) -> int:
+    """-1 -> random value; >=0 -> clamped to ``max_value``.
+
+    The default max is uint32 so the result is safe for every workflow node
+    (e.g. SeedVR2). Callers whose node accepts a wider range (RandomNoise
+    accepts uint64) can pass a larger ``max_value``.
+    """
     if seed == -1:
-        return random.randint(0, COMFY_SEED_MAX)
-    return min(seed, COMFY_SEED_MAX)
+        return random.randint(0, max_value)
+    return min(seed, max_value)
 
 
 def snap_frames(n: int, min_frames: int = VIDEO_MIN_FRAMES, max_frames: int = VIDEO_MAX_FRAMES) -> int:

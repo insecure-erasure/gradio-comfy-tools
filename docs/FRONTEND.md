@@ -361,6 +361,9 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
   in the field**; that exact value is sent (not -1).
 - Typing a value unchecks `🎲` and enables the input; the stepper ± disable
   along with the input (`:has(input:disabled)`).
+- Manual seeds larger than uint32 are allowed: the backend preserves them up
+  to the target node's max (`RandomNoise`/`KSampler*` = uint64, `EasySeed` =
+  `2^50`, `SeedVR2` = uint32). JS numbers are exact up to `2^53−1`.
 
 ### 4.3 Steppers
 

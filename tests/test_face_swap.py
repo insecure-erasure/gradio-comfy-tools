@@ -68,6 +68,14 @@ def test_build_workflow_external_urls(wf):
     assert meta["face"] == "https://example.com/face.png"
 
 
+def test_build_workflow_preserves_uint64_seed(wf):
+    # RandomNoise.noise_seed accepts uint64; Face swap must not clamp to uint32.
+    seed = 99910461318452
+    built, meta = build_workflow(wf, image="a.png", face="b.png", seed=seed)
+    assert resolve_workflow(built)["RandomNoise"]["inputs"]["noise_seed"] == seed
+    assert meta["seed"] == seed
+
+
 def test_build_workflow_temp_filenames(wf):
     built, _ = build_workflow(
         wf,

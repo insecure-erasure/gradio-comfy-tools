@@ -220,6 +220,10 @@ to avoid that padding.
 | Modal: Initial conditioning | `initial_conditioning` | `Initial conditioning` (used by stage 1) |
 | — (per family) | — | `ConditioningTimestepThreshold`: 0.13 |
 
+FLUX.2 writes the seed to `RandomNoise.noise_seed` and preserves the full
+uint64 range (the rest of the tools clamp to uint32 for nodes such as
+SeedVR2). Stage 2 uses `DisableNoise`, so it has no seed of its own.
+
 The sampler/scheduler/shift/cfg and the model routing (stage 1 uses the raw
 UNET, stage 2 the LoRA-adjusted one) are **fixed by the technique** and are
 never overridden. `variability` with any other family is rejected (`400`).
@@ -302,6 +306,34 @@ Preview Image`) and the extracted-face crop (`Random Preview Image
 (face)`). Because the crop node runs BEFORE the sampler, the backend can
 record its image early (see §2) and return it as `face_preview` on
 `POST /api/face-swap` and `/api/last-result`.
+
+### 5.6 Seed handling 🔢 — per-workflow
+
+Each workflow stores the seed in a different node. The builders call
+`_common.resolve_seed(seed, max_value=...)` with the max accepted by that
+node, so a manually entered seed is never clamped more than necessary
+(`seed == -1` generates a random value inside the same range).
+
+| Workflow | Seed node (title) | Parameter | Max |
+|---|---|---|---|
+| `smart_generate_image.json` | `RandomNoise` | `noise_seed` | uint64 (`2^64−1`) |
+| `dit_var.json` | `KSampler (Advanced) 1` | `noise_seed` | uint64 |
+| `flux2_var.json` | `RandomNoise` | `noise_seed` | uint64 |
+| `edit_image.json` | `RandomNoise` | `noise_seed` | uint64 |
+| `face_swap.json` | `RandomNoise` | `noise_seed` | uint64 |
+| `generate_video.json` / `generate_video_wan22.json` | `EasySeed` | `seed` | `2^50` (`1125899906842624`) |
+| `seedvr2_upscale.json` | `SeedVR2 Video Upscaler (v2.5.24)` | `seed` | uint32 (`4294967295`) |
+
+Notes:
+- `dit_var.json` injects the seed only into stage 1; `KSampler (Advanced) 2`
+  keeps `noise_seed=0` with `add_noise: disable`.
+- `flux2_var.json` injects into `RandomNoise` (stage 1); stage 2 uses
+  `DisableNoise` and has no seed.
+- Video uses one `EasySeed` node whose output feeds both KSamplers (wan22) or
+  the single sampler (wan21).
+- The frontend 🎲 (`randomSeed()`) generates **uint32** values; enter a larger
+  seed manually if you need to reproduce a ComfyUI uint64/2^50 seed. JS
+  numbers are exact up to `2^53−1`.
 
 ## 6. Chaining (context between tools)
 

@@ -209,7 +209,7 @@ def build_workflow(
     if is_dual and resolved_steps % 2 != 0:
         resolved_steps += 1  # wan22: odd -> even (rounded up)
     resolved_frames = _common.snap_frames(frames)
-    seed_arg = _common.resolve_seed(seed)
+    seed_arg = _common.resolve_seed(seed, max_value=_common.EASY_SEED_MAX)
     loras = _common.parse_lora_config(lora_config)
     diffusion_override = _parse_diffusion_config(model_version, diffusion)
 

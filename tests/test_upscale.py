@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from tools import _common
 from tools.upscale import build_workflow, load_workflow, resolve_workflow, UpscaleError
 
 
@@ -52,7 +53,14 @@ def test_build_workflow_random_seed(wf):
     random.seed(1)
     built, meta = build_workflow(wf, image="a.png", seed=-1)
     nodes = resolve_workflow(built)
-    assert 0 <= nodes["SeedVR2 Video Upscaler (v2.5.24)"]["inputs"]["seed"] <= 2**64 - 1
+    assert 0 <= nodes["SeedVR2 Video Upscaler (v2.5.24)"]["inputs"]["seed"] <= _common.COMFY_SEED_MAX
+
+
+def test_build_workflow_large_seed_is_clamped_to_uint32(wf):
+    # SeedVR2VideoUpscaler caps its seed at uint32.
+    built, meta = build_workflow(wf, image="a.png", seed=10**12)
+    assert meta["seed"] == _common.COMFY_SEED_MAX
+    assert built["424"]["inputs"]["seed"] == _common.COMFY_SEED_MAX
 
 
 def test_deep_copy_not_mutating_source(wf):

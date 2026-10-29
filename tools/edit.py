@@ -76,7 +76,7 @@ def build_workflow(
         raise EditError("image must not be empty")
     if steps and not (MIN_STEPS <= steps <= MAX_STEPS):
         raise EditError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
-    seed_arg = _common.resolve_seed(seed)
+    seed_arg = _common.resolve_seed(seed, max_value=_common.UINT64_SEED_MAX)
     loras = _common.parse_lora_config(lora_config)
     restore = mode == "restore"
     stripped = prompt.strip()

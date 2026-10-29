@@ -50,7 +50,8 @@ def build_workflow(
     """Inject parameters into a copy of the workflow. Returns (workflow, meta)."""
     if not image.strip():
         raise UpscaleError("image must not be empty")
-    seed_arg = _common.resolve_seed(seed)
+    # SeedVR2VideoUpscaler caps its seed at uint32.
+    seed_arg = _common.resolve_seed(seed, max_value=_common.COMFY_SEED_MAX)
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)

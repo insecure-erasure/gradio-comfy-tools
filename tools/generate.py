@@ -116,6 +116,10 @@ DEFAULT_FAMILY = "zimage"
 DEFAULT_ASPECT_RATIO = "2:3"
 DEFAULT_MEGAPIXEL = 1.0
 MIN_STEPS, MAX_STEPS = 1, 15
+# Generate seeds go to RandomNoise or KSampler/KsamplerAdvanced, which accept
+# the full uint64 range. FLUX.2 uses this explicitly; the other Generate
+# builders use the same default.
+RANDOM_NOISE_SEED_MAX = _common.UINT64_SEED_MAX
 # The two-stage graph splits one schedule: stage 1 runs step 0 and stage 2
 # runs 1..N, so N must be at least 2 for stage 2 to execute at all.
 MIN_VARIABILITY_STEPS = 2
@@ -239,12 +243,14 @@ def _normalize_params(
     seed: int,
     lora_config: str,
     model: str,
+    seed_max: int = _common.UINT64_SEED_MAX,
 ) -> dict[str, Any]:
     """Validate + normalize the parameters shared by both Generate workflows.
 
     ``family_cfg`` supplies the default step count. Returns the normalized
     model/prompt/steps, the reduced W:H and the resolved seed + parsed LoRAs,
-    so each builder only has to map them onto its own nodes.
+    so each builder only has to map them onto its own nodes. ``seed_max``
+    defaults to the uint64 range used by RandomNoise/KSampler nodes.
     """
     model = model.strip()
     if model.endswith((".json", ".yaml", ".yml")):
@@ -265,7 +271,7 @@ def _normalize_params(
         "steps": steps,
         "reduced_w": reduced_w,
         "reduced_h": reduced_h,
-        "seed": _common.resolve_seed(seed),
+        "seed": _common.resolve_seed(seed, max_value=seed_max),
         "loras": _common.parse_lora_config(lora_config),
     }
 
@@ -385,6 +391,7 @@ def _build_flux2_variability_workflow(
         seed=seed,
         lora_config=lora_config,
         model=model,
+        seed_max=RANDOM_NOISE_SEED_MAX,
     )
     if p["steps"] < MIN_VARIABILITY_STEPS:
         raise GenerateError(
