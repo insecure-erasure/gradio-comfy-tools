@@ -300,6 +300,67 @@ def _normalize_params(
     }
 
 
+# --------------------------------------------------------------------------- #
+# Common injection helpers (shared by the standard and variability builders)
+# --------------------------------------------------------------------------- #
+def _inject_model_stack(nodes: dict[str, dict], cfg: dict[str, Any], p: dict[str, Any]) -> None:
+    """Write the family model stack into the shared loader nodes."""
+    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
+    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
+    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
+    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
+
+
+def _inject_resolution(
+    nodes: dict[str, dict],
+    p: dict[str, Any],
+    megapixel: float,
+    divisible_by: int,
+    *,
+    set_aspect_ratio: bool = False,
+) -> None:
+    """Write megapixel/grid and the reduced W:H into the resolution nodes.
+
+    The standard workflow also pins ``aspect_ratio`` to the classic portrait
+    label (the custom ratio link is what actually drives it); the variability
+    workflows leave that field untouched.
+    """
+    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
+    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(divisible_by)
+    if set_aspect_ratio:
+        nodes["Flux Resolution Calc"]["inputs"]["aspect_ratio"] = "2:3 (Classic Portrait)"
+    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
+    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
+
+
+def _inject_prompt(
+    nodes: dict[str, dict],
+    p: dict[str, Any],
+    *,
+    title: str = "Prompt",
+    key: str = "value",
+) -> None:
+    """Write the prompt into a standard/variability prompt node."""
+    nodes[title]["inputs"][key] = p["prompt"]
+
+
+def _inject_variability_conditioning(
+    nodes: dict[str, dict],
+    p: dict[str, Any],
+    initial_conditioning: str,
+    threshold: float,
+) -> None:
+    """Prompt + first-step conditioning + threshold for dit/flux2 variability."""
+    nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
+    nodes["Initial conditioning"]["inputs"]["text"] = initial_conditioning.strip()
+    nodes["ConditioningTimestepThreshold"]["inputs"]["value"] = threshold
+
+
+def _inject_loras(nodes: dict[str, dict], p: dict[str, Any]) -> None:
+    """Apply the parsed LoRA config to the shared Power Lora Loader."""
+    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
+
+
 def build_workflow(
     workflow: dict[str, dict],
     *,
@@ -334,22 +395,15 @@ def build_workflow(
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)
 
-    # Model config — ``model`` (from the ⚙️ advanced modal) overrides the
-    # family default when provided.
-    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
-    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
-    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
-    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
+    # Shared trunk: model stack, resolution, prompt and LoRAs.
+    _inject_model_stack(nodes, cfg, p)
+    _inject_resolution(
+        nodes, p, megapixel, cfg["vae_scale_factor"], set_aspect_ratio=True
+    )
+    _inject_prompt(nodes, p, title="Prompt", key="value")
+    _inject_loras(nodes, p)
 
-    # Resolution
-    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
-    nodes["Flux Resolution Calc"]["inputs"]["aspect_ratio"] = "2:3 (Classic Portrait)"
-    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(cfg["vae_scale_factor"])
-    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
-    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
-
-    # Prompt / steps / seed / cfg / sampler
-    nodes["Prompt"]["inputs"]["value"] = p["prompt"]
+    # Steps / seed / cfg / sampler
     nodes["Steps"]["inputs"]["value"] = p["steps"]
     nodes["BasicScheduler"]["inputs"]["steps"] = p["steps"]
     nodes["RandomNoise"]["inputs"]["noise_seed"] = p["seed"]
@@ -364,9 +418,6 @@ def build_workflow(
 
     # Sigma selector: 1 = BasicScheduler (zimage/krea2), 2 = Flux2Scheduler (flux2)
     nodes["Switch (SIGMAS)"]["inputs"]["select"] = cfg["sigma_selector_index"]
-
-    # LoRAs
-    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
 
     meta = {
         "family": family,
@@ -426,23 +477,13 @@ def _build_flux2_variability_workflow(
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_flux2_variability_workflow(wf)
 
-    # Model stack (MODEL_CONFIGS["flux2"] defaults; ``model`` overrides the UNET)
-    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
-    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
-    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
-    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
-
-    # Resolution (custom ratio via the StringConcatenate node)
-    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
-    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(vcfg["divisible_by"])
-    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
-    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
-
-    # Prompt + initial conditioning + first-step threshold
-    nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
-    nodes["Initial conditioning"]["inputs"]["text"] = initial_conditioning.strip()
-    nodes["ConditioningTimestepThreshold"]["inputs"]["value"] = vcfg["timestep_threshold"]
-    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
+    # Shared trunk: model stack, resolution, gated conditioning and LoRAs.
+    _inject_model_stack(nodes, cfg, p)
+    _inject_resolution(nodes, p, megapixel, vcfg["divisible_by"])
+    _inject_variability_conditioning(
+        nodes, p, initial_conditioning, vcfg["timestep_threshold"]
+    )
+    _inject_loras(nodes, p)
 
     # One schedule split at step 1; the seed feeds stage 1's RandomNoise.
     nodes["Flux2Scheduler"]["inputs"]["steps"] = p["steps"]
@@ -530,28 +571,13 @@ def build_variability_workflow(
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_variability_workflow(wf)
 
-    # Model config (the family defaults; ``model`` from the advanced modal
-    # overrides the UNET). Krea 2 gets its own encoder/VAE/clip type.
-    nodes["Load Diffusion Model"]["inputs"]["unet_name"] = p["model"] or cfg["model"]
-    nodes["Load CLIP"]["inputs"]["clip_name"] = cfg["text_encoder"]
-    nodes["Load CLIP"]["inputs"]["type"] = cfg["clip_type"]
-    nodes["Load VAE"]["inputs"]["vae_name"] = cfg["vae"]
-
-    # Resolution (custom ratio via the StringConcatenate node)
-    nodes["Flux Resolution Calc"]["inputs"]["megapixel"] = str(megapixel)
-    nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] = str(vcfg["divisible_by"])
-    nodes["Aspect ratio"]["inputs"]["string_a"] = str(p["reduced_w"])
-    nodes["Aspect ratio"]["inputs"]["string_b"] = str(p["reduced_h"])
-
-    # Prompt + LoRAs
-    nodes["Prompt here"]["inputs"]["text"] = p["prompt"]
-    # Conditioning used instead of the prompt for the first timestep slice;
-    # defaults to "" — the workflow's original behaviour.
-    nodes["Initial conditioning"]["inputs"]["text"] = initial_conditioning.strip()
-    # Fraction of the schedule during which stage 1 ignores the prompt
-    # (0.105 for Z-Image Turbo, 0.112 for Krea 2).
-    nodes["ConditioningTimestepThreshold"]["inputs"]["value"] = vcfg["timestep_threshold"]
-    _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], p["loras"])
+    # Shared trunk: model stack, resolution, gated conditioning and LoRAs.
+    _inject_model_stack(nodes, cfg, p)
+    _inject_resolution(nodes, p, megapixel, vcfg["divisible_by"])
+    _inject_variability_conditioning(
+        nodes, p, initial_conditioning, vcfg["timestep_threshold"]
+    )
+    _inject_loras(nodes, p)
 
     # Same step count in both stages; seed only in the first stage
     nodes["KSampler (Advanced) 1"]["inputs"]["steps"] = p["steps"]

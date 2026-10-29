@@ -34,14 +34,17 @@ empty.
 
 ## Phase 2 — Common injection helpers
 
-- [ ] `_inject_model_stack`
-- [ ] `_inject_resolution` (preserve the standard-only `aspect_ratio` write)
-- [ ] `_inject_prompt` (`Prompt.value` vs `Prompt here.text`)
-- [ ] `_inject_variability_conditioning`
-- [ ] `_inject_loras`
-- [ ] Reuse helpers in `build_workflow`, `build_variability_workflow` and
+- [x] `_inject_model_stack`
+- [x] `_inject_resolution` (preserve the standard-only `aspect_ratio` write)
+- [x] `_inject_prompt` (`Prompt.value` vs `Prompt here.text`)
+- [x] `_inject_variability_conditioning`
+- [x] `_inject_loras`
+- [x] Reuse helpers in `build_workflow`, `build_variability_workflow` and
       `_build_flux2_variability_workflow`.
-- [ ] Run pytest + baseline diff.
+- [x] Run pytest + baseline diff.
+
+Result: 180 tests pass; `/tmp/generate_refactor_phase2` diff vs baseline is
+empty.
 
 ## Phase 3 — Documentation
 
@@ -66,7 +69,8 @@ empty.
 | 0 | `PYTHONPATH=/work venv/bin/python /tmp/generate_refactor_baseline.py` | 14 workflows written |
 | 1 | `venv/bin/python -m pytest -q` | 180 passed |
 | 1 | `diff -r /tmp/generate_refactor_baseline /tmp/generate_refactor_phase1` | no differences |
-| 2 | pending | — |
+| 2 | `venv/bin/python -m pytest -q` | 180 passed |
+| 2 | `diff -r /tmp/generate_refactor_baseline /tmp/generate_refactor_phase2` | no differences |
 | 3 | pending | — |
 | 4 | pending | — |
 
