@@ -144,10 +144,14 @@ def resolve_seed(seed: int, max_value: int = COMFY_SEED_MAX) -> int:
 
     The default max is uint32 so the result is safe for every workflow node
     (e.g. SeedVR2). Callers whose node accepts a wider range (RandomNoise
-    accepts uint64) can pass a larger ``max_value``.
+    accepts uint64) can pass a larger ``max_value``. Values below -1 are
+    rejected: the only negative seed accepted by the tools/ComfyUI contract
+    is the -1 random sentinel.
     """
     if seed == -1:
         return random.randint(0, max_value)
+    if seed < -1:
+        raise ValueError(f"seed must be -1 or >= 0, got {seed}")
     return min(seed, max_value)
 
 

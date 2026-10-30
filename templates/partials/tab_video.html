@@ -62,9 +62,14 @@
           <div class="field-inline" style="flex:1">
             <label title="Seed">🌱</label>
             <div class="stepper">
-              <button class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease">−</button>
-              <input type="number" id="videoSeed" value="0" min="0" step="1" disabled oninput="onVideoSeedInput()">
-              <button class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase">+</button>
+              <button type="button" class="stepper-btn" onclick="stepVideoSeed(-1)" title="Decrease" aria-label="Decrease seed">−</button>
+              <input type="text" class="seed-input" id="videoSeed" value="0"
+                     inputmode="numeric" pattern="[0-9]*"
+                     autocomplete="off" spellcheck="false"
+                     role="spinbutton" aria-label="Seed"
+                     aria-valuemin="0" aria-valuemax="1125899906842624" aria-valuenow="0"
+                     disabled oninput="onVideoSeedInput()">
+              <button type="button" class="stepper-btn" onclick="stepVideoSeed(1)" title="Increase" aria-label="Increase seed">+</button>
             </div>
             <label class="check-label" style="margin-left:4px">
               <input type="checkbox" id="videoSeedRandom" checked onchange="onVideoSeedRandomToggle()">

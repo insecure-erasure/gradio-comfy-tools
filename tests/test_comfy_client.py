@@ -343,6 +343,10 @@ def test_resolve_seed():
     # of the uint32 clamp.
     assert _common.resolve_seed(99910461318452, max_value=2**64 - 1) == 99910461318452
     assert _common.resolve_seed(10**30, max_value=2**64 - 1) == 2**64 - 1
+    # -1 is the only negative value (the random sentinel); anything below it
+    # would be rejected by ComfyUI (node min=0), so fail fast in the tool.
+    with pytest.raises(ValueError, match="seed must be -1 or >= 0"):
+        _common.resolve_seed(-2)
 
 
 def test_parse_lora_config():

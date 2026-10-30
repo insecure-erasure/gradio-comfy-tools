@@ -10,13 +10,15 @@ function generateImage() {
   const seedEl = document.getElementById('genSeed');
   const randomEl = document.getElementById('genSeedRandom');
   let seed;
-  if (randomEl && randomEl.checked) {
-    // 🎲 enabled → generate now and show the value that will be sent
-    seed = randomSeed();
-    if (seedEl) seedEl.value = seed;
-  } else {
-    seed = parseInt(seedEl?.value) || 0;
+  try {
+    // Seeds are decimal strings: uint64 stays exact (see seed.js).
+    seed = (randomEl && randomEl.checked)
+      ? randomSeedValue(SEED_MAX.generate)
+      : parseSeedInput(seedEl?.value, SEED_MAX.generate);
+  } catch (err) {
+    return showToast(err.message);
   }
+  setSeedValue('generate', seed);
   const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): LoRA config + optional model override
   const adv = (window.advancedValues && window.advancedValues.generate) || {};
@@ -41,6 +43,7 @@ function generateImage() {
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).
   function finalizeGenerate(res) {
+    applyResolvedSeed('generate', res.seed);
     showResult('genOutputPane', res, false);
     // Generated history: the result joins the lightbox gallery with its
     // generation prompt; session-scoped, survives the pane.
@@ -129,10 +132,13 @@ function onStepsInput() {
 }
 
 // ── Seed + random toggle ──────────────────
-function stepGenSeed(d) { const input = document.getElementById('genSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
+function stepGenSeed(d) {
+  const input = document.getElementById('genSeed');
+  setSeedValue('generate', stepSeedInput(input.value, d, SEED_MAX.generate));
+  updatePromptChips();
+}
 function onGenSeedInput() {
   const input = document.getElementById('genSeed');
-  if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('genSeedRandom').checked = false;
   input.disabled = false;
   updatePromptChips();
@@ -240,7 +246,7 @@ function resetGenerate() {
   if (ar) ar.selectedIndex = 0;
   document.getElementById('genMegapixel').value = '1';
   document.getElementById('genSteps').value = '9';
-  document.getElementById('genSeed').value = '0';
+  setSeedValue('generate', '0');
   document.getElementById('genSeedRandom').checked = true;
   document.getElementById('genSeed').disabled = true;
   onModelFamilyChange(); // auto-steps + recalc W/H

@@ -10,13 +10,15 @@ function generateVideo() {
   const seedEl = document.getElementById('videoSeed');
   const randomEl = document.getElementById('videoSeedRandom');
   let seed;
-  if (randomEl && randomEl.checked) {
-    // 🎲 enabled → generate now and show the value that will be sent
-    seed = randomSeed();
-    if (seedEl) seedEl.value = seed;
-  } else {
-    seed = parseInt(seedEl?.value) || 0;
+  try {
+    // Seeds are decimal strings: EasySeed stays exact (see seed.js).
+    seed = (randomEl && randomEl.checked)
+      ? randomSeedValue(SEED_MAX.video)
+      : parseSeedInput(seedEl?.value, SEED_MAX.video);
+  } catch (err) {
+    return showToast(err.message);
   }
+  setSeedValue('video', seed);
   const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): negative prompt, diffusion model override + LoRA config.
   // Video stores per-version config (wan21/wan22) — read the active one.
@@ -55,6 +57,7 @@ function generateVideo() {
   // fetch OR from the recover handler when the fetch died in a background
   // tab (the backend kept running and finished the job).
   function finalizeVideo(res) {
+    applyResolvedSeed('video', res.seed);
     // Remove the empty player from the DOM (not just hide it): it is a
     // flex block with width:100%, so leaving it (even display:none inline)
     // gets restored by stopProgressPolling and pushes the real <video> to
@@ -163,10 +166,13 @@ function onVideoStepsInput() {
   if (v > 10) input.value = 10;
   updatePromptChips();
 }
-function stepVideoSeed(d) { const input = document.getElementById('videoSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
+function stepVideoSeed(d) {
+  const input = document.getElementById('videoSeed');
+  setSeedValue('video', stepSeedInput(input.value, d, SEED_MAX.video));
+  updatePromptChips();
+}
 function onVideoSeedInput() {
   const input = document.getElementById('videoSeed');
-  if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('videoSeedRandom').checked = false;
   input.disabled = false;
   updatePromptChips();
@@ -185,7 +191,7 @@ function resetVideo() {
   if (mv) mv.selectedIndex = 0; // Wan 2.1
   document.getElementById('videoFrames').value = '81';
   document.getElementById('videoSteps').value = '4';
-  document.getElementById('videoSeed').value = '0';
+  setSeedValue('video', '0');
   document.getElementById('videoSeedRandom').checked = true;
   document.getElementById('videoSeed').disabled = true;
   // Clear the active version's advanced-modal config (negative, loras, model)

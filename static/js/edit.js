@@ -9,13 +9,15 @@ function generateEdit(forceMode) {
   const seedEl = document.getElementById('editSeed');
   const randomEl = document.getElementById('editSeedRandom');
   let seed;
-  if (randomEl && randomEl.checked) {
-    // 🎲 enabled → generate now and show the value that will be sent
-    seed = randomSeed();
-    if (seedEl) seedEl.value = seed;
-  } else {
-    seed = parseInt(seedEl?.value) || 0;
+  try {
+    // Seeds are decimal strings: uint64 stays exact (see seed.js).
+    seed = (randomEl && randomEl.checked)
+      ? randomSeedValue(SEED_MAX.edit)
+      : parseSeedInput(seedEl?.value, SEED_MAX.edit);
+  } catch (err) {
+    return showToast(err.message);
   }
+  setSeedValue('edit', seed);
   const prompt = activePromptInput()?.value || '';
   // Advanced modal (⚙️): LoRA config
   const adv = (window.advancedValues && window.advancedValues.edit) || {};
@@ -34,6 +36,7 @@ function generateEdit(forceMode) {
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).
   function finalizeEdit(res) {
+    applyResolvedSeed('edit', res.seed);
     // Compare slider: source (before) vs edited (after) — this IS the result.
     const beforeEl = document.getElementById('editBefore');
     const afterEl = document.getElementById('editAfter');
@@ -140,10 +143,13 @@ function onEditStepsInput() {
   if (v > 15) input.value = 15;
   updatePromptChips();
 }
-function stepEditSeed(d) { const input = document.getElementById('editSeed'); input.value = Math.max(0, parseInt(input.value) + d); updatePromptChips(); }
+function stepEditSeed(d) {
+  const input = document.getElementById('editSeed');
+  setSeedValue('edit', stepSeedInput(input.value, d, SEED_MAX.edit));
+  updatePromptChips();
+}
 function onEditSeedInput() {
   const input = document.getElementById('editSeed');
-  if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('editSeedRandom').checked = false;
   input.disabled = false;
   updatePromptChips();
@@ -159,7 +165,7 @@ function resetEdit() {
   // cleared pane stays clean (nothing reappears over the placeholder).
   cancelIfRunning();
   document.getElementById('editSteps').value = '6';
-  document.getElementById('editSeed').value = '0';
+  setSeedValue('edit', '0');
   document.getElementById('editSeedRandom').checked = true;
   document.getElementById('editSeed').disabled = true;
   clearPane('editOutputPane');

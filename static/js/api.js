@@ -313,13 +313,6 @@ function applyGenerationLock() {
   }
 }
 
-// Random uint32 seed (same range the backend uses for -1, COMFY_SEED_MAX).
-// Used client-side so the value that will be sent to the workflow is visible
-// in the seed field while 🎲 is enabled.
-function randomSeed() {
-  return Math.floor(Math.random() * 4294967296);
-}
-
 // ── Live progress (pushed over WebSocket, polling fallback) ──
 // While a generation runs, the backend PUSHES every job update over
 // /ws/progress (stage, step value/max, per-step preview, completion) and

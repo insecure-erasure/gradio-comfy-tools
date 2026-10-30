@@ -496,6 +496,70 @@ def test_api_upscale_seed(client, tmp_config, monkeypatch):
     assert received["seed"] == 42
 
 
+def test_api_generate_keeps_uint64_seed_exact(client, tmp_config, monkeypatch):
+    """The UI sends uint64 seeds as decimal strings; the API must not round."""
+    received = {}
+
+    def fake_generate(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=out.png&type=output"
+
+    monkeypatch.setattr(server, "generate_image", fake_generate)
+    seed = "18446744073709551615"
+    resp = client.post("/api/generate", json={"prompt": "x", "seed": seed})
+    assert resp.status_code == 200
+    assert received["seed"] == 18446744073709551615
+    # A JSON number would lose precision in the browser; the API returns a string.
+    assert resp.json()["seed"] == seed
+
+
+def test_api_upscale_clamps_and_reports_the_injected_seed(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_upscale(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=up.png&type=output"
+
+    monkeypatch.setattr(server, "upscale_image", fake_upscale)
+    resp = client.post("/api/upscale", json={"image": "a.png", "seed": "5000000000"})
+    assert resp.status_code == 200
+    assert received["seed"] == server._common.COMFY_SEED_MAX
+    assert resp.json()["seed"] == str(server._common.COMFY_SEED_MAX)
+
+
+def test_api_resolves_random_seed_sentinel_and_reports_it(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_generate(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=out.png&type=output"
+
+    monkeypatch.setattr(server, "generate_image", fake_generate)
+    resp = client.post("/api/generate", json={"prompt": "x", "seed": "-1"})
+    assert resp.status_code == 200
+    assert 0 <= received["seed"] <= server._common.UINT64_SEED_MAX
+    assert resp.json()["seed"] == str(received["seed"])
+
+
+@pytest.mark.parametrize("bad_seed", ["1e15", "1.5", "-2", "abc", ""])
+def test_api_rejects_invalid_seed(client, tmp_config, monkeypatch, bad_seed):
+    def fake_generate(settings, **kwargs):
+        raise AssertionError("invalid seed must be rejected before running the tool")
+
+    monkeypatch.setattr(server, "generate_image", fake_generate)
+    resp = client.post("/api/generate", json={"prompt": "x", "seed": bad_seed})
+    assert resp.status_code == 400
+
+
+def test_api_rejects_fractional_float_seed(client, tmp_config, monkeypatch):
+    def fake_generate(settings, **kwargs):
+        raise AssertionError("fractional seed must be rejected before running the tool")
+
+    monkeypatch.setattr(server, "generate_image", fake_generate)
+    resp = client.post("/api/generate", json={"prompt": "x", "seed": 1.5})
+    assert resp.status_code == 400
+
+
 def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
     received = {}
 

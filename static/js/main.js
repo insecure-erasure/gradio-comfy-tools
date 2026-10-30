@@ -16,6 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
   switchTab('generate');     // mount the action button (with catcher) for the active tab
   onModelFamilyChange();     // auto-steps + recalc for the family
   applyPersistedParams();    // re-apply persisted field values (they win over auto-steps)
+  if (typeof refreshSeedAria === 'function') refreshSeedAria(); // persisted seed values may differ from aria-valuenow="0"
   initSourceFields();        // select-all on click for the source URL fields
   // The Video pane shows the real-but-disabled player when it has no video
   // (restoreActiveTabResult may replace it with the last generated video

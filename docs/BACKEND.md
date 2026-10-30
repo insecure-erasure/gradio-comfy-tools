@@ -146,7 +146,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | AR dropdown | `aspect_ratio` (w:h) | `Flux Resolution Calc` |
 | 📐 MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
 | 👣 Steps (auto per family) | `steps` (1–50; 0 = family default) | `Steps` (via `BasicScheduler`) |
-| 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `RandomNoise` |
+| 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
 | Modal: Model name | `model` (.safetensors, overrides the family default) | `Load Diffusion Model` |
@@ -235,8 +235,9 @@ to avoid that padding.
 | — (per family) | — | `ConditioningTimestepThreshold`: 0.13 |
 
 FLUX.2 writes the seed to `RandomNoise.noise_seed` and preserves the full
-uint64 range (the rest of the tools clamp to uint32 for nodes such as
-SeedVR2). Stage 2 uses `DisableNoise`, so it has no seed of its own.
+uint64 range. Every tool preserves the max of its target node (uint64 for
+RandomNoise/KSampler, `2^50` for EasySeed, uint32 for SeedVR2). Stage 2 uses
+`DisableNoise`, so it has no seed of its own.
 
 The sampler/scheduler/shift/cfg and the model routing (stage 1 uses the raw
 UNET, stage 2 the LoRA-adjusted one) are **fixed by the technique** and are
@@ -249,7 +250,7 @@ never overridden. `variability` with any other family is rejected (`400`).
 | 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
-| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `RandomNoise` |
+| 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
 | Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar; optional in restore) | `prompt` | `Prompt` |
 
@@ -264,7 +265,7 @@ Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Deco
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
 |---|---|---|
 | 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
-| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `SeedVR2 Video Upscaler (v2.5.24)` |
+| 🌱 Seed + 🎲 | `seed` (0…2^32−1; 🎲 → random en cliente) | `SeedVR2 Video Upscaler (v2.5.24)` |
 | — (no control) | `resolution` 2048 | `SeedVR2 Video Upscaler` |
 | — (no control) | `color_correction` "lab" | `SeedVR2 Video Upscaler` |
 | — (no control) | `blend_factor` 0.15 | `Image Blend` |
@@ -284,7 +285,7 @@ Other nodes: `SeedVR2 (Down)Load DiT Model` → **`SeedVR2LoadDiTModel`**, `Seed
 | 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
 | 🎞️ Frames (81–161, 4n+1) | `length` (4n+1 snap) | `WanImageToVideo` |
 | 👣 Steps (4–10) | `steps` (wan22: odd→even) | `KSampler` (wan21, title "KSampler") / `KSampler HIGH` + `KSampler LOW` (wan22, class KSamplerAdvanced) |
-| 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `EasySeed` |
+| 🌱 Seed + 🎲 | `seed` (0…2^50; 🎲 → random en cliente) | `EasySeed` |
 | Negative Prompt | `negative_prompt` (overrides default) | `Negative Prompt` |
 | Modal: Diffusion model (JSON) | `diffusion` (object wan21 / array wan22 with `path`) | `Load Diffusion Model`(s) per `path` (high/low) |
 | Modal: LoRA config (JSON) | `lora_config` (supports `path` high/low) | `Power Lora Loader (rgthree)` (filtered per path) |
@@ -312,7 +313,7 @@ the sampling parameters and the optional extra prompt.
 | Prompt (optional) | `prompt` (appended after the built-in head-swap instructions) | `Prompt` → `Concat Prompt (Positive)` (StringConcatenate) |
 | 🎚️ CFG (guidance) | `cfg` (0–8, step 0.1; 0 = no guidance) | `CFG Guider` |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
-| 🌱 Seed + 🎲 | `seed` (-1 → random, ≥0 → fixed) | `RandomNoise` |
+| 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
 | — (runtime) | dedicated head-swap LoRA | `Load LoRA` (name resolved against `GET /models/loras`) |
 
 The workflow ends in TWO preview outputs — the swapped result (`Random
@@ -326,7 +327,9 @@ record its image early (see §2) and return it as `face_preview` on
 Each workflow stores the seed in a different node. The builders call
 `_common.resolve_seed(seed, max_value=...)` with the max accepted by that
 node, so a manually entered seed is never clamped more than necessary
-(`seed == -1` generates a random value inside the same range).
+(`seed == -1` generates a random value inside the same range). The API
+resolves `-1`/the clamp before calling the tool and returns the exact injected
+seed as a string (JSON numbers would lose precision in the browser).
 
 | Workflow | Seed node (title) | Parameter | Max |
 |---|---|---|---|
@@ -345,9 +348,16 @@ Notes:
   `DisableNoise` and has no seed.
 - Video uses one `EasySeed` node whose output feeds both KSamplers (wan22) or
   the single sampler (wan21).
-- The frontend 🎲 (`randomSeed()`) generates **uint32** values; enter a larger
-  seed manually if you need to reproduce a ComfyUI uint64/2^50 seed. JS
-  numbers are exact up to `2^53−1`.
+- The frontend keeps seeds as **decimal strings** and parses/validates them
+  with `BigInt` (`static/js/seed.js`): uint64 stays exact, unlike JS
+  `Number` (safe only to `2^53−1`). The seed inputs are text fields, not
+  `type="number"`.
+- The 🎲 generates a random value in the target node's full range
+  client-side (uint64 / `2^50` / uint32) and shows it in the field. Manual
+  seeds must be `0…max`; `-1` is only the API/CLI random sentinel.
+- The `/api/*` responses include the resolved `seed` (always a string) so a
+  clamped or server-resolved value can never disagree with the executed
+  workflow.
 
 ## 6. Chaining (context between tools)
 

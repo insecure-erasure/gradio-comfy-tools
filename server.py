@@ -27,6 +27,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import json
+import re
 import struct
 import threading
 import time
@@ -42,6 +43,7 @@ from starlette.requests import Request
 
 import comfy_client
 from config import Settings
+from tools import _common
 from tools.edit import edit_image, MODES
 from tools.face_swap import FACE_OUTPUT_TITLE, face_swap_image
 from tools.generate import FAMILY_OPTIONS, generate_image
@@ -659,14 +661,74 @@ def api_diffusion_models() -> dict:
 # --------------------------------------------------------------------------- #
 # Tool endpoints
 # --------------------------------------------------------------------------- #
-def _tool_response(url: str) -> dict:
+# Seed ranges differ per workflow node. The API resolves the sentinel and
+# clamps to the same max the tool uses, so the response can report the exact
+# seed that was injected (uint64 must be serialized as a string in JSON).
+_SEED_MAX_BY_TOOL = {
+    "generate": _common.UINT64_SEED_MAX,
+    "edit": _common.UINT64_SEED_MAX,
+    "face_swap": _common.UINT64_SEED_MAX,
+    "video": _common.EASY_SEED_MAX,
+    "upscale": _common.COMFY_SEED_MAX,
+}
+_SEED_DECIMAL_RE = re.compile(r"-?\d+")
+
+
+def _parse_seed(value: object) -> int:
+    """Parse a seed from the JSON body (integer or decimal string).
+
+    The frontend sends uint64 seeds as strings; Python int() keeps them exact.
+    Reject floats with a fractional part, booleans, arbitrary strings and
+    seeds below -1 so the API cannot silently truncate a value.
+    """
+    if isinstance(value, bool):
+        raise ValueError("seed must be a whole number")
+    if isinstance(value, int):
+        seed = value
+    elif isinstance(value, float):
+        if not value.is_integer():
+            raise ValueError("seed must be a whole number")
+        seed = int(value)
+    elif isinstance(value, str):
+        raw = value.strip()
+        if not _SEED_DECIMAL_RE.fullmatch(raw):
+            raise ValueError("seed must be a whole number")
+        # uint64 max has 20 digits; strip leading zeros before the length
+        # check so a zero-padded value is not rejected. This also keeps
+        # Python's int() away from pathologically long strings (Python 3.11+
+        # has a digit limit).
+        negative = raw.startswith("-")
+        digits = raw.lstrip("-").lstrip("0") or "0"
+        if len(digits) > 20:
+            raise ValueError("seed is too large")
+        seed = -int(digits) if negative else int(digits)
+    else:
+        raise ValueError("seed must be a whole number")
+    if seed < -1:
+        raise ValueError("seed must be -1 or a non-negative integer")
+    return seed
+
+
+def _resolve_request_seed(body: dict, tool: str) -> int:
+    """Resolve -1/clamp for one tool and return the exact injected seed."""
+    return _common.resolve_seed(
+        _parse_seed(body.get("seed", -1)),
+        max_value=_SEED_MAX_BY_TOOL[tool],
+    )
+
+
+def _tool_response(url: str, seed: int | None = None) -> dict:
     filename, type_ = _filename_from_url(url)
-    return {
+    resp = {
         "url": url,          # direct ComfyUI URL (for copy / chaining)
         "display": f"/media/{filename}?type={type_}",  # same-origin proxy
         "filename": filename,
         "type": type_,
     }
+    # String: a uint64 value would lose precision if parsed as a JS Number.
+    if seed is not None:
+        resp["seed"] = str(seed)
+    return resp
 
 
 @app.post("/api/generate")
@@ -676,6 +738,7 @@ def api_generate(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "generate"
         _pending_prompt = str(body.get("prompt", ""))
+        seed = _resolve_request_seed(body, "generate")
         url = generate_image(
             s,
             family=str(body.get("family", "zimage")),
@@ -683,7 +746,7 @@ def api_generate(body: dict) -> dict:
             aspect_ratio=str(body.get("aspect_ratio", "2:3")),
             megapixel=float(body.get("megapixel", 1.0)),
             steps=int(body.get("steps", 0)),
-            seed=int(body.get("seed", -1)),
+            seed=seed,
             lora_config=str(body.get("lora_config", "[]")),
             model=str(body.get("model", "")),
             variability=bool(body.get("variability", False)),
@@ -699,7 +762,7 @@ def api_generate(body: dict) -> dict:
         raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
-    return _tool_response(url)
+    return _tool_response(url, seed)
 
 
 @app.post("/api/edit")
@@ -709,13 +772,14 @@ def api_edit(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "edit"
         _pending_prompt = str(body.get("prompt", ""))
+        seed = _resolve_request_seed(body, "edit")
         url = edit_image(
             s,
             image=str(body.get("image", "")),
             mode=str(body.get("mode", "edit")),
             prompt=str(body.get("prompt", "")),
             steps=int(body.get("steps", 0)),
-            seed=int(body.get("seed", -1)),
+            seed=seed,
             lora_config=str(body.get("lora_config", "[]")),
         )
         _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
@@ -728,7 +792,7 @@ def api_edit(body: dict) -> dict:
         raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
-    return _tool_response(url)
+    return _tool_response(url, seed)
 
 
 @app.post("/api/face-swap")
@@ -744,6 +808,7 @@ def api_face_swap(body: dict) -> dict:
         _pending_tool = "face_swap"
         _pending_prompt = str(body.get("prompt", ""))
         cfg_raw = body.get("cfg")
+        seed = _resolve_request_seed(body, "face_swap")
         url, face_url = face_swap_image(
             s,
             image=str(body.get("image", "")),
@@ -751,10 +816,10 @@ def api_face_swap(body: dict) -> dict:
             prompt=_pending_prompt,
             steps=int(body.get("steps", 0)),
             cfg=float(cfg_raw) if cfg_raw not in (None, "") else None,
-            seed=int(body.get("seed", -1)),
+            seed=seed,
         )
         _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt, face_url=face_url)
-        resp = _tool_response(url)
+        resp = _tool_response(url, seed)
         if face_url:
             resp["face_preview"] = _tool_response(face_url)
         return resp
@@ -776,10 +841,11 @@ def api_upscale(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "upscale"
         _pending_prompt = ""
+        seed = _resolve_request_seed(body, "upscale")
         url = upscale_image(
             s,
             image=str(body.get("image", "")),
-            seed=int(body.get("seed", -1)),
+            seed=seed,
         )
         _mark_latest_done(url, tool="upscale")
     except TimeoutError as e:
@@ -791,7 +857,7 @@ def api_upscale(body: dict) -> dict:
         raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
-    return _tool_response(url)
+    return _tool_response(url, seed)
 
 
 @app.post("/api/video")
@@ -801,6 +867,7 @@ def api_video(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "video"
         _pending_prompt = str(body.get("prompt", ""))
+        seed = _resolve_request_seed(body, "video")
         url = generate_video(
             s,
             image=str(body.get("image", "")),
@@ -809,7 +876,7 @@ def api_video(body: dict) -> dict:
             negative_prompt=str(body.get("negative_prompt", "")),
             frames=int(body.get("frames", 81)),
             steps=int(body.get("steps", 0)),
-            seed=int(body.get("seed", -1)),
+            seed=seed,
             lora_config=str(body.get("lora_config", "[]")),
             diffusion=str(body.get("diffusion", "")),
         )
@@ -823,7 +890,7 @@ def api_video(body: dict) -> dict:
         raise HTTPException(408, str(e)) from e
     except Exception as e:
         raise HTTPException(400, str(e)) from e
-    return _tool_response(url)
+    return _tool_response(url, seed)
 
 # --------------------------------------------------------------------------- #
 # Upload + media proxy + image validation

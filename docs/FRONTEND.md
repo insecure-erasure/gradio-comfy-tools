@@ -362,13 +362,20 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 ### 4.2 Seed + 🎲 (all tabs)
 
 - `🎲` checked (default) → seed input disabled. On submit, a random seed is
-  **generated client-side** (`randomSeed()` in `api.js`, uint32) and **shown
-  in the field**; that exact value is sent (not -1).
+  **generated client-side** (`randomSeedValue()` in `seed.js`) in the target
+  node's full range (`RandomNoise`/`KSampler*` = uint64, `EasySeed` = `2^50`,
+  `SeedVR2` = uint32) and **shown in the field**; that exact value is sent as
+  a decimal string (not -1).
 - Typing a value unchecks `🎲` and enables the input; the stepper ± disable
   along with the input (`:has(input:disabled)`).
-- Manual seeds larger than uint32 are allowed: the backend preserves them up
-  to the target node's max (`RandomNoise`/`KSampler*` = uint64, `EasySeed` =
-  `2^50`, `SeedVR2` = uint32). JS numbers are exact up to `2^53−1`.
+- Seeds are text fields backed by `BigInt` (not `type="number"`), so uint64
+  values above `2^53−1` stay exact. The native spinner is recreated: −/+
+  buttons, ArrowUp/ArrowDown, PageUp/PageDown and the mouse wheel (when
+  focused). Invalid/out-of-range values are rejected on submit with a toast;
+  manual seeds are `0…max` (`-1` is only the API/CLI random sentinel).
+- The backend returns the resolved seed as a **string** in every `/api/*`
+  response, and the field is updated with it — the UI can never show a
+  different seed than the one injected into the workflow.
 
 ### 4.3 Steppers
 

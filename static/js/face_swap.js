@@ -186,13 +186,15 @@ function generateFaceSwap() {
   const seedEl = document.getElementById('fsSeed');
   const randomEl = document.getElementById('fsSeedRandom');
   let seed;
-  if (randomEl && randomEl.checked) {
-    // 🎲 enabled → generate now and show the value that will be sent
-    seed = randomSeed();
-    if (seedEl) seedEl.value = seed;
-  } else {
-    seed = parseInt(seedEl?.value) || 0;
+  try {
+    // Seeds are decimal strings: uint64 stays exact (see seed.js).
+    seed = (randomEl && randomEl.checked)
+      ? randomSeedValue(SEED_MAX.face_swap)
+      : parseSeedInput(seedEl?.value, SEED_MAX.face_swap);
+  } catch (err) {
+    return showToast(err.message);
   }
+  setSeedValue('face_swap', seed);
 
   const pane = document.getElementById(FS_PANE_ID);
   const spinner = document.getElementById('faceSwapSpinner');
@@ -209,6 +211,7 @@ function generateFaceSwap() {
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).
   function finalize(res) {
+    applyResolvedSeed('face_swap', res.seed);
     // The result is the before/after COMPARISON — base (before) vs swapped
     // (after), like Edit. The face reference overlay is KEPT on top-left.
     const beforeEl = document.getElementById('faceSwapBefore');
@@ -349,10 +352,13 @@ function onFsStepsInput() {
   if (v > 15) input.value = 15;
   _fsSyncChip();
 }
-function stepFsSeed(d) { const input = document.getElementById('fsSeed'); input.value = Math.max(0, parseInt(input.value) + d); _fsSyncChip(); }
+function stepFsSeed(d) {
+  const input = document.getElementById('fsSeed');
+  setSeedValue('face_swap', stepSeedInput(input.value, d, SEED_MAX.face_swap));
+  _fsSyncChip();
+}
 function onFsSeedInput() {
   const input = document.getElementById('fsSeed');
-  if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('fsSeedRandom').checked = false;
   input.disabled = false;
   _fsSyncChip();
@@ -369,7 +375,7 @@ function resetFaceSwap() {
   cancelIfRunning();
   document.getElementById('fsSteps').value = '6';
   document.getElementById('fsCfg').value = '1';
-  document.getElementById('fsSeed').value = '0';
+  setSeedValue('face_swap', '0');
   document.getElementById('fsSeedRandom').checked = true;
   document.getElementById('fsSeed').disabled = true;
   clearPane(FS_PANE_ID); // drops the previews (base + face overlay) and any result

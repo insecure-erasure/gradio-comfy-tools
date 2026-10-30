@@ -228,7 +228,8 @@
     align-items: center;
     gap: 3px;
   }
-  .field-inline input[type="number"] {
+  .field-inline input[type="number"],
+  .field-inline input.seed-input {
     padding: 7px 4px;
     font-size: .85rem;
     font-family: var(--font);

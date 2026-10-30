@@ -8,13 +8,15 @@ function generateUpscale() {
   const seedEl = document.getElementById('upscaleSeed');
   const randomEl = document.getElementById('upscaleSeedRandom');
   let seed;
-  if (randomEl && randomEl.checked) {
-    // 🎲 enabled → generate now and show the value that will be sent
-    seed = randomSeed();
-    if (seedEl) seedEl.value = seed;
-  } else {
-    seed = parseInt(seedEl?.value) || 0;
+  try {
+    // Seeds are decimal strings: uint32 stays exact (see seed.js).
+    seed = (randomEl && randomEl.checked)
+      ? randomSeedValue(SEED_MAX.upscale)
+      : parseSeedInput(seedEl?.value, SEED_MAX.upscale);
+  } catch (err) {
+    return showToast(err.message);
   }
+  setSeedValue('upscale', seed);
 
   const pane = document.getElementById('upscaleOutputPane');
   const spinner = document.getElementById('upscaleSpinner');
@@ -29,6 +31,7 @@ function generateUpscale() {
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).
   function finalizeUpscale(res) {
+    applyResolvedSeed('upscale', res.seed);
     // Compare slider: original vs upscaled — this IS the result.
     const beforeEl = document.getElementById('upscaleBefore');
     const afterEl = document.getElementById('upscaleAfter');
@@ -120,10 +123,12 @@ function generateUpscale() {
 }
 
 // ── Steppers + seed ───────────────────────
-function stepUpscaleSeed(d) { const input = document.getElementById('upscaleSeed'); input.value = Math.max(0, parseInt(input.value) + d); }
+function stepUpscaleSeed(d) {
+  const input = document.getElementById('upscaleSeed');
+  setSeedValue('upscale', stepSeedInput(input.value, d, SEED_MAX.upscale));
+}
 function onUpscaleSeedInput() {
   const input = document.getElementById('upscaleSeed');
-  if (isNaN(parseInt(input.value))) input.value = 0;
   document.getElementById('upscaleSeedRandom').checked = false;
   input.disabled = false;
 }
@@ -136,7 +141,7 @@ function resetUpscale() {
   // Cancel a running job + stop live preview/progress polling first, so the
   // cleared pane stays clean.
   cancelIfRunning();
-  document.getElementById('upscaleSeed').value = '0';
+  setSeedValue('upscale', '0');
   document.getElementById('upscaleSeedRandom').checked = true;
   document.getElementById('upscaleSeed').disabled = true;
   clearPane('upscaleOutputPane');
