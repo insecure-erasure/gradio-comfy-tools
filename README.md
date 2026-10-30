@@ -102,6 +102,7 @@ is persisted in the config file (`prompt_refiner_model`).
 - `docs/FRONTEND.md` — interface specification.
 - `docs/DESIGN.md` — design overview.
 - `docs/PLAN.md` — implementation plan status.
+- `docs/IMPROVEMENT_PLAN.md` — prioritised security, reliability and maintainability backlog.
 - `docs/mockup.html` — design template/spec (never edited for functionality).
 
 ## License
