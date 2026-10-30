@@ -168,7 +168,7 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 |---|---|---|
 | Krea 2 (default) | 8 | 16 |
 | FLUX.2 Klein | 8 | 16 |
-| Z-Image Turbo | 10 | 16 |
+| Z-Image Turbo | 9 | 16 |
 
 With **Increase randomness** enabled the step budget and rounding come from
 the variability config instead: Z-Image Turbo 10 steps / 16, Krea 2 9 steps /
@@ -188,7 +188,7 @@ empty and the prompt fills it; see also deviation 14):
 - **👣 Steps & seed** — shows `steps · 🎲` while the seed is random; when
   the seed is **fixed**, the separator and the dice disappear (steps only)
   — that is the visual cue. Its popover
-  holds the `👣 Steps` stepper (1–15, auto-updates on model change) and the
+  holds the `👣 Steps` stepper (1–50, auto-updates on model change) and the
   `🌱 Seed` stepper + `🎲` (checked by default).
 
 **LoRAs**: managed in the advanced modal via the inline row editor (see §4.7).

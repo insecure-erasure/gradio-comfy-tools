@@ -48,7 +48,7 @@ FAMILY_CONFIGS: dict[str, dict[str, Any]] = {
         "standard": {
             "vae_scale_factor": 16,
             "cfg": 1.0,
-            "steps": 10,
+            "steps": 9,
             "sampler": "euler",
             "scheduler": "simple",
             "sigma_selector_index": 1,
@@ -139,7 +139,9 @@ VARIABILITY_FAMILIES = list(VARIABILITY_CONFIGS.keys())
 DEFAULT_FAMILY = "zimage"
 DEFAULT_ASPECT_RATIO = "2:3"
 DEFAULT_MEGAPIXEL = 1.0
-MIN_STEPS, MAX_STEPS = 1, 15
+# Standard-mode bounds. The ceiling covers undistilled checkpoints: FLUX.2
+# [klein] Base is not step-distilled and BFL recommends ~50 steps for it.
+MIN_STEPS, MAX_STEPS = 1, 50
 # Generate seeds go to RandomNoise or KSampler/KsamplerAdvanced, which accept
 # the full uint64 range. FLUX.2 uses this explicitly; the other Generate
 # builders use the same default.

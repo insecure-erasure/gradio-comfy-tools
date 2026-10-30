@@ -81,7 +81,7 @@ Krea 2, FLUX.2 Klein), prompt, resolution (AR + MP), steps, seed and LoRAs.
 | `prompt` | str, default "" | required in practice (validated non-empty) |
 | `aspect_ratio` | str "W:H" | normalized by GCD; default 2:3 |
 | `megapixel` | float, default 1.0 | controls total resolution (independent of AR) |
-| `steps` | int, default: from family (0 = default) | 1–15 |
+| `steps` | int, default: from family (0 = default) | 1–50 |
 | `seed` | int, default -1 | -1 = random |
 | `lora_config` | JSON array (optional) | slots `lora_1..lora_4` of the Power Lora Loader |
 

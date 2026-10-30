@@ -8,6 +8,7 @@ from tools import _common
 from tools.generate import (
     FAMILY_CONFIGS,
     FAMILY_OPTIONS,
+    MAX_STEPS,
     MODEL_CONFIGS,
     RANDOM_NOISE_SEED_MAX,
     VARIABILITY_CONFIGS,
@@ -84,9 +85,9 @@ def test_build_workflow_defaults(wf):
     assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
     assert nodes["Aspect ratio"]["inputs"]["string_a"] == "2"
     assert nodes["Aspect ratio"]["inputs"]["string_b"] == "3"
-    # steps default 10, seed resolved (random for -1)
-    assert nodes["Steps"]["inputs"]["value"] == 10
-    assert nodes["BasicScheduler"]["inputs"]["steps"] == 10
+    # steps default 9, seed resolved (random for -1)
+    assert nodes["Steps"]["inputs"]["value"] == 9
+    assert nodes["BasicScheduler"]["inputs"]["steps"] == 9
     assert 0 <= nodes["RandomNoise"]["inputs"]["noise_seed"] <= RANDOM_NOISE_SEED_MAX
     assert nodes["CFGGuider"]["inputs"]["cfg"] == 1.0
     assert nodes["KSamplerSelect"]["inputs"]["sampler_name"] == "euler"
@@ -148,6 +149,20 @@ def test_build_workflow_loras(wf):
     assert loader["lora_1"]["strength"] == 1.0
     # disabled slots stay off
     assert loader["lora_2"]["on"] is False
+
+
+def test_build_workflow_accepts_max_steps(wf):
+    """MAX_STEPS (50) must reach the graph verbatim: it is a real ceiling for
+    undistilled checkpoints (FLUX.2 Klein Base), not a UI-only number."""
+    built, meta = build_workflow(wf, family="zimage", prompt="hi", steps=MAX_STEPS)
+    assert MAX_STEPS == 50
+    assert meta["steps"] == 50
+    nodes = resolve_workflow(built)
+    assert nodes["Steps"]["inputs"]["value"] == 50
+    assert nodes["BasicScheduler"]["inputs"]["steps"] == 50
+
+    with pytest.raises(GenerateError):
+        build_workflow(wf, prompt="hi", steps=MAX_STEPS + 1)
 
 
 def test_build_workflow_validations(wf):
@@ -415,6 +430,20 @@ def test_family_configs_single_source():
                 assert VARIABILITY_WORKFLOW_FILES[family] == value
             else:
                 assert VARIABILITY_CONFIGS[family][key] == value
+
+
+def test_family_default_steps():
+    """Standard-mode defaults per family, and the separate variability budget."""
+    assert {f: MODEL_CONFIGS[f]["steps"] for f in MODEL_CONFIGS} == {
+        "zimage": 9,
+        "krea2": 8,
+        "flux2": 8,
+    }
+    assert {f: VARIABILITY_CONFIGS[f]["steps"] for f in VARIABILITY_CONFIGS} == {
+        "zimage": 10,
+        "krea2": 9,
+        "flux2": 8,
+    }
 
 
 def test_variability_explicit_params(vwf):

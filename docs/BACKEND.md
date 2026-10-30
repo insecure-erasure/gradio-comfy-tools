@@ -145,7 +145,7 @@ Precedence: `UI control / global setting  >  workflow default`
 | W/H readonly (auto) | `megapixel` + `aspect_ratio` (w:h) | `Flux Resolution Calc` |
 | AR dropdown | `aspect_ratio` (w:h) | `Flux Resolution Calc` |
 | 📐 MP stepper | `megapixel` (0.1–2.0) | `Flux Resolution Calc` |
-| 👣 Steps (auto per family) | `steps` | `Steps` (via `BasicScheduler`) |
+| 👣 Steps (auto per family) | `steps` (1–50; 0 = family default) | `Steps` (via `BasicScheduler`) |
 | 🌱 Seed + 🎲 | `seed` (🎲 → -1/random) | `RandomNoise` |
 | LoRAs (advanced modal: `LoRA config (JSON)`) | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar) | `prompt` | `Prompt` → `CLIP Text Encode (Prompt)` |
@@ -159,9 +159,16 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 
 | Family | Model | Text encoder | VAE | vae_scale | cfg | steps | sampler | scheduler |
 |---|---|---|---|---|---|---|---|---|
-| Z-Image Turbo | zImageTurbo-mxfp8.safetensors | qwen3_4b_instruct_2507_mxfp8 | Z-Image_half_natural_vae | 16 | 1.0 | 10 | euler | simple |
+| Z-Image Turbo | zImageTurbo-mxfp8.safetensors | qwen3_4b_instruct_2507_mxfp8 | Z-Image_half_natural_vae | 16 | 1.0 | 9 | euler | simple |
 | Krea 2 | krea2_turbo_mixed_nvfp4 | qwen3_vl_4b_instruct_mxfp8 | qwen_image_vae | 16 | 1.0 | 8 | euler | simple |
 | FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 16 | 1.0 | 8 | euler | (flux.2) |
+
+`steps` accepts **1–50** (`MIN_STEPS` / `MAX_STEPS`). The ceiling covers
+undistilled checkpoints: FLUX.2 \[klein] Base is not step-distilled and BFL
+recommends ~50 steps for it, while the distilled families here default to 8–9.
+The GUI's `👣 Steps` stepper uses the same bounds (`MIN_GEN_STEPS` /
+`MAX_GEN_STEPS` in `static/js/state.js`), so a value the user can pick reaches
+the workflow unchanged.
 
 **Increase randomness (Z-Image Turbo / Krea 2 / FLUX.2)**
 

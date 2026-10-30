@@ -26,8 +26,15 @@ let toolbarValues = {
 const FAMILY_DEFAULTS = {
   krea2:  { label: 'Krea 2',        steps: 8,  vae: 16, varSteps: 9  },
   flux2:  { label: 'FLUX.2 Klein',  steps: 8,  vae: 16, varSteps: 8  },
-  zimage: { label: 'Z-Image Turbo', steps: 10, vae: 16, varSteps: 10 },
+  zimage: { label: 'Z-Image Turbo', steps: 9,  vae: 16, varSteps: 10 },
 };
+
+// Bounds of the Generate 👣 Steps stepper; mirrors MIN_STEPS / MAX_STEPS in
+// tools/generate.py (the backend rejects anything outside the range, so the
+// clamping here is only a UI guard — a value the user can pick must reach the
+// workflow unchanged).
+const MIN_GEN_STEPS = 1;
+const MAX_GEN_STEPS = 50;
 
 // Families whose two-stage "Increase randomness" workflow is supported.
 const VARIABILITY_STEPS = Object.fromEntries(

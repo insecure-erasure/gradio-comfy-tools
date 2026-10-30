@@ -6,7 +6,7 @@ function generateImage() {
   const family = (familyEl && familyEl.options[familyEl.selectedIndex]?.getAttribute('data-key')) || 'zimage';
   const ar = document.getElementById('genAspectRatio')?.value || '2:3';
   const mp = document.getElementById('genMegapixel')?.value || 1;
-  const steps = document.getElementById('genSteps')?.value || 10;
+  const steps = document.getElementById('genSteps')?.value || 9;
   const seedEl = document.getElementById('genSeed');
   const randomEl = document.getElementById('genSeedRandom');
   let seed;
@@ -116,15 +116,15 @@ function stepMp(delta) {
 function stepSteps(delta) {
   const input = document.getElementById('genSteps');
   const val = parseInt(input.value) + delta;
-  const clamped = Math.min(15, Math.max(1, val));
+  const clamped = Math.min(MAX_GEN_STEPS, Math.max(MIN_GEN_STEPS, val));
   input.value = clamped;
   updatePromptChips();
 }
 function onStepsInput() {
   const input = document.getElementById('genSteps');
   const v = parseInt(input.value);
-  if (isNaN(v) || v < 1) input.value = 1;
-  if (v > 15) input.value = 15;
+  if (isNaN(v) || v < MIN_GEN_STEPS) input.value = MIN_GEN_STEPS;
+  if (v > MAX_GEN_STEPS) input.value = MAX_GEN_STEPS;
   updatePromptChips();
 }
 
@@ -177,8 +177,8 @@ function onModelFamilyChange() {
 }
 
 // Steps default for the active family, taking the variability workflow's own
-// budget into account (Z-Image 10, Krea 2 9). Called on family changes and
-// when the advanced modal flips the checkbox.
+// budget into account (Z-Image 10 in variability mode, Krea 2 9). Called on
+// family changes and when the advanced modal flips the checkbox.
 function syncVariabilitySteps() {
   const sel = document.getElementById('genModelFamily');
   if (!sel) return;
@@ -239,7 +239,7 @@ function resetGenerate() {
   const ar = document.getElementById('genAspectRatio');
   if (ar) ar.selectedIndex = 0;
   document.getElementById('genMegapixel').value = '1';
-  document.getElementById('genSteps').value = '10';
+  document.getElementById('genSteps').value = '9';
   document.getElementById('genSeed').value = '0';
   document.getElementById('genSeedRandom').checked = true;
   document.getElementById('genSeed').disabled = true;
