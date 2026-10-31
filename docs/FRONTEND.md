@@ -235,7 +235,10 @@ empty and the prompt fills it; see also deviation 14):
   overlay). Each field accepts a pasted URL (✓ validates) or an upload
   (🖼️ base / 👨🏻 face); 🔗 fills the **base** with the last generated
   image. The result is shown as a **compare slider** (Original | Face
-  swapped), like Edit.
+  swapped), like Edit. While the sources are previewed, a discreet
+  two-line badge above the bottom-right buttons shows the loaded sizes:
+  `Base W × H` and `Face W × H` (each line appears once its image loads;
+  no MP).
 - **Toolbar**: ⚙️ + ↺ (no model dropdown; the head-swap LoRA is resolved
   against the server at runtime).
 - **Prompt** (optional): extra instructions appended after the workflow's

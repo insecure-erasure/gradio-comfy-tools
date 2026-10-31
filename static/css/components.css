@@ -157,6 +157,14 @@
     white-space: nowrap;
   }
   .output-pane.generating .source-dimensions { display: none !important; }
+  .face-swap-dimensions { min-width: 122px; }
+  .face-swap-dimensions .source-dim-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .face-swap-dimensions .source-dim-label { opacity: .72; }
+  .face-swap-dimensions .source-dim-value { color: var(--text); }
 
   /* ── Face swap tab (two source fields + face overlay) ── */
   /* The BASE (Picture 1) source field sits ABOVE the face field (the face

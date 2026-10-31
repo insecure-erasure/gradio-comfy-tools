@@ -19,6 +19,45 @@
 
 const FS_PANE_ID = 'faceSwapOutputPane';
 
+// Natural dimensions of the two sources, shown as two discreet lines above
+// the bottom-right action buttons (Base / Face). Each line appears once its
+// image has loaded; the block disappears when neither source is previewed.
+const fsSourceDims = { base: null, face: null };
+
+function fsRenderDimensions() {
+  const pane = document.getElementById(FS_PANE_ID);
+  if (!pane) return;
+  let box = pane.querySelector('.face-swap-dimensions');
+  if (!fsSourceDims.base && !fsSourceDims.face) {
+    if (box) box.remove();
+    return;
+  }
+  if (!box) {
+    box = document.createElement('div');
+    box.className = 'source-dimensions face-swap-dimensions';
+    pane.appendChild(box);
+  }
+  const rows = [];
+  if (fsSourceDims.base) {
+    rows.push(`<div class="source-dim-row"><span class="source-dim-label">Base</span><span class="source-dim-value">${fsSourceDims.base.width} × ${fsSourceDims.base.height}</span></div>`);
+  }
+  if (fsSourceDims.face) {
+    rows.push(`<div class="source-dim-row"><span class="source-dim-label">Face</span><span class="source-dim-value">${fsSourceDims.face.width} × ${fsSourceDims.face.height}</span></div>`);
+  }
+  box.innerHTML = rows.join('');
+}
+
+function fsSetDimensions(which, width, height) {
+  if (!width || !height) { fsClearDimensions(which); return; }
+  fsSourceDims[which] = { width, height };
+  fsRenderDimensions();
+}
+
+function fsClearDimensions(which) {
+  fsSourceDims[which] = null;
+  fsRenderDimensions();
+}
+
 function fsInput(which) {
   return document.getElementById(which === 'face' ? 'faceSwapFaceUrl' : 'faceSwapSourceUrl');
 }
@@ -43,6 +82,7 @@ function fsClearPreview(which) {
   // any result) stays until a new load replaces it.
   pane.querySelectorAll(which === 'face' ? '.face-ref-overlay' : '.source-preview')
     .forEach(el => el.remove());
+  fsClearDimensions(which);
   const field = fsField(which);
   if (field) { clearTimeout(field._fsFlash); field.classList.remove('collapsed'); }
 }
@@ -56,9 +96,12 @@ function fsPreviewBase(value) {
   pane.querySelectorAll('.compare-slider').forEach(el => { el.style.display = 'none'; });
   pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live, .face-extract-overlay')
     .forEach(el => el.remove());
+  fsClearDimensions('base');
   const img = document.createElement('img');
   img.className = 'source-preview';
   img.alt = 'Base image preview';
+  img.addEventListener('load', () => fsSetDimensions('base', img.naturalWidth, img.naturalHeight));
+  img.addEventListener('error', () => fsClearDimensions('base'));
   img.src = proxiedSrc(value);
   pane.insertBefore(img, pane.firstChild);
 }
@@ -69,9 +112,12 @@ function fsPreviewFace(value) {
   pane.querySelectorAll('.face-ref-overlay').forEach(el => el.remove());
   // A new face source invalidates the extraction shown from the last run.
   pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
+  fsClearDimensions('face');
   const img = document.createElement('img');
   img.className = 'face-ref-overlay';
   img.alt = 'Face reference';
+  img.addEventListener('load', () => fsSetDimensions('face', img.naturalWidth, img.naturalHeight));
+  img.addEventListener('error', () => fsClearDimensions('face'));
   img.src = proxiedSrc(value);
   pane.appendChild(img);
 }
@@ -232,7 +278,7 @@ function generateFaceSwap() {
       cmp.dataset.prompt = prompt;
       // The base full preview is replaced by the slider's BEFORE side; the
       // FACE overlay stays as the reference.
-      pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live')
+      pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live, .source-dimensions')
         .forEach(el => el.remove());
       // Compare gallery: register the comparison (before/after pair).
       addCompareEntry({
@@ -247,7 +293,7 @@ function generateFaceSwap() {
       addFaceSwapEntry(res, beforeSrc, prompt);
     } else {
       // Defensive fallback: plain result (the markup always has the slider).
-      pane.querySelectorAll('.source-preview, .face-ref-overlay, .output-placeholder, .preview-live, .face-extract-overlay')
+      pane.querySelectorAll('.source-preview, .face-ref-overlay, .output-placeholder, .preview-live, .face-extract-overlay, .source-dimensions')
         .forEach(el => el.remove());
       showResult(FS_PANE_ID, res, false);
     }

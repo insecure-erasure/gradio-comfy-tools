@@ -263,7 +263,7 @@ mockup directly.
 |---|---|---|
 | Generate 🖼️ | model dropdown (Krea 2 default) + ⚙️ + ↺ in nav toolbar; parameters as prompt chips (📏 dims + 👣 steps/seed, popover each — `refactor/unify-action-buttons`); LoRA row editor + model dropdown in ⚙️ modal; submit → image + URL + 📋; spinner; button disabled with empty prompt; reset | ✅ |
 | Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹/🧩 (edit/restore/extend; 🩹 and 🧩 always active), compare slider for edit/restore + Original/Extended toggle for extend, source `W × H` badge + Extend `Source/Output ≈`, spinner; params as 👣 + ⛶ chips (steps/seed + padding/feathering — `refactor/unify-action-buttons`) | ✅ |
-| Face swap 👨🏻 | two source fields (base 🖼️ + face 👨🏻) with per-field URL/✓/upload, 🔗 previous → base, before/after compare slider, extracted-face overlay; optional prompt; params (CFG/steps/seed) as 👣 chip | ✅ |
+| Face swap 👨🏻 | two source fields (base 🖼️ + face 👨🏻) with per-field URL/✓/upload, 🔗 previous → base, before/after compare slider, extracted-face overlay, two-line `Base/Face W × H` badge; optional prompt; params (CFG/steps/seed) as 👣 chip | ✅ |
 | Upscale 🔍 | special layouts (portrait: seed + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, source `W × H` badge, reset; seed control stays directly in the pane (no chip — no prompt textarea) | ✅ |
 | Video 🎬 | real `<video>` player, Wan 2.1/2.2, frames/steps/seed as 🎞️+👣 chips (`refactor/unify-action-buttons`); ⚙️ modal varies by version (wan22 dual high/low models + LoRAs, per-version config store); negative prompt in modal | ✅ |
 
