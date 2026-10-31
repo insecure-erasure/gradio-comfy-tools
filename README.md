@@ -5,7 +5,7 @@ Web application with five image and video tools powered by ComfyUI:
 | Tab | Tool | What it does |
 |---|---|---|
 | 🖼️ Generate | Image generation | Creates an image from a text description (model, resolution, steps, seed). |
-| ✏️ Edit | Image editing | Modifies an existing image (background, style…). The 🩹 Restore mode recovers damaged or low-quality images. |
+| ✏️ Edit | Image editing | Modifies an existing image (background, style…). The 🩹 Restore mode recovers damaged or low-quality images. The 🧩 Extend mode adds canvas on any side (outpainting). |
 | 👨🏻 Face swap | Face swap | Swaps the face of a base image (Picture 1) with the face taken from a second image (Picture 2). |
 | 🔍 Upscale | Quality enhancement | Doubles the resolution of an image (SeedVR2). |
 | 🎬 Video | Video generation | Turns an image into an animated video (Wan 2.1 / Wan 2.2). |
@@ -37,7 +37,7 @@ Web application with five image and video tools powered by ComfyUI:
 
 - **Generate an image**: type a description in the prompt field (bottom
   bar in portrait, params pane in landscape) and press ✨.
-- **Edit / restore**: upload an image (📁), paste a URL, or use 🔗 to take the last generated image. Describe the change and press 🖌️ (edit) or 🩹 (restore).
+- **Edit / restore / extend**: upload an image (📁), paste a URL, or use 🔗 to take the last generated image. Describe the change and press 🖌️ (edit) or 🩹 (restore). To add canvas on any side, set the padding in the ⛶ chip and press 🧩 (extend).
 - **Face swap**: set the **base image** (🖼️ or 🔗) and the **face image** (👨🏻), optionally add extra instructions, and press 🔄.
 - **Upscale**: set the source image and press 🔍.
 - **Generate a video**: set the source image, describe the motion, and press 🎬.

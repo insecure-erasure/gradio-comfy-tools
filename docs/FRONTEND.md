@@ -48,7 +48,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   clicking outside closes it, and it is force-closed when crossing the
   breakpoint.
 - **Landscape (≥1024px)**: the prompt block (textarea with its ✕ clear +
-  the parameter chips 📏/👣/🎞️ bottom-left and the ACTION chips 🪄/🩹/✨
+  the parameter chips 📏/👣/🎞️/⛶ bottom-left and the ACTION chips
+  🪄/🩹/🧩/✨
   bottom-right — all INSIDE the field) and the result URL row are
   relocated into the active
   tab's params pane by `relayoutPrompt()` (`tabs.js`); the bottom bar is
@@ -63,7 +64,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 - **Portrait (<1024px)**: everything stays in the bottom bar (prompt +
   URL row); the five tab buttons condense into the tabs
   dropdown (icon + label of the active tab as the trigger). The prompt is a
-  **compact single-line field** that CONTAINS the action chips (🩹/✨
+  **compact single-line field** that CONTAINS the action chips (🩹/🧩/✨
   bottom-right, horizontal — the user can generate WITHOUT opening the
   modal); the ✕ clear, the 🪄 refine chip (the `.btn-col` one AND the
   `.prompt-actions` overlay) and the parameter chips are
@@ -73,13 +74,15 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (`#promptModal`): the same `.prompt-input-wrap` is relocated into it
   (`.modal-mode`) with a large textarea and its overlay actions: **✕ clear
   top-right** (recovered — it was hidden by the compact-bar rule because
-  the modal lives inside `.bottom-bar`), and at the **bottom-right three
+  the modal lives inside `.bottom-bar`), and at the **bottom-right four
   pills larger than the chips**: **🪄 refine** + **🩹 restore** (Edit only,
-  right of 🪄) + **✨ direct generation**
+  right of 🪄) + **🧩 extend** (Edit only, right of 🩹) + **✨ direct
+  generation**
   (the active tab's action: ✨ Generate / 🖌️ Edit / 🎬 Video — `promptModalGenerate`
   validates the prompt, closes the modal and runs the tool; `promptModalRestore`
-  runs the restore directly; the ✨ uses the accent background like the
-  buttons outside, while 🪄/🩹 stay neutral pills). While a
+  and `promptModalExtend` run their mode directly; the ✨ uses the accent
+  background like the buttons outside, while 🪄/🩹/🧩 stay neutral pills).
+  While a
   generation runs the matching modal button becomes the ⏹ stop button like
   the toolbar buttons, and the ✕ is disabled). The wrap's own `.btn-col`
   is hidden inside the modal (`.prompt-input-wrap.modal-mode .btn-col`).
@@ -110,7 +113,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
 | Tab | Icon | Action buttons | Prompt visible |
 |---|---|---|---|
 | Generate | 🖼️ | `🪄` (refine prompt) + `✨` (needs prompt) | Yes |
-| Edit | 🖍️ | `🪄` (refine) + `🩹 Restore` (always active) + `🖌️ Edit` (needs prompt) — order 🪄 · 🩹 · 🖌️ | Yes |
+| Edit | 🖍️ | `🪄` (refine) + `🩹 Restore` (always active) + `🧩 Extend` (always active) + `🖌️ Edit` (needs prompt) — order 🪄 · 🩹 · 🧩 · 🖌️ | Yes |
 | Face swap | 👨🏻 | `🔄` (needs both source images; no refine) | Optional |
 | Upscale | 🔍 | `🔍` (no prompt needed) | No |
 | Video | 🎬 | `🪄` (refine) + `🎬` (needs prompt) | Yes |
@@ -121,8 +124,8 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (`updateActionButtons` in `api.js`, `btn-catcher` in `tabs.js`).
 - **During a generation** (any tool): the prompt textarea is **locked**
   (typing blocked, dimmed), the 🪄 refine buttons and every OTHER action
-  button are disabled — including the complementary 🖌️/🩹 in Edit (running
-  an edit blocks the restore button and vice versa) and the Upscale buttons
+  button are disabled — including the complementary 🖌️/🩹/🧩 in Edit (running
+  any Edit mode blocks the other two) and the Upscale buttons
   wherever they sit. The action button that STARTED the generation
   transforms into the ⏹ **stop** button (see §4.9). Clicking a disabled
   action shows the "Generation in progress…" toast (click-catcher swap).
@@ -130,7 +133,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   and is **re-asserted on tab switch** mid-generation (`switchTab` rebuilds
   `#btnCol` with fresh buttons — `setGeneratingUi`/`applyGenerationLock` in
   `api.js`).
-- `🩹 Restore` and `🔍 Upscale` never require a prompt.
+- `🩹 Restore`, `🧩 Extend` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL, Model and
   System prompt). The **🤖 Model** select lists what the llama.cpp router
@@ -142,7 +145,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   request. In **landscape** it is a chip at the
   bottom-right of the prompt field, before the generate chip (Generate/Edit/Video);
   in **portrait** it is a pill in
-  the prompt modal's bottom-right actions (next to 🩹/✨). `refinePrompt()`
+  the prompt modal's bottom-right actions (next to 🩹/🧩/✨). `refinePrompt()`
   streams the refined text live into the textarea via **SSE** (`POST
   /api/refine-prompt` with `stream:true`, read with fetch's ReadableStream),
   showing a live tok/s estimate in the
@@ -154,7 +157,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video and
   the **base** field of Face swap).
   It always points to the last **image** result (generate/edit/restore/
-  face swap/upscale) — generated videos never overwrite it (img2vid needs an image
+  extend/face swap/upscale) — generated videos never overwrite it (img2vid needs an image
   source, so a video is never a valid chain target).
 - Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal.
 
@@ -197,12 +200,20 @@ empty and the prompt fills it; see also deviation 14):
 
 - **Output pane**: collapsible URL field (bottom-left) + 📁/🔗 buttons
   (bottom-right, 📁 just left of 🔗) over the **compare slider**
-  (Original | Edited).
+  (Original | Edited / Restored / Extended).
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
-- **Params**: a single **👣 chip** over the prompt textarea (same design as
-  Generate): shows `steps · 🎲` (steps only when the seed is fixed — the
-  separator and dice disappear). Its popover holds the `👣 Steps` stepper
-  (1–15, default 6) and the `🌱 Seed` stepper + `🎲`.
+- **Actions**: 🪄 refine · 🩹 Restore · 🧩 Extend · 🖌️ Edit. The Edit button
+  requires a prompt; Restore and Extend are always active.
+- **Params**: two chips over the prompt textarea:
+  - **👣 Steps & seed** — shows `steps · 🎲` (steps only when the seed is
+    fixed — the separator and dice disappear). Its popover holds the
+    `👣 Steps` stepper (1–15, default 6) and the `🌱 Seed` stepper + `🎲`.
+  - **⛶ Extend** — shows `↔ total · ↕ total` (or `0` when all edges are
+    zero). Its wider popover holds Top / Bottom on one row, Left / Right on
+    the next and Feathering below. Padding is `0–1024 px` (1.5 MP working
+    canvas); feathering is `0–256` (default 40). A plain stepper click
+    changes 1 px; holding accelerates through `1 → 2 → 4 → 8 → 16 → 32 →
+    64` every 8 repeat ticks (400 ms delay, 80→25 ms interval).
 
 ### 3.3 Face swap 👨🏻
 
@@ -398,7 +409,7 @@ to an `<img>`, which is what left the original black on devices that cannot
 reach that hostname). **Drag is delegated** (`setupCompareSlider` in
 `main.js`) and works for the pane sliders AND the fullscreen gallery
 slider (`#gallerySlider`). The AFTER label follows the mode
-(Edited/Restored) — not hardcoded.
+(Edited/Restored/Extended) — not hardcoded.
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
@@ -553,7 +564,7 @@ selected, so it works on all engines), and shows the confirmation box via
 the `onUrlCopied` hook (previously a missing API threw silently and the
 user pasted a STALE clipboard URL).
 
-The ↺ resets restore parameters and clear the pane (and the row), but
+The ↺ resets edit/restore/extend parameters and clears the pane (and the row), but
 **never touch the galleries** — emptying those is exclusively the 🗑️ trash
 button (the old clearPane registry-drop was removed).
 
@@ -593,7 +604,7 @@ the final result replaces the preview. The preview is ephemeral: it is
 intentionally lost on cancel and never shown after the job settles.
 
 **⏹ Cancel (by transformation)**: while a generation runs, the action
-button that started it — ✨ / 🖌️ / 🩹 / 🔍 / 🎬 — **transforms into the ⏹
+button that started it — ✨ / 🖌️ / 🩹 / 🧩 / 🔍 / 🎬 — **transforms into the ⏹
 stop button** (same pattern as the 🪄 → ⏹ refine button: glyph, title and
 onclick are swapped and stashed on the element, `makeStopButton` /
 `restoreStopButton` in `api.js`). There is no separate stop button in the
@@ -612,7 +623,8 @@ survives tab switches mid-generation (`switchTab` re-asserts the lock with
   .btn-catcher { display: none }` (the catcher only overlays DISABLED
   buttons; a click on the ⏹ reaches it directly). In the portrait prompt
   modal, the button that matches the trigger becomes the ⏹ (🩹 restore →
-  🩹; ✨/🖌️/🎬 → ✨) and the other modal action stays disabled.
+  🩹; 🧩 extend → 🧩; ✨/🖌️/🎬 → ✨) and the other modal actions stay
+  disabled.
 
 ## 5. How the code is organized
 
@@ -689,10 +701,12 @@ never shown):
 
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
-  - **Edit ✏️ / Restore 🩹** `appendTransformedEntry` — APPEND a new entry
+  - **Edit ✏️ / Restore 🩹 / Extend 🧩** `appendTransformedEntry` — APPEND a
+    new entry
     (the original image stays): the transformation's own text is what the
     Show prompt panel shows; if the source was a gallery image, its
-    prompt is kept as `originalPrompt`. **Clicking the "Edited"/"Restored"
+    prompt is kept as `originalPrompt`. **Clicking the "Edited"/"Restored"/
+    "Extended"
     badge hides it and shows a single box (`#galleryBadgeBox`) with ONLY
     the ORIGINAL generation prompt** (no label, no transformation text;
     nothing appears when the entry has no original prompt). The box always
@@ -747,7 +761,7 @@ never shown):
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
-  edited/restored/upscaled before/after pairs (`addCompareEntry`, deduped by
+  edited/restored/extended/upscaled before/after pairs (`addCompareEntry`, deduped by
   the AFTER image URL). `collectCompareEntries()` merges the registry with
   any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
@@ -810,18 +824,19 @@ controls moved
 out of the params panes into chips overlaid on the prompt textarea (each
 opens a small popover with the controls — the same elements, moved into
 `#chipPopover`; IDs unchanged, so persistence/reset keep working), and the
-ACTION buttons (✨/🖌️/🩹/🎬 + 🪄 refine) are chips too, bottom-right of
+ACTION buttons (✨/🖌️/🩹/🧩/🎬 + 🪄 refine) are chips too, bottom-right of
 the field (`.btn-col` moved inside `.prompt-input-wrap`):
     - **Generate 🖼️**: 📏 dimensions (shows the current aspect ratio, e.g.
       `2:3`) + 👣 steps & seed.
-    - **Edit ✏️**: 👣 steps & seed.
+    - **Edit ✏️**: 👣 steps & seed + ⛶ extend padding/feathering.
     - **Video 🎬**: 🎞️ frames + 👣 steps & seed.
     - **Upscale 🔍**: NO chips — it has no prompt textarea, so its seed
       control stays directly in the params pane (as before).
 The 👣 chips show `steps · 🎲` while the seed is random and drop the
 separator + dice when the seed is FIXED (steps only). The action chips
 (bottom-right) mirror the portrait modal pills: 🪄 refine + the tool's
-generation chip(s) (✨/🖌️/🎬, accent background; 🩹 restore in Edit);
+generation chip(s) (✨/🖌️/🎬, accent background; 🩹 restore and 🧩 extend in
+Edit);
 the click-catchers, generation lock and stop-by-transformation (⏹) work
 on the chips exactly as on the old buttons.
 The
@@ -831,9 +846,10 @@ the bottom bar shows the prompt field WITH the action chips inside it
 (generate without the modal — see deviation 14 below). The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
-🪄 refine + 🩹 restore (Edit only, right of 🪄) + ✨ direct generation
+🪄 refine + 🩹 restore (Edit only, right of 🪄) + 🧩 extend (Edit only, right
+of 🩹) + ✨ direct generation
 (bottom-right, per-tab glyph; the ✨ uses the accent background like the
-buttons outside, 🪄/🩹 stay neutral; the matching button becomes ⏹
+buttons outside, 🪄/🩹/🧩 stay neutral; the matching button becomes ⏹
 during a generation). `refactor/unify-action-buttons`.
 15. **Stop button fix**: the ⏹ (stop-transformed trigger) is ENABLED, so
 the click-catcher overlay no longer sits on top of it (`.btn-col.generating
@@ -845,8 +861,8 @@ keep working — and so do the prompt-chip popovers (#chipPopover is a
 top-level element OUTSIDE .prompt-input-wrap, so the modal's outside-click
 dismiss exempts it explicitly: the 📐 select and the +/− steppers inside it
 must not close the dialog).
-16. **Gallery badge box (click-only)**: the Edited/Restored badge hides
-itself on click and shows a single box with ONLY the original prompt
+16. **Gallery badge box (click-only)**: the Edited/Restored/Extended badge
+hides itself on click and shows a single box with ONLY the original prompt
 (`#galleryBadgeBox`); the Upscaled badge is informational only (no
 action); the Show-prompt button also hides itself on click (pinned
 panel); in portrait BOTH prompt boxes expand to full width — see §7.1.

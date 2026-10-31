@@ -72,12 +72,12 @@
   job start, receives a snapshot immediately and every update as it happens
   — **no more 1s polling**; if the WS fails it falls back to polling
   `/api/progress` (same payload shape, same painter).
-- **Live per-step previews** (Generate, Edit and Video) use the same
+- **Live per-step previews** (Generate, Edit/Extend and Video) use the same
   mechanism the ComfyUI web UI uses — no preview node needed:
   - The tools queue with `extra_data={"preview_method": "auto"}` (the CLI
     default is NoPreviews, so without this the sampler generates no
-    previews; the flag is per-prompt and auto-reset). Only Generate, Edit
-    and Video opt in; Upscale (SeedVR2) does not.
+    previews; the flag is per-prompt and auto-reset). Only Generate,
+    Edit/Extend and Video opt in; Upscale (SeedVR2) does not.
   - The sampler decodes its intermediate latent each step (tiny VAE from
     `models/vae_approx`, or the built-in Latent2RGB previewer — Wan
     latents are 5D and preview their first frame) and streams JPEGs over
@@ -259,6 +259,53 @@ Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): 
 Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `GetImage_(Width&Height) _O` (feeds `Flux2Scheduler`), `ConditioningZeroOut`, `Concatenate`; output: `Random Preview Image`.
 
 **✅ Seed supported**: the reference `edit_image/tool.py` exposes `seed` since v1.6 (UserValve, -1 = random, ≥0 = fixed, injected into `RandomNoise.noise_seed`).
+
+### 5.2.1 Extend 🧩 — `extend_image.json`
+
+`POST /api/edit` with `mode="extend"` dispatches to `tools/extend.py` instead
+of the Edit builder. It uses the **same FLUX.2 Klein 9B stack** as Edit, so
+there is no model selector or separate tab.
+
+| UI control (FRONTEND) | Backend parameter | Workflow node (title) |
+|---|---|---|
+| 📁 Upload / 🔗 previous / URL field | `image` (filename or URL) | `Load Image (URL/Path)` |
+| ⛶ chip: ⬆️ Top | `top` (0–1024 px) | `Pad Image for Outpainting` → `top` |
+| ⛶ chip: ⬇️ Bottom | `bottom` (0–1024 px) | `Pad Image for Outpainting` → `bottom` |
+| ⛶ chip: ⬅️ Left | `left` (0–1024 px) | `Pad Image for Outpainting` → `left` |
+| ⛶ chip: ➡️ Right | `right` (0–1024 px) | `Pad Image for Outpainting` → `right` |
+| ⛶ chip: 🪶 Feathering | `feathering` (0–256, default 40) | `Pad Image for Outpainting` → `feathering` |
+| Prompt (bottom bar; optional) | `prompt` | `Prompt` (`StringConcatenate`); appends after the built-in `"remove the green part"` |
+| 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
+| 🌱 Seed + 🎲 | `seed` (0…2^64−1) | `RandomNoise` |
+| Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
+
+Validation: all four paddings are integers in `[0, 1024]`; at least one edge
+must be greater than 0; feathering is an integer in `[0, 256]`; `steps` uses
+the same `[1, 15]` range as Edit.
+
+**Workflow path**: the source is scaled to 1.5 MP, padded (`ImagePadForOutpaint`),
+masked green (`DrawMaskOnImage`), scaled to the ~1 MP working size, encoded
+and sampled with the FLUX.2 guidance stack. `ColorMatch` restores the source
+coloring. The padding values are pixels of the **1.5 MP working canvas**, not
+of the original image.
+
+**Output size (automatic)**: when the source is larger than 1 MP, the
+workflow measures the original, pre-padding and padded sizes and adds a final
+`ImageScale` (`lanczos`) that restores the **source pixel density on the
+extended canvas**:
+
+```
+target_width  = original_width  * padded_width  / pre_pad_width
+target_height = original_height * padded_height / pre_pad_height
+```
+
+The branch is selected with `ImpactCompare` + `easy imageSwitch`; sources
+≤ 1 MP keep the existing ~1 MP output. Final sides are clamped to 16384 px.
+
+Other nodes: `ImageScaleToTotalPixels`, `GetImageSize`, `EmptyFlux2LatentImage`,
+`VAE Encode/Decode`, `ReferenceLatent`, `ConditioningZeroOut`,
+`SamplerCustomAdvanced`, `CFGGuider`, `KSamplerSelect`, `ColorMatch`; output:
+`Random Preview Image`.
 
 ### 5.3 Upscale 🔍 — `seedvr2_upscale.json`
 

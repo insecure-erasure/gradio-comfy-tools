@@ -15,7 +15,7 @@ and a full-width prompt bar at the bottom.
 | Tab | Tool | Workflow(s) | Reference (../../open-webui-comfy-tools) |
 |---|---|---|---|
 | 🖼️ Generate | smart_generate_image | `smart_generate_image.json` | `smart_generate_image/` |
-| ✏️ Edit | edit_image | `edit_image.json` | `edit_image/` |
+| ✏️ Edit | edit_image | `edit_image.json`, `extend_image.json` | `edit_image/` |
 | 👨🏻 Face swap | face_swap | `face_swap.json` | — (own workflow) |
 | 🔍 Upscale | upscale_image | `seedvr2_upscale.json` | `upscale_image/` |
 | 🎬 Video | generate_video | `generate_video.json`, `generate_video_wan22.json` | `generate_video/` |
@@ -58,7 +58,7 @@ and a full-width prompt bar at the bottom.
 Generation flow:
 
 1. The user fills in parameters (via the prompt chips) and prompt, then
-   clicks the action button (✨/🖌️/🩹/🔄/🔍/🎬) — in the prompt (landscape)
+   clicks the action button (✨/🖌️/🩹/🧩/🔄/🔍/🎬) — in the prompt (landscape)
    or the bottom bar / prompt modal (portrait).
 2. `static/js/*` (JS) `fetch()`es `POST /api/<tool>` with the tab's parameters.
 3. `server.py` calls `tools/<tool>` for the workflow with parameters injected (resolve nodes by unique `_meta.title`, same pattern as the Open WebUI tools).
@@ -74,8 +74,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
    **no gear** and no advanced fields (resolution/blend/color stay fixed in
    the workflow; see BACKEND.md).
 2. **Edit has no mode radio** — the mode is chosen with the action chips:
-   🖌️ Edit / 🩹 Restore (order 🪄 · 🩹 · 🖌️; in the prompt field in
-   landscape, inside the compact field / modal in portrait).
+   🖌️ Edit / 🩹 Restore / 🧩 Extend (order 🪄 · 🩹 · 🧩 · 🖌️; in the
+   prompt field in landscape, inside the compact field / modal in portrait).
 3. **LoRAs are managed exclusively via the advanced modal** — there is no
    dynamic list / `+ Add LoRA` button in the params pane; each tool
    configures LoRAs through the **visual row editor** of its modal
@@ -84,13 +84,13 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 5. **Video Frames = 81–161** (4n+1), not 5–161.
 6. **No Custom AR option** in Generate (the hidden custom row is dead code and is not ported).
 7. **Action chips live INSIDE the prompt field** (landscape: bottom-right
-   of the textarea — 🪄/🩹/✨; portrait: the compact bar field holds the
-   generation chips only — 🩹/✨ or 🖌️/🎬 — while the 🪄 refine lives
+   of the textarea — 🪄/🩹/🧩/✨; portrait: the compact bar field holds the
+   generation chips only — 🩹/🧩/🖌️ or 🎬 — while the 🪄 refine lives
    EXCLUSIVELY in the fullscreen prompt modal, which shows bigger pills);
    Reset is ↺ in the per-tab nav toolbar.
 8. **Parameter chips instead of inline labels** — the per-tab controls
    (W / H / AR / 📐 / 👣 / 🎞️ / 🌱) moved out of the params panes into
-   chips overlaid on the prompt textarea (📏/👣 Generate, 👣 Edit, 🎞️/👣
+   chips overlaid on the prompt textarea (📏/👣 Generate, 👣/⛶ Edit, 🎞️/👣
    Video), each opening a small popover with the controls; Upscale (no
    prompt) keeps its 🌱 seed control directly in the params pane. The
    prompt fills the whole params pane in landscape; in portrait the chips
@@ -117,8 +117,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |
 | `server.py` | FastAPI app — renders templates/ + serves static/ + the API (reuses tools/) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see docs/PLAN.md A0) |
-| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `upscale.py`, `video.py` done (A0–A4) |
-| `workflows/` | ComfyUI workflow JSON files (copied from `../../open-webui-comfy-tools`): `smart_generate_image.json`, `edit_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
+| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `extend.py`, `upscale.py`, `video.py` |
+| `workflows/` | ComfyUI workflow JSON files: `smart_generate_image.json`, `edit_image.json`, `extend_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
 | `dev/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 dev/check_env.py [BASE_URL]` |
 | `dev/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
 | `dev/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
@@ -136,6 +136,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 |------|-----|-------|
 | `smart_generate_image.json` | Generate | Z-Image / Krea / FLUX.2 families |
 | `edit_image.json` | Edit | flux-2-klein + LoRAs + restore |
+| `extend_image.json` | Edit (Extend) | flux-2-klein + outpaint + conditional source-density restore |
 | `seedvr2_upscale.json` | Upscale | SeedVR2 |
 | `generate_video.json` | Video | Wan 2.1 single path |
 | `generate_video_wan22.json` | Video | Wan 2.2 dual high/low path |

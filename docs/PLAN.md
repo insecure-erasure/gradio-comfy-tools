@@ -25,6 +25,7 @@ expected result. Do not move to the next phase until the user validates it.
 | A5 | Chaining: `dev/run_chain.py` + `normalize_source` | ✅ |
 | A6 | Acceptance: `check_env.py` OK, 55 tests green, chains validated | ✅ |
 | A7 | Face swap: `tools/face_swap.py` + `face_swap.json` + `/api/face-swap` + face-swap tab (two sources, compare slider) | ✅ |
+| A8 | Extend: `tools/extend.py` + `extend_image.json` + `mode="extend"` in Edit (padding/feathering, compare, gallery) | ✅ |
 
 Details of each A-phase remain below as reference (input contracts, per-node
 injections, manual validation steps).
@@ -245,7 +246,7 @@ mockup directly.
 | `GET /` | renders `templates/index.html` (+ `static/`) | ✅ |
 | `GET /health` | server + ComfyUI health | ✅ |
 | `POST /api/generate` | Generate tab | ✅ |
-| `POST /api/edit` | Edit tab (mode edit/restore) | ✅ |
+| `POST /api/edit` | Edit tab (mode edit/restore/extend) | ✅ |
 | `POST /api/face-swap` | Face swap tab (base + face image) | ✅ |
 | `POST /api/upscale` | Upscale tab | ✅ |
 | `POST /api/video` | Video tab | ✅ |
@@ -261,7 +262,7 @@ mockup directly.
 | Tab | What works | Status |
 |---|---|---|
 | Generate 🖼️ | model dropdown (Krea 2 default) + ⚙️ + ↺ in nav toolbar; parameters as prompt chips (📏 dims + 👣 steps/seed, popover each — `refactor/unify-action-buttons`); LoRA row editor + model dropdown in ⚙️ modal; submit → image + URL + 📋; spinner; button disabled with empty prompt; reset | ✅ |
-| Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹 (edit/restore; 🩹 always active), before/after compare slider, spinner; params as 👣 chip (steps/seed — `refactor/unify-action-buttons`) | ✅ |
+| Edit ✏️ | 📁 upload → source field, 🔗 previous, 🖌️/🩹/🧩 (edit/restore/extend; 🩹 and 🧩 always active), before/after compare slider, spinner; params as 👣 + ⛶ chips (steps/seed + padding/feathering — `refactor/unify-action-buttons`) | ✅ |
 | Face swap 👨🏻 | two source fields (base 🖼️ + face 👨🏻) with per-field URL/✓/upload, 🔗 previous → base, before/after compare slider, extracted-face overlay; optional prompt; params (CFG/steps/seed) as 👣 chip | ✅ |
 | Upscale 🔍 | special layouts (portrait: seed + 🔍 in pane, no bottom bar; landscape: 🔍 above URL row), compare slider, 📁/🔗, reset; seed control stays directly in the pane (no chip — no prompt textarea) | ✅ |
 | Video 🎬 | real `<video>` player, Wan 2.1/2.2, frames/steps/seed as 🎞️+👣 chips (`refactor/unify-action-buttons`); ⚙️ modal varies by version (wan22 dual high/low models + LoRAs, per-version config store); negative prompt in modal | ✅ |
@@ -405,11 +406,11 @@ this repo's workflows; the per-step emission is inferred from the node design.)
 
 ### What remains from B5
 - **DONE (2026-08-08, branch feat/tvae-preview)**: **live per-step previews in
-  Generate, Edit (edit/restore) and Video (Wan 2.1/2.2)** — the same
+  Generate, Edit (edit/restore/extend) and Video (Wan 2.1/2.2)** — the same
   mechanism the ComfyUI web UI uses, no preview node needed. The sampler decodes its intermediate latent each step and streams
   it over the WS as binary frames; the backend captures the latest frame per
   job and the frontend paints it under the spinner while the job runs.
-  - `comfy_client.queue_prompt(extra_data=...)` — Generate, Edit and Video
+  - `comfy_client.queue_prompt(extra_data=...)` — Generate, Edit/Extend and Video
     queue with `extra_data={"preview_method": "auto"}` (the CLI default is
     NoPreviews; the flag is per-prompt and auto-reset). Video: the
     KSamplerAdvanced(s) preview the FIRST frame of the 5D latent each step
@@ -542,7 +543,7 @@ this repo's workflows; the per-step emission is inferred from the node design.)
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
-    - **Edit ✏️ / Restore 🩹**: the appended entry's own text is what the
+    - **Edit ✏️ / Restore 🩹 / Extend 🧩**: the appended entry's own text is what the
       Show prompt modal shows; if the source was itself a gallery
       image, its prompt is kept as `originalPrompt`. **Clicking the
       "Edited"/"Restored" badge hides it and shows a single box
