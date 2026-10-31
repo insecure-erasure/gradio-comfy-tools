@@ -1,10 +1,129 @@
 // ── Edit tab 🖍️ ───────────────────────────
-// POST /api/edit (mode: edit | restore) -> before/after compare slider.
+// POST /api/edit (mode: edit | restore | extend) -> before/after compare slider.
+
+// ── Extend padding controls ────────────────
+// The padding/feathering controls live in the ⛶ chip popover. A plain click
+// changes one pixel; holding the stepper accelerates through powers of two.
+const EDIT_PAD_IDS = {
+  top: 'editPadTop', bottom: 'editPadBottom', left: 'editPadLeft', right: 'editPadRight',
+};
+const EDIT_PAD_MAX = 1024;
+const EDIT_FEATHER_ID = 'editFeather';
+const EDIT_FEATHER_MAX = 256;
+const EDIT_PAD_STEP_SIZES = [1, 2, 4, 8, 16, 32, 64];
+const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
+
+let _editStepCfg = null;
+let _editStepTimer = null;
+let _editStepInterval = null;
+let _editStepGuarded = false;
+
+function getEditPadValue(field) {
+  const el = document.getElementById(EDIT_PAD_IDS[field]);
+  const n = parseInt(el?.value, 10);
+  return Number.isFinite(n) ? Math.min(EDIT_PAD_MAX, Math.max(0, n)) : 0;
+}
+
+function getEditFeatherValue() {
+  const el = document.getElementById(EDIT_FEATHER_ID);
+  const n = parseInt(el?.value, 10);
+  return Number.isFinite(n) ? Math.min(EDIT_FEATHER_MAX, Math.max(0, n)) : 0;
+}
+
+function _setEditStepValue(field, value) {
+  const isFeather = field === 'feather';
+  const id = isFeather ? EDIT_FEATHER_ID : EDIT_PAD_IDS[field];
+  const max = isFeather ? EDIT_FEATHER_MAX : EDIT_PAD_MAX;
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.value = String(Math.min(max, Math.max(0, Math.trunc(value))));
+  updatePromptChips();
+}
+
+function _stepEditValue(field, delta) {
+  const current = field === 'feather' ? getEditFeatherValue() : getEditPadValue(field);
+  _setEditStepValue(field, current + delta);
+}
+
+function _editRepeat() {
+  const c = _editStepCfg;
+  if (!c) { stopEditPadStep(); return; }
+  c.ticks++;
+  const stage = Math.min(Math.floor((c.ticks - 1) / 8), c.stepSizes.length - 1);
+  _stepEditValue(c.field, c.delta * c.stepSizes[stage]);
+  const ms = Math.max(25, 80 - c.ticks * 2);
+  clearInterval(_editStepInterval);
+  _editStepInterval = setInterval(_editRepeat, ms);
+}
+
+function _ensureEditStepGuards() {
+  if (_editStepGuarded) return;
+  _editStepGuarded = true;
+  document.addEventListener('pointerup', stopEditPadStep);
+  document.addEventListener('pointercancel', stopEditPadStep);
+  window.addEventListener('blur', stopEditPadStep);
+}
+
+function _startEditStep(field, delta, stepSizes, ev) {
+  if (ev) ev.preventDefault(); // no text selection / focus steal on hold
+  _ensureEditStepGuards();
+  stopEditPadStep();
+  _stepEditValue(field, delta); // instant first step (plain click = 1 px)
+  _editStepCfg = { field, delta, stepSizes, ticks: 0 };
+  _editStepTimer = setTimeout(() => {
+    _editStepInterval = setInterval(_editRepeat, 80);
+  }, 400);
+}
+
+function startEditPadStep(field, delta, ev) {
+  _startEditStep(field, delta, EDIT_PAD_STEP_SIZES, ev);
+}
+
+function startEditFeatherStep(delta, ev) {
+  _startEditStep('feather', delta, EDIT_FEATHER_STEP_SIZES, ev);
+}
+
+function stopEditPadStep() {
+  if (_editStepTimer) { clearTimeout(_editStepTimer); _editStepTimer = null; }
+  if (_editStepInterval) { clearInterval(_editStepInterval); _editStepInterval = null; }
+  _editStepCfg = null;
+}
+
+function onEditPadInput(field) {
+  const id = EDIT_PAD_IDS[field];
+  const el = document.getElementById(id);
+  if (!el) return;
+  const n = parseInt(el.value, 10);
+  el.value = String(Number.isFinite(n) ? Math.min(EDIT_PAD_MAX, Math.max(0, n)) : 0);
+  updatePromptChips();
+}
+
+function onEditFeatherInput() {
+  const el = document.getElementById(EDIT_FEATHER_ID);
+  if (!el) return;
+  const n = parseInt(el.value, 10);
+  el.value = String(Number.isFinite(n) ? Math.min(EDIT_FEATHER_MAX, Math.max(0, n)) : 0);
+  updatePromptChips();
+}
+
+function readEditExtendParams() {
+  return {
+    left: getEditPadValue('left'),
+    top: getEditPadValue('top'),
+    right: getEditPadValue('right'),
+    bottom: getEditPadValue('bottom'),
+    feathering: getEditFeatherValue(),
+  };
+}
 
 function generateEdit(forceMode) {
   const src = getSourceUrl('edit');
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
   const mode = forceMode || 'edit';
+  const extendParams = mode === 'extend' ? readEditExtendParams() : null;
+  if (extendParams && !(extendParams.left || extendParams.top || extendParams.right || extendParams.bottom)) {
+    return showToast('Set at least one edge to extend');
+  }
   const steps = parseInt(document.getElementById('editSteps')?.value) || 6;
   const seedEl = document.getElementById('editSeed');
   const randomEl = document.getElementById('editSeedRandom');
@@ -23,16 +142,18 @@ function generateEdit(forceMode) {
   const adv = (window.advancedValues && window.advancedValues.edit) || {};
   const loraConfig = adv.lora || '[]';
 
+  const triggerId = mode === 'restore' ? 'btnRestore' : mode === 'extend' ? 'btnExtend' : 'btnEdit';
   const pane = document.getElementById('editOutputPane');
   const spinner = document.getElementById('editSpinner');
-  const btn = document.getElementById('btnEdit') || document.querySelector('#btnCol .btn-generate');
+  const btn = document.getElementById(triggerId) || document.querySelector('#btnCol .btn-generate');
   if (btn) btn.disabled = true;
   pane.classList.add('busy');
   spinner.classList.add('show');
   setGenerating(pane, true);
-  showToast('Edit submitted to ComfyUI...');
+  const modeLabel = mode === 'restore' ? 'Restore' : mode === 'extend' ? 'Extend' : 'Edit';
+  showToast(modeLabel + ' submitted to ComfyUI...');
   startProgressPolling();
-  setGeneratingUi(true, mode === 'restore' ? 'btnRestore' : 'btnEdit');
+  setGeneratingUi(true, triggerId);
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).
   function finalizeEdit(res) {
@@ -42,9 +163,9 @@ function generateEdit(forceMode) {
     const afterEl = document.getElementById('editAfter');
     const cmp = document.getElementById('editCompare');
     if (beforeEl && afterEl) {
-      // The AFTER label follows the mode (Edit / Restore) — not hardcoded.
+      // The AFTER label follows the mode (Edit / Restore / Extend).
       const afterLabel = document.getElementById('editCompareAfterLabel');
-      if (afterLabel) afterLabel.textContent = mode === 'restore' ? 'Restored' : 'Edited';
+      if (afterLabel) afterLabel.textContent = mode === 'restore' ? 'Restored' : mode === 'extend' ? 'Extended' : 'Edited';
       // Resolve the source through the SAME-ORIGIN proxy (/media) — the
       // pane cannot load the ComfyUI host URL directly (CORS/host
       // validation). beforeProxyUrl handles external URLs, /media/..,
@@ -57,28 +178,28 @@ function generateEdit(forceMode) {
       // Gallery marker: the edited/restored result joins the compare
       // gallery (identity = AFTER image); kind is the actual mode.
       cmp.dataset.gallery = '1';
-      cmp.dataset.kind = mode; // 'edit' | 'restore'
+      cmp.dataset.kind = mode; // 'edit' | 'restore' | 'extend'
       cmp.dataset.prompt = prompt;
       // Compare gallery: register the comparison in the session registry.
       addCompareEntry({
         src: res.display,
         before: beforeSrc,
         prompt,
-        kind: mode, // 'edit' | 'restore'
+        kind: mode, // 'edit' | 'restore' | 'extend'
         tab: 'edit',
       });
       // Generated history: an edit/restore APPENDS a new entry — the
       // original generation stays in the gallery (the edited image is a new
       // image). The edit/restore text is the bottom caption; if the source
       // was a gallery image, its prompt becomes the badge hover hint.
-      appendTransformedEntry(res, prompt, mode === 'restore' ? 'restored' : 'edited', src);
+      appendTransformedEntry(res, prompt, mode === 'restore' ? 'restored' : mode === 'extend' ? 'extended' : 'edited', src);
     }
     // Hide any plain result image; the compare slider is the display
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('edit', { url: res.url });
-    showToast('✨ Edited');
+    showToast(mode === 'restore' ? '✨ Restored' : mode === 'extend' ? '✨ Extended' : '✨ Edited');
     if (btn) btn.disabled = false;
     pane.classList.remove('busy');
     spinner.classList.remove('show');
@@ -87,9 +208,11 @@ function generateEdit(forceMode) {
   }
   registerRecoverHandler(finalizeEdit);
 
-  api('/api/edit', {
+  const payload = {
     image: src, mode, prompt, steps, seed, lora_config: loraConfig,
-  }).then(res => {
+  };
+  if (extendParams) Object.assign(payload, extendParams);
+  api('/api/edit', payload).then(res => {
     finalizeEdit(res);
   }).catch(err => {
     const isAbort = err && err.name === 'AbortError';
@@ -164,10 +287,17 @@ function resetEdit() {
   // Cancel a running job + stop live preview/progress polling first, so the
   // cleared pane stays clean (nothing reappears over the placeholder).
   cancelIfRunning();
+  stopEditPadStep();
   document.getElementById('editSteps').value = '6';
   setSeedValue('edit', '0');
   document.getElementById('editSeedRandom').checked = true;
   document.getElementById('editSeed').disabled = true;
+  Object.values(EDIT_PAD_IDS).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '0';
+  });
+  const feather = document.getElementById(EDIT_FEATHER_ID);
+  if (feather) feather.value = '40';
   clearPane('editOutputPane');
   syncResultUrl('edit', null); // no image shown — no URL hint
   updatePromptChips();

@@ -670,6 +670,20 @@ def test_index_serves_face_swap_tab(client, tmp_config):
     assert 'face_swap.js' in html
 
 
+def test_index_serves_extend_controls(client, tmp_config):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+    # The Edit tab now ships the Extend chip controls + modal action.
+    assert 'id="editParamsExtend"' in html
+    assert 'id="editPadTop"' in html
+    assert 'id="editPadBottom"' in html
+    assert 'id="editPadLeft"' in html
+    assert 'id="editPadRight"' in html
+    assert 'id="editFeather"' in html
+    assert 'id="promptExtendBtn"' in html
+
+
 def test_api_loras(client, tmp_config, monkeypatch):
     import comfy_client as cc
 

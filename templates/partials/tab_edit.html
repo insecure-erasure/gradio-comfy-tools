@@ -71,4 +71,56 @@
           </div>
         </div>
       </div>
+      <div id="editParamsExtend" data-chip-section="extend">
+        <div class="extend-hint">Padding in px · 1.5 MP working canvas</div>
+        <!-- Row: Top / Bottom -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Top padding">⬆️</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('top', -1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Decrease top padding (hold to accelerate)">−</button>
+              <input type="number" id="editPadTop" value="0" min="0" max="1024" step="1" inputmode="numeric" aria-label="Top padding" oninput="onEditPadInput('top')">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('top', 1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Increase top padding (hold to accelerate)">+</button>
+            </div>
+          </div>
+          <div class="field-inline" style="flex:1">
+            <label title="Bottom padding">⬇️</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('bottom', -1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Decrease bottom padding (hold to accelerate)">−</button>
+              <input type="number" id="editPadBottom" value="0" min="0" max="1024" step="1" inputmode="numeric" aria-label="Bottom padding" oninput="onEditPadInput('bottom')">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('bottom', 1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Increase bottom padding (hold to accelerate)">+</button>
+            </div>
+          </div>
+        </div>
+        <!-- Row: Left / Right -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Left padding">⬅️</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('left', -1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Decrease left padding (hold to accelerate)">−</button>
+              <input type="number" id="editPadLeft" value="0" min="0" max="1024" step="1" inputmode="numeric" aria-label="Left padding" oninput="onEditPadInput('left')">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('left', 1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Increase left padding (hold to accelerate)">+</button>
+            </div>
+          </div>
+          <div class="field-inline" style="flex:1">
+            <label title="Right padding">➡️</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('right', -1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Decrease right padding (hold to accelerate)">−</button>
+              <input type="number" id="editPadRight" value="0" min="0" max="1024" step="1" inputmode="numeric" aria-label="Right padding" oninput="onEditPadInput('right')">
+              <button type="button" class="stepper-btn" onpointerdown="startEditPadStep('right', 1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Increase right padding (hold to accelerate)">+</button>
+            </div>
+          </div>
+        </div>
+        <!-- Row: Feathering -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Feathering">🪶</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onpointerdown="startEditFeatherStep(-1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Decrease feathering (hold to accelerate)">−</button>
+              <input type="number" id="editFeather" value="40" min="0" max="256" step="1" inputmode="numeric" aria-label="Feathering" oninput="onEditFeatherInput()">
+              <button type="button" class="stepper-btn" onpointerdown="startEditFeatherStep(1, event)" onpointerup="stopEditPadStep()" onpointerleave="stopEditPadStep()" onpointercancel="stopEditPadStep()" title="Increase feathering (hold to accelerate)">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>

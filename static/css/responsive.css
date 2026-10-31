@@ -215,15 +215,16 @@
     }
     /* Bottom-right actions in the modal: 🪄 refine + 🩹 restore (Edit) +
        ✨ direct generation, side by side, larger than the chips (the base
-       .prompt-refine-btn / .prompt-generate-btn small circles are
-       overridden to pills).
+       .prompt-refine-btn / .prompt-restore-btn / .prompt-extend-btn /
+       .prompt-generate-btn small circles are overridden to pills).
        display:flex on the refine button overrides the compact-bar hiding
        (see .prompt-clear above). */
     .prompt-modal-box .prompt-actions {
       display: flex;
     }
     .prompt-modal-box .prompt-refine-btn,
-    .prompt-modal-box .prompt-restore-btn {
+    .prompt-modal-box .prompt-restore-btn,
+    .prompt-modal-box .prompt-extend-btn {
       position: static;
       display: flex;
       width: auto;
@@ -236,7 +237,8 @@
       color: var(--text-secondary);
     }
     .prompt-modal-box .prompt-refine-btn:hover,
-    .prompt-modal-box .prompt-restore-btn:hover {
+    .prompt-modal-box .prompt-restore-btn:hover,
+    .prompt-modal-box .prompt-extend-btn:hover {
       background: var(--surface-hover);
       color: var(--text);
     }

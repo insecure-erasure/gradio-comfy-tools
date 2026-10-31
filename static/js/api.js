@@ -298,6 +298,7 @@ function applyGenerationLock() {
     btnVideo: 'promptGenerateBtn',
     btnEdit: 'promptGenerateBtn',
     btnRestore: 'promptRestoreBtn',
+    btnExtend: 'promptExtendBtn',
   }[genTriggerId] || 'promptGenerateBtn';
   const modalStop = document.getElementById(modalActionForTrigger);
   if (modalStop) makeStopButton(modalStop);

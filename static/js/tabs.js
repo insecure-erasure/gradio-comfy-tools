@@ -56,11 +56,11 @@ function switchTab(name) {
     case 'edit':
       bar.style.display = 'flex';
       wrap.style.display = '';
-      // 🪄 refines the prompt; 🩹 restore is always active (no prompt);
-      // 🖌️ needs a prompt (has catcher). Order left→right (landscape row)
-      // / top→bottom (portrait column): 🪄 · 🩹 · 🖌️ — matching the
-      // portrait prompt modal's action pills (🪄 🩹 🖌️).
-      btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
+      // 🪄 refines the prompt; 🩹 restore and 🧩 extend are always active
+      // (no prompt); 🖌️ needs a prompt (has catcher). Order left→right
+      // (landscape row) / top→bottom (portrait column): 🪄 · 🩹 · 🧩 · 🖌️
+      // — matching the portrait prompt modal's action pills.
+      btnCol.innerHTML = '<button class="btn-refine" onclick="refinePrompt()" title="Refine prompt" aria-label="Refine prompt">🪄</button><button class="btn-generate btn-restore" id="btnRestore" onclick="generateEdit(\'restore\')" title="Restore">🩹</button><button class="btn-generate btn-extend" id="btnExtend" onclick="generateEdit(\'extend\')" title="Extend image">🧩</button><div class="btn-wrap"><button class="btn-generate" id="btnEdit" onclick="generateEdit(\'edit\')" title="Edit" data-requires-prompt>🖌️</button><button class="btn-catcher" onclick="showToast(\'Please write a prompt first\')" title="Write a prompt first"></button></div>';
       break;
     case 'face_swap':
       // The prompt is OPTIONAL (the workflow appends it after its built-in
@@ -414,6 +414,13 @@ function promptModalRestore() {
   generateEdit('restore');
 }
 
+// 🧩 Extend from the prompt modal (Edit only): no prompt required — closes
+// the modal and runs the extension directly.
+function promptModalExtend() {
+  closePromptModal();
+  generateEdit('extend');
+}
+
 // Set the glyph/title of the modal's direct-generate button for the active
 // tab, and show/hide the 🩹 restore button (Edit only — the other tabs have
 // no restore). Upscale has no prompt modal — hidden defensively. Skipped
@@ -422,6 +429,7 @@ function promptModalRestore() {
 function updatePromptModalActions() {
   const btn = document.getElementById('promptGenerateBtn');
   const restore = document.getElementById('promptRestoreBtn');
+  const extend = document.getElementById('promptExtendBtn');
   const refine = document.getElementById('btnPromptRefine');
   if (!btn) return;
   const cfg = {
@@ -434,11 +442,13 @@ function updatePromptModalActions() {
     // Upscale: NO prompt at all — no actions.
     btn.style.display = 'none';
     if (restore) restore.style.display = 'none';
+    if (extend) extend.style.display = 'none';
     if (refine) refine.style.display = 'none';
     return;
   }
   btn.style.display = '';
   if (restore) restore.style.display = currentTab === 'edit' ? '' : 'none';
+  if (extend) extend.style.display = currentTab === 'edit' ? '' : 'none';
   // 🪄 refine: generate/edit/video only — a face-swap prompt is an OPTIONAL
   // suffix to the workflow's built-in head_swap text, so refining it alone
   // would be misleading (no 🪄 in the bar either).
@@ -488,6 +498,7 @@ const CHIP_CONFIGS = {
   ],
   edit: [
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
+    { kind: 'extend', icon: '⛶', title: 'Extend canvas (padding and feathering)' },
   ],
   face_swap: [
     // The chip carries NO separate icon — the LABEL renders each value with
@@ -505,14 +516,17 @@ const CHIP_CONFIGS = {
 
 const CHIP_IDS = {
   dims: 'chipDims', frames: 'chipFrames', stepseed: 'chipStepSeed',
+  extend: 'chipExtend',
 };
 const CHIP_LABEL_IDS = {
   dims: 'chipDimsLabel', frames: 'chipFramesLabel', stepseed: 'chipStepSeedLabel',
+  extend: 'chipExtendLabel',
 };
 const CHIP_KIND_INFO = {
   dims: { title: 'Dimensions' },
   frames: { title: 'Frames' },
   stepseed: { title: 'Steps & seed' },
+  extend: { title: 'Extend image' },
 };
 
 // The params block id per tab. NB: Generate's block is GENparams (abbreviated
@@ -573,6 +587,16 @@ function updatePromptChips() {
     const f = document.getElementById('videoFrames');
     framesLabel.textContent = (f && f.value) ? f.value : '—';
   }
+  // ⛶ Extend (edit): totals of the horizontal and vertical padding.
+  const extendLabel = document.getElementById('chipExtendLabel');
+  if (extendLabel) {
+    const l = parseInt(document.getElementById('editPadLeft')?.value, 10) || 0;
+    const r = parseInt(document.getElementById('editPadRight')?.value, 10) || 0;
+    const t = parseInt(document.getElementById('editPadTop')?.value, 10) || 0;
+    const b = parseInt(document.getElementById('editPadBottom')?.value, 10) || 0;
+    const h = l + r, v = t + b;
+    extendLabel.textContent = (h || v) ? `↔ ${h} · ↕ ${v}` : '0';
+  }
   // 👣 Steps & seed (generate/edit/video): "steps · 🎲" while the seed is
   // random; when it is FIXED the separator and the dice disappear (steps
   // only) — that is the visual cue. Face swap mirrors it with the CFG
@@ -623,14 +647,19 @@ function openChipPopover(kind) {
     s.hidden = s.dataset.chipSection !== kind;
   });
   const info = CHIP_KIND_INFO[kind] || {};
+  // The Extend popover holds two stepper columns plus feathering — give it
+  // more room than the compact single-column popovers.
+  pop.classList.toggle('wide', kind === 'extend');
   // Face swap popover header follows its control order (CFG first).
   let title = info.title || kind;
   if (currentTab === 'face_swap' && kind === 'stepseed') title = 'CFG · steps · seed';
   document.getElementById('chipPopoverTitle').textContent = title;
+  // Show first so the wide/short popover has a measurable size.
+  pop.classList.add('show');
   const chip = document.getElementById(CHIP_IDS[kind]);
   if (chip) {
     const r = chip.getBoundingClientRect();
-    const pw = pop.offsetWidth || 280;
+    const pw = pop.offsetWidth || (kind === 'extend' ? 340 : 280);
     const ph = pop.offsetHeight || 160;
     let left = Math.min(r.left, window.innerWidth - pw - 8);
     let top = r.bottom + 6;
@@ -639,7 +668,6 @@ function openChipPopover(kind) {
     pop.style.top = top + 'px';
   }
   updatePromptChips();
-  pop.classList.add('show');
 }
 
 // Chip click: opens the popover, or switches sections when another chip is
@@ -660,7 +688,10 @@ function toggleChipPopover(kind) {
 function closeChipPopover() {
   chipPopoverKind = null;
   const pop = document.getElementById('chipPopover');
-  if (pop) pop.classList.remove('show');
+  if (pop) {
+    pop.classList.remove('show');
+    pop.classList.remove('wide');
+  }
 }
 
 // Close when clicking outside the popover and the chips (a click on the

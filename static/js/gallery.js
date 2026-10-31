@@ -250,7 +250,7 @@ function collectCompareEntries() {
     const bfr = el.querySelector('img.side.before');
     if (!after || !after.src) return;
     const kind = el.dataset.kind || 'edit';
-    if (kind !== 'edit' && kind !== 'restore' && kind !== 'upscale' && kind !== 'face_swap') return;
+    if (kind !== 'edit' && kind !== 'restore' && kind !== 'extend' && kind !== 'upscale' && kind !== 'face_swap') return;
     push({
       src: after.src,
       before: bfr && bfr.src ? bfr.src : null,
@@ -889,6 +889,7 @@ function paneGalleryCount(tab) {
 // The AFTER-side label of a before/after comparison, from its kind.
 function compareKindLabel(kind) {
   return kind === 'edit' ? 'Edited' : kind === 'restore' ? 'Restored'
+    : kind === 'extend' ? 'Extended'
     : kind === 'upscale' ? 'Upscaled'
     : kind === 'face_swap' ? 'Face swapped' : 'Result';
 }

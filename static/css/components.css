@@ -492,13 +492,15 @@
   .btn-generate:hover { background: var(--accent-hover); }
   .btn-generate:disabled { opacity: .45; cursor: not-allowed; }
   .btn-generate:disabled:hover { background: var(--accent); }
-  .btn-generate.btn-restore {
+  .btn-generate.btn-restore,
+  .btn-generate.btn-extend {
     flex: 1;
     background: var(--bg);
     color: var(--text-secondary);
     border-color: var(--border);
   }
-  .btn-generate.btn-restore:hover {
+  .btn-generate.btn-restore:hover,
+  .btn-generate.btn-extend:hover {
     background: var(--surface-hover);
     color: var(--accent);
     border-color: var(--accent);
@@ -838,6 +840,12 @@
     padding: 12px;
   }
   .chip-popover.show { display: block; }
+  /* Extend has two stepper columns + feathering: a wider floating panel. */
+  .chip-popover.wide {
+    width: 340px;
+    max-height: calc(100vh - 16px);
+    overflow-y: auto;
+  }
   .chip-popover-title {
     font-size: .68rem;
     font-weight: 600;
@@ -874,6 +882,12 @@
   }
   .chip-popover .check-label { white-space: nowrap; }
   .chip-popover .gen-dim { width: 100%; }
+  .extend-hint {
+    margin: -4px 0 10px;
+    color: var(--text-secondary);
+    font-size: .62rem;
+    line-height: 1.35;
+  }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);
