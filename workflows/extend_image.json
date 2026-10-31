@@ -1,0 +1,370 @@
+{
+  "133": {
+    "inputs": {
+      "noise": [
+        "135",
+        0
+      ],
+      "guider": [
+        "136",
+        0
+      ],
+      "sampler": [
+        "137",
+        0
+      ],
+      "sigmas": [
+        "138",
+        0
+      ],
+      "latent_image": [
+        "139",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "134": {
+    "inputs": {
+      "clip_name": "qwen_3_8b_nvfp4.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "135": {
+    "inputs": {
+      "noise_seed": 0
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "136": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "311",
+        0
+      ],
+      "positive": [
+        "148",
+        0
+      ],
+      "negative": [
+        "149",
+        0
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "137": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "138": {
+    "inputs": {
+      "steps": 6,
+      "width": [
+        "143",
+        0
+      ],
+      "height": [
+        "143",
+        1
+      ]
+    },
+    "class_type": "Flux2Scheduler",
+    "_meta": {
+      "title": "Flux2Scheduler"
+    }
+  },
+  "139": {
+    "inputs": {
+      "width": [
+        "143",
+        0
+      ],
+      "height": [
+        "143",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": {
+      "title": "Empty Flux 2 Latent"
+    }
+  },
+  "140": {
+    "inputs": {
+      "samples": [
+        "133",
+        0
+      ],
+      "vae": [
+        "161",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "143": {
+    "inputs": {
+      "image": [
+        "165",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Get Image Size"
+    }
+  },
+  "144": {
+    "inputs": {
+      "conditioning": [
+        "157",
+        0
+      ]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": {
+      "title": "ConditioningZeroOut"
+    }
+  },
+  "145": {
+    "inputs": {
+      "pixels": [
+        "165",
+        0
+      ],
+      "vae": [
+        "161",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "147": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.5000000000000002,
+      "resolution_steps": 1,
+      "image": [
+        "308",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels"
+    }
+  },
+  "148": {
+    "inputs": {
+      "conditioning": [
+        "157",
+        0
+      ],
+      "latent": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "149": {
+    "inputs": {
+      "conditioning": [
+        "144",
+        0
+      ],
+      "latent": [
+        "145",
+        0
+      ]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": {
+      "title": "ReferenceLatent"
+    }
+  },
+  "157": {
+    "inputs": {
+      "text": [
+        "312",
+        0
+      ],
+      "clip": [
+        "134",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Positive Prompt)"
+    }
+  },
+  "158": {
+    "inputs": {
+      "unet_name": "flux-2-klein-9b-nvfp4.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "161": {
+    "inputs": {
+      "vae_name": "flux2-vae-small-bf16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "164": {
+    "inputs": {
+      "left": 0,
+      "top": 0,
+      "right": 0,
+      "bottom": 0,
+      "feathering": 40,
+      "image": [
+        "147",
+        0
+      ]
+    },
+    "class_type": "ImagePadForOutpaint",
+    "_meta": {
+      "title": "Pad Image for Outpainting"
+    }
+  },
+  "165": {
+    "inputs": {
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.0000000000000002,
+      "resolution_steps": 1,
+      "image": [
+        "166",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": {
+      "title": "Scale Image to Total Pixels"
+    }
+  },
+  "166": {
+    "inputs": {
+      "color": "0, 255, 0",
+      "device": "cpu",
+      "image": [
+        "164",
+        0
+      ],
+      "mask": [
+        "164",
+        1
+      ]
+    },
+    "class_type": "DrawMaskOnImage",
+    "_meta": {
+      "title": "Draw Mask On Image"
+    }
+  },
+  "167": {
+    "inputs": {
+      "method": "mkl",
+      "strength": 1,
+      "multithread": true,
+      "image_ref": [
+        "308",
+        0
+      ],
+      "image_target": [
+        "140",
+        0
+      ]
+    },
+    "class_type": "ColorMatch",
+    "_meta": {
+      "title": "Color Match"
+    }
+  },
+  "308": {
+    "inputs": {
+      "source": "url",
+      "url": ""
+    },
+    "class_type": "LoadImageByUrlOrPath",
+    "_meta": {
+      "title": "Load Image (URL/Path)"
+    }
+  },
+  "309": {
+    "inputs": {
+      "images": [
+        "167",
+        0
+      ]
+    },
+    "class_type": "RandomPreviewImage",
+    "_meta": {
+      "title": "Random Preview Image"
+    }
+  },
+  "311": {
+    "inputs": {
+      "PowerLoraLoaderHeaderWidget": {
+        "type": "PowerLoraLoaderHeaderWidget"
+      },
+      "➕ Add Lora": "",
+      "model": [
+        "158",
+        0
+      ]
+    },
+    "class_type": "Power Lora Loader (rgthree)",
+    "_meta": {
+      "title": "Power Lora Loader (rgthree)"
+    }
+  },
+  "312": {
+    "inputs": {
+      "string_a": "remove the green part",
+      "string_b": "",
+      "delimiter": ". "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Prompt"
+    }
+  }
+}
