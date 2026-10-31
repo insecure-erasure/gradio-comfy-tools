@@ -209,7 +209,7 @@ empty and the prompt fills it; see also deviation 14):
     fixed — the separator and dice disappear). Its popover holds the
     `👣 Steps` stepper (1–15, default 6) and the `🌱 Seed` stepper + `🎲`.
   - **⛶ Extend** — shows `↔ total · ↕ total` (or `0` when all edges are
-    zero). Its wider popover holds Top / Bottom on one row, Left / Right on
+    zero). Its popover holds Top / Bottom on one row, Left / Right on
     the next and Feathering below. Padding is `0–1024 px` (1.5 MP working
     canvas); feathering is `0–256` (default 40). A plain stepper click
     changes 1 px; holding accelerates through `1 → 2 → 4 → 8 → 16 → 32 →

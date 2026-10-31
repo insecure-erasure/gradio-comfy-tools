@@ -647,19 +647,16 @@ function openChipPopover(kind) {
     s.hidden = s.dataset.chipSection !== kind;
   });
   const info = CHIP_KIND_INFO[kind] || {};
-  // The Extend popover holds two stepper columns plus feathering — give it
-  // more room than the compact single-column popovers.
-  pop.classList.toggle('wide', kind === 'extend');
   // Face swap popover header follows its control order (CFG first).
   let title = info.title || kind;
   if (currentTab === 'face_swap' && kind === 'stepseed') title = 'CFG · steps · seed';
   document.getElementById('chipPopoverTitle').textContent = title;
-  // Show first so the wide/short popover has a measurable size.
+  // Show first so the popover has a measurable size.
   pop.classList.add('show');
   const chip = document.getElementById(CHIP_IDS[kind]);
   if (chip) {
     const r = chip.getBoundingClientRect();
-    const pw = pop.offsetWidth || (kind === 'extend' ? 340 : 280);
+    const pw = pop.offsetWidth || 280;
     const ph = pop.offsetHeight || 160;
     let left = Math.min(r.left, window.innerWidth - pw - 8);
     let top = r.bottom + 6;
@@ -688,10 +685,7 @@ function toggleChipPopover(kind) {
 function closeChipPopover() {
   chipPopoverKind = null;
   const pop = document.getElementById('chipPopover');
-  if (pop) {
-    pop.classList.remove('show');
-    pop.classList.remove('wide');
-  }
+  if (pop) pop.classList.remove('show');
 }
 
 // Close when clicking outside the popover and the chips (a click on the

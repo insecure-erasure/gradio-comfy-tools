@@ -840,12 +840,9 @@
     padding: 12px;
   }
   .chip-popover.show { display: block; }
-  /* Extend has two stepper columns + feathering: a wider floating panel. */
-  .chip-popover.wide {
-    width: 340px;
-    max-height: calc(100vh - 16px);
-    overflow-y: auto;
-  }
+  /* Extend has two stepper columns + feathering, but the 280px base width
+     is enough for four-digit values. Keep the same width as the other
+     popovers for visual consistency. */
   .chip-popover-title {
     font-size: .68rem;
     font-weight: 600;
