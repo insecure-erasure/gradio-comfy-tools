@@ -331,7 +331,7 @@
   "309": {
     "inputs": {
       "images": [
-        "167",
+        "339",
         0
       ]
     },
@@ -365,6 +365,307 @@
     "class_type": "StringConcatenate",
     "_meta": {
       "title": "Prompt"
+    }
+  },
+  "320": {
+    "inputs": {
+      "image": [
+        "308",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Original Image Size"
+    }
+  },
+  "321": {
+    "inputs": {
+      "image": [
+        "147",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Working Image Size (Pre-Pad)"
+    }
+  },
+  "344": {
+    "inputs": {
+      "image": [
+        "164",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Padded Image Size (Pre-Scale)"
+    }
+  },
+  "322": {
+    "inputs": {
+      "int": [
+        "320",
+        0
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Original Width (Float)"
+    }
+  },
+  "323": {
+    "inputs": {
+      "int": [
+        "320",
+        1
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Original Height (Float)"
+    }
+  },
+  "324": {
+    "inputs": {
+      "int": [
+        "344",
+        0
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Padded Width (Float)"
+    }
+  },
+  "325": {
+    "inputs": {
+      "int": [
+        "344",
+        1
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Padded Height (Float)"
+    }
+  },
+  "326": {
+    "inputs": {
+      "int": [
+        "321",
+        0
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Working Width (Float)"
+    }
+  },
+  "327": {
+    "inputs": {
+      "int": [
+        "321",
+        1
+      ]
+    },
+    "class_type": "intToFloat _O",
+    "_meta": {
+      "title": "Working Height (Float)"
+    }
+  },
+  "328": {
+    "inputs": {
+      "a": [
+        "322",
+        0
+      ],
+      "b": [
+        "324",
+        0
+      ],
+      "operation": "multiply"
+    },
+    "class_type": "easy mathFloat",
+    "_meta": {
+      "title": "Target Width: Original x Padded"
+    }
+  },
+  "329": {
+    "inputs": {
+      "a": [
+        "328",
+        0
+      ],
+      "b": [
+        "326",
+        0
+      ],
+      "operation": "divide"
+    },
+    "class_type": "easy mathFloat",
+    "_meta": {
+      "title": "Target Width: / Working"
+    }
+  },
+  "330": {
+    "inputs": {
+      "float": [
+        "329",
+        0
+      ]
+    },
+    "class_type": "floatToInt _O",
+    "_meta": {
+      "title": "Target Width"
+    }
+  },
+  "331": {
+    "inputs": {
+      "a": [
+        "323",
+        0
+      ],
+      "b": [
+        "325",
+        0
+      ],
+      "operation": "multiply"
+    },
+    "class_type": "easy mathFloat",
+    "_meta": {
+      "title": "Target Height: Original x Padded"
+    }
+  },
+  "332": {
+    "inputs": {
+      "a": [
+        "331",
+        0
+      ],
+      "b": [
+        "327",
+        0
+      ],
+      "operation": "divide"
+    },
+    "class_type": "easy mathFloat",
+    "_meta": {
+      "title": "Target Height: / Working"
+    }
+  },
+  "333": {
+    "inputs": {
+      "float": [
+        "332",
+        0
+      ]
+    },
+    "class_type": "floatToInt _O",
+    "_meta": {
+      "title": "Target Height"
+    }
+  },
+  "334": {
+    "inputs": {
+      "a": [
+        "322",
+        0
+      ],
+      "b": [
+        "323",
+        0
+      ],
+      "operation": "multiply"
+    },
+    "class_type": "easy mathFloat",
+    "_meta": {
+      "title": "Original Megapixels (Width x Height)"
+    }
+  },
+  "335": {
+    "inputs": {
+      "cmp": "a > b",
+      "a": [
+        "334",
+        0
+      ],
+      "b": 1000000.0
+    },
+    "class_type": "ImpactCompare",
+    "_meta": {
+      "title": "Original > 1 MP"
+    }
+  },
+  "336": {
+    "inputs": {
+      "mode": false,
+      "a": [
+        "330",
+        0
+      ],
+      "b": 16384
+    },
+    "class_type": "ImpactMinMax",
+    "_meta": {
+      "title": "Clamp Final Width"
+    }
+  },
+  "337": {
+    "inputs": {
+      "mode": false,
+      "a": [
+        "333",
+        0
+      ],
+      "b": 16384
+    },
+    "class_type": "ImpactMinMax",
+    "_meta": {
+      "title": "Clamp Final Height"
+    }
+  },
+  "338": {
+    "inputs": {
+      "image": [
+        "167",
+        0
+      ],
+      "upscale_method": "lanczos",
+      "width": [
+        "336",
+        0
+      ],
+      "height": [
+        "337",
+        0
+      ],
+      "crop": "disabled"
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "Restore Original Pixel Density"
+    }
+  },
+  "339": {
+    "inputs": {
+      "image_a": [
+        "338",
+        0
+      ],
+      "image_b": [
+        "167",
+        0
+      ],
+      "boolean": [
+        "335",
+        0
+      ]
+    },
+    "class_type": "easy imageSwitch",
+    "_meta": {
+      "title": "Use Restored Size When > 1 MP"
     }
   }
 }
