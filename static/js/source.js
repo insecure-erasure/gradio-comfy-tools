@@ -54,6 +54,49 @@ function beforeProxyUrl(value) {
   return '/media/' + encodeURIComponent(value.split('/').pop()) + '?type=temp';
 }
 
+// ── Source dimensions ─────────────────────
+// The loaded source preview reports its natural size. Edit/Upscale show a
+// discreet W×H badge above the bottom-right action buttons; the Edit Extend
+// popover also uses it for the Source/Output estimate.
+const sourceDimensions = { edit: null, upscale: null, video: null };
+
+function getSourceDimensions(tab) {
+  return sourceDimensions[tab] || null;
+}
+
+function _renderSourceDimensionBadge(tab) {
+  if (tab !== 'edit' && tab !== 'upscale') return;
+  const pane = document.getElementById(`${tab}OutputPane`);
+  if (!pane) return;
+  pane.querySelectorAll('.source-dimensions').forEach(el => el.remove());
+  const dims = sourceDimensions[tab];
+  if (!dims) return;
+  const box = document.createElement('div');
+  box.className = 'source-dimensions';
+  box.textContent = `${dims.width} × ${dims.height}`;
+  box.title = `Source image dimensions: ${dims.width} × ${dims.height}`;
+  pane.appendChild(box);
+}
+
+function setSourceDimensions(tab, width, height) {
+  if (!width || !height) {
+    clearSourceDimensions(tab);
+    return;
+  }
+  sourceDimensions[tab] = { width, height };
+  _renderSourceDimensionBadge(tab);
+  if (tab === 'edit' && typeof updateEditExtendInfo === 'function') updateEditExtendInfo();
+}
+
+function clearSourceDimensions(tab) {
+  sourceDimensions[tab] = null;
+  if (tab === 'edit' || tab === 'upscale') {
+    const pane = document.getElementById(`${tab}OutputPane`);
+    if (pane) pane.querySelectorAll('.source-dimensions').forEach(el => el.remove());
+  }
+  if (tab === 'edit' && typeof updateEditExtendInfo === 'function') updateEditExtendInfo();
+}
+
 // Clicking a source URL field selects all its text when it already has
 // content, so it can be deleted or replaced easily (paste over). The
 // select-all only applies on the first focus; subsequent clicks behave
@@ -183,6 +226,12 @@ function previewSourceImage(tab, src) {
   const img = document.createElement('img');
   img.className = 'source-preview';
   img.alt = 'Source preview';
+  img.addEventListener('load', () => {
+    if (tab === 'edit' || tab === 'upscale') {
+      setSourceDimensions(tab, img.naturalWidth, img.naturalHeight);
+    }
+  });
+  img.addEventListener('error', () => clearSourceDimensions(tab));
   img.src = proxiedSrc(src);
   pane.insertBefore(img, pane.firstChild);
 }
@@ -194,7 +243,8 @@ function previewSourceImage(tab, src) {
 function clearSourcePreview(tab) {
   const pane = document.getElementById(`${tab}OutputPane`);
   if (!pane) return;
-  pane.querySelectorAll('.source-preview').forEach(el => el.remove());
+  pane.querySelectorAll('.source-preview, .source-dimensions').forEach(el => el.remove());
+  clearSourceDimensions(tab);
   if (tab === 'video') {
     ensureEmptyVideoPlayer(pane); // no preview → back to the disabled player
   }

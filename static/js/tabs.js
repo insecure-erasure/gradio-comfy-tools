@@ -633,6 +633,9 @@ function updatePromptChips() {
       }
     }
   }
+  // Keep the Extend popover's Source/Output estimate in sync with the
+  // padding controls and the loaded source dimensions.
+  if (typeof updateEditExtendInfo === 'function') updateEditExtendInfo();
 }
 
 // Open the chip popover showing the matching section of the active tab's

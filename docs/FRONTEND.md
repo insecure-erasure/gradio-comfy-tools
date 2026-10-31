@@ -204,6 +204,9 @@ empty and the prompt fills it; see also deviation 14):
   **Original / Extended toggle** instead: the extended canvas has a different
   size/aspect than the source, so the two images are shown one at a time
   (`Extended` by default) rather than overlaid.
+  While the **source preview** is shown, a discreet `W × H` badge sits
+  above the 📁/🔗 buttons (right-aligned, no MP) with the loaded image's
+  natural dimensions.
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
 - **Actions**: 🪄 refine · 🩹 Restore · 🧩 Extend · 🖌️ Edit. The Edit button
   requires a prompt; Restore and Extend are always active.
@@ -216,7 +219,10 @@ empty and the prompt fills it; see also deviation 14):
     the next and Feathering below. Padding is `0–1024 px` (1.5 MP working
     canvas); feathering is `0–256` (default 40). A plain stepper click
     changes 1 px; holding accelerates through `1 → 2 → 4 → 8 → 16 → 32 →
-    64` every 8 repeat ticks (400 ms delay, 80→25 ms interval).
+    64` every 8 repeat ticks (400 ms delay, 80→25 ms interval). The popover
+    also shows `Source: W × H` and a live `Output ≈ W × H` estimate (the
+    latter mirrors ImageScaleToTotalPixels + the conditional source-density
+    restore, without MP).
 - **Extend result**: `#editCompare` reuses its two image layers but hides
   the divider/handle/labels and shows a top-left `Original | Extended`
   toggle (default `Extended`). The slider drag is disabled in this mode.
@@ -245,7 +251,8 @@ empty and the prompt fills it; see also deviation 14):
 ### 3.4 Upscale 🔍
 
 - **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
-  the **compare slider** (Original | Upscaled).
+  the **compare slider** (Original | Upscaled). While the source preview is
+  shown, the same discreet `W × H` badge appears above the buttons.
 - **Toolbar**: ↺ only (no model, no ⚙️).
 - **Params**: the `🌱 Seed` stepper + `🎲` directly in the params pane —
   Upscale has NO prompt textarea, so it does not use the chip design and

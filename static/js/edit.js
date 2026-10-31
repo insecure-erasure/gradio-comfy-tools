@@ -116,6 +116,51 @@ function readEditExtendParams() {
   };
 }
 
+// Mirror ImageScaleToTotalPixels (ComfyUI counts a "megapixel" as 1024²).
+function scaleToTotalPixels(width, height, megapixels) {
+  const total = megapixels * 1024 * 1024;
+  const scale = Math.sqrt(total / (width * height));
+  return [Math.round(width * scale), Math.round(height * scale)];
+}
+
+function estimateExtendOutputDims(source, params) {
+  const [workWidth, workHeight] = scaleToTotalPixels(source.width, source.height, 1.5);
+  const paddedWidth = workWidth + params.left + params.right;
+  const paddedHeight = workHeight + params.top + params.bottom;
+
+  if (source.width * source.height > 1000000) {
+    // The workflow restores the source density on the extended canvas.
+    const outWidth = Math.min(16384, Math.max(1, Math.trunc(source.width * paddedWidth / workWidth)));
+    const outHeight = Math.min(16384, Math.max(1, Math.trunc(source.height * paddedHeight / workHeight)));
+    return [outWidth, outHeight];
+  }
+
+  // Below 1 MP the workflow keeps the ~1 MP decoded output; Flux2's empty
+  // latent rounds the working dimensions down to a multiple of 16.
+  const [scaledWidth, scaledHeight] = scaleToTotalPixels(paddedWidth, paddedHeight, 1.0);
+  return [
+    Math.max(16, Math.floor(scaledWidth / 16) * 16),
+    Math.max(16, Math.floor(scaledHeight / 16) * 16),
+  ];
+}
+
+function updateEditExtendInfo() {
+  const sourceEl = document.getElementById('editExtendSourceDims');
+  const outputEl = document.getElementById('editExtendOutputDims');
+  if (!sourceEl && !outputEl) return;
+  const source = typeof getSourceDimensions === 'function' ? getSourceDimensions('edit') : null;
+  if (!source) {
+    if (sourceEl) sourceEl.textContent = '—';
+    if (outputEl) outputEl.textContent = '—';
+    return;
+  }
+  if (sourceEl) sourceEl.textContent = `${source.width} × ${source.height}`;
+  if (outputEl) {
+    const [outWidth, outHeight] = estimateExtendOutputDims(source, readEditExtendParams());
+    outputEl.textContent = `${outWidth} × ${outHeight}`;
+  }
+}
+
 // Extend results have a different canvas size than the source, so the
 // overlay slider is replaced by an Original/Extended toggle (one image at a
 // time). The slider container is reused for the two <img> layers.
@@ -229,7 +274,7 @@ function generateEdit(forceMode) {
       appendTransformedEntry(res, prompt, mode === 'restore' ? 'restored' : mode === 'extend' ? 'extended' : 'edited', src);
     }
     // Hide any plain result image; the compare slider is the display
-    pane.querySelectorAll('.result-img, .output-placeholder, .source-preview').forEach(el => el.remove());
+    pane.querySelectorAll('.result-img, .output-placeholder, .source-preview, .source-dimensions').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('edit', { url: res.url });
