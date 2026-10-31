@@ -45,6 +45,7 @@ import comfy_client
 from config import Settings
 from tools import _common
 from tools.edit import edit_image, MODES
+from tools.extend import extend_image
 from tools.face_swap import FACE_OUTPUT_TITLE, face_swap_image
 from tools.generate import FAMILY_OPTIONS, generate_image
 from tools.upscale import upscale_image
@@ -773,15 +774,31 @@ def api_edit(body: dict) -> dict:
         _pending_tool = "edit"
         _pending_prompt = str(body.get("prompt", ""))
         seed = _resolve_request_seed(body, "edit")
-        url = edit_image(
-            s,
-            image=str(body.get("image", "")),
-            mode=str(body.get("mode", "edit")),
-            prompt=str(body.get("prompt", "")),
-            steps=int(body.get("steps", 0)),
-            seed=seed,
-            lora_config=str(body.get("lora_config", "[]")),
-        )
+        mode = str(body.get("mode", "edit")).strip().lower()
+        if mode == "extend":
+            url = extend_image(
+                s,
+                image=str(body.get("image", "")),
+                left=body.get("left", 0),
+                top=body.get("top", 0),
+                right=body.get("right", 0),
+                bottom=body.get("bottom", 0),
+                feathering=body.get("feathering", 40),
+                prompt=str(body.get("prompt", "")),
+                steps=body.get("steps", 0),
+                seed=seed,
+                lora_config=str(body.get("lora_config", "[]")),
+            )
+        else:
+            url = edit_image(
+                s,
+                image=str(body.get("image", "")),
+                mode=mode,
+                prompt=str(body.get("prompt", "")),
+                steps=int(body.get("steps", 0)),
+                seed=seed,
+                lora_config=str(body.get("lora_config", "[]")),
+            )
         _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
     except TimeoutError as e:
         # The backend's own wait timed out — the job may still be

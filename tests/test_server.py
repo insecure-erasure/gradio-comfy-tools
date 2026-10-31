@@ -496,6 +496,52 @@ def test_api_upscale_seed(client, tmp_config, monkeypatch):
     assert received["seed"] == 42
 
 
+def test_api_edit_extend_dispatches_to_extend_tool(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_extend(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=extended.png&type=output"
+
+    monkeypatch.setattr(server, "extend_image", fake_extend)
+    resp = client.post(
+        "/api/edit",
+        json={
+            "mode": "extend",
+            "image": "a.png",
+            "left": 10,
+            "top": 20,
+            "right": 30,
+            "bottom": 40,
+            "feathering": 25,
+            "prompt": "add sky",
+            "steps": 7,
+            "seed": 42,
+            "lora_config": '["x.sft"]',
+        },
+    )
+    assert resp.status_code == 200
+    assert received["image"] == "a.png"
+    assert (received["left"], received["top"], received["right"], received["bottom"]) == (10, 20, 30, 40)
+    assert received["feathering"] == 25
+    assert received["prompt"] == "add sky"
+    assert received["steps"] == 7
+    assert received["seed"] == 42
+    assert received["lora_config"] == '["x.sft"]'
+    assert resp.json()["filename"] == "extended.png"
+    assert resp.json()["seed"] == "42"
+
+
+def test_api_edit_extend_validation_error_is_400(client, tmp_config, monkeypatch):
+    def boom(settings, **kwargs):
+        raise ValueError("left must be in [0, 1024], got 2000")
+
+    monkeypatch.setattr(server, "extend_image", boom)
+    resp = client.post("/api/edit", json={"mode": "extend", "image": "a.png", "left": 2000})
+    assert resp.status_code == 400
+    assert "left must be" in resp.json()["detail"]
+
+
 def test_api_generate_keeps_uint64_seed_exact(client, tmp_config, monkeypatch):
     """The UI sends uint64 seeds as decimal strings; the API must not round."""
     received = {}
