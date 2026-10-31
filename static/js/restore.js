@@ -51,6 +51,11 @@ function restoreCompareSlider(tab, paneId, cmp) {
   slider.dataset.gallery = '1';
   slider.dataset.kind = cmp.kind || 'edit';
   slider.dataset.prompt = cmp.prompt || '';
+  // Edit's extend results use the Original/Extended toggle instead of the
+  // overlay slider (their canvas sizes differ).
+  if (paneId === 'editOutputPane' && typeof configureEditExtendToggle === 'function') {
+    configureEditExtendToggle((cmp.kind || 'edit') === 'extend');
+  }
 }
 
 // Restore the last result of a tab into its pane. No-op when the pane

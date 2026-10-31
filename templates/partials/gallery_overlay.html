@@ -26,6 +26,10 @@
     <div class="divider"></div>
     <div class="handle"><span></span><span></span></div>
   </div>
+  <div class="extend-toggle gallery-extend-toggle" id="galleryExtendToggle" role="group" aria-label="Compare original and extended" style="display:none">
+    <button type="button" class="extend-toggle-btn" id="galleryExtendOriginalBtn" onclick="setGalleryExtendView(true)" aria-pressed="false">Original</button>
+    <button type="button" class="extend-toggle-btn active" id="galleryExtendResultBtn" onclick="setGalleryExtendView(false)" aria-pressed="true">Extended</button>
+  </div>
   <button class="gallery-prompt-btn" id="galleryPromptBtn" title="Show prompt">Show prompt</button>
   <div class="gallery-prompt-modal" id="galleryPromptModal">
     <div class="gallery-prompt-box" id="galleryPromptBox">

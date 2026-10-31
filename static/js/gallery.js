@@ -39,6 +39,9 @@ const galleryVideoWrap = document.getElementById('galleryVideoWrap');
 const gallerySlider = document.getElementById('gallerySlider');
 const galleryBefore = document.getElementById('galleryBefore');
 const galleryAfter = document.getElementById('galleryAfter');
+const galleryExtendToggle = document.getElementById('galleryExtendToggle');
+const galleryExtendOriginalBtn = document.getElementById('galleryExtendOriginalBtn');
+const galleryExtendResultBtn = document.getElementById('galleryExtendResultBtn');
 const galleryPromptBtn = document.getElementById('galleryPromptBtn');
 const galleryPromptModal = document.getElementById('galleryPromptModal');
 const galleryPromptText = document.getElementById('galleryPromptText');
@@ -342,6 +345,7 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
+  configureGalleryExtendToggle(false);
   resetGalleryZoom(); // a closed gallery must never keep a transform
   // Destroy the video player of the OVERLAY (stops playback) and hide the
   // wrap. The pane's own player/result is untouched — closing the gallery
@@ -516,6 +520,29 @@ galleryBig.addEventListener('wheel', e => {
   _clampZoom();
 }, { passive: false });
 
+// Extend comparisons (different canvas sizes) use the same Original/Extended
+// toggle as the Edit pane instead of the overlay slider.
+function setGalleryExtendView(showOriginal) {
+  const original = !!showOriginal;
+  gallerySlider.classList.toggle('show-original', original);
+  if (galleryExtendOriginalBtn) {
+    galleryExtendOriginalBtn.classList.toggle('active', original);
+    galleryExtendOriginalBtn.setAttribute('aria-pressed', String(original));
+  }
+  if (galleryExtendResultBtn) {
+    galleryExtendResultBtn.classList.toggle('active', !original);
+    galleryExtendResultBtn.setAttribute('aria-pressed', String(!original));
+  }
+}
+
+function configureGalleryExtendToggle(enabled) {
+  const on = !!enabled;
+  gallerySlider.classList.toggle('extend-toggle-mode', on);
+  if (!on) gallerySlider.classList.remove('show-original');
+  if (galleryExtendToggle) galleryExtendToggle.style.display = on ? 'flex' : 'none';
+  if (on) setGalleryExtendView(false); // default: show the extended result
+}
+
 // ── Render the current gallery item ────────
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
@@ -524,6 +551,7 @@ function renderGalleryItem() {
   // navigating to another entry.
   closeBadgeBox();
   if (galleryMode === 'lightbox') {
+    configureGalleryExtendToggle(false);
     galleryBig.src = e.src;
     // Show prompt: visible only when the entry has a prompt. The prompt
     // itself is never rendered here — hovering the button reveals it.
@@ -547,6 +575,7 @@ function renderGalleryItem() {
       galleryBadge.textContent = '';
     }
   } else if (galleryMode === 'video') {
+    configureGalleryExtendToggle(false);
     // Custom player for the current video entry (autoplay muted loop; the
     // player is rebuilt per navigation so the src is always fresh).
     galleryVideoWrap.innerHTML = '';
@@ -566,6 +595,7 @@ function renderGalleryItem() {
     galleryAfter.src = e.src;
     gallerySlider.style.setProperty('--p', '50%');
     galleryLabelAfter.textContent = compareKindLabel(e.kind);
+    configureGalleryExtendToggle(e.kind === 'extend');
     galleryBadge.classList.remove('show');
     // Compare mode: the Show-prompt button is visible by DEFAULT when the
     // comparison has a prompt (no click on the slider needed) — same rule
@@ -742,8 +772,11 @@ async function openVideoGallery() {
 // Size the overlay slider to the image aspect + the real viewport (the
 // compare-slider base CSS fills its container; inline w/h wins).
 function fitGallerySlider() {
-  if (!galleryBefore.naturalWidth || !galleryBefore.naturalHeight) return;
-  const r = galleryBefore.naturalWidth / galleryBefore.naturalHeight;
+  // In extend mode the extended canvas is the reference (the original is
+  // shown inside it via the toggle), so size the overlay to the AFTER image.
+  const ref = gallerySlider.classList.contains('extend-toggle-mode') ? galleryAfter : galleryBefore;
+  if (!ref.naturalWidth || !ref.naturalHeight) return;
+  const r = ref.naturalWidth / ref.naturalHeight;
   const vw = window.innerWidth, vh = window.innerHeight;
   // Maximize the available area: the slider fills the viewport (object-fit
   // contain letterboxes the images inside).
@@ -753,6 +786,7 @@ function fitGallerySlider() {
   gallerySlider.style.height = h + 'px';
 }
 galleryBefore.addEventListener('load', fitGallerySlider);
+galleryAfter.addEventListener('load', fitGallerySlider);
 window.addEventListener('resize', () => { if (galleryMode === 'compare') fitGallerySlider(); });
 
 // ── Download (currently shown image) ───────

@@ -116,6 +116,37 @@ function readEditExtendParams() {
   };
 }
 
+// Extend results have a different canvas size than the source, so the
+// overlay slider is replaced by an Original/Extended toggle (one image at a
+// time). The slider container is reused for the two <img> layers.
+function setEditExtendView(showOriginal) {
+  const slider = document.getElementById('editCompare');
+  const originalBtn = document.getElementById('editExtendOriginalBtn');
+  const resultBtn = document.getElementById('editExtendResultBtn');
+  const original = !!showOriginal;
+  if (slider) slider.classList.toggle('show-original', original);
+  if (originalBtn) {
+    originalBtn.classList.toggle('active', original);
+    originalBtn.setAttribute('aria-pressed', String(original));
+  }
+  if (resultBtn) {
+    resultBtn.classList.toggle('active', !original);
+    resultBtn.setAttribute('aria-pressed', String(!original));
+  }
+}
+
+function configureEditExtendToggle(enabled) {
+  const slider = document.getElementById('editCompare');
+  const toggle = document.getElementById('editExtendToggle');
+  const on = !!enabled;
+  if (slider) {
+    slider.classList.toggle('extend-toggle-mode', on);
+    if (!on) slider.classList.remove('show-original');
+  }
+  if (toggle) toggle.style.display = on ? 'flex' : 'none';
+  if (on) setEditExtendView(false); // default: show the extended result
+}
+
 function generateEdit(forceMode) {
   const src = getSourceUrl('edit');
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
@@ -175,6 +206,9 @@ function generateEdit(forceMode) {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
+      // Extend uses a toggle (different canvas sizes); the other modes keep
+      // the overlay slider.
+      configureEditExtendToggle(mode === 'extend');
       // Gallery marker: the edited/restored result joins the compare
       // gallery (identity = AFTER image); kind is the actual mode.
       cmp.dataset.gallery = '1';

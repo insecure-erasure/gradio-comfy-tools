@@ -1109,6 +1109,51 @@
   }
   .compare-slider .handle span:last-child { transform: rotate(-135deg); }
 
+  /* Extend comparison: the two canvases have different dimensions/aspect
+     ratios, so the overlay slider does not apply. Show the result full by
+     default and let the toggle reveal the original; no divider/handle. */
+  .compare-slider.extend-toggle-mode { cursor: default; }
+  .compare-slider.extend-toggle-mode .divider,
+  .compare-slider.extend-toggle-mode .handle,
+  .compare-slider.extend-toggle-mode .label { display: none; }
+  .compare-slider.extend-toggle-mode .after { clip-path: none; }
+  .compare-slider.extend-toggle-mode.show-original .after { display: none; }
+  .compare-slider.extend-toggle-mode:not(.show-original) .before { display: none; }
+
+  .extend-toggle {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 6;
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 999px;
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
+  .extend-toggle-btn {
+    border: 0;
+    background: transparent;
+    color: rgba(255,255,255,.65);
+    font: 500 .68rem/1 var(--font);
+    padding: 6px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .extend-toggle-btn:hover { color: #fff; }
+  .extend-toggle-btn.active { background: var(--accent); color: #fff; }
+  .output-pane.generating .extend-toggle { display: none !important; }
+  .gallery-extend-toggle {
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+  }
+
   /* ── Empty video player (no videos generated yet) ──
      The Video pane shows the REAL player controls even with no videos: the
      same bottom-centered cluster + progress bar, but DISABLED (.disabled:

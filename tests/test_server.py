@@ -682,6 +682,8 @@ def test_index_serves_extend_controls(client, tmp_config):
     assert 'id="editPadRight"' in html
     assert 'id="editFeather"' in html
     assert 'id="promptExtendBtn"' in html
+    assert 'id="editExtendToggle"' in html
+    assert 'id="galleryExtendToggle"' in html
 
 
 def test_api_loras(client, tmp_config, monkeypatch):

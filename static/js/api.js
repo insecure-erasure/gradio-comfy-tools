@@ -97,6 +97,7 @@ function clearPane(paneId) {
     delete el.dataset.kind;
     delete el.dataset.prompt;
   });
+  pane.querySelectorAll('.extend-toggle').forEach(el => { el.style.display = 'none'; });
   // The Video pane goes back to the empty (disabled) player when cleared.
   ensureEmptyVideoPlayer(pane);
 }

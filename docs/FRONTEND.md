@@ -200,7 +200,10 @@ empty and the prompt fills it; see also deviation 14):
 
 - **Output pane**: collapsible URL field (bottom-left) + 📁/🔗 buttons
   (bottom-right, 📁 just left of 🔗) over the **compare slider**
-  (Original | Edited / Restored / Extended).
+  (Original | Edited / Restored). Extend results use an
+  **Original / Extended toggle** instead: the extended canvas has a different
+  size/aspect than the source, so the two images are shown one at a time
+  (`Extended` by default) rather than overlaid.
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
 - **Actions**: 🪄 refine · 🩹 Restore · 🧩 Extend · 🖌️ Edit. The Edit button
   requires a prompt; Restore and Extend are always active.
@@ -214,6 +217,9 @@ empty and the prompt fills it; see also deviation 14):
     canvas); feathering is `0–256` (default 40). A plain stepper click
     changes 1 px; holding accelerates through `1 → 2 → 4 → 8 → 16 → 32 →
     64` every 8 repeat ticks (400 ms delay, 80→25 ms interval).
+- **Extend result**: `#editCompare` reuses its two image layers but hides
+  the divider/handle/labels and shows a top-left `Original | Extended`
+  toggle (default `Extended`). The slider drag is disabled in this mode.
 
 ### 3.3 Face swap 👨🏻
 
@@ -768,7 +774,9 @@ never shown):
   (big image **edge to edge — `100vw/100vh`, no frame/radius** + Show
   prompt button + badge (click → original-prompt box) + ‹ › + N/M counter
   bottom-right + download top-left + close ✕ top-right), compare slider for
-  Edit/Upscale (interactive before/after, also maximized to the viewport).
+  Edit/Restore/Upscale (interactive before/after, also maximized to the
+  viewport). Extend entries use the top-center `Original | Extended` toggle
+  instead of the slider.
   The N/M counter and the ‹ › buttons are always visible; with a single
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate.

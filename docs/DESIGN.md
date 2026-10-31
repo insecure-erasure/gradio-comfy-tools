@@ -76,6 +76,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 2. **Edit has no mode radio** — the mode is chosen with the action chips:
    🖌️ Edit / 🩹 Restore / 🧩 Extend (order 🪄 · 🩹 · 🧩 · 🖌️; in the
    prompt field in landscape, inside the compact field / modal in portrait).
+   Edit/Restore keep the overlay slider; Extend uses an
+   Original/Extended toggle because the extended canvas has a different size.
 3. **LoRAs are managed exclusively via the advanced modal** — there is no
    dynamic list / `+ Add LoRA` button in the params pane; each tool
    configures LoRAs through the **visual row editor** of its modal
