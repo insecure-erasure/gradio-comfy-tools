@@ -214,11 +214,15 @@ empty and the prompt fills it; see also deviation 14):
   - **👣 Steps & seed** — shows `steps 🎲` (steps only when the seed is
     fixed — the dice disappears). Its popover holds, in order, the `👣
     Steps` stepper (1–15, default 6), the **🎨 Color match** stepper (0–1,
-    step 0.05, default 0.5; 0 = off) and the `🌱 Seed` stepper + `🎲` as the
-    **last row**. The same value feeds Edit, Restore and Extend
-    (`color_match` → `Color Match.strength`).
+    step 0.01, default 0.5; 0 = off; hold to accelerate 0.01 → 0.05 → 0.1)
+    and the `🌱 Seed` stepper + `🎲` as the **last row**. The same value
+    feeds Edit and Extend (`color_match` → `Color Match.strength`); Restore
+    forces it to 0 for now.
     The chip appends `🎨 0.5` while the value is > 0, before the dice
-    (e.g. `6 🎨 0.5 🎲`); the old `·` separators were removed.
+    (e.g. `6 🎨 0.5 🎲`); the old `·` separators were removed. Changing any
+    Extend padding (with at least one edge > 0) automatically sets the
+    strength to 1; pressing 🩹 Restore sets it to 0 (Restore does not use
+    ColorMatch for now, so the control reflects the actual run).
   - **⛶ Extend** — shows only the modified axes: `↔ h` and/or `↕ v` (e.g.
     `↔ 500`, `↕ 300`, `↔ 500 ↕ 300`); a zero axis is omitted. The ⛶ icon is
     hidden once any padding is set, and the chip shows `0` (with the icon)
@@ -259,7 +263,8 @@ empty and the prompt fills it; see also deviation 14):
 - **Params**: a single **👣 chip** over the prompt textarea (same design as
   Edit). Its popover holds, in order, the `🎚️ CFG` stepper (0–8, step 0.1;
   0 = no guidance), the `👣 Steps` stepper (1–15, default 6), the **🎨
-  Color match** stepper (0–1, step 0.05, default 0.5; 0 = off) and the
+  Color match** stepper (0–1, step 0.01, default 0.5; 0 = off; hold to
+  accelerate 0.01 → 0.05 → 0.1) and the
   `🌱 Seed` stepper + `🎲` as the **last row**. The chip reads
   `🎚️ 1.0 👣 6 🎨 0.5 🎲` (no `·` separators; the 🎨 part
   disappears at 0, and the dice is always last).

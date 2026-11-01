@@ -705,8 +705,10 @@ def test_index_serves_color_match_controls(client, tmp_config):
     # Edit (edit/restore/extend) and Face swap share the 👣 popover control.
     assert 'id="editColorMatch"' in html
     assert 'id="fsColorMatch"' in html
-    assert 'stepEditColorMatch' in html
-    assert 'stepFsColorMatch' in html
+    assert 'startEditColorMatchStep' in html
+    assert 'startFsColorMatchStep' in html
+    assert 'stopEditColorMatchStep' in html
+    assert 'stopFsColorMatchStep' in html
 
 
 def test_index_serves_source_history_controls(client, tmp_config):

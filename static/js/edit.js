@@ -49,6 +49,7 @@ function _setEditStepValue(field, value) {
   const el = document.getElementById(id);
   if (!el) return;
   el.value = String(Math.min(max, Math.max(0, Math.trunc(value))));
+  if (!isFeather) _autoSetExtendColorMatch();
   updatePromptChips();
 }
 
@@ -107,6 +108,7 @@ function onEditPadInput(field) {
   if (!el) return;
   const n = parseInt(el.value, 10);
   el.value = String(Number.isFinite(n) ? Math.min(EDIT_PAD_MAX, Math.max(0, n)) : 0);
+  _autoSetExtendColorMatch();
   updatePromptChips();
 }
 
@@ -336,6 +338,9 @@ function generateEdit(forceMode) {
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
   rememberSourceHistory('edit', src);
   const mode = forceMode || 'edit';
+  // Restore does not use ColorMatch for now: make the control reflect the
+  // actual run (0) so the chip cannot show a misleading strength.
+  if (mode === 'restore') _setEditColorMatchValue(0);
   const extendParams = mode === 'extend' ? readEditExtendParams() : null;
   if (extendParams && !(extendParams.left || extendParams.top || extendParams.right || extendParams.bottom)) {
     return showToast('Set at least one edge to extend');
@@ -518,13 +523,60 @@ function getEditColorMatchValue() {
   return _editColorMatchNumber(document.getElementById(EDIT_COLOR_MATCH_ID), 0);
 }
 
-function stepEditColorMatch(d) {
+function _applyEditColorMatchStep(d) {
   const el = document.getElementById(EDIT_COLOR_MATCH_ID);
   if (!el) return;
   const next = Math.min(1, Math.max(0, Math.round((_editColorMatchNumber(el) + d) * 100) / 100));
   el.value = String(next);
   updatePromptChips();
-  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+// ── ColorMatch hold-to-repeat (acceleration) ──
+// Same feel as the LoRA strength stepper: a plain click applies one 0.01
+// step; after ~400 ms the repeat kicks in at ~80 ms/step and speeds up to
+// ~25 ms, while the step grows 0.01 -> 0.05 -> 0.1. Persist only when the
+// hold ends (not on every accelerated tick).
+let _editColorStepCfg = null;
+let _editColorStepTimer = null;
+let _editColorStepInterval = null;
+let _editColorStepGuarded = false;
+
+function _editColorRepeat() {
+  const c = _editColorStepCfg;
+  if (!c) { stopEditColorMatchStep(); return; }
+  c.ticks++;
+  const scale = c.ticks < 8 ? 1 : c.ticks < 20 ? 5 : 10;
+  _applyEditColorMatchStep(c.delta * scale);
+  const ms = Math.max(25, 80 - c.ticks * 2);
+  clearInterval(_editColorStepInterval);
+  _editColorStepInterval = setInterval(_editColorRepeat, ms);
+}
+
+function _ensureEditColorStepGuards() {
+  if (_editColorStepGuarded) return;
+  _editColorStepGuarded = true;
+  document.addEventListener('pointerup', stopEditColorMatchStep);
+  document.addEventListener('pointercancel', stopEditColorMatchStep);
+  window.addEventListener('blur', stopEditColorMatchStep);
+}
+
+function startEditColorMatchStep(delta, ev) {
+  if (ev) ev.preventDefault(); // no text selection / focus steal on hold
+  _ensureEditColorStepGuards();
+  stopEditColorMatchStep();
+  _applyEditColorMatchStep(delta); // instant first step (plain click)
+  _editColorStepCfg = { delta, ticks: 0 };
+  _editColorStepTimer = setTimeout(() => {
+    _editColorStepInterval = setInterval(_editColorRepeat, 80);
+  }, 400);
+}
+
+function stopEditColorMatchStep() {
+  const had = !!_editColorStepCfg;
+  if (_editColorStepTimer) { clearTimeout(_editColorStepTimer); _editColorStepTimer = null; }
+  if (_editColorStepInterval) { clearInterval(_editColorStepInterval); _editColorStepInterval = null; }
+  _editColorStepCfg = null;
+  if (had && typeof savePersistedState === 'function') savePersistedState();
 }
 
 function onEditColorMatchInput() {
@@ -542,6 +594,28 @@ function onEditColorMatchInput() {
     el.value = String(Math.min(1, Math.max(0, Number.isFinite(n) ? n : 0)));
   }
   updatePromptChips();
+}
+
+// Change the ColorMatch strength programmatically (used by the Restore
+// action and by the Extend padding auto-set).
+function _setEditColorMatchValue(value) {
+  const el = document.getElementById(EDIT_COLOR_MATCH_ID);
+  if (!el) return;
+  const n = parseFloat(value);
+  const clamped = Number.isFinite(n) ? Math.min(1, Math.max(0, Math.round(n * 100) / 100)) : 0;
+  if (parseFloat(el.value) === clamped) return;
+  el.value = String(clamped);
+  updatePromptChips();
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+// Extend always benefits from full source-color matching: any padding change
+// with at least one edge > 0 sets the ColorMatch strength to 1. (Feathering is
+// not a canvas dimension and does not trigger this.)
+function _autoSetExtendColorMatch() {
+  const anyPad = ['left', 'right', 'top', 'bottom']
+    .some(field => getEditPadValue(field) > 0);
+  if (anyPad) _setEditColorMatchValue(1);
 }
 
 // ── ↺ Reset ───────────────────────────────

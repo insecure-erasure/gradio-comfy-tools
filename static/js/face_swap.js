@@ -462,14 +462,59 @@ function _fsColorMatchNumber(el, fallback = 0) {
 function getFsColorMatchValue() {
   return _fsColorMatchNumber(document.getElementById(FS_COLOR_MATCH_ID), 0);
 }
-function stepFsColorMatch(d) {
+function _applyFsColorMatchStep(d) {
   const el = document.getElementById(FS_COLOR_MATCH_ID);
   if (!el) return;
   const next = Math.min(1, Math.max(0, Math.round((_fsColorMatchNumber(el) + d) * 100) / 100));
   el.value = String(next);
   _fsSyncChip();
-  if (typeof savePersistedState === 'function') savePersistedState();
 }
+
+// Same hold-to-repeat acceleration as the Edit ColorMatch and LoRA
+// strength steppers: 0.01 per click, 0.01 -> 0.05 -> 0.1 while holding.
+let _fsColorStepCfg = null;
+let _fsColorStepTimer = null;
+let _fsColorStepInterval = null;
+let _fsColorStepGuarded = false;
+
+function _fsColorRepeat() {
+  const c = _fsColorStepCfg;
+  if (!c) { stopFsColorMatchStep(); return; }
+  c.ticks++;
+  const scale = c.ticks < 8 ? 1 : c.ticks < 20 ? 5 : 10;
+  _applyFsColorMatchStep(c.delta * scale);
+  const ms = Math.max(25, 80 - c.ticks * 2);
+  clearInterval(_fsColorStepInterval);
+  _fsColorStepInterval = setInterval(_fsColorRepeat, ms);
+}
+
+function _ensureFsColorStepGuards() {
+  if (_fsColorStepGuarded) return;
+  _fsColorStepGuarded = true;
+  document.addEventListener('pointerup', stopFsColorMatchStep);
+  document.addEventListener('pointercancel', stopFsColorMatchStep);
+  window.addEventListener('blur', stopFsColorMatchStep);
+}
+
+function startFsColorMatchStep(delta, ev) {
+  if (ev) ev.preventDefault();
+  _ensureFsColorStepGuards();
+  stopFsColorMatchStep();
+  _applyFsColorMatchStep(delta);
+  _fsColorStepCfg = { delta, ticks: 0 };
+  _fsColorStepTimer = setTimeout(() => {
+    _fsColorStepInterval = setInterval(_fsColorRepeat, 80);
+  }, 400);
+}
+
+function stopFsColorMatchStep() {
+  const had = !!_fsColorStepCfg;
+  if (_fsColorStepTimer) { clearTimeout(_fsColorStepTimer); _fsColorStepTimer = null; }
+  if (_fsColorStepInterval) { clearInterval(_fsColorStepInterval); _fsColorStepInterval = null; }
+  _fsColorStepCfg = null;
+  if (had && typeof savePersistedState === 'function') savePersistedState();
+}
+
 function onFsColorMatchInput() {
   const el = document.getElementById(FS_COLOR_MATCH_ID);
   if (!el) return;

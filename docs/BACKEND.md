@@ -251,11 +251,16 @@ never overridden. `variability` with any other family is rejected (`400`).
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
 | 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
-| 🎨 Color match | `color_match` (0–1, default 0.5; 0 = off) | `Color Match` → `strength` |
+| 🎨 Color match | `color_match` (0–1, UI default 0.5; 0 = off; step 0.01) | `Color Match` → `strength` |
 | Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar; optional in restore) | `prompt` | `Prompt` |
 
-Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): `SamplerCustomAdvanced` + `Flux2Scheduler` (steps) + `CFGGuider` (cfg 1) + `KSamplerSelect` (euler) + `RandomNoise` (seed). The negative conditioning is the `ConditioningZeroOut` of the positive `ReferenceLatent` (no separate negative ReferenceLatent). The result goes **`VAE Decode` → `Color Match` → `Random Preview Image`**: `Color Match` uses the **original source** as `image_ref` and the decoded result as `image_target` (`method: mkl`, `strength` = `color_match`, `multithread: true`). The node ships at `strength 0.0` (a no-op) so API clients that omit `color_match` keep the previous visual behaviour; the UI sends 0.5 by default. `strength 0` returns the decoded image unchanged. **Tuning note (Restore)**: a high strength also preserves the source's colour cast — which may be the degradation being repaired — so validate Restore with faded/low-quality inputs and lower the value if the restoration is being undone. The previous `Upscale Image (using Model)` / `Load Upscale Model` (1xSkinContrast) stage was removed, so the result is no longer upscaled/skin-contrasted.
+**UI behaviour**: pressing 🩹 Restore sends `color_match = 0` (Restore does
+not use ColorMatch for now); changing an Extend padding with at least one
+edge > 0 sets it to 1. The stepper advances 0.01 per click and accelerates
+while held (0.01 → 0.05 → 0.1).
+
+Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): `SamplerCustomAdvanced` + `Flux2Scheduler` (steps) + `CFGGuider` (cfg 1) + `KSamplerSelect` (euler) + `RandomNoise` (seed). The negative conditioning is the `ConditioningZeroOut` of the positive `ReferenceLatent` (no separate negative ReferenceLatent). The result goes **`VAE Decode` → `Color Match` → `Random Preview Image`**: `Color Match` uses the **original source** as `image_ref` and the decoded result as `image_target` (`method: mkl`, `strength` = `color_match`, `multithread: true`). The node ships at `strength 0.0` (a no-op) so API clients that omit `color_match` keep the previous visual behaviour; the UI sends 0.5 by default for Edit/Extend and 0 for Restore. `strength 0` returns the decoded image unchanged. **Tuning note (Restore, API only)**: the UI disables it for Restore; if an API client enables it, a high strength also preserves the source's colour cast — which may be the degradation being repaired — so validate with faded/low-quality inputs. The previous `Upscale Image (using Model)` / `Load Upscale Model` (1xSkinContrast) stage was removed, so the result is no longer upscaled/skin-contrasted.
 
 Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `GetImage_(Width&Height) _O` (feeds `Flux2Scheduler`), `ConditioningZeroOut`, `Concatenate`, `ColorMatch`; output: `Random Preview Image`.
 
