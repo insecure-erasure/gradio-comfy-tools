@@ -25,10 +25,13 @@
   /* The video player's fullscreen button renders an SVG icon (no emoji
      glyph — see player.js ICONS). */
   .video-fs-btn svg { width: 16px; height: 16px; }
-  /* Bottom-right cluster: 🔗 (use previous) at the corner, 📁 (upload)
-     just to its LEFT (right: 48px = 30px button + 12px gap + 6px space). */
+  /* Bottom-right cluster (right → left): 🔗 at the corner, then the
+     upload/history buttons, 36px apart (30px button + 6px gap).
+     Edit/Upscale/Video: 🔗 · 📁 · 🕘. Face swap: 🔗 · 👨🏻 · 🖼️ · 🕘. */
   .output-overlay-btn.bottom-right { bottom: 12px; right: 12px; }
   .output-overlay-btn.bottom-right-left { bottom: 12px; right: 48px; }
+  .output-overlay-btn.bottom-right-left2 { bottom: 12px; right: 84px; }
+  .output-overlay-btn.bottom-right-left3 { bottom: 12px; right: 120px; }
   /* Pane navigation ‹ › (normal view): vertically-centered side buttons
      on the output pane — the same navigation as the fullscreen gallery
      but without leaving the app. Visible when the tool's gallery holds
@@ -195,12 +198,6 @@
     box-shadow: 0 2px 10px rgba(0,0,0,.45);
     z-index: 4;
     pointer-events: none;
-  }
-  /* Third bottom-right overlay slot (upload base 🖼️ sits left of the face
-     upload 🧔, which sits left of 🔗). */
-  .output-overlay-btn.bottom-right-left2 {
-    bottom: 12px;
-    right: 84px;
   }
   /* Extracted-face preview: after a face swap (and DURING the run, as soon
      as the workflow's face-preview node executes), the extracted face — a
@@ -908,6 +905,83 @@
   }
   .chip-popover .check-label { white-space: nowrap; }
   .chip-popover .gen-dim { width: 100%; }
+
+  /* Source history popover (🕘): recent source images for the active tool,
+     with thumbnails. Anchored by source.js above the clock button; closes on
+     click-outside / Esc / tab switch. */
+  .source-history-popover {
+    position: fixed;
+    z-index: 460;              /* above #chipPopover (450) */
+    display: none;
+    width: 320px;
+    max-width: calc(100vw - 16px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 34px rgba(0,0,0,.4);
+    padding: 12px;
+  }
+  .source-history-popover.show { display: block; }
+  .source-history-title {
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+  .source-history-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    max-height: min(52vh, 360px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .source-history-item {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #000;
+    color: var(--text-secondary);
+    font: inherit;
+    text-align: left;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .source-history-item:hover { border-color: var(--accent); }
+  .source-history-item.current {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+  .source-history-item img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: #000;
+  }
+  /* A dead temp file / unreachable URL still shows its slot (the user can
+     try to restore it); the browser's alt text + dimming signal the problem. */
+  .source-history-item img.broken { opacity: .25; }
+  .source-history-label {
+    display: block;
+    padding: 4px 6px;
+    font-size: .6rem;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .source-history-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+  .source-history-pair img { aspect-ratio: 1; }
   .extend-info {
     margin: -2px 0 9px;
     padding-bottom: 8px;

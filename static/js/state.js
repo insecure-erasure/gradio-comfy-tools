@@ -10,6 +10,14 @@ let baseUrl = '';
 // fill the Edit/Upscale/Video source field (chaining).
 let lastGeneratedUrl = null;
 
+// Per-tab recent SOURCE images (newest first) shown by the 🕘 button in each
+// source pane: Edit/Upscale/Video hold [{ value, ts }]; Face swap holds
+// [{ base, face, ts }] pairs. Restoring one reloads the field + preview so a
+// previous run can be retried after its result replaced the source preview.
+// Persisted in localStorage (storage.js) and capped per tab.
+const SOURCE_HISTORY_MAX = 8;
+let sourceHistory = { edit: [], upscale: [], video: [], face_swap: [] };
+
 // Active tab id ('generate' | 'edit' | 'face_swap' | 'upscale' | 'video').
 let currentTab = 'generate';
 

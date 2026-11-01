@@ -670,6 +670,19 @@ def test_index_serves_face_swap_tab(client, tmp_config):
     assert 'face_swap.js' in html
 
 
+def test_index_serves_source_history_controls(client, tmp_config):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+    # 🕘 per-tab history buttons + the shared thumbnail popover.
+    assert 'id="sourceHistoryPopover"' in html
+    assert 'id="sourceHistoryTitle"' in html
+    assert 'id="sourceHistoryGrid"' in html
+    for btn in ("editHistoryBtn", "upscaleHistoryBtn", "videoHistoryBtn",
+                "faceSwapHistoryBtn"):
+        assert f'id="{btn}"' in html
+
+
 def test_index_serves_extend_controls(client, tmp_config):
     resp = client.get("/")
     assert resp.status_code == 200

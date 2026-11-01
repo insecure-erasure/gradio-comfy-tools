@@ -4,6 +4,7 @@
 function generateVideo() {
   const src = getSourceUrl('video');
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
+  rememberSourceHistory('video', src);
   const mv = document.getElementById('videoModelVersion')?.value || 'wan21';
   const frames = parseInt(document.getElementById('videoFrames')?.value) || 81;
   const steps = parseInt(document.getElementById('videoSteps')?.value) || 4;

@@ -25,10 +25,12 @@
             <button class="source-url-confirm" onclick="fsConfirm('base')" title="Load base image">✓</button>
           </div>
           <!-- Bottom-right cluster (right → left): 🔗 previous generation →
-               base field | 👨🏻 upload face | 🖼️ upload base -->
+               base field | 👨🏻 upload face | 🖼️ upload base | 🕘 source
+               history (base+face pairs). -->
           <button class="output-overlay-btn bottom-right-left2" onclick="fsUpload('base')" title="Upload base image">🖼️</button>
           <button class="output-overlay-btn bottom-right-left" onclick="fsUpload('face')" title="Upload face image">👨🏻</button>
           <button class="output-overlay-btn bottom-right" onclick="fsUsePrevious()" title="Use previous generation as base">🔗</button>
+          <button class="output-overlay-btn bottom-right-left3 source-history-btn" id="faceSwapHistoryBtn" onclick="openSourceHistory('face_swap', this)" title="Recent base + face sources">🕘</button>
           <!-- Compare slider: the RESULT of a face swap is shown as the
                before/after comparison (Original | Face swapped) — the same
                presentation as Edit. -->

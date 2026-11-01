@@ -28,6 +28,207 @@ function getSourceUrl(tab) {
   return input ? input.value.trim() : '';
 }
 
+// ── Recent source history (🕘) ─────────────
+// Keeps the last SOURCE images loaded/used per tab so a previous run can be
+// retried after its result replaced the source preview. Single-source tabs
+// store { value }; Face swap stores { base, face } pairs.
+let _sourceHistoryTab = null;
+
+// Restore/normalize the persisted history (called by storage.js on startup).
+// Bad entries are dropped; duplicates are removed; each list is capped.
+function restoreSourceHistory(data) {
+  if (!data || typeof data !== 'object') return;
+  ['edit', 'upscale', 'video'].forEach(tab => {
+    const list = Array.isArray(data[tab]) ? data[tab] : [];
+    const seen = new Set();
+    const out = [];
+    for (const e of list) {
+      const value = e && typeof e.value === 'string' ? e.value.trim() : '';
+      if (!value || seen.has(value)) continue;
+      seen.add(value);
+      out.push({ value, ts: Number(e.ts) || 0 });
+      if (out.length >= SOURCE_HISTORY_MAX) break;
+    }
+    sourceHistory[tab] = out;
+  });
+  const pairs = Array.isArray(data.face_swap) ? data.face_swap : [];
+  const seenPairs = new Set();
+  const out = [];
+  for (const e of pairs) {
+    const base = e && typeof e.base === 'string' ? e.base.trim() : '';
+    const face = e && typeof e.face === 'string' ? e.face.trim() : '';
+    const key = base + '\u0000' + face;
+    if (!base || !face || seenPairs.has(key)) continue;
+    seenPairs.add(key);
+    out.push({ base, face, ts: Number(e.ts) || 0 });
+    if (out.length >= SOURCE_HISTORY_MAX) break;
+  }
+  sourceHistory.face_swap = out;
+}
+
+// Remember a single-source image (Edit/Upscale/Video). Deduplicated and
+// moved to the front; capped at SOURCE_HISTORY_MAX.
+function rememberSourceHistory(tab, value) {
+  value = (value || '').trim();
+  if (!value || !Array.isArray(sourceHistory[tab])) return;
+  const list = sourceHistory[tab];
+  if (list[0] && list[0].value === value) return; // already the newest
+  const idx = list.findIndex(e => e.value === value);
+  if (idx >= 0) list.splice(idx, 1);
+  list.unshift({ value, ts: Date.now() });
+  if (list.length > SOURCE_HISTORY_MAX) list.length = SOURCE_HISTORY_MAX;
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+// Remember a Face swap base+face pair (both are required for a real retry).
+function rememberFaceSwapHistory(base, face) {
+  base = (base || '').trim();
+  face = (face || '').trim();
+  if (!base || !face) return;
+  const list = sourceHistory.face_swap;
+  if (list[0] && list[0].base === base && list[0].face === face) return;
+  const idx = list.findIndex(e => e.base === base && e.face === face);
+  if (idx >= 0) list.splice(idx, 1);
+  list.unshift({ base, face, ts: Date.now() });
+  if (list.length > SOURCE_HISTORY_MAX) list.length = SOURCE_HISTORY_MAX;
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+// Short filename for a history card's caption.
+function sourceHistoryLabel(value) {
+  try {
+    if (/\/view\?/.test(value)) {
+      const q = new URLSearchParams(value.split('?')[1] || '');
+      return q.get('filename') || 'Image';
+    }
+    if (/^\/media\//.test(value)) {
+      return decodeURIComponent(value.split('?')[0].split('/').pop() || 'Image');
+    }
+    if (/^https?:\/\//i.test(value)) {
+      const u = new URL(value);
+      return decodeURIComponent(u.pathname.split('/').pop() || u.hostname) || 'Image';
+    }
+  } catch (e) { /* fall through */ }
+  return value.split('/').pop() || 'Image';
+}
+
+function _historyThumb(value, alt) {
+  const img = document.createElement('img');
+  img.src = proxiedSrc(value);
+  img.alt = alt;
+  img.loading = 'lazy';
+  img.draggable = false;
+  img.addEventListener('error', () => img.classList.add('broken'));
+  return img;
+}
+
+function renderSourceHistoryGrid(tab) {
+  const grid = document.getElementById('sourceHistoryGrid');
+  if (!grid) return;
+  const list = sourceHistory[tab] || [];
+  // The value(s) currently in the fields, to mark the active entry.
+  const curBase = tab === 'face_swap' && typeof fsSource === 'function' ? fsSource('base') : '';
+  const curFace = tab === 'face_swap' && typeof fsSource === 'function' ? fsSource('face') : '';
+  const curValue = tab === 'face_swap' ? '' : getSourceUrl(tab);
+  grid.replaceChildren();
+  list.forEach((entry, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'source-history-item';
+    btn.title = tab === 'face_swap'
+      ? `Base: ${entry.base}\nFace: ${entry.face}`
+      : entry.value;
+    const current = tab === 'face_swap'
+      ? (curBase === entry.base && curFace === entry.face)
+      : (curValue === entry.value);
+    if (current) btn.classList.add('current');
+    btn.onclick = () => restoreHistorySource(tab, i);
+    if (tab === 'face_swap') {
+      const pair = document.createElement('span');
+      pair.className = 'source-history-pair';
+      pair.appendChild(_historyThumb(entry.base, 'Base'));
+      pair.appendChild(_historyThumb(entry.face, 'Face'));
+      btn.appendChild(pair);
+      const label = document.createElement('span');
+      label.className = 'source-history-label';
+      label.textContent = 'Base + Face';
+      btn.appendChild(label);
+    } else {
+      btn.appendChild(_historyThumb(entry.value, 'Source'));
+      const label = document.createElement('span');
+      label.className = 'source-history-label';
+      label.textContent = sourceHistoryLabel(entry.value);
+      btn.appendChild(label);
+    }
+    grid.appendChild(btn);
+  });
+}
+
+function closeSourceHistory() {
+  _sourceHistoryTab = null;
+  const pop = document.getElementById('sourceHistoryPopover');
+  if (pop) pop.classList.remove('show');
+}
+
+function openSourceHistory(tab, btn) {
+  const pop = document.getElementById('sourceHistoryPopover');
+  const grid = document.getElementById('sourceHistoryGrid');
+  const title = document.getElementById('sourceHistoryTitle');
+  if (!pop || !grid || !btn) return;
+  const list = sourceHistory[tab] || [];
+  if (!list.length) {
+    showToast(tab === 'face_swap'
+      ? 'No recent base + face pairs yet'
+      : 'No recent source images yet');
+    return;
+  }
+  if (pop.classList.contains('show') && _sourceHistoryTab === tab) {
+    closeSourceHistory();
+    return;
+  }
+  _sourceHistoryTab = tab;
+  if (title) title.textContent = tab === 'face_swap' ? 'Recent base + face' : 'Recent sources';
+  renderSourceHistoryGrid(tab);
+  // Show first so offsetWidth/Height are measurable, then anchor ABOVE the
+  // button (right-aligned), falling back below when there is no room.
+  pop.classList.add('show');
+  const r = btn.getBoundingClientRect();
+  const pw = pop.offsetWidth || 320;
+  const ph = pop.offsetHeight || 200;
+  const left = Math.min(Math.max(8, r.right - pw), window.innerWidth - pw - 8);
+  let top = r.top - ph - 8;
+  if (top < 8) top = Math.min(window.innerHeight - ph - 8, r.bottom + 8);
+  pop.style.left = Math.max(8, left) + 'px';
+  pop.style.top = Math.max(8, top) + 'px';
+}
+
+function restoreHistorySource(tab, index) {
+  const entry = (sourceHistory[tab] || [])[index];
+  if (!entry) return;
+  closeSourceHistory();
+  if (tab === 'face_swap') {
+    if (typeof restoreFaceSwapHistorySource === 'function') restoreFaceSwapHistorySource(entry);
+    return;
+  }
+  const input = document.getElementById(`${tab}SourceUrl`);
+  if (!input) return;
+  input.value = entry.value;
+  previewSourceImage(tab, entry.value);
+  flashSourceField(tab);
+  showToast('Previous source restored');
+}
+
+// Dismiss on click-outside / Esc / resize. The clock buttons are exempt so
+// their own onclick can toggle the popover.
+document.addEventListener('click', e => {
+  if (e.target.closest('#sourceHistoryPopover, .source-history-btn')) return;
+  closeSourceHistory();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSourceHistory();
+});
+window.addEventListener('resize', closeSourceHistory);
+
 // Resolve a source value (external URL, /media/.., {base}/view?.., bare
 // temp filename) to a SAME-ORIGIN proxy URL for the compare-slider BEFORE
 // image. The pane cannot load the ComfyUI host URL directly (CORS /
@@ -230,6 +431,8 @@ function previewSourceImage(tab, src) {
     if (tab === 'edit' || tab === 'upscale') {
       setSourceDimensions(tab, img.naturalWidth, img.naturalHeight);
     }
+    // Keep the 🕘 history fresh (a confirmed/uploaded/chained source).
+    rememberSourceHistory(tab, src);
   });
   img.addEventListener('error', () => clearSourceDimensions(tab));
   img.src = proxiedSrc(src);

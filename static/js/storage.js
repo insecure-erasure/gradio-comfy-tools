@@ -39,6 +39,9 @@ function savePersistedState() {
       videos: window.galleryVideos || [],
       comparisons: window.galleryComparisons || [],
     },
+    // Per-tab recent source images (🕘 popover). Small: capped at
+    // SOURCE_HISTORY_MAX entries per tab.
+    sourceHistory,
   };
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* disabled */ }
 }
@@ -101,6 +104,10 @@ function restorePersistedState() {
       });
     }
     if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
+  }
+  // Per-tab recent source images (restored + validated/capped in source.js).
+  if (data.sourceHistory && typeof restoreSourceHistory === 'function') {
+    restoreSourceHistory(data.sourceHistory);
   }
   // keep params to re-apply after the auto-steps recalc (applyPersistedParams)
   window.__persistedParams = data.params || null;
@@ -246,6 +253,7 @@ function resetAllUserData() {
   window.galleryGenerated = [];
   window.galleryVideos = [];
   window.galleryComparisons = [];
+  sourceHistory = { edit: [], upscale: [], video: [], face_swap: [] };
   toolbarValues = { genFamily: 'krea2', vidVersion: 'wan21' };
   promptsByTab = { generate: '', edit: '', video: '', face_swap: '' };
   window.advancedValues = {};

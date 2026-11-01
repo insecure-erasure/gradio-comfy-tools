@@ -330,6 +330,7 @@ function configureEditExtendToggle(enabled) {
 function generateEdit(forceMode) {
   const src = getSourceUrl('edit');
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
+  rememberSourceHistory('edit', src);
   const mode = forceMode || 'edit';
   const extendParams = mode === 'extend' ? readEditExtendParams() : null;
   if (extendParams && !(extendParams.left || extendParams.top || extendParams.right || extendParams.bottom)) {

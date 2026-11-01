@@ -100,7 +100,14 @@ function fsPreviewBase(value) {
   const img = document.createElement('img');
   img.className = 'source-preview';
   img.alt = 'Base image preview';
-  img.addEventListener('load', () => fsSetDimensions('base', img.naturalWidth, img.naturalHeight));
+  img.addEventListener('load', () => {
+    fsSetDimensions('base', img.naturalWidth, img.naturalHeight);
+    // Keep the 🕘 history fresh once BOTH sources have a live preview (use
+    // the value this preview was created for, not a possibly edited field).
+    if (pane.querySelector('.face-ref-overlay')) {
+      rememberFaceSwapHistory(value, fsSource('face'));
+    }
+  });
   img.addEventListener('error', () => fsClearDimensions('base'));
   img.src = proxiedSrc(value);
   pane.insertBefore(img, pane.firstChild);
@@ -116,7 +123,14 @@ function fsPreviewFace(value) {
   const img = document.createElement('img');
   img.className = 'face-ref-overlay';
   img.alt = 'Face reference';
-  img.addEventListener('load', () => fsSetDimensions('face', img.naturalWidth, img.naturalHeight));
+  img.addEventListener('load', () => {
+    fsSetDimensions('face', img.naturalWidth, img.naturalHeight);
+    // Keep the 🕘 history fresh once BOTH sources have a live preview (use
+    // the value this preview was created for, not a possibly edited field).
+    if (pane.querySelector('.source-preview')) {
+      rememberFaceSwapHistory(fsSource('base'), value);
+    }
+  });
   img.addEventListener('error', () => fsClearDimensions('face'));
   img.src = proxiedSrc(value);
   pane.appendChild(img);
@@ -218,12 +232,32 @@ function fsUsePrevious() {
   }
 }
 
+// Restore a base+face pair from the 🕘 history popover (source.js).
+function restoreFaceSwapHistorySource(entry) {
+  if (!entry) return;
+  const base = document.getElementById('faceSwapSourceUrl');
+  const face = document.getElementById('faceSwapFaceUrl');
+  if (base && entry.base) {
+    base.value = entry.base;
+    fsPreviewBase(entry.base);
+    fsFlash('base');
+  }
+  if (face && entry.face) {
+    face.value = entry.face;
+    fsPreviewFace(entry.face);
+    fsFlash('face');
+  }
+  showToast('Previous base + face restored');
+}
+
 // ── Action ─────────────────────────────────
 function generateFaceSwap() {
   const base = fsSource('base');
   const face = fsSource('face');
   if (!base) return showToast('No base image — paste a URL, upload 🖼️ or use 🔗');
   if (!face) return showToast('No face image — paste a URL or upload with 👨🏻');
+  // The exact pair just submitted is the most useful retry entry.
+  rememberFaceSwapHistory(base, face);
   const promptInput = document.getElementById('promptInputFaceSwap');
   const prompt = (promptInput ? promptInput.value : '').trim();
   const steps = parseInt(document.getElementById('fsSteps')?.value) || 6;

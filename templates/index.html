@@ -58,6 +58,15 @@
   <div class="chip-popover-body" id="chipPopoverBody"></div>
 </div>
 
+<!-- Source history popover (🕘 buttons): recent source images (or Face swap
+     base+face pairs) with thumbnails. Restoring one refills the source
+     field(s) and reloads the preview, so a previous run can be retried.
+     Closes on click-outside / Esc / tab switch (source.js). -->
+<div class="source-history-popover" id="sourceHistoryPopover" role="dialog" aria-label="Recent source images">
+  <div class="source-history-title" id="sourceHistoryTitle">Recent sources</div>
+  <div class="source-history-grid" id="sourceHistoryGrid"></div>
+</div>
+
 <!-- Scripts (plain scripts share the global scope; load order matters) -->
 <script src="/static/js/state.js?v={{ asset_version }}"></script>
 <script src="/static/js/storage.js?v={{ asset_version }}"></script>

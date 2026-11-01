@@ -198,8 +198,8 @@ empty and the prompt fills it; see also deviation 14):
 
 ### 3.2 Edit ✏️
 
-- **Output pane**: collapsible URL field (bottom-left) + 📁/🔗 buttons
-  (bottom-right, 📁 just left of 🔗) over the **compare slider**
+- **Output pane**: collapsible URL field (bottom-left) + 📁/🔗/🕘 buttons
+  (bottom-right, 📁 just left of 🔗 and 🕘 left of 📁) over the **compare slider**
   (Original | Edited / Restored). Extend results use an
   **Original / Extended toggle** instead: the extended canvas has a different
   size/aspect than the source, so the two images are shown one at a time
@@ -238,8 +238,8 @@ empty and the prompt fills it; see also deviation 14):
   (Picture 1, the image being edited, previewed full-canvas) and **face
   image** (Picture 2, the face to copy, previewed as a small reference
   overlay). Each field accepts a pasted URL (✓ validates) or an upload
-  (🖼️ base / 👨🏻 face); 🔗 fills the **base** with the last generated
-  image. The result is shown as a **compare slider** (Original | Face
+  (🖼️ base / 👨🏻 face) plus 🕘 recent base+face pairs; 🔗 fills the
+  **base** with the last generated image. The result is shown as a **compare slider** (Original | Face
   swapped), like Edit. While the sources are previewed, a discreet
   two-line badge above the bottom-right buttons shows the loaded sizes:
   `Base W × H` and `Face W × H` (each line appears once its image loads;
@@ -258,8 +258,8 @@ empty and the prompt fills it; see also deviation 14):
 
 ### 3.4 Upscale 🔍
 
-- **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over
-  the **compare slider** (Original | Upscaled). While the source preview is
+- **Output pane**: 📁 + URL field + 🔗 + 🕘 (bottom-right, 📁 left of 🔗,
+  🕘 left of 📁) over the **compare slider** (Original | Upscaled). While the source preview is
   shown, the same discreet `W × H` badge appears above the buttons.
 - **Toolbar**: ↺ only (no model, no ⚙️).
 - **Params**: the `🌱 Seed` stepper + `🎲` directly in the params pane —
@@ -275,8 +275,8 @@ empty and the prompt fills it; see also deviation 14):
 
 ### 3.5 Video 🎬
 
-- **Output pane**: 📁 + URL field + 🔗 (bottom-right, 📁 left of 🔗) over a
-  **custom video player** (`static/js/player.js`, replaces the native
+- **Output pane**: 📁 + URL field + 🔗 + 🕘 (bottom-right, 📁 left of 🔗,
+  🕘 left of 📁) over a **custom video player** (`static/js/player.js`, replaces the native
   controls): autoplay muted loop; bottom-centered **three identical
   circular buttons** (same size + style, hover accent — the icons are
   inline SVG, so no emoji/font-glyph differences across platforms):
@@ -480,6 +480,20 @@ empty player itself is **removed from the DOM** (not just hidden) when
 the result lands, so it cannot be resurrected by `stopProgressPolling` and
 push the `<video>` aside; `clearSourcePreview` re-creates it when the source
 preview is cleared. In the other tabs the preview behaves as before.
+
+**🕘 Recent sources**: each source pane (Edit/Upscale/Video and Face swap)
+has a clock button in the bottom-right cluster (left of 📁; Face swap adds
+a fourth slot). It opens a thumbnail popover with the last 8 source images
+**used by that tool** — uploads, confirmed URLs and chained generations —
+so a previous run can be retried after its result replaced the preview.
+Edit/Upscale/Video restore one image; Face swap stores and restores
+base+face **pairs**. Selecting an entry refills the field(s), reloads the
+preview and flashes the field like 🔗. History is captured on a successful
+preview load and on submit (the exact value used), deduplicated by value
+and persisted in localStorage (`sourceHistory` inside the main config key).
+The current value is highlighted; dead temp files may remain as dimmed
+thumbnails (the restore attempt simply fails to load). The popover closes on
+click-outside / Esc / tab switch (`source.js`).
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
 docs/BACKEND.md §6): external URL → checked directly; anything else → treated as

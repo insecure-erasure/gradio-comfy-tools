@@ -134,6 +134,8 @@ function switchTab(name) {
   closeTabsDropdown();
   // A chip popover left open on the old tab must not survive the switch.
   closeChipPopover();
+  // Same for the 🕘 source-history popover.
+  if (typeof closeSourceHistory === 'function') closeSourceHistory();
   // Lazy-restore the incoming tab's last result (only if its pane is empty
   // — a live session wins over persisted state).
   restoreTabResult(name);
@@ -331,6 +333,8 @@ document.addEventListener('click', (e) => {
 // (.btn-col) never leave the bar.
 function openPromptModal() {
   if (window.matchMedia('(min-width: 1024px)').matches) return; // portrait only
+  // The history popover would be covered by the modal — close it.
+  if (typeof closeSourceHistory === 'function') closeSourceHistory();
   const modal = document.getElementById('promptModal');
   if (!modal || modal.classList.contains('show')) return;
   const input = activePromptInput();

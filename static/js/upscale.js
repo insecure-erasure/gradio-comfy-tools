@@ -5,6 +5,7 @@
 function generateUpscale() {
   const src = getSourceUrl('upscale');
   if (!src) return showToast('No source image — paste a URL or use 🔗/📁');
+  rememberSourceHistory('upscale', src);
   const seedEl = document.getElementById('upscaleSeed');
   const randomEl = document.getElementById('upscaleSeedRandom');
   let seed;
