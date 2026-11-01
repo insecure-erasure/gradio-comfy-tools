@@ -686,6 +686,9 @@ def test_index_serves_extend_controls(client, tmp_config):
     assert 'id="galleryExtendToggle"' in html
     assert 'id="editExtendSourceDims"' in html
     assert 'id="editExtendOutputDims"' in html
+    # Live extension frame over the source preview.
+    assert 'id="editExtendPreview"' in html
+    assert 'id="editExtendPreviewSource"' in html
 
 
 def test_api_loras(client, tmp_config, monkeypatch):

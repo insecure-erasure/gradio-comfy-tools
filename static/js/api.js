@@ -88,6 +88,11 @@ function showResult(paneId, result, isVideo) {
 function clearPane(paneId) {
   const pane = document.getElementById(paneId);
   if (!pane) return;
+  // The live Extend frame lives in static markup inside the Edit pane: hide
+  // it and restore the source preview's inline layout before it is removed.
+  if (paneId === 'editOutputPane' && typeof clearEditExtendPreview === 'function') {
+    clearEditExtendPreview();
+  }
   pane.querySelectorAll('.result-img, .result-video, .video-player, .output-placeholder, .source-preview, .source-dimensions, .preview-live, .face-ref-overlay, .face-extract-overlay').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => {
     el.style.display = 'none';

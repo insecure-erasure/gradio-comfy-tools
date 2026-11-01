@@ -689,6 +689,8 @@ function closeChipPopover() {
   chipPopoverKind = null;
   const pop = document.getElementById('chipPopover');
   if (pop) pop.classList.remove('show');
+  // The Edit live Extend frame belongs to the ⛶ popover — hide it.
+  if (typeof updateEditExtendPreview === 'function') updateEditExtendPreview();
 }
 
 // Close when clicking outside the popover and the chips (a click on the

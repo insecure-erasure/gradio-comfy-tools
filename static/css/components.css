@@ -1155,6 +1155,33 @@
   }
   .compare-slider .handle span:last-child { transform: rotate(-135deg); }
 
+  /* Live Extend preview (⛶ popover): the dashed frame is the resulting
+     canvas (centered in the pane) and the inner guide marks the source
+     image at its REAL padding offset — strategy B, so asymmetric padding
+     is visible exactly as it will be generated. The source <img> itself is
+     repositioned by edit.js (#editExtendPreview). */
+  .extend-preview-overlay {
+    position: absolute;
+    z-index: 3;               /* above the preview, below buttons (z5) */
+    pointer-events: none;
+  }
+  .extend-preview-frame {
+    position: absolute;
+    inset: 0;
+    border: 1.5px dashed var(--accent);
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.35);
+  }
+  .extend-preview-source {
+    position: absolute;
+    border: 1px dashed rgba(255,255,255,.55);
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+  }
+  /* While the job runs the live preview replaces the source (see
+     liveHidden in api.js) — hide the frame with it. */
+  .output-pane.generating .extend-preview-overlay { display: none !important; }
+
   /* Extend comparison: the two canvases have different dimensions/aspect
      ratios, so the overlay slider does not apply. Show the result full by
      default and let the toggle reveal the original; no divider/handle. */

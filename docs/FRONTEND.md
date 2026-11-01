@@ -222,7 +222,12 @@ empty and the prompt fills it; see also deviation 14):
     64` every 8 repeat ticks (400 ms delay, 80→25 ms interval). The popover
     also shows `Source: W × H` and a live `Output ≈ W × H` estimate (the
     latter mirrors ImageScaleToTotalPixels + the conditional source-density
-    restore, without MP).
+    restore, without MP). While this popover is open, the source preview
+    shows a live dashed frame of the resulting canvas: the frame is centered
+    in the pane and the image sits at its **real padding offset** inside it
+    (asymmetric padding is visible), scaled down to fit. Padding is converted
+    from working-canvas pixels (`pad * src / work`) before drawing. The frame
+    disappears when the popover closes, the source changes, or a result lands.
 - **Extend result**: `#editCompare` reuses its two image layers but hides
   the divider/handle/labels and shows a top-left `Original | Extended`
   toggle (default `Extended`). The slider drag is disabled in this mode.

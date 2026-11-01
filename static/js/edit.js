@@ -13,6 +13,14 @@ const EDIT_FEATHER_MAX = 256;
 const EDIT_PAD_STEP_SIZES = [1, 2, 4, 8, 16, 32, 64];
 const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
 
+// Live Extend preview (⛶ popover). The dashed frame is the FINAL canvas
+// (centered in the pane) and the source image sits at its REAL padding
+// offset inside it, so asymmetric padding is visible. The frame/guide are
+// static markup in tab_edit.html (#editExtendPreview).
+// `bottom` leaves room for the source URL field + 📁/🔗 buttons.
+const EXTEND_PREVIEW_SAFE = { left: 12, right: 12, top: 12, bottom: 56 };
+let _extendPreviewRaf = 0;
+
 let _editStepCfg = null;
 let _editStepTimer = null;
 let _editStepInterval = null;
@@ -147,18 +155,145 @@ function estimateExtendOutputDims(source, params) {
 function updateEditExtendInfo() {
   const sourceEl = document.getElementById('editExtendSourceDims');
   const outputEl = document.getElementById('editExtendOutputDims');
-  if (!sourceEl && !outputEl) return;
   const source = typeof getSourceDimensions === 'function' ? getSourceDimensions('edit') : null;
-  if (!source) {
-    if (sourceEl) sourceEl.textContent = '—';
-    if (outputEl) outputEl.textContent = '—';
-    return;
-  }
-  if (sourceEl) sourceEl.textContent = `${source.width} × ${source.height}`;
+  if (sourceEl) sourceEl.textContent = source ? `${source.width} × ${source.height}` : '—';
   if (outputEl) {
-    const [outWidth, outHeight] = estimateExtendOutputDims(source, readEditExtendParams());
-    outputEl.textContent = `${outWidth} × ${outHeight}`;
+    if (!source) {
+      outputEl.textContent = '—';
+    } else {
+      const [outWidth, outHeight] = estimateExtendOutputDims(source, readEditExtendParams());
+      outputEl.textContent = `${outWidth} × ${outHeight}`;
+    }
   }
+  // The live frame follows the same controls + source dimensions.
+  updateEditExtendPreview();
+}
+
+// ── Live Extend preview ────────────────────
+// Geometry of the dashed frame drawn over the source preview while the
+// ⛶ popover is open. Padding is expressed in pixels of the 1.5 MP WORKING
+// canvas (the workflow scales the source before padding it), so it must be
+// converted to source-image pixels: pad_src = pad_work * src / work.
+function _extendPreviewGeometry(pane) {
+  const img = pane.querySelector('img.source-preview');
+  if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+
+  const params = readEditExtendParams();
+  if (!(params.left || params.top || params.right || params.bottom)) return null;
+
+  const srcW = img.naturalWidth;
+  const srcH = img.naturalHeight;
+  const [workW, workH] = scaleToTotalPixels(srcW, srcH, 1.5);
+
+  // x and y are converted independently (the workflow's source-density
+  // restore uses the same original/pre-pad ratio per axis).
+  const pl = params.left * srcW / workW;
+  const pr = params.right * srcW / workW;
+  const pt = params.top * srcH / workH;
+  const pb = params.bottom * srcH / workH;
+
+  const extW = srcW + pl + pr;
+  const extH = srcH + pt + pb;
+
+  const safe = EXTEND_PREVIEW_SAFE;
+  const availW = pane.clientWidth - safe.left - safe.right;
+  const availH = pane.clientHeight - safe.top - safe.bottom;
+  if (availW <= 0 || availH <= 0) return null;
+
+  // Fit the EXTENDED canvas in the free area (the source shrinks with it),
+  // so even the maximum padding stays fully visible.
+  const scale = Math.min(availW / extW, availH / extH);
+  if (!(scale > 0)) return null;
+
+  const frameW = extW * scale;
+  const frameH = extH * scale;
+
+  return {
+    img,
+    frameLeft: safe.left + (availW - frameW) / 2,
+    frameTop: safe.top + (availH - frameH) / 2,
+    frameW,
+    frameH,
+    // Strategy B: the source's real offset inside the frame.
+    srcLeft: pl * scale,
+    srcTop: pt * scale,
+    srcW: srcW * scale,
+    srcH: srcH * scale,
+  };
+}
+
+function clearEditExtendPreview() {
+  const pane = document.getElementById('editOutputPane');
+  const box = document.getElementById('editExtendPreview');
+  if (box) box.style.display = 'none';
+  if (!pane) return;
+  pane.classList.remove('extend-previewing');
+  pane.querySelectorAll('img.source-preview[data-extend-preview]').forEach(img => {
+    img.style.position = '';
+    img.style.width = '';
+    img.style.height = '';
+    img.style.left = '';
+    img.style.top = '';
+    img.style.margin = '';
+    delete img.dataset.extendPreview;
+  });
+}
+
+function updateEditExtendPreview() {
+  const pane = document.getElementById('editOutputPane');
+  const box = document.getElementById('editExtendPreview');
+  if (!pane || !box) return;
+
+  // Only while the ⛶ chip popover (the controls that define the padding) is
+  // open on the Edit tab.
+  const active = currentTab === 'edit'
+    && typeof chipPopoverKind !== 'undefined'
+    && chipPopoverKind === 'extend';
+  const geom = active ? _extendPreviewGeometry(pane) : null;
+  if (!geom) { clearEditExtendPreview(); return; }
+
+  box.style.display = 'block';
+  box.style.left = geom.frameLeft + 'px';
+  box.style.top = geom.frameTop + 'px';
+  box.style.width = geom.frameW + 'px';
+  box.style.height = geom.frameH + 'px';
+
+  const guide = document.getElementById('editExtendPreviewSource');
+  if (guide) {
+    guide.style.left = geom.srcLeft + 'px';
+    guide.style.top = geom.srcTop + 'px';
+    guide.style.width = geom.srcW + 'px';
+    guide.style.height = geom.srcH + 'px';
+  }
+
+  // Reposition the actual preview image inside the frame. Absolute so it no
+  // longer participates in the pane's flex centering; clearing restores it.
+  Object.assign(geom.img.style, {
+    position: 'absolute',
+    width: geom.srcW + 'px',
+    height: geom.srcH + 'px',
+    left: (geom.frameLeft + geom.srcLeft) + 'px',
+    top: (geom.frameTop + geom.srcTop) + 'px',
+    margin: '0',
+  });
+  geom.img.dataset.extendPreview = '1';
+  pane.classList.add('extend-previewing');
+}
+
+// Keep the frame in sync on window resize / rotation / relayout. rAF
+// coalesces the rapid updates from the accelerated steppers.
+function scheduleEditExtendPreview() {
+  if (_extendPreviewRaf) return;
+  _extendPreviewRaf = requestAnimationFrame(() => {
+    _extendPreviewRaf = 0;
+    updateEditExtendPreview();
+  });
+}
+
+window.addEventListener('resize', scheduleEditExtendPreview);
+if (typeof ResizeObserver === 'function') {
+  const _editPane = document.getElementById('editOutputPane');
+  if (_editPane) new ResizeObserver(scheduleEditExtendPreview).observe(_editPane);
 }
 
 // Extend results have a different canvas size than the source, so the
@@ -273,7 +408,10 @@ function generateEdit(forceMode) {
       // was a gallery image, its prompt becomes the badge hover hint.
       appendTransformedEntry(res, prompt, mode === 'restore' ? 'restored' : mode === 'extend' ? 'extended' : 'edited', src);
     }
-    // Hide any plain result image; the compare slider is the display
+    // Hide any plain result image; the compare slider is the display. The
+    // live Extend frame goes with the source preview (the static overlay
+    // would otherwise stay floating over the result).
+    clearEditExtendPreview();
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview, .source-dimensions').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
