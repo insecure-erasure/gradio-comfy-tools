@@ -24,8 +24,8 @@ expected result. Do not move to the next phase until the user validates it.
 | A4 | Video: `tools/video.py` + `dev/run_video.py` | ✅ |
 | A5 | Chaining: `dev/run_chain.py` + `normalize_source` | ✅ |
 | A6 | Acceptance: `check_env.py` OK, 55 tests green, chains validated | ✅ |
-| A7 | Face swap: `tools/face_swap.py` + `face_swap.json` + `/api/face-swap` + face-swap tab (two sources, compare slider) | ✅ |
-| A8 | Extend: `tools/extend.py` + `extend_image.json` + `mode="extend"` in Edit (padding/feathering, compare, gallery) | ✅ |
+| A7 | Face swap: `tools/face_swap.py` + `face_swap.json` + `/api/face-swap` + face-swap tab (two sources, compare slider, ColorMatch strength) | ✅ |
+| A8 | Extend: `tools/extend.py` + `extend_image.json` + `mode="extend"` in Edit (padding/feathering, ColorMatch strength, compare, gallery) | ✅ |
 
 Details of each A-phase remain below as reference (input contracts, per-node
 injections, manual validation steps).
@@ -110,7 +110,7 @@ flux2+LoRA restore — all 200 image/png, apple confirmed in browser.
 
 ### Goal
 `tools/edit.py`: edit/restore a source image (previous filename or external
-URL), with prompt, steps, seed and LoRAs.
+URL), with prompt, steps, seed, ColorMatch strength and LoRAs.
 
 ### Input contract
 | Parameter | Type / default | Rules |
@@ -120,6 +120,7 @@ URL), with prompt, steps, seed and LoRAs.
 | `prompt` | str, default "" | optional in restore |
 | `steps` | int, default 6 | 1–15 |
 | `seed` | int, default -1 | -1 = random |
+| `color_match` | float in [0, 1], default None | optional ColorMatch strength; None keeps the workflow default (0.0 = no-op); 0 = off |
 | `lora_config` | JSON array (optional) | Power Lora Loader slots |
 
 ### Injections
@@ -127,7 +128,8 @@ URL), with prompt, steps, seed and LoRAs.
 |---|---|
 | `Load Image (URL/Path)` | `source` + `url` / `image` (per detection); clears `Choose file to upload` |
 | `Prompt` | `value` = prompt (in restore, prefix + prompt) |
-| `KSampler` | `steps`, `seed` |
+| `Flux2Scheduler` / `RandomNoise` | `steps` / `seed` |
+| `Color Match` | `strength` = `color_match` (when provided) |
 | `Power Lora Loader (rgthree)` | adds restore LoRA + `lora_config` |
 
 ### Manual validation (A2) ✅

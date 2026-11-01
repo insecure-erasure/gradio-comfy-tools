@@ -70,9 +70,10 @@ Generation flow:
 The mockup evolved beyond the original DESIGN.md. The docs are already aligned with the mockup; the summary is here so nobody reimplements the old spec:
 
 1. **⚙️ Advanced**: the gear lives in the **per-tab nav toolbar** of
-   Generate, Edit and Video (with the model dropdown + ↺). Upscale has
-   **no gear** and no advanced fields (resolution/blend/color stay fixed in
-   the workflow; see BACKEND.md).
+   Generate, Edit, Face swap and Video (with the model dropdown + ↺ where
+   applicable). Face swap's modal is currently empty; Upscale has **no gear**
+   and no advanced fields (resolution/blend/color stay fixed in the workflow;
+   see BACKEND.md).
 2. **Edit has no mode radio** — the mode is chosen with the action chips:
    🖌️ Edit / 🩹 Restore / 🧩 Extend (order 🪄 · 🩹 · 🧩 · 🖌️; in the
    prompt field in landscape, inside the compact field / modal in portrait).
@@ -92,8 +93,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
    Reset is ↺ in the per-tab nav toolbar.
 8. **Parameter chips instead of inline labels** — the per-tab controls
    (W / H / AR / 📐 / 👣 / 🎞️ / 🌱) moved out of the params panes into
-   chips overlaid on the prompt textarea (📏/👣 Generate, 👣/⛶ Edit, 🎞️/👣
-   Video), each opening a small popover with the controls; Upscale (no
+   chips overlaid on the prompt textarea (📏/👣 Generate, 👣/⛶ Edit, 👣
+   Face swap, 🎞️/👣 Video), each opening a small popover with the controls; Upscale (no
    prompt) keeps its 🌱 seed control directly in the params pane. The
    prompt fills the whole params pane in landscape; in portrait the chips
    live inside the fullscreen prompt modal (see docs/FRONTEND.md §8.14).
@@ -119,12 +120,13 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |
 | `server.py` | FastAPI app — renders templates/ + serves static/ + the API (reuses tools/) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see docs/PLAN.md A0) |
-| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `extend.py`, `upscale.py`, `video.py` |
-| `workflows/` | ComfyUI workflow JSON files: `smart_generate_image.json`, `edit_image.json`, `extend_image.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
+| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `extend.py`, `face_swap.py`, `upscale.py`, `video.py` |
+| `workflows/` | ComfyUI workflow JSON files: `smart_generate_image.json`, `edit_image.json`, `extend_image.json`, `face_swap.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
 | `dev/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 dev/check_env.py [BASE_URL]` |
 | `dev/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
 | `dev/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
 | `dev/run_edit.py` | A2 Edit CLI — `--image <filename|URL> --mode edit|restore [--prompt] [--steps] [--seed] [--loras]` |
+| `dev/run_face_swap.py` | A7 Face swap CLI — `--image <filename|URL> --face <filename|URL> [--prompt] [--steps] [--cfg] [--seed]` |
 | `dev/run_upscale.py` | A3 Upscale CLI — `--image <filename|URL> [--seed]` |
 | `dev/run_video.py` | A4 Video CLI — `--image <filename|URL> --model wan21|wan22 --prompt "..." [--frames] [--steps] [--seed] [--negative] [--loras]` |
 | `dev/run_chain.py` | A5 full-chain CLI — generate → edit → upscale → video (filenames between steps) |
@@ -137,8 +139,9 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | File | Tab | Notes |
 |------|-----|-------|
 | `smart_generate_image.json` | Generate | Z-Image / Krea / FLUX.2 families |
-| `edit_image.json` | Edit | flux-2-klein + LoRAs + restore |
-| `extend_image.json` | Edit (Extend) | flux-2-klein + outpaint + conditional source-density restore |
+| `edit_image.json` | Edit | flux-2-klein + LoRAs + restore + ColorMatch |
+| `extend_image.json` | Edit (Extend) | flux-2-klein + outpaint + ColorMatch + conditional source-density restore |
+| `face_swap.json` | Face swap | flux-2-klein + head-swap LoRA + face extraction + ColorMatch |
 | `seedvr2_upscale.json` | Upscale | SeedVR2 |
 | `generate_video.json` | Video | Wan 2.1 single path |
 | `generate_video_wan22.json` | Video | Wan 2.2 dual high/low path |

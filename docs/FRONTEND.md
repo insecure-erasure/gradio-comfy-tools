@@ -235,12 +235,14 @@ empty and the prompt fills it; see also deviation 14):
     80→25 ms interval). The popover also shows `Source: W × H` and a live
     `Output ≈ W × H` estimate (the latter mirrors ImageScaleToTotalPixels +
     the conditional source-density restore, without MP). While this popover
-    is open, the source preview
-    shows a live dashed frame of the resulting canvas: the frame is centered
-    in the pane and the image sits at its **real padding offset** inside it
-    (asymmetric padding is visible), scaled down to fit. Padding is converted
-    from working-canvas pixels (`pad * src / work`) before drawing. The frame
-    disappears when the popover closes, the source changes, or a result lands.
+    is open **and at least one edge is > 0**, the source preview shows a live
+    dashed frame of the resulting canvas: the frame is centered in the
+    available pane area (leaving room for the bottom controls) and the image
+    sits at its **real padding offset** inside it (asymmetric padding is
+    visible), scaled down to fit. Padding is converted from working-canvas
+    pixels (`pad * src / work`) before drawing. With all edges at 0 no frame
+    is drawn. The frame disappears when the popover closes, the source
+    changes, a result lands, or a generation starts.
 - **Extend result**: `#editCompare` reuses its two image layers but hides
   the divider/handle/labels and shows a top-left `Original | Extended`
   toggle (default `Extended`). The slider drag is disabled in this mode.
@@ -251,8 +253,8 @@ empty and the prompt fills it; see also deviation 14):
   (Picture 1, the image being edited, previewed full-canvas) and **face
   image** (Picture 2, the face to copy, previewed as a small reference
   overlay). Each field accepts a pasted URL (✓ validates) or an upload
-  (🖼️ base / 👨🏻 face) plus 🕘 recent base+face pairs; 🔗 fills the
-  **base** with the last generated image. The result is shown as a **compare slider** (Original | Face
+  (🖼️ base / 👨🏻 face) plus 🕘 recent base+face pairs and base-only
+  generated images; 🔗 fills the **base** with the last generated image. The result is shown as a **compare slider** (Original | Face
   swapped), like Edit. While the sources are previewed, a discreet
   two-line badge above the bottom-right buttons shows the loaded sizes:
   `Base W × H` and `Face W × H` (each line appears once its image loads;
@@ -500,8 +502,8 @@ push the `<video>` aside; `clearSourcePreview` re-creates it when the source
 preview is cleared. In the other tabs the preview behaves as before.
 
 **🕘 Recent sources**: each source pane (Edit/Upscale/Video and Face swap)
-has a clock button in the bottom-right cluster (left of 📁; Face swap adds
-a fourth slot). It opens a thumbnail popover with the last 8 **source
+has a clock button in the bottom-right cluster (left of the upload button —
+📁, or 🖼️ in Face swap; Face swap adds a fourth slot). It opens a thumbnail popover with the last 8 **source
 candidates** for that tool — uploads, confirmed URLs, chained generations
 and every newly generated image result — so a previous run can be retried
 after its result replaced the preview, and the fresh result is available
@@ -515,7 +517,7 @@ results (`rememberGeneratedImage`), deduplicated by value and persisted in
 localStorage (`sourceHistory` inside the main config key). The current
 value is highlighted; dead temp files may remain as dimmed thumbnails (the
 restore attempt simply fails to load). The popover closes on click-outside /
-Esc / tab switch (`source.js`).
+Esc / resize / tab switch, or when the prompt modal opens (`source.js`).
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
 docs/BACKEND.md §6): external URL → checked directly; anything else → treated as

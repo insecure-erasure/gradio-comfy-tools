@@ -12,7 +12,10 @@ Web application with five image and video tools powered by ComfyUI:
 
 ## Requirements
 
-- A **ComfyUI** server reachable over the network (the models and nodes for all five workflows must be installed).
+- A **ComfyUI** server reachable over the network (the models and nodes for
+  all the workflows must be installed). The Edit/Restore/Extend and Face swap
+  workflows use the `ColorMatch` node from **ComfyUI-KJNodes**, which requires
+  the `color-matcher` package; `dev/check_env.py` validates it.
 - Python 3.10+ to run the application.
 
 ## Getting started
@@ -48,6 +51,17 @@ Web application with five image and video tools powered by ComfyUI:
 - **🔗** uses the last generated image.
 - **Paste a URL** and confirm with **✓** to validate and preview the image before processing.
 - **Face swap** uses two independent sources (base and face), each with its own field and upload button.
+- **🕘** opens the recent-source history for the active tool: the last 8
+  uploads/URLs/chained generations, plus every newly generated image result.
+  Face swap stores base+face pairs and base-only images; selecting an entry
+  refills the field(s) and reloads the preview.
+
+### Color matching (Edit, Extend, Face swap)
+
+The **🎨** control in the 👣 step & seed popover matches the result palette to
+the source/base image (`0` = off, `1` = full; step 0.01, hold to accelerate).
+Edit defaults to 0.5; Restore forces 0; setting an Extend padding (with at
+least one edge > 0) forces 1; Face swap defaults to 0.
 
 ### During a generation
 
