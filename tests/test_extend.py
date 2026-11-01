@@ -31,6 +31,7 @@ def test_resolve_workflow_all_titles_present(wf):
         "RandomNoise",
         "Flux2Scheduler",
         "Power Lora Loader (rgthree)",
+        "Color Match",
         "Random Preview Image",
     ]:
         assert t in nodes
@@ -109,6 +110,37 @@ def test_build_workflow_loras(wf):
     assert loader["lora_2"] == {"on": True, "lora": "user2.sft", "strength": 0.5}
 
 
+def test_build_workflow_color_match_strength(wf):
+    built, meta = build_workflow(wf, image="a.png", left=1, color_match=0.35)
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.35
+    assert meta["color_match"] == 0.35
+
+
+def test_build_workflow_color_match_wiring(wf):
+    built, _ = build_workflow(wf, image="a.png", left=1, color_match=0.5)
+    cm_id = next(nid for nid, n in built.items()
+                 if n.get("_meta", {}).get("title") == "Color Match")
+    cm = built[cm_id]["inputs"]
+    assert cm["image_ref"] == ["308", 0]      # original source
+    assert cm["image_target"] == ["140", 0]   # VAE Decode
+    assert built["338"]["inputs"]["image"] == [cm_id, 0]     # density restore
+    assert built["339"]["inputs"]["image_b"] == [cm_id, 0]   # final switch
+
+
+def test_build_workflow_color_match_default_keeps_workflow_value(wf):
+    built, meta = build_workflow(wf, image="a.png", left=1)
+    # Extend's workflow default is full match (1.0); an API client that
+    # omits color_match keeps it.
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 1
+    assert meta["color_match"] is None
+
+
+def test_build_workflow_color_match_validations(wf):
+    for bad in (-0.1, 1.1, "nope", True):
+        with pytest.raises(ExtendError):
+            build_workflow(wf, image="a.png", left=1, color_match=bad)
+
+
 def test_build_workflow_accepts_numeric_strings(wf):
     built, meta = build_workflow(
         wf, image="a.png", left="10", top="20", right="30", bottom="40", feathering="25", steps="8"
@@ -150,6 +182,7 @@ def test_deep_copy_not_mutating_source(wf):
     assert src["Pad Image for Outpainting"]["inputs"]["left"] == 0
     assert src["RandomNoise"]["inputs"]["noise_seed"] == 0
     assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
+    assert src["Color Match"]["inputs"]["strength"] == 1
     built_nodes = resolve_workflow(built)
     assert built_nodes["Pad Image for Outpainting"]["inputs"]["left"] == 10
     assert built_nodes["RandomNoise"]["inputs"]["noise_seed"] == 3

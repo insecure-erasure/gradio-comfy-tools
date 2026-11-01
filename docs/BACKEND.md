@@ -251,12 +251,13 @@ never overridden. `variability` with any other family is rejected (`400`).
 | 🖌️ Edit / 🩹 Restore (buttons) | `mode` ("edit" / "restore") | restore: appends `Flux2-Klein-Image-RestoreV1.safetensors` to `Power Lora Loader (rgthree)` + restoration prompt prefix |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
 | 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
+| 🎨 Color match | `color_match` (0–1, default 0.5; 0 = off) | `Color Match` → `strength` |
 | Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
 | Prompt (bottom bar; optional in restore) | `prompt` | `Prompt` |
 
-Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): `SamplerCustomAdvanced` + `Flux2Scheduler` (steps) + `CFGGuider` (cfg 1) + `KSamplerSelect` (euler) + `RandomNoise` (seed). The negative conditioning is the `ConditioningZeroOut` of the positive `ReferenceLatent` (no separate negative ReferenceLatent). The output goes **directly from `VAE Decode` to `Random Preview Image`** — the previous `Upscale Image (using Model)` / `Load Upscale Model` (1xSkinContrast) stage was removed, so the result is no longer upscaled/skin-contrasted.
+Sampling uses the **FLUX.2 guidance stack** (replacing the generic `KSampler`): `SamplerCustomAdvanced` + `Flux2Scheduler` (steps) + `CFGGuider` (cfg 1) + `KSamplerSelect` (euler) + `RandomNoise` (seed). The negative conditioning is the `ConditioningZeroOut` of the positive `ReferenceLatent` (no separate negative ReferenceLatent). The result goes **`VAE Decode` → `Color Match` → `Random Preview Image`**: `Color Match` uses the **original source** as `image_ref` and the decoded result as `image_target` (`method: mkl`, `strength` = `color_match`, `multithread: true`). The node ships at `strength 0.0` (a no-op) so API clients that omit `color_match` keep the previous visual behaviour; the UI sends 0.5 by default. `strength 0` returns the decoded image unchanged. **Tuning note (Restore)**: a high strength also preserves the source's colour cast — which may be the degradation being repaired — so validate Restore with faded/low-quality inputs and lower the value if the restoration is being undone. The previous `Upscale Image (using Model)` / `Load Upscale Model` (1xSkinContrast) stage was removed, so the result is no longer upscaled/skin-contrasted.
 
-Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `GetImage_(Width&Height) _O` (feeds `Flux2Scheduler`), `ConditioningZeroOut`, `Concatenate`; output: `Random Preview Image`.
+Other nodes: `Load Diffusion Model` (flux-2-klein), `Load VAE`, `VAE Encode/Decode`, `ReferenceLatent`, `Empty Flux 2 Latent`, `ImageScaleToTotalPixels`, `GetImage_(Width&Height) _O` (feeds `Flux2Scheduler`), `ConditioningZeroOut`, `Concatenate`, `ColorMatch`; output: `Random Preview Image`.
 
 **✅ Seed supported**: the reference `edit_image/tool.py` exposes `seed` since v1.6 (UserValve, -1 = random, ≥0 = fixed, injected into `RandomNoise.noise_seed`).
 
@@ -277,6 +278,7 @@ there is no model selector or separate tab.
 | Prompt (bottom bar; optional) | `prompt` | `Prompt` (`StringConcatenate`); appends after the built-in `"remove the green part"` |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
 | 🌱 Seed + 🎲 | `seed` (0…2^64−1) | `RandomNoise` |
+| 🎨 Color match | `color_match` (0–1, default 0.5; 0 = off) | `Color Match` → `strength` |
 | Modal: LoRA config | `lora_config` | `Power Lora Loader (rgthree)` |
 
 Validation: all four paddings are integers in `[0, 1024]`; at least one edge
@@ -286,8 +288,9 @@ the same `[1, 15]` range as Edit.
 **Workflow path**: the source is scaled to 1.5 MP, padded (`ImagePadForOutpaint`),
 masked green (`DrawMaskOnImage`), scaled to the ~1 MP working size, encoded
 and sampled with the FLUX.2 guidance stack. `ColorMatch` restores the source
-coloring. The padding values are pixels of the **1.5 MP working canvas**, not
-of the original image.
+coloring (`strength` comes from `color_match`; the workflow default is 1.0 —
+set 1.0 to reproduce the pre-control behaviour). The padding values are pixels
+of the **1.5 MP working canvas**, not of the original image.
 
 **Output size (automatic)**: when the source is larger than 1 MP, the
 workflow measures the original, pre-padding and padded sizes and adds a final
@@ -361,7 +364,16 @@ the sampling parameters and the optional extra prompt.
 | 🎚️ CFG (guidance) | `cfg` (0–8, step 0.1; 0 = no guidance) | `CFG Guider` |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
 | 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
+| 🎨 Color match | `color_match` (0–1, default 0.5; 0 = off) | `Color Match` → `strength` |
 | — (runtime) | dedicated head-swap LoRA | `Load LoRA` (name resolved against `GET /models/loras`) |
+
+The swapped result goes **`VAE Decode` → `Color Match` → `Random Preview
+Image`**, with the **base image** as `image_ref` and the decoded swap as
+`image_target` (`mkl`). The node ships at `strength 0.0` (no-op) for API
+clients that omit `color_match`; the UI sends 0.5 by default. **Tuning note**:
+a full match can pull the new face's skin tone toward the base's average —
+use a moderate value when the two pictures have very different lighting or
+skin tones.
 
 The workflow ends in TWO preview outputs — the swapped result (`Random
 Preview Image`) and the extracted-face crop (`Random Preview Image

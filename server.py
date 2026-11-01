@@ -788,6 +788,7 @@ def api_edit(body: dict) -> dict:
                 steps=body.get("steps", 0),
                 seed=seed,
                 lora_config=str(body.get("lora_config", "[]")),
+                color_match=body.get("color_match"),
             )
         else:
             url = edit_image(
@@ -798,6 +799,7 @@ def api_edit(body: dict) -> dict:
                 steps=int(body.get("steps", 0)),
                 seed=seed,
                 lora_config=str(body.get("lora_config", "[]")),
+                color_match=body.get("color_match"),
             )
         _mark_latest_done(url, tool="edit", prompt=str(body.get("prompt", "")))
     except TimeoutError as e:
@@ -834,6 +836,7 @@ def api_face_swap(body: dict) -> dict:
             steps=int(body.get("steps", 0)),
             cfg=float(cfg_raw) if cfg_raw not in (None, "") else None,
             seed=seed,
+            color_match=body.get("color_match"),
         )
         _mark_latest_done(url, tool="face_swap", prompt=_pending_prompt, face_url=face_url)
         resp = _tool_response(url, seed)

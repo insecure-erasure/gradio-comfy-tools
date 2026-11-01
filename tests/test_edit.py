@@ -21,7 +21,7 @@ def wf():
 
 def test_resolve_workflow_all_titles_present(wf):
     nodes = resolve_workflow(wf)
-    for t in ["Load Image (URL/Path)", "Prompt", "RandomNoise", "Flux2Scheduler", "Power Lora Loader (rgthree)"]:
+    for t in ["Load Image (URL/Path)", "Prompt", "RandomNoise", "Flux2Scheduler", "Power Lora Loader (rgthree)", "Color Match"]:
         assert t in nodes
 
 
@@ -101,6 +101,41 @@ def test_build_workflow_restore_loras_before_restore_lora(wf):
     assert loader["lora_2"]["on"] is True
 
 
+def test_build_workflow_color_match_strength(wf):
+    built, meta = build_workflow(wf, image="a.png", prompt="x", color_match=0.75)
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.75
+    assert meta["color_match"] == 0.75
+
+
+def test_build_workflow_color_match_wiring(wf):
+    built, _ = build_workflow(wf, image="a.png", prompt="x", color_match=0.5)
+    cm_id = next(nid for nid, n in built.items()
+                 if n.get("_meta", {}).get("title") == "Color Match")
+    cm = built[cm_id]["inputs"]
+    assert cm["image_ref"] == ["245", 0]      # original source
+    assert cm["image_target"] == ["222", 0]   # VAE Decode
+    assert built["217"]["inputs"]["images"] == [cm_id, 0]  # output node
+
+
+def test_build_workflow_color_match_default_keeps_workflow_value(wf):
+    built, meta = build_workflow(wf, image="a.png", prompt="x")
+    # Workflow default is 0.0 (no-op) so API clients that omit the parameter
+    # keep the previous behaviour.
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.0
+    assert meta["color_match"] is None
+
+
+def test_build_workflow_color_match_accepts_numeric_string(wf):
+    built, _ = build_workflow(wf, image="a.png", prompt="x", color_match="0.25")
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.25
+
+
+def test_build_workflow_color_match_validations(wf):
+    for bad in (-0.1, 1.1, "nope", True):
+        with pytest.raises(EditError):
+            build_workflow(wf, image="a.png", prompt="x", color_match=bad)
+
+
 def test_build_workflow_validations(wf):
     with pytest.raises(EditError):
         build_workflow(wf, image="", prompt="x")
@@ -115,5 +150,6 @@ def test_deep_copy_not_mutating_source(wf):
     src = resolve_workflow(wf)
     assert src["RandomNoise"]["inputs"]["noise_seed"] == 1100351992931438  # original untouched
     assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
+    assert src["Color Match"]["inputs"]["strength"] == 0.0
     assert resolve_workflow(built)["RandomNoise"]["inputs"]["noise_seed"] == 3
     assert resolve_workflow(built)["Flux2Scheduler"]["inputs"]["steps"] == 9

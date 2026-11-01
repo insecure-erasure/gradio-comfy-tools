@@ -12,6 +12,10 @@ const EDIT_FEATHER_ID = 'editFeather';
 const EDIT_FEATHER_MAX = 256;
 const EDIT_PAD_STEP_SIZES = [1, 2, 4, 8, 16, 32, 64];
 const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
+// ColorMatch strength (0 = off, 1 = full): the Edit tab uses one value for
+// Edit / Restore / Extend.
+const EDIT_COLOR_MATCH_ID = 'editColorMatch';
+const EDIT_COLOR_MATCH_DEFAULT = 0.5;
 
 // Live Extend preview (⛶ popover). The dashed frame is the FINAL canvas
 // (centered in the pane) and the source image sits at its REAL padding
@@ -429,6 +433,7 @@ function generateEdit(forceMode) {
 
   const payload = {
     image: src, mode, prompt, steps, seed, lora_config: loraConfig,
+    color_match: getEditColorMatchValue(),
   };
   if (extendParams) Object.assign(payload, extendParams);
   api('/api/edit', payload).then(res => {
@@ -501,6 +506,44 @@ function onEditSeedRandomToggle() {
   updatePromptChips();
 }
 
+// ── Color match strength ───────────────────
+// 0 = no ColorMatch (source palette ignored), 1 = full transfer. The UI
+// sends it to edit/restore/extend; 0 is a no-op in the workflow.
+function _editColorMatchNumber(el, fallback = 0) {
+  const n = parseFloat(el ? el.value : '');
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, Math.round(n * 100) / 100)) : fallback;
+}
+
+function getEditColorMatchValue() {
+  return _editColorMatchNumber(document.getElementById(EDIT_COLOR_MATCH_ID), 0);
+}
+
+function stepEditColorMatch(d) {
+  const el = document.getElementById(EDIT_COLOR_MATCH_ID);
+  if (!el) return;
+  const next = Math.min(1, Math.max(0, Math.round((_editColorMatchNumber(el) + d) * 100) / 100));
+  el.value = String(next);
+  updatePromptChips();
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+function onEditColorMatchInput() {
+  const el = document.getElementById(EDIT_COLOR_MATCH_ID);
+  if (!el) return;
+  const n = parseFloat(el.value);
+  // Keep a valid typed value untouched (so "0." mid-typing is not
+  // rewritten); only clamp out-of-range numbers. An empty field is allowed
+  // while editing and reads as 0 in the payload.
+  if (el.value !== '' && Number.isFinite(n) && n >= 0 && n <= 1) {
+    updatePromptChips();
+    return;
+  }
+  if (el.value !== '') {
+    el.value = String(Math.min(1, Math.max(0, Number.isFinite(n) ? n : 0)));
+  }
+  updatePromptChips();
+}
+
 // ── ↺ Reset ───────────────────────────────
 function resetEdit() {
   // Cancel a running job + stop live preview/progress polling first, so the
@@ -517,6 +560,8 @@ function resetEdit() {
   });
   const feather = document.getElementById(EDIT_FEATHER_ID);
   if (feather) feather.value = '40';
+  const colorMatch = document.getElementById(EDIT_COLOR_MATCH_ID);
+  if (colorMatch) colorMatch.value = String(EDIT_COLOR_MATCH_DEFAULT);
   clearPane('editOutputPane');
   syncResultUrl('edit', null); // no image shown — no URL hint
   updatePromptChips();

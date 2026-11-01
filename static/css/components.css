@@ -844,6 +844,9 @@
     box-shadow: 0 2px 8px rgba(0,0,0,.25);
   }
   .prompt-chip .chip-icon { font-size: .78rem; line-height: 1; }
+  /* Extend chip: hide the ⛶ icon once any padding axis is set — the label
+     only carries the non-zero axis totals from then on. */
+  .prompt-chip.icon-hidden .chip-icon { display: none; }
   .prompt-chip .chip-label {
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   }

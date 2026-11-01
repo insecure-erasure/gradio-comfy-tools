@@ -18,6 +18,10 @@
 // transparent pixels show a small gray-tile checkerboard behind it.
 
 const FS_PANE_ID = 'faceSwapOutputPane';
+// ColorMatch strength (0 = off, 1 = full). The UI sends it; API clients that
+// omit it keep the workflow default (0 = no-op).
+const FS_COLOR_MATCH_ID = 'fsColorMatch';
+const FS_COLOR_MATCH_DEFAULT = 0.5;
 
 // Natural dimensions of the two sources, shown as two discreet lines above
 // the bottom-right action buttons (Base / Face). Each line appears once its
@@ -364,6 +368,7 @@ function generateFaceSwap() {
 
   api('/api/face-swap', {
     image: base, face, prompt, steps, cfg, seed,
+    color_match: getFsColorMatchValue(),
   }).then(res => {
     finalize(res);
   }).catch(err => {
@@ -449,6 +454,36 @@ function onFsSeedRandomToggle() {
   _fsSyncChip();
 }
 
+// ── Color match strength ───────────────────
+function _fsColorMatchNumber(el, fallback = 0) {
+  const n = parseFloat(el ? el.value : '');
+  return Number.isFinite(n) ? Math.min(1, Math.max(0, Math.round(n * 100) / 100)) : fallback;
+}
+function getFsColorMatchValue() {
+  return _fsColorMatchNumber(document.getElementById(FS_COLOR_MATCH_ID), 0);
+}
+function stepFsColorMatch(d) {
+  const el = document.getElementById(FS_COLOR_MATCH_ID);
+  if (!el) return;
+  const next = Math.min(1, Math.max(0, Math.round((_fsColorMatchNumber(el) + d) * 100) / 100));
+  el.value = String(next);
+  _fsSyncChip();
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+function onFsColorMatchInput() {
+  const el = document.getElementById(FS_COLOR_MATCH_ID);
+  if (!el) return;
+  const n = parseFloat(el.value);
+  if (el.value !== '' && Number.isFinite(n) && n >= 0 && n <= 1) {
+    _fsSyncChip();
+    return;
+  }
+  if (el.value !== '') {
+    el.value = String(Math.min(1, Math.max(0, Number.isFinite(n) ? n : 0)));
+  }
+  _fsSyncChip();
+}
+
 // ── ↺ Reset ───────────────────────────────
 function resetFaceSwap() {
   // Cancel a running job + stop live preview/progress polling first, so the
@@ -459,6 +494,8 @@ function resetFaceSwap() {
   setSeedValue('face_swap', '0');
   document.getElementById('fsSeedRandom').checked = true;
   document.getElementById('fsSeed').disabled = true;
+  const colorMatch = document.getElementById(FS_COLOR_MATCH_ID);
+  if (colorMatch) colorMatch.value = String(FS_COLOR_MATCH_DEFAULT);
   clearPane(FS_PANE_ID); // drops the previews (base + face overlay) and any result
   syncResultUrl('face_swap', null); // no image shown — no URL hint
   _fsSyncChip();

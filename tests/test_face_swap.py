@@ -36,6 +36,7 @@ def test_resolve_workflow_all_titles_present(wf):
         "Flux2Scheduler",
         "CFG Guider",
         "RandomNoise",
+        "Color Match",
         "Random Preview Image",
     ]:
         assert t in nodes
@@ -112,6 +113,36 @@ def test_build_workflow_cfg_decimals_applied(wf):
     assert resolve_workflow(built)["CFG Guider"]["inputs"]["cfg"] == 1.3
 
 
+def test_build_workflow_color_match_strength(wf):
+    built, meta = build_workflow(wf, image="a.png", face="b.png", color_match=0.6)
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.6
+    assert meta["color_match"] == 0.6
+
+
+def test_build_workflow_color_match_wiring(wf):
+    built, _ = build_workflow(wf, image="a.png", face="b.png", color_match=0.5)
+    cm_id = next(nid for nid, n in built.items()
+                 if n.get("_meta", {}).get("title") == "Color Match")
+    cm = built[cm_id]["inputs"]
+    assert cm["image_ref"] == ["285", 0]      # base image
+    assert cm["image_target"] == ["131", 0]   # VAE Decode
+    assert built["199"]["inputs"]["images"] == [cm_id, 0]  # main output
+
+
+def test_build_workflow_color_match_default_keeps_workflow_value(wf):
+    built, meta = build_workflow(wf, image="a.png", face="b.png")
+    # Workflow default 0.0 = no-op: API clients that omit it keep the old
+    # visual behaviour.
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.0
+    assert meta["color_match"] is None
+
+
+def test_build_workflow_color_match_validations(wf):
+    for bad in (-0.1, 1.1, "nope", True):
+        with pytest.raises(FaceSwapError):
+            build_workflow(wf, image="a.png", face="b.png", color_match=bad)
+
+
 def test_build_workflow_validations(wf):
     with pytest.raises(FaceSwapError):
         build_workflow(wf, image="", face="b.png")
@@ -145,6 +176,7 @@ def test_deep_copy_not_mutating_source(wf):
     assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
     assert src["CFG Guider"]["inputs"]["cfg"] == 1.0
     assert src["RandomNoise"]["inputs"]["noise_seed"] != 42
+    assert src["Color Match"]["inputs"]["strength"] == 0.0
 
 
 # --------------------------------------------------------------------------- #

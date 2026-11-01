@@ -6,8 +6,8 @@ remove it, and (when the source is larger than 1 MP) restores the source's
 pixel density on the extended canvas.
 
 Parameters are injected into the workflow by node title, mirroring the Edit
-tool: source image, padding, feathering, optional extra prompt, steps, seed
-and LoRAs.
+tool: source image, padding, feathering, optional extra prompt, steps, seed,
+ColorMatch strength and LoRAs.
 """
 
 from __future__ import annotations
@@ -30,6 +30,10 @@ MIN_PAD, MAX_PAD = 0, 1024
 MIN_FEATHERING, MAX_FEATHERING = 0, 256
 DEFAULT_FEATHERING = 40
 MIN_STEPS, MAX_STEPS = 1, 15
+# ColorMatch node already present in extend_image.json (strength 1.0 by
+# default). The UI can lower it; API clients that omit color_match keep the
+# workflow default.
+MIN_COLOR_MATCH, MAX_COLOR_MATCH = 0.0, 1.0
 
 _INT_RE = re.compile(r"[+-]?\d+")
 
@@ -50,6 +54,7 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "RandomNoise",
         "Flux2Scheduler",
         "Power Lora Loader (rgthree)",
+        "Color Match",
         "Random Preview Image",
     ]
     resolved: dict[str, dict] = {}
@@ -84,6 +89,23 @@ def _bounded_integer(name: str, value: Any, minimum: int, maximum: int) -> int:
     return parsed
 
 
+def _color_match_strength(value: Any) -> float | None:
+    """Validate the optional ColorMatch strength (0..1); None = keep default."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise ExtendError("color_match must be a number")
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise ExtendError("color_match must be a number")
+    if not (MIN_COLOR_MATCH <= parsed <= MAX_COLOR_MATCH):
+        raise ExtendError(
+            f"color_match must be in [{MIN_COLOR_MATCH}, {MAX_COLOR_MATCH}], got {value}"
+        )
+    return parsed
+
+
 def build_workflow(
     workflow: dict[str, dict],
     *,
@@ -97,6 +119,7 @@ def build_workflow(
     steps: Any = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    color_match: float | None = None,
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta)."""
     if not image.strip():
@@ -120,6 +143,7 @@ def build_workflow(
 
     seed_arg = _common.resolve_seed(seed, max_value=_common.UINT64_SEED_MAX)
     loras = _common.parse_lora_config(lora_config)
+    color_match = _color_match_strength(color_match)
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
     nodes = resolve_workflow(wf)
@@ -145,6 +169,10 @@ def build_workflow(
     # LoRAs
     _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], loras)
 
+    # Optional ColorMatch strength (workflow default 1.0).
+    if color_match is not None:
+        nodes["Color Match"]["inputs"]["strength"] = color_match
+
     meta = {
         "image": image,
         "left": pads["left"],
@@ -155,6 +183,7 @@ def build_workflow(
         "prompt": prompt.strip(),
         "steps": steps,
         "seed": seed_arg,
+        "color_match": color_match,
     }
     return wf, meta
 
@@ -172,6 +201,7 @@ def extend_image(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    color_match: float | None = None,
     timeout: float = 180.0,
 ) -> str:
     """Run the Extend workflow and return the output image URL."""
@@ -188,6 +218,7 @@ def extend_image(
         steps=steps,
         seed=seed,
         lora_config=lora_config,
+        color_match=color_match,
     )
     with ComfyClient(settings=settings) as client:
         # Same live per-step previews as Edit/Generate.

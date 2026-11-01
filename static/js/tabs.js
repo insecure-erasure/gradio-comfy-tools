@@ -501,13 +501,13 @@ const CHIP_CONFIGS = {
     { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
   ],
   edit: [
-    { kind: 'stepseed', icon: '👣', title: 'Steps and seed' },
+    { kind: 'stepseed', icon: '👣', title: 'Steps, seed and color match' },
     { kind: 'extend', icon: '⛶', title: 'Extend canvas (padding and feathering)' },
   ],
   face_swap: [
     // The chip carries NO separate icon — the LABEL renders each value with
-    // its own emoji (🎚️ CFG · 👣 steps · 🎲 seed), same order as the popover.
-    { kind: 'stepseed', icon: '', title: 'CFG, steps and seed' },
+    // its own emoji (🎚️ CFG, 👣 steps, 🎲 seed, 🎨 color match).
+    { kind: 'stepseed', icon: '', title: 'CFG, steps, seed and color match' },
   ],
   video: [
     { kind: 'frames', icon: '🎞️', title: 'Frames (4n+1, 81–161)' },
@@ -577,6 +577,14 @@ function renderPromptChips() {
   updatePromptChips();
 }
 
+// Compact color-match strength for the chip: hidden when 0/off, otherwise
+// "🎨 0.5". Two decimals only when needed (0.75, 0.05).
+function _formatColorMatch(value) {
+  const n = parseFloat(value);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  return ` 🎨 ${Math.round(n * 100) / 100}`;
+}
+
 // Refresh the chip labels from the active tab's controls.
 function updatePromptChips() {
   // 📏 Dimensions (generate): the aspect ratio (the AR select value).
@@ -591,7 +599,10 @@ function updatePromptChips() {
     const f = document.getElementById('videoFrames');
     framesLabel.textContent = (f && f.value) ? f.value : '—';
   }
-  // ⛶ Extend (edit): totals of the horizontal and vertical padding.
+  // ⛶ Extend (edit): totals of the horizontal and vertical padding. Once any
+  // edge is set, the square-corners icon disappears and only the non-zero
+  // axis totals are shown (`↔ 500`, `↕ 300` or both) — no zero placeholders.
+  const extendChip = document.getElementById('chipExtend');
   const extendLabel = document.getElementById('chipExtendLabel');
   if (extendLabel) {
     const l = parseInt(document.getElementById('editPadLeft')?.value, 10) || 0;
@@ -599,13 +610,17 @@ function updatePromptChips() {
     const t = parseInt(document.getElementById('editPadTop')?.value, 10) || 0;
     const b = parseInt(document.getElementById('editPadBottom')?.value, 10) || 0;
     const h = l + r, v = t + b;
-    extendLabel.textContent = (h || v) ? `↔ ${h} · ↕ ${v}` : '0';
+    const active = !!(h || v);
+    if (extendChip) extendChip.classList.toggle('icon-hidden', active);
+    extendLabel.textContent = active
+      ? [h ? `↔ ${h}` : '', v ? `↕ ${v}` : ''].filter(Boolean).join(' ')
+      : '0';
   }
-  // 👣 Steps & seed (generate/edit/video): "steps · 🎲" while the seed is
-  // random; when it is FIXED the separator and the dice disappear (steps
-  // only) — that is the visual cue. Face swap mirrors it with the CFG
-  // first: "CFG · steps · 🎲" while random, "CFG · steps" when fixed — the
-  // seed NUMBER is never shown on the chip.
+  // 👣 Steps & seed (generate/edit/video): "steps 🎲" while the seed is
+  // random; when it is FIXED the dice disappears (steps only) — that is the
+  // visual cue. Edit/Face swap append "🎨 strength" while the color-match
+  // value is > 0. Face swap also prefixes the CFG; the seed NUMBER is never
+  // shown on the chip.
   const ssLabel = document.getElementById('chipStepSeedLabel');
   if (ssLabel) {
     if (currentTab === 'face_swap') {
@@ -616,11 +631,13 @@ function updatePromptChips() {
         const cfg = parseFloat(cfgEl.value);
         const cfgTxt = (isNaN(cfg) ? 1 : cfg).toFixed(1); // one decimal
         const stepsTxt = (parseInt(steps.value, 10) || 6);
-        // 🎚️ CFG · 👣 steps · 🎲 — the dice + its separator only while the
-        // seed is random (the seed number/emoji never appear on the chip).
+        // 🎚️ CFG 👣 steps 🎲 🎨 — the dice only while the seed is random;
+        // the seed number/emoji never appear on the chip.
         // One space after each emoji: like Edit's chip (icon span + gap),
         // the values must not hug the emojis.
-        ssLabel.textContent = '🎚️ ' + cfgTxt + ' · 👣 ' + stepsTxt + ((rnd && rnd.checked) ? ' · 🎲' : '');
+        const colorTxt = _formatColorMatch(document.getElementById('fsColorMatch')?.value);
+        ssLabel.textContent = '🎚️ ' + cfgTxt + ' 👣 ' + stepsTxt +
+          ((rnd && rnd.checked) ? ' 🎲' : '') + colorTxt;
       }
     } else {
       const ids = {
@@ -632,7 +649,11 @@ function updatePromptChips() {
         const steps = document.getElementById(ids[0]);
         const rnd = document.getElementById(ids[1]);
         if (steps) {
-          ssLabel.textContent = (rnd && rnd.checked) ? `${steps.value} · 🎲` : `${steps.value}`;
+          const colorTxt = currentTab === 'edit'
+            ? _formatColorMatch(document.getElementById('editColorMatch')?.value)
+            : '';
+          ssLabel.textContent =
+            ((rnd && rnd.checked) ? `${steps.value} 🎲` : `${steps.value}`) + colorTxt;
         }
       }
     }
@@ -654,9 +675,13 @@ function openChipPopover(kind) {
     s.hidden = s.dataset.chipSection !== kind;
   });
   const info = CHIP_KIND_INFO[kind] || {};
-  // Face swap popover header follows its control order (CFG first).
+  // Step & seed popover header follows the tab's controls. Edit/Face swap
+  // add the color-match strength to the same popover.
   let title = info.title || kind;
-  if (currentTab === 'face_swap' && kind === 'stepseed') title = 'CFG · steps · seed';
+  if (kind === 'stepseed') {
+    if (currentTab === 'face_swap') title = 'CFG, steps, seed & color';
+    else if (currentTab === 'edit') title = 'Steps, seed & color';
+  }
   document.getElementById('chipPopoverTitle').textContent = title;
   // Show first so the popover has a measurable size.
   pop.classList.add('show');

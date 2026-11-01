@@ -215,7 +215,7 @@
   "199": {
     "inputs": {
       "images": [
-        "131",
+        "303",
         0
       ]
     },
@@ -624,6 +624,25 @@
     "class_type": "ReferenceLatent",
     "_meta": {
       "title": "ReferenceLatent"
+    }
+  },
+  "303": {
+    "inputs": {
+      "method": "mkl",
+      "strength": 0.0,
+      "multithread": true,
+      "image_ref": [
+        "285",
+        0
+      ],
+      "image_target": [
+        "131",
+        0
+      ]
+    },
+    "class_type": "ColorMatch",
+    "_meta": {
+      "title": "Color Match"
     }
   }
 }

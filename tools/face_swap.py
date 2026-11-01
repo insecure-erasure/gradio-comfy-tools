@@ -2,9 +2,9 @@
 
 Head-swap on a base image (Picture 1) using a face extracted from a second
 image (Picture 2 / "Face Reference"): injects BOTH image sources into their
-LoadImageByUrlOrPath nodes, plus the steps, CFG (guidance) and seed into the
-FLUX.2 sampling stack, then submits via ComfyClient and returns the output
-image URL.
+LoadImageByUrlOrPath nodes, plus the steps, CFG (guidance), seed and
+ColorMatch strength into the FLUX.2 sampling stack, then submits via
+ComfyClient and returns the output image URL.
 
 The head-swap logic itself (face segmentation → mask enhancement → crop →
 alpha → reference latents) is fixed inside the workflow; only the two source
@@ -69,10 +69,30 @@ DEFAULT_CFG = 1.0
 # explicit value, so "not provided" is None (keeps the workflow default).
 MIN_STEPS, MAX_STEPS = 1, 15
 MIN_CFG, MAX_CFG = 0.0, 8.0
+# ColorMatch node (inserted after VAEDecode): matches the swapped result to
+# the base image's palette. 0 = off (no visual change), 1 = full transfer.
+MIN_COLOR_MATCH, MAX_COLOR_MATCH = 0.0, 1.0
 
 
 class FaceSwapError(ValueError):
     """User-facing parameter validation error."""
+
+
+def _color_match_strength(value: Any) -> float | None:
+    """Validate the optional ColorMatch strength (0..1); None = keep default."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise FaceSwapError("color_match must be a number")
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise FaceSwapError("color_match must be a number")
+    if not (MIN_COLOR_MATCH <= parsed <= MAX_COLOR_MATCH):
+        raise FaceSwapError(
+            f"color_match must be in [{MIN_COLOR_MATCH}, {MAX_COLOR_MATCH}], got {value}"
+        )
+    return parsed
 
 
 def load_workflow() -> dict[str, dict]:
@@ -89,6 +109,7 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "Flux2Scheduler",          # steps
         "CFG Guider",              # cfg (guidance)
         "RandomNoise",             # seed
+        "Color Match",             # result ↔ base palette
         "Random Preview Image",    # output
     ]
     resolved: dict[str, dict] = {}
@@ -108,6 +129,7 @@ def build_workflow(
     cfg: float | None = None,
     seed: int = -1,
     lora_name: str | None = None,
+    color_match: float | None = None,
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta).
 
@@ -127,6 +149,7 @@ def build_workflow(
         raise FaceSwapError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
     if cfg is not None and not (MIN_CFG <= cfg <= MAX_CFG):
         raise FaceSwapError(f"cfg must be in [{MIN_CFG:g}, {MAX_CFG:g}], got {cfg:g}")
+    color_match = _color_match_strength(color_match)
     seed_arg = _common.resolve_seed(seed, max_value=_common.UINT64_SEED_MAX)
 
     wf: dict[str, dict] = json.loads(json.dumps(workflow))  # deep copy
@@ -164,6 +187,11 @@ def build_workflow(
         nodes["CFG Guider"]["inputs"]["cfg"] = cfg
     nodes["RandomNoise"]["inputs"]["noise_seed"] = seed_arg
 
+    # Optional ColorMatch strength (the node ships at 0.0 = no-op; the UI
+    # sends the user's value, API clients that omit it keep old behaviour).
+    if color_match is not None:
+        nodes["Color Match"]["inputs"]["strength"] = color_match
+
     # Optional extra prompt — the concat node appends it AFTER the built-in
     # head_swap text (the ``Prompt`` PrimitiveStringMultiline feeds the
     # StringConcatenate's string_b; empty = built-in prompt unchanged).
@@ -177,6 +205,7 @@ def build_workflow(
         "face": face,
         "prompt": prompt,
         "lora_name": lora_name,
+        "color_match": color_match,
     }
     return wf, meta
 
@@ -244,6 +273,7 @@ def face_swap_image(
     steps: int = 0,
     cfg: float | None = None,
     seed: int = -1,
+    color_match: float | None = None,
     timeout: float = 240.0,
 ) -> tuple[str, str | None]:
     """Run the Face swap workflow and return the output image URL(s).
@@ -266,6 +296,7 @@ def face_swap_image(
             cfg=cfg,
             seed=seed,
             lora_name=lora_name,
+            color_match=color_match,
         )
         titles = node_id_titles(wf)
 

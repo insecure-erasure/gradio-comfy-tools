@@ -2,8 +2,8 @@
 
 Edits or restores a source image (previous filename or external URL):
 injects the image source (LoadImageByUrlOrPath), the edit/restoration prompt,
-the seed, steps and LoRAs into the workflow, then submits via ComfyClient
-and returns the output image URL.
+the seed, steps, ColorMatch strength and LoRAs into the workflow, then
+submits via ComfyClient and returns the output image URL.
 
 Restore mode appends the restoration LoRA (Flux2-Klein-Image-RestoreV1) and
 uses the restoration prompt prefix — mirroring edit_image/tool.py.
@@ -12,6 +12,7 @@ uses the restoration prompt prefix — mirroring edit_image/tool.py.
 from __future__ import annotations
 
 import json
+import math
 from typing import Any
 
 from comfy_client import ComfyClient
@@ -20,6 +21,11 @@ from tools import _common
 from tools._common import WorkflowError
 
 WORKFLOW_FILE = "workflows/edit_image.json"
+
+# ColorMatch node (inserted after VAEDecode): matches the result palette to
+# the source. `strength` 0 = off (no visual change), 1 = full transfer.
+COLOR_MATCH_TITLE = "Color Match"
+MIN_COLOR_MATCH, MAX_COLOR_MATCH = 0.0, 1.0
 
 _RESTORE_LORA_NAME = "Flux2-Klein-Image-RestoreV1.safetensors"
 _RESTORE_PROMPT_PREFIX = (
@@ -38,6 +44,23 @@ class EditError(ValueError):
     """User-facing parameter validation error."""
 
 
+def _color_match_strength(value: Any) -> float | None:
+    """Validate the optional ColorMatch strength (0..1); None = keep default."""
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise EditError("color_match must be a number")
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        raise EditError("color_match must be a number")
+    if not math.isfinite(parsed) or not (MIN_COLOR_MATCH <= parsed <= MAX_COLOR_MATCH):
+        raise EditError(
+            f"color_match must be in [{MIN_COLOR_MATCH}, {MAX_COLOR_MATCH}], got {value}"
+        )
+    return parsed
+
+
 def load_workflow() -> dict[str, dict]:
     return _common.load_workflow_json(WORKFLOW_FILE)
 
@@ -49,6 +72,7 @@ def resolve_workflow(workflow: dict[str, dict]) -> dict[str, dict]:
         "RandomNoise",
         "Flux2Scheduler",
         "Power Lora Loader (rgthree)",
+        "Color Match",
         "Random Preview Image",
     ]
     resolved: dict[str, dict] = {}
@@ -67,6 +91,7 @@ def build_workflow(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    color_match: float | None = None,
 ) -> tuple[dict[str, dict], dict[str, Any]]:
     """Inject parameters into a copy of the workflow. Returns (workflow, meta)."""
     mode = (mode or "edit").strip().lower()
@@ -78,6 +103,7 @@ def build_workflow(
         raise EditError(f"steps must be in [{MIN_STEPS}, {MAX_STEPS}], got {steps}")
     seed_arg = _common.resolve_seed(seed, max_value=_common.UINT64_SEED_MAX)
     loras = _common.parse_lora_config(lora_config)
+    color_match = _color_match_strength(color_match)
     restore = mode == "restore"
     stripped = prompt.strip()
 
@@ -109,12 +135,19 @@ def build_workflow(
     # LoRAs
     _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], loras)
 
+    # Optional ColorMatch strength (the node ships at 0.0 = no-op; the UI
+    # sends the user's value, while API clients that omit it keep the
+    # previous behaviour).
+    if color_match is not None:
+        nodes[COLOR_MATCH_TITLE]["inputs"]["strength"] = color_match
+
     meta = {
         "mode": mode,
         "steps": steps,
         "seed": seed_arg,
         "image": image,
         "restore_lora": restore,
+        "color_match": color_match,
     }
     return wf, meta
 
@@ -128,6 +161,7 @@ def edit_image(
     steps: int = 0,
     seed: int = -1,
     lora_config: str = "[]",
+    color_match: float | None = None,
     timeout: float = 120.0,
 ) -> str:
     """Run the Edit workflow and return the output image URL."""
@@ -140,6 +174,7 @@ def edit_image(
         steps=steps,
         seed=seed,
         lora_config=lora_config,
+        color_match=color_match,
     )
     with ComfyClient(settings=settings) as client:
         # preview_method: auto — the SamplerCustomAdvanced decodes its

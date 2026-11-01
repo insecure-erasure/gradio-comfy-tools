@@ -496,6 +496,31 @@ def test_api_upscale_seed(client, tmp_config, monkeypatch):
     assert received["seed"] == 42
 
 
+def test_api_edit_passes_color_match(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_edit(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=edited.png&type=output"
+
+    monkeypatch.setattr(server, "edit_image", fake_edit)
+    resp = client.post(
+        "/api/edit",
+        json={
+            "mode": "edit",
+            "image": "a.png",
+            "prompt": "x",
+            "steps": 6,
+            "seed": 42,
+            "color_match": 0.35,
+        },
+    )
+    assert resp.status_code == 200
+    assert received["mode"] == "edit"
+    assert received["color_match"] == 0.35
+    assert resp.json()["filename"] == "edited.png"
+
+
 def test_api_edit_extend_dispatches_to_extend_tool(client, tmp_config, monkeypatch):
     received = {}
 
@@ -518,6 +543,7 @@ def test_api_edit_extend_dispatches_to_extend_tool(client, tmp_config, monkeypat
             "steps": 7,
             "seed": 42,
             "lora_config": '["x.sft"]',
+            "color_match": 0.4,
         },
     )
     assert resp.status_code == 200
@@ -528,6 +554,7 @@ def test_api_edit_extend_dispatches_to_extend_tool(client, tmp_config, monkeypat
     assert received["steps"] == 7
     assert received["seed"] == 42
     assert received["lora_config"] == '["x.sft"]'
+    assert received["color_match"] == 0.4
     assert resp.json()["filename"] == "extended.png"
     assert resp.json()["seed"] == "42"
 
@@ -616,7 +643,7 @@ def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
     monkeypatch.setattr(server, "face_swap_image", fake_face_swap)
     resp = client.post(
         "/api/face-swap",
-        json={"image": "base.png", "face": "face.png", "prompt": "add a subtle smile", "steps": 8, "cfg": 2.0, "seed": 7},
+        json={"image": "base.png", "face": "face.png", "prompt": "add a subtle smile", "steps": 8, "cfg": 2.0, "seed": 7, "color_match": 0.45},
     )
     assert resp.status_code == 200
     assert received["image"] == "base.png"
@@ -625,6 +652,7 @@ def test_api_face_swap_passes_params(client, tmp_config, monkeypatch):
     assert received["steps"] == 8
     assert received["cfg"] == 2.0
     assert received["seed"] == 7
+    assert received["color_match"] == 0.45
     assert resp.json()["filename"] == "swapped.png"
     assert resp.json()["type"] == "temp"
     assert "face_preview" not in resp.json()  # no face preview -> no extra key
@@ -668,6 +696,17 @@ def test_index_serves_face_swap_tab(client, tmp_config):
     assert 'id="promptInputFaceSwap"' in html
     assert 'data-tab="face_swap"' in html
     assert 'face_swap.js' in html
+
+
+def test_index_serves_color_match_controls(client, tmp_config):
+    resp = client.get("/")
+    assert resp.status_code == 200
+    html = resp.text
+    # Edit (edit/restore/extend) and Face swap share the 👣 popover control.
+    assert 'id="editColorMatch"' in html
+    assert 'id="fsColorMatch"' in html
+    assert 'stepEditColorMatch' in html
+    assert 'stepFsColorMatch' in html
 
 
 def test_index_serves_source_history_controls(client, tmp_config):

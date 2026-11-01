@@ -83,13 +83,24 @@
             </label>
           </div>
         </div>
+        <!-- Row: Color match strength (0 = off, 1 = full) -->
+        <div class="field-row">
+          <div class="field-inline" style="flex:1">
+            <label title="Color match strength (0 = off, 1 = full)">🎨</label>
+            <div class="stepper">
+              <button type="button" class="stepper-btn" onclick="stepEditColorMatch(-0.05)" title="Decrease color match" aria-label="Decrease color match">−</button>
+              <input type="number" id="editColorMatch" value="0.5" min="0" max="1" step="0.05" inputmode="decimal" aria-label="Color match strength" oninput="onEditColorMatchInput()">
+              <button type="button" class="stepper-btn" onclick="stepEditColorMatch(0.05)" title="Increase color match" aria-label="Increase color match">+</button>
+            </div>
+          </div>
+        </div>
       </div>
       <div id="editParamsExtend" data-chip-section="extend">
         <div class="extend-info" aria-live="polite">
           <div class="extend-info-row"><span class="extend-info-label">Source</span><span class="extend-info-value" id="editExtendSourceDims">—</span></div>
           <div class="extend-info-row"><span class="extend-info-label">Output ≈</span><span class="extend-info-value" id="editExtendOutputDims">—</span></div>
         </div>
-        <div class="extend-hint">Padding in px · 1.5 MP working canvas</div>
+        <div class="extend-hint">Padding in px (1.5 MP working canvas)</div>
         <!-- Row: Top / Bottom -->
         <div class="field-row">
           <div class="field-inline" style="flex:1">

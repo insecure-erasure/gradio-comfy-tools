@@ -11,8 +11,8 @@ const STORAGE_KEY = 'comfyTools.userConfig';
 // Field ids whose values we persist, per tab.
 const PERSIST_FIELDS = {
   generate: ['genSteps', 'genSeed', 'genMegapixel', 'genAspectRatio', 'genSeedRandom'],
-  edit: ['editSteps', 'editSeed', 'editSeedRandom', 'editPadTop', 'editPadBottom', 'editPadLeft', 'editPadRight', 'editFeather'],
-  face_swap: ['fsSteps', 'fsCfg', 'fsSeed', 'fsSeedRandom'],
+  edit: ['editSteps', 'editSeed', 'editSeedRandom', 'editColorMatch', 'editPadTop', 'editPadBottom', 'editPadLeft', 'editPadRight', 'editFeather'],
+  face_swap: ['fsSteps', 'fsCfg', 'fsSeed', 'fsSeedRandom', 'fsColorMatch'],
   upscale: ['upscaleSeed', 'upscaleSeedRandom'],
   video: ['videoFrames', 'videoSteps', 'videoSeed', 'videoSeedRandom'],
 };
