@@ -369,13 +369,13 @@ the sampling parameters and the optional extra prompt.
 | 🎚️ CFG (guidance) | `cfg` (0–8, step 0.1; 0 = no guidance) | `CFG Guider` |
 | 👣 Steps | `steps` (1–15, default 6) | `Flux2Scheduler` |
 | 🌱 Seed + 🎲 | `seed` (0…2^64−1; 🎲 → random en cliente) | `RandomNoise` |
-| 🎨 Color match | `color_match` (0–1, default 0.5; 0 = off) | `Color Match` → `strength` |
+| 🎨 Color match | `color_match` (0–1, UI default 0; 0 = off; step 0.01) | `Color Match` → `strength` |
 | — (runtime) | dedicated head-swap LoRA | `Load LoRA` (name resolved against `GET /models/loras`) |
 
 The swapped result goes **`VAE Decode` → `Color Match` → `Random Preview
 Image`**, with the **base image** as `image_ref` and the decoded swap as
 `image_target` (`mkl`). The node ships at `strength 0.0` (no-op) for API
-clients that omit `color_match`; the UI sends 0.5 by default. **Tuning note**:
+clients that omit `color_match`; the UI sends 0 by default. **Tuning note**:
 a full match can pull the new face's skin tone toward the base's average —
 use a moderate value when the two pictures have very different lighting or
 skin tones.

@@ -577,12 +577,13 @@ function renderPromptChips() {
   updatePromptChips();
 }
 
-// Compact color-match strength for the chip: hidden when 0/off, otherwise
-// "🎨 0.5". Two decimals only when needed (0.75, 0.05).
+// Compact color-match strength for the chip: ALWAYS shown (including 0) so
+// the user can see whether the feature is off. Two decimals only when needed
+// (0.75, 0.05).
 function _formatColorMatch(value) {
   const n = parseFloat(value);
-  if (!Number.isFinite(n) || n <= 0) return '';
-  return ` 🎨 ${Math.round(n * 100) / 100}`;
+  const v = Number.isFinite(n) ? Math.min(1, Math.max(0, Math.round(n * 100) / 100)) : 0;
+  return ` 🎨 ${v}`;
 }
 
 // Refresh the chip labels from the active tab's controls.

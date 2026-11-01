@@ -21,7 +21,7 @@ const FS_PANE_ID = 'faceSwapOutputPane';
 // ColorMatch strength (0 = off, 1 = full). The UI sends it; API clients that
 // omit it keep the workflow default (0 = no-op).
 const FS_COLOR_MATCH_ID = 'fsColorMatch';
-const FS_COLOR_MATCH_DEFAULT = 0.5;
+const FS_COLOR_MATCH_DEFAULT = 0;
 
 // Natural dimensions of the two sources, shown as two discreet lines above
 // the bottom-right action buttons (Base / Face). Each line appears once its

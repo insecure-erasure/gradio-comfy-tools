@@ -218,8 +218,9 @@ empty and the prompt fills it; see also deviation 14):
     and the `🌱 Seed` stepper + `🎲` as the **last row**. The same value
     feeds Edit and Extend (`color_match` → `Color Match.strength`); Restore
     forces it to 0 for now.
-    The chip appends `🎨 0.5` while the value is > 0, before the dice
-    (e.g. `6 🎨 0.5 🎲`); the old `·` separators were removed. Changing any
+    The chip always appends `🎨 <strength>` before the dice, including
+    `🎨 0` when off (e.g. `6 🎨 0 🎲`, `6 🎨 0.5 🎲`); the old `·`
+    separators were removed. Changing any
     Extend padding (with at least one edge > 0) automatically sets the
     strength to 1; pressing 🩹 Restore sets it to 0 (Restore does not use
     ColorMatch for now, so the control reflects the actual run).
@@ -263,11 +264,12 @@ empty and the prompt fills it; see also deviation 14):
 - **Params**: a single **👣 chip** over the prompt textarea (same design as
   Edit). Its popover holds, in order, the `🎚️ CFG` stepper (0–8, step 0.1;
   0 = no guidance), the `👣 Steps` stepper (1–15, default 6), the **🎨
-  Color match** stepper (0–1, step 0.01, default 0.5; 0 = off; hold to
+  Color match** stepper (0–1, step 0.01, default 0; 0 = off; hold to
   accelerate 0.01 → 0.05 → 0.1) and the
-  `🌱 Seed` stepper + `🎲` as the **last row**. The chip reads
-  `🎚️ 1.0 👣 6 🎨 0.5 🎲` (no `·` separators; the 🎨 part
-  disappears at 0, and the dice is always last).
+  `🌱 Seed` stepper + `🎲` as the **last row**. The chip always shows the
+  strength, including 0: `🎚️ 1.0 👣 6 🎨 0 🎲` by default, or
+  `🎚️ 1.0 👣 6 🎨 0.5 🎲` after raising it (no `·` separators; the dice is
+  always last).
 - **Extracted face**: while a swap runs, the workflow's extracted-face
   output is shown early as a small overlay box so the extraction can be
   verified before the result lands.
@@ -891,7 +893,7 @@ the field (`.btn-col` moved inside `.prompt-input-wrap`):
       control stays directly in the params pane (as before).
 The 👣 chips show `steps 🎲` while the seed is random and drop the dice
 when the seed is FIXED (steps only). Edit/Face swap append `🎨 strength`
-before the dice while the color-match value is > 0. The action chips
+before the dice, including `🎨 0` when the value is off. The action chips
 (bottom-right) mirror the portrait modal pills: 🪄 refine + the tool's
 generation chip(s) (✨/🖌️/🎬, accent background; 🩹 restore and 🧩 extend in
 Edit);
