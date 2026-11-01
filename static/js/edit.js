@@ -15,7 +15,7 @@ const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
 // ColorMatch strength (0 = off, 1 = full): the Edit tab uses one value for
 // Edit / Restore / Extend.
 const EDIT_COLOR_MATCH_ID = 'editColorMatch';
-const EDIT_COLOR_MATCH_DEFAULT = 0.5;
+const EDIT_COLOR_MATCH_DEFAULT = 0;
 
 // Live Extend preview (⛶ popover). The dashed frame is the FINAL canvas
 // (centered in the pane) and the source image sits at its REAL padding

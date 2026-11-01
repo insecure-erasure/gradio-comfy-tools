@@ -214,12 +214,12 @@ empty and the prompt fills it; see also deviation 14):
   - **👣 Steps & seed** — shows `steps 🎲` (steps only when the seed is
     fixed — the dice disappears). Its popover holds, in order, the `👣
     Steps` stepper (1–15, default 6), the **🎨 Color match** stepper (0–1,
-    step 0.01, default 0.5; 0 = off; hold to accelerate 0.01 → 0.05 → 0.1)
+    step 0.01, default 0; 0 = off; hold to accelerate 0.01 → 0.05 → 0.1)
     and the `🌱 Seed` stepper + `🎲` as the **last row**. The same value
     feeds Edit and Extend (`color_match` → `Color Match.strength`); Restore
     forces it to 0 for now.
     The chip always appends `🎨 <strength>` before the dice, including
-    `🎨 0` when off (e.g. `6 🎨 0 🎲`, `6 🎨 0.5 🎲`); the old `·`
+    `🎨 0` when off (e.g. `6 🎨 0 🎲`, or `6 🎨 0.5 🎲` after raising it); the old `·`
     separators were removed. Changing any
     Extend padding (with at least one edge > 0) automatically sets the
     strength to 1; pressing 🩹 Restore sets it to 0 (Restore does not use
