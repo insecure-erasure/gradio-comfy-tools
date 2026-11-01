@@ -51,6 +51,8 @@ function restoreSourceHistory(data) {
     }
     sourceHistory[tab] = out;
   });
+  // Face swap entries are base+face PAIRS or base-only images (generated
+  // results that can be reused as the base with a different face).
   const pairs = Array.isArray(data.face_swap) ? data.face_swap : [];
   const seenPairs = new Set();
   const out = [];
@@ -58,12 +60,21 @@ function restoreSourceHistory(data) {
     const base = e && typeof e.base === 'string' ? e.base.trim() : '';
     const face = e && typeof e.face === 'string' ? e.face.trim() : '';
     const key = base + '\u0000' + face;
-    if (!base || !face || seenPairs.has(key)) continue;
+    if (!base || seenPairs.has(key)) continue;
     seenPairs.add(key);
     out.push({ base, face, ts: Number(e.ts) || 0 });
     if (out.length >= SOURCE_HISTORY_MAX) break;
   }
   sourceHistory.face_swap = out;
+}
+
+// Remove an existing matching entry, insert the new one at the front and
+// cap the list. Shared by all history flavors.
+function _historyUnshift(list, entry, matches) {
+  const idx = list.findIndex(matches);
+  if (idx >= 0) list.splice(idx, 1);
+  list.unshift(entry);
+  if (list.length > SOURCE_HISTORY_MAX) list.length = SOURCE_HISTORY_MAX;
 }
 
 // Remember a single-source image (Edit/Upscale/Video). Deduplicated and
@@ -73,10 +84,7 @@ function rememberSourceHistory(tab, value) {
   if (!value || !Array.isArray(sourceHistory[tab])) return;
   const list = sourceHistory[tab];
   if (list[0] && list[0].value === value) return; // already the newest
-  const idx = list.findIndex(e => e.value === value);
-  if (idx >= 0) list.splice(idx, 1);
-  list.unshift({ value, ts: Date.now() });
-  if (list.length > SOURCE_HISTORY_MAX) list.length = SOURCE_HISTORY_MAX;
+  _historyUnshift(list, { value, ts: Date.now() }, e => e.value === value);
   if (typeof savePersistedState === 'function') savePersistedState();
 }
 
@@ -87,10 +95,34 @@ function rememberFaceSwapHistory(base, face) {
   if (!base || !face) return;
   const list = sourceHistory.face_swap;
   if (list[0] && list[0].base === base && list[0].face === face) return;
-  const idx = list.findIndex(e => e.base === base && e.face === face);
-  if (idx >= 0) list.splice(idx, 1);
-  list.unshift({ base, face, ts: Date.now() });
-  if (list.length > SOURCE_HISTORY_MAX) list.length = SOURCE_HISTORY_MAX;
+  _historyUnshift(
+    list,
+    { base, face, ts: Date.now() },
+    e => e.base === base && e.face === face
+  );
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
+// Remember a generated IMAGE result as a source candidate in EVERY source
+// tab (and as a base-only Face swap entry), so the 🕘 popover shows it
+// immediately without pressing 🔗 first. One localStorage write.
+function rememberGeneratedImage(url) {
+  url = (url || '').trim();
+  if (!url) return;
+  const ts = Date.now();
+  ['edit', 'upscale', 'video'].forEach(tab => {
+    const list = sourceHistory[tab];
+    if (!Array.isArray(list) || (list[0] && list[0].value === url)) return;
+    _historyUnshift(list, { value: url, ts }, e => e.value === url);
+  });
+  const fsList = sourceHistory.face_swap;
+  if (!(fsList[0] && fsList[0].base === url && !fsList[0].face)) {
+    _historyUnshift(
+      fsList,
+      { base: url, face: '', ts },
+      e => e.base === url && !e.face
+    );
+  }
   if (typeof savePersistedState === 'function') savePersistedState();
 }
 
@@ -136,10 +168,10 @@ function renderSourceHistoryGrid(tab) {
     btn.type = 'button';
     btn.className = 'source-history-item';
     btn.title = tab === 'face_swap'
-      ? `Base: ${entry.base}\nFace: ${entry.face}`
+      ? (entry.face ? `Base: ${entry.base}\nFace: ${entry.face}` : `Base: ${entry.base}`)
       : entry.value;
     const current = tab === 'face_swap'
-      ? (curBase === entry.base && curFace === entry.face)
+      ? (curBase === entry.base && (entry.face ? curFace === entry.face : !curFace))
       : (curValue === entry.value);
     if (current) btn.classList.add('current');
     btn.onclick = () => restoreHistorySource(tab, i);
@@ -147,11 +179,20 @@ function renderSourceHistoryGrid(tab) {
       const pair = document.createElement('span');
       pair.className = 'source-history-pair';
       pair.appendChild(_historyThumb(entry.base, 'Base'));
-      pair.appendChild(_historyThumb(entry.face, 'Face'));
+      if (entry.face) {
+        pair.appendChild(_historyThumb(entry.face, 'Face'));
+      } else {
+        // Generated images are stored as base-only entries (no face yet):
+        // keep the pair slot so the grid rows stay aligned.
+        const empty = document.createElement('span');
+        empty.className = 'source-history-slot-empty';
+        empty.textContent = 'no face';
+        pair.appendChild(empty);
+      }
       btn.appendChild(pair);
       const label = document.createElement('span');
       label.className = 'source-history-label';
-      label.textContent = 'Base + Face';
+      label.textContent = entry.face ? 'Base + Face' : 'Base only';
       btn.appendChild(label);
     } else {
       btn.appendChild(_historyThumb(entry.value, 'Source'));
@@ -187,7 +228,7 @@ function openSourceHistory(tab, btn) {
     return;
   }
   _sourceHistoryTab = tab;
-  if (title) title.textContent = tab === 'face_swap' ? 'Recent base + face' : 'Recent sources';
+  if (title) title.textContent = tab === 'face_swap' ? 'Recent base / face' : 'Recent sources';
   renderSourceHistoryGrid(tab);
   // Show first so offsetWidth/Height are measurable, then anchor ABOVE the
   // button (right-aligned), falling back below when there is no room.

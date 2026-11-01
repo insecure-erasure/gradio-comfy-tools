@@ -12,9 +12,11 @@ let lastGeneratedUrl = null;
 
 // Per-tab recent SOURCE images (newest first) shown by the 🕘 button in each
 // source pane: Edit/Upscale/Video hold [{ value, ts }]; Face swap holds
-// [{ base, face, ts }] pairs. Restoring one reloads the field + preview so a
-// previous run can be retried after its result replaced the source preview.
-// Persisted in localStorage (storage.js) and capped per tab.
+// [{ base, face, ts }] — pairs, or base-only entries for generated images
+// (face === ''). Restoring one reloads the field + preview so a previous run
+// can be retried after its result replaced the source preview. Every
+// generated IMAGE result is also added automatically (see
+// rememberGeneratedImage in source.js). Persisted in localStorage and capped.
 const SOURCE_HISTORY_MAX = 8;
 let sourceHistory = { edit: [], upscale: [], video: [], face_swap: [] };
 

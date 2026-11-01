@@ -415,6 +415,7 @@ function generateEdit(forceMode) {
     clearEditExtendPreview();
     pane.querySelectorAll('.result-img, .output-placeholder, .source-preview, .source-dimensions').forEach(el => el.remove());
     lastGeneratedUrl = res.url;
+    rememberGeneratedImage(res.url); // 🕘 source history (all source tabs)
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('edit', { url: res.url });
     showToast(mode === 'restore' ? '✨ Restored' : mode === 'extend' ? '✨ Extended' : '✨ Edited');

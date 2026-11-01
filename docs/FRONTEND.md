@@ -483,17 +483,21 @@ preview is cleared. In the other tabs the preview behaves as before.
 
 **🕘 Recent sources**: each source pane (Edit/Upscale/Video and Face swap)
 has a clock button in the bottom-right cluster (left of 📁; Face swap adds
-a fourth slot). It opens a thumbnail popover with the last 8 source images
-**used by that tool** — uploads, confirmed URLs and chained generations —
-so a previous run can be retried after its result replaced the preview.
-Edit/Upscale/Video restore one image; Face swap stores and restores
-base+face **pairs**. Selecting an entry refills the field(s), reloads the
-preview and flashes the field like 🔗. History is captured on a successful
-preview load and on submit (the exact value used), deduplicated by value
-and persisted in localStorage (`sourceHistory` inside the main config key).
-The current value is highlighted; dead temp files may remain as dimmed
-thumbnails (the restore attempt simply fails to load). The popover closes on
-click-outside / Esc / tab switch (`source.js`).
+a fourth slot). It opens a thumbnail popover with the last 8 **source
+candidates** for that tool — uploads, confirmed URLs, chained generations
+and every newly generated image result — so a previous run can be retried
+after its result replaced the preview, and the fresh result is available
+without pressing 🔗 first. Edit/Upscale/Video restore one image; Face swap
+stores base+face **pairs** plus **base-only** entries for generated images
+(restoring one sets only the base, keeping the current face). Selecting an
+entry refills the field(s), reloads the preview and flashes the field like
+🔗. History is captured on a successful preview load, on submit (the exact
+value used) and automatically in every tool's finalize for generated image
+results (`rememberGeneratedImage`), deduplicated by value and persisted in
+localStorage (`sourceHistory` inside the main config key). The current
+value is highlighted; dead temp files may remain as dimmed thumbnails (the
+restore attempt simply fails to load). The popover closes on click-outside /
+Esc / tab switch (`source.js`).
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
 docs/BACKEND.md §6): external URL → checked directly; anything else → treated as

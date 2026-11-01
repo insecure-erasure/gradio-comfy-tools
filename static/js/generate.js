@@ -49,6 +49,7 @@ function generateImage() {
     // generation prompt; session-scoped, survives the pane.
     addGeneratedEntry(res, prompt);
     lastGeneratedUrl = res.url;
+    rememberGeneratedImage(res.url); // 🕘 source history (all source tabs)
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('generate', { url: res.url });
     showToast('✨ Generated');

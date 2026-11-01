@@ -247,7 +247,7 @@ function restoreFaceSwapHistorySource(entry) {
     fsPreviewFace(entry.face);
     fsFlash('face');
   }
-  showToast('Previous base + face restored');
+  showToast(entry.face ? 'Previous base + face restored' : 'Previous base restored');
 }
 
 // ── Action ─────────────────────────────────
@@ -332,6 +332,7 @@ function generateFaceSwap() {
       showResult(FS_PANE_ID, res, false);
     }
     lastGeneratedUrl = res.url;
+    rememberGeneratedImage(res.url); // 🕘 source history (base-only entry too)
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     // Extracted-face preview (the workflow's "Random Preview Image (face)"
     // output — the face region with its alpha): a small overlay box

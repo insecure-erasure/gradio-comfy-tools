@@ -982,6 +982,19 @@
     width: 100%;
   }
   .source-history-pair img { aspect-ratio: 1; }
+  /* Base-only Face swap entries (generated images): the second slot keeps
+     the pair card the same height. */
+  .source-history-slot-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    background: #0a0a14;
+    color: rgba(255,255,255,.35);
+    font-size: .55rem;
+    line-height: 1.2;
+    text-align: center;
+  }
   .extend-info {
     margin: -2px 0 9px;
     padding-bottom: 8px;

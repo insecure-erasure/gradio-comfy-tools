@@ -707,8 +707,12 @@ function finalizeRecoveredJob(tool, res) {
   }
   // Only image tools set lastGeneratedUrl: the 🔗 chain feeds Edit/Upscale/
   // Video, all of which need an IMAGE source (img2img / img2vid) — a
-  // generated video is never a valid source.
-  if (tool !== 'video') lastGeneratedUrl = res.url;
+  // generated video is never a valid source. Recovered image results also
+  // join the 🕘 source histories (same as the normal finalize paths).
+  if (tool !== 'video') {
+    lastGeneratedUrl = res.url;
+    if (typeof rememberGeneratedImage === 'function') rememberGeneratedImage(res.url);
+  }
   // The hint is timing-only now; pass the gallery entry so its persisted
   // duration shows (there is no elapsed clock for an adopted job).
   syncResultUrl(tool, typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tool) : { url: res.url });
