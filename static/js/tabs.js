@@ -616,9 +616,9 @@ function updatePromptChips() {
       ? [h ? `↔ ${h}` : '', v ? `↕ ${v}` : ''].filter(Boolean).join(' ')
       : '0';
   }
-  // 👣 Steps & seed (generate/edit/video): "steps 🎲" while the seed is
-  // random; when it is FIXED the dice disappears (steps only) — that is the
-  // visual cue. Edit/Face swap append "🎨 strength" while the color-match
+  // 👣 Steps & seed (generate/edit/video): the dice sits at the far right
+  // while the seed is random; when it is FIXED the dice disappears. Edit/
+  // Face swap append "🎨 strength" before the dice while the color-match
   // value is > 0. Face swap also prefixes the CFG; the seed NUMBER is never
   // shown on the chip.
   const ssLabel = document.getElementById('chipStepSeedLabel');
@@ -631,13 +631,15 @@ function updatePromptChips() {
         const cfg = parseFloat(cfgEl.value);
         const cfgTxt = (isNaN(cfg) ? 1 : cfg).toFixed(1); // one decimal
         const stepsTxt = (parseInt(steps.value, 10) || 6);
-        // 🎚️ CFG 👣 steps 🎲 🎨 — the dice only while the seed is random;
-        // the seed number/emoji never appear on the chip.
+        // 🎚️ CFG 👣 steps 🎨 strength 🎲 — dice only while the seed is
+        // random, always at the far right; the seed number/emoji never
+        // appear on the chip.
         // One space after each emoji: like Edit's chip (icon span + gap),
         // the values must not hug the emojis.
         const colorTxt = _formatColorMatch(document.getElementById('fsColorMatch')?.value);
-        ssLabel.textContent = '🎚️ ' + cfgTxt + ' 👣 ' + stepsTxt +
-          ((rnd && rnd.checked) ? ' 🎲' : '') + colorTxt;
+        // Values first, dice at the far right (the numbers act as separators).
+        ssLabel.textContent = '🎚️ ' + cfgTxt + ' 👣 ' + stepsTxt + colorTxt +
+          ((rnd && rnd.checked) ? ' 🎲' : '');
       }
     } else {
       const ids = {
@@ -652,8 +654,9 @@ function updatePromptChips() {
           const colorTxt = currentTab === 'edit'
             ? _formatColorMatch(document.getElementById('editColorMatch')?.value)
             : '';
-          ssLabel.textContent =
-            ((rnd && rnd.checked) ? `${steps.value} 🎲` : `${steps.value}`) + colorTxt;
+          // Values first, dice at the far right (the numbers act as separators).
+          ssLabel.textContent = `${steps.value}` + colorTxt +
+            ((rnd && rnd.checked) ? ' 🎲' : '');
         }
       }
     }

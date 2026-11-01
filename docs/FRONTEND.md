@@ -216,8 +216,8 @@ empty and the prompt fills it; see also deviation 14):
     (1–15, default 6), the `🌱 Seed` stepper + `🎲`, and the **🎨 Color
     match** stepper (0–1, step 0.05, default 0.5; 0 = off). The same value
     feeds Edit, Restore and Extend (`color_match` → `Color Match.strength`).
-    The chip appends `🎨 0.5` while the value is > 0 (e.g. `6 🎲 🎨 0.5`);
-    the old `·` separators were removed.
+    The chip appends `🎨 0.5` while the value is > 0, before the dice
+    (e.g. `6 🎨 0.5 🎲`); the old `·` separators were removed.
   - **⛶ Extend** — shows only the modified axes: `↔ h` and/or `↕ v` (e.g.
     `↔ 500`, `↕ 300`, `↔ 500 ↕ 300`); a zero axis is omitted. The ⛶ icon is
     hidden once any padding is set, and the chip shows `0` (with the icon)
@@ -260,7 +260,8 @@ empty and the prompt fills it; see also deviation 14):
   guidance), the `👣 Steps` stepper (1–15, default 6), the `🌱 Seed`
   stepper + `🎲` and the **🎨 Color match** stepper (0–1, step 0.05,
   default 0.5; 0 = off) → `Color Match.strength`. The chip reads
-  `🎚️ 1.0 👣 6 🎲 🎨 0.5` (no `·` separators; the 🎨 part disappears at 0).
+  `🎚️ 1.0 👣 6 🎨 0.5 🎲` (no `·` separators; the 🎨 part
+  disappears at 0, and the dice is always last).
 - **Extracted face**: while a swap runs, the workflow's extracted-face
   output is shown early as a small overlay box so the extraction can be
   verified before the result lands.
@@ -884,7 +885,7 @@ the field (`.btn-col` moved inside `.prompt-input-wrap`):
       control stays directly in the params pane (as before).
 The 👣 chips show `steps 🎲` while the seed is random and drop the dice
 when the seed is FIXED (steps only). Edit/Face swap append `🎨 strength`
-while the color-match value is > 0. The action chips
+before the dice while the color-match value is > 0. The action chips
 (bottom-right) mirror the portrait modal pills: 🪄 refine + the tool's
 generation chip(s) (✨/🖌️/🎬, accent background; 🩹 restore and 🧩 extend in
 Edit);
