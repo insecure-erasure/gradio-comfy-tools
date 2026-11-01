@@ -212,10 +212,11 @@ empty and the prompt fills it; see also deviation 14):
   requires a prompt; Restore and Extend are always active.
 - **Params**: two chips over the prompt textarea:
   - **👣 Steps & seed** — shows `steps 🎲` (steps only when the seed is
-    fixed — the dice disappears). Its popover holds the `👣 Steps` stepper
-    (1–15, default 6), the `🌱 Seed` stepper + `🎲`, and the **🎨 Color
-    match** stepper (0–1, step 0.05, default 0.5; 0 = off). The same value
-    feeds Edit, Restore and Extend (`color_match` → `Color Match.strength`).
+    fixed — the dice disappears). Its popover holds, in order, the `👣
+    Steps` stepper (1–15, default 6), the **🎨 Color match** stepper (0–1,
+    step 0.05, default 0.5; 0 = off) and the `🌱 Seed` stepper + `🎲` as the
+    **last row**. The same value feeds Edit, Restore and Extend
+    (`color_match` → `Color Match.strength`).
     The chip appends `🎨 0.5` while the value is > 0, before the dice
     (e.g. `6 🎨 0.5 🎲`); the old `·` separators were removed.
   - **⛶ Extend** — shows only the modified axes: `↔ h` and/or `↕ v` (e.g.
@@ -256,10 +257,10 @@ empty and the prompt fills it; see also deviation 14):
 - **Prompt** (optional): extra instructions appended after the workflow's
   built-in head-swap prompt (empty = built-in only).
 - **Params**: a single **👣 chip** over the prompt textarea (same design as
-  Edit). Its popover holds the `🎚️ CFG` stepper (0–8, step 0.1; 0 = no
-  guidance), the `👣 Steps` stepper (1–15, default 6), the `🌱 Seed`
-  stepper + `🎲` and the **🎨 Color match** stepper (0–1, step 0.05,
-  default 0.5; 0 = off) → `Color Match.strength`. The chip reads
+  Edit). Its popover holds, in order, the `🎚️ CFG` stepper (0–8, step 0.1;
+  0 = no guidance), the `👣 Steps` stepper (1–15, default 6), the **🎨
+  Color match** stepper (0–1, step 0.05, default 0.5; 0 = off) and the
+  `🌱 Seed` stepper + `🎲` as the **last row**. The chip reads
   `🎚️ 1.0 👣 6 🎨 0.5 🎲` (no `·` separators; the 🎨 part
   disappears at 0, and the dice is always last).
 - **Extracted face**: while a swap runs, the workflow's extracted-face
