@@ -165,42 +165,92 @@ function sourceHistoryLabel(value) {
   return value.split('/').pop() || 'Image';
 }
 
-// Square `cover` thumbnail plus a stacked `contain` copy that crossfades in
-// on hover/focus of the card, revealing the whole (uncropped) image without
-// moving the grid cell. The peek copy is decorative: the button title/label
-// already carry the accessible name.
+// Square `cover` thumbnail; the uncropped image is shown by the hover/focus
+// popout (`showSourceHistoryPeek`) rather than by changing the cell itself.
 function _historyThumb(value, alt) {
-  const frame = document.createElement('span');
-  frame.className = 'source-history-frame';
-  const src = proxiedSrc(value);
   const img = document.createElement('img');
-  img.className = 'source-history-base';
-  img.src = src;
+  img.src = proxiedSrc(value);
   img.alt = alt;
   img.loading = 'lazy';
   img.draggable = false;
-  img.addEventListener('error', () => {
-    img.classList.add('broken');
-    // No base to reveal: suppress the crossfade so the broken slot stays dim.
-    frame.classList.add('broken');
-  });
-  const peek = document.createElement('img');
-  peek.className = 'source-history-peek';
-  peek.src = src;
-  peek.alt = '';
-  peek.setAttribute('aria-hidden', 'true');
-  // Eager so the reveal never shows an empty layer mid-hover; the base already
-  // requested the same URL, so this is a cache hit rather than a second fetch.
-  peek.loading = 'eager';
-  peek.draggable = false;
-  peek.addEventListener('error', () => frame.classList.add('broken'));
-  frame.append(img, peek);
-  return frame;
+  img.addEventListener('error', () => img.classList.add('broken'));
+  return img;
+}
+
+// ---------------------------------------------------------------- peek card
+// A slightly larger, uncropped copy of the hovered thumbnail, centred on it
+// and kept inside the popover. It is a fixed-position card in <body>: the
+// grid's `overflow-y` would clip anything inside the popover, and
+// `pointer-events: none` keeps it from stealing the hover.
+const PEEK_SCALE = 1.25;       // preview content is ~1.25x the thumbnail's crop
+const PEEK_MAX_UPSCALE = 3;    // but never blow a tiny source up beyond 3x natural
+const PEEK_INSET = 8;          // keep the card inside the popover's padding
+// Touch devices have no hover: arm the pointer preview only when the primary
+// input can actually hover (same gate the CSS used before).
+const _hoverMedia = window.matchMedia
+  ? window.matchMedia('(hover: hover) and (pointer: fine)')
+  : null;
+
+function showSourceHistoryPeek(btn) {
+  const pop = document.getElementById('sourceHistoryPopover');
+  const card = document.getElementById('sourceHistoryPeek');
+  const thumb = btn ? btn.querySelector('img') : null;
+  if (!pop || !card || !thumb) return;
+  // Dead temp file: nothing to show, keep the dimmed slot.
+  if (thumb.classList.contains('broken') || !thumb.naturalWidth) return;
+  const nw = thumb.naturalWidth;
+  const nh = thumb.naturalHeight;
+  const pr = pop.getBoundingClientRect();
+  const tr = thumb.getBoundingClientRect();
+  // The cell shows a `cover` crop, so its content is ALREADY scaled by
+  // max(cell/natural). Sizing the preview box from the cell alone and then
+  // fitting the whole image into it (`contain`) can leave the visible content
+  // the same size or smaller (a 16:9 source fits its long side into the box).
+  // Multiply the crop's own scale by PEEK_SCALE instead: the full image is
+  // then genuinely ~1.75x bigger than what the thumbnail shows.
+  const coverScale = Math.max(tr.width / nw, tr.height / nh);
+  const scale = Math.min(coverScale * PEEK_SCALE, PEEK_MAX_UPSCALE);
+  let w = Math.max(1, Math.round(nw * scale));
+  let h = Math.max(1, Math.round(nh * scale));
+  // Never spill off-screen.
+  const fit = Math.min(1, (window.innerWidth - 2 * PEEK_INSET) / w,
+    (window.innerHeight - 2 * PEEK_INSET) / h);
+  w = Math.max(1, Math.round(w * fit));
+  h = Math.max(1, Math.round(h * fit));
+
+  const img = card.querySelector('img');
+  if (img.getAttribute('src') !== thumb.src) img.src = thumb.src;
+
+  // Anchor the preview ON the hovered image (centred on the thumbnail). While
+  // it fits, keep it inside the popover so it reads as part of the panel; a
+  // wide source may be bigger than the popover, so then clamp to the viewport
+  // instead. `pointer-events: none` keeps the hover on the item underneath.
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+  const cx = tr.left + tr.width / 2;
+  const cy = tr.top + tr.height / 2;
+  const x = w <= pr.width - 2 * PEEK_INSET
+    ? clamp(cx - w / 2, pr.left + PEEK_INSET, pr.right - PEEK_INSET - w)
+    : clamp(cx - w / 2, PEEK_INSET, window.innerWidth - PEEK_INSET - w);
+  const y = h <= pr.height - 2 * PEEK_INSET
+    ? clamp(cy - h / 2, pr.top + PEEK_INSET, pr.bottom - PEEK_INSET - h)
+    : clamp(cy - h / 2, PEEK_INSET, window.innerHeight - PEEK_INSET - h);
+
+  card.style.width = w + 'px';
+  card.style.height = h + 'px';
+  card.style.left = x + 'px';
+  card.style.top = y + 'px';
+  card.classList.add('show');
+}
+
+function hideSourceHistoryPeek() {
+  const card = document.getElementById('sourceHistoryPeek');
+  if (card) card.classList.remove('show');
 }
 
 function renderSourceHistoryGrid(tab) {
   const grid = document.getElementById('sourceHistoryGrid');
   if (!grid) return;
+  hideSourceHistoryPeek();
   const list = sourceHistory[tab] || [];
   // The value(s) currently in the fields, to mark the active entry.
   const curBase = tab === 'face_swap' && typeof fsSource === 'function' ? fsSource('base') : '';
@@ -219,6 +269,20 @@ function renderSourceHistoryGrid(tab) {
       : (curValue === entry.value);
     if (current) btn.classList.add('current');
     btn.onclick = () => restoreHistorySource(tab, i);
+    // Same reveal for pointer and keyboard; touch has no hover, so the grid
+    // stays as-is there.
+    if (!_hoverMedia || _hoverMedia.matches) {
+      btn.addEventListener('mouseenter', () => showSourceHistoryPeek(btn));
+      btn.addEventListener('mouseleave', hideSourceHistoryPeek);
+    }
+    // Mouse clicks focus too, but the popover closes right after: only
+    // keyboard focus should pop out.
+    btn.addEventListener('focus', () => {
+      let keyboard = true;
+      try { keyboard = btn.matches(':focus-visible'); } catch (e) { /* older engines */ }
+      if (keyboard) showSourceHistoryPeek(btn);
+    });
+    btn.addEventListener('blur', hideSourceHistoryPeek);
     if (tab === 'face_swap') {
       const pair = document.createElement('span');
       pair.className = 'source-history-pair';
@@ -251,6 +315,7 @@ function renderSourceHistoryGrid(tab) {
 
 function closeSourceHistory() {
   _sourceHistoryTab = null;
+  hideSourceHistoryPeek();
   const pop = document.getElementById('sourceHistoryPopover');
   if (pop) pop.classList.remove('show');
 }
@@ -313,6 +378,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSourceHistory();
 });
 window.addEventListener('resize', closeSourceHistory);
+document.addEventListener('scroll', hideSourceHistoryPeek, true);
 
 // Resolve a source value (external URL, /media/.., {base}/view?.., bare
 // temp filename) to a SAME-ORIGIN proxy URL for the compare-slider BEFORE

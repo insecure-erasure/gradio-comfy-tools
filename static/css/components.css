@@ -989,56 +989,46 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
-  /* The cell keeps its 1:1 box; the two stacked copies inside do the work. */
-  .source-history-frame {
-    position: relative;
+  .source-history-item img {
     display: block;
     width: 100%;
     aspect-ratio: 1;
+    object-fit: cover;
     background: #000;
-    overflow: hidden;
   }
-  .source-history-frame img {
-    position: absolute;
-    inset: 0;
+  /* Hover/focus preview: a slightly larger, UNCROPPED copy that fades in ON
+     the thumbnail itself (source.js centres it there and keeps it inside the
+     popover). It lives in <body> with position: fixed because the grid's
+     `overflow-y` would clip it; `pointer-events: none` keeps the hover on the
+     item underneath, so the card can cover its own anchor without flicker. */
+  .source-history-peek-card {
+    position: fixed;
+    z-index: 470;              /* above the popover (460), below the toast */
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #000;
+    box-shadow: 0 6px 18px rgba(0,0,0,.4);
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(.96);
+    transition: opacity .12s ease, transform .12s ease;
+  }
+  .source-history-peek-card.show { opacity: 1; transform: none; }
+  .source-history-peek-card img {
     display: block;
     width: 100%;
     height: 100%;
-    transition: opacity .2s ease;
+    object-fit: contain;       /* whole image, never cropped */
   }
-  /* `object-fit` lives on the two classes, NEVER on the shared element rule:
-     `.source-history-frame img` (0,1,1) would outrank `.source-history-peek`
-     (0,1,0) and the peek would keep `cover`, so nothing would ever be revealed. */
-  .source-history-base { object-fit: cover; }
-  /* Hover/focus peek: the square thumbnails use `cover` (they crop tall/wide
-     images), so a `contain` copy crossfades in on top and reveals the WHOLE
-     image without moving the grid cell or shrinking the target. */
-  .source-history-peek {
-    object-fit: contain;
-    opacity: 0;
-  }
-  @media (hover: hover) and (pointer: fine) {
-    .source-history-item:hover .source-history-frame:not(.broken) .source-history-base {
-      opacity: 0;
-    }
-    .source-history-item:hover .source-history-frame:not(.broken) .source-history-peek {
-      opacity: 1;
-    }
-  }
-  .source-history-item:focus-visible .source-history-frame:not(.broken) .source-history-base {
-    opacity: 0;
-  }
-  .source-history-item:focus-visible .source-history-frame:not(.broken) .source-history-peek {
-    opacity: 1;
-  }
-  /* The reveal is state, not motion: skip the fade when the user asks for it. */
+  /* The preview is state, not motion: show it instantly when asked to. */
   @media (prefers-reduced-motion: reduce) {
-    .source-history-frame img { transition: none; }
+    .source-history-peek-card { transition: none; }
   }
   /* A dead temp file / unreachable URL still shows its slot (the user can
      try to restore it); the browser's alt text + dimming signal the problem. */
-  .source-history-base.broken { opacity: .25; }
-  .source-history-frame.broken .source-history-peek { display: none; }
+  .source-history-item img.broken { opacity: .25; }
   .source-history-label {
     display: block;
     padding: 4px 6px;

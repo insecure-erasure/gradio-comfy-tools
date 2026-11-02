@@ -66,6 +66,10 @@
   <div class="source-history-title" id="sourceHistoryTitle">Recent sources</div>
   <div class="source-history-grid" id="sourceHistoryGrid"></div>
 </div>
+<!-- Larger uncropped preview of the hovered/focused thumbnail. Positioned by
+     source.js and kept OUTSIDE the popover so the grid's scroll box (and the
+     popover's own stacking) cannot clip it. -->
+<div class="source-history-peek-card" id="sourceHistoryPeek" aria-hidden="true"><img alt=""></div>
 
 <!-- Scripts (plain scripts share the global scope; load order matters) -->
 <script src="/static/js/state.js?v={{ asset_version }}"></script>

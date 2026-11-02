@@ -547,12 +547,18 @@ entry refills the field(s), reloads the preview and flashes the field like
 value used) and automatically in every tool's finalize for generated image
 results (`rememberGeneratedImage`), deduplicated by value and persisted in
 localStorage (`sourceHistory` inside the main config key). The current
-value is highlighted; each thumbnail stacks a square `cover` copy and a
-`contain` copy that crossfades in on desktop hover (`hover: hover` +
-`pointer: fine`) and on keyboard `:focus-visible`, so the complete
-(uncropped) image is visible without moving or shrinking the grid cell.
-Dead temp files may remain as dimmed
-thumbnails (the restore attempt simply fails to load). The popover closes on click-outside /
+value is highlighted. Hovering a thumbnail (or focusing it with the keyboard;
+touch devices, which cannot hover, keep the plain grid) fades in a larger,
+uncropped copy centred ON that thumbnail: the card is fixed to the viewport in
+`<body>` (the grid's `overflow-y` would clip it), sized to the image's own
+aspect ratio, and scaled from the thumbnail's *rendered* `cover` crop so the
+whole image really is ~1.25x bigger (sizing the box from the cell instead made
+wide sources look the same size). It stays inside the popover when it fits —
+a wide source may extend past it — and clamps to the viewport otherwise.
+`pointer-events: none` keeps the hover on the item underneath, and it hides on
+leave/blur/scroll/resize. Dead temp files may remain as
+dimmed thumbnails (the restore attempt simply fails to load, and no popout is
+shown). The popover closes on click-outside /
 Esc / resize / tab switch, or when the prompt modal opens (`source.js`).
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
