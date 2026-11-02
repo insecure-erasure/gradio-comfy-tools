@@ -20,7 +20,6 @@ const _crop = {
   open: false,
   image: '',
   proxy: '',
-  label: '',
   naturalWidth: 0,
   naturalHeight: 0,
   sourceAspect: 0,
@@ -64,7 +63,6 @@ function openCropEditor(opts) {
   _crop.open = true;
   _crop.image = image;
   _crop.proxy = proxy;
-  _crop.label = typeof opts.label === 'string' ? opts.label : '';
   _crop.naturalWidth = 0;
   _crop.naturalHeight = 0;
   _crop.sourceAspect = 0;
@@ -75,7 +73,6 @@ function openCropEditor(opts) {
   _crop.lastFocus = document.activeElement;
   _crop.applying = false;
 
-  _cropSetTargetLabel();
   _cropSyncPresetButtons();
   const dims = _cropById('cropDims');
   if (dims) dims.textContent = '—';
@@ -97,11 +94,6 @@ function openCropEditor(opts) {
     if (cancel) cancel.focus({ preventScroll: true });
   });
   return true;
-}
-
-function _cropSetTargetLabel() {
-  const label = _cropById('cropTargetLabel');
-  if (label) label.textContent = _crop.label ? '· ' + _crop.label : '';
 }
 
 function _cropImageLoaded() {

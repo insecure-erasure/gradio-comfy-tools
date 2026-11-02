@@ -126,3 +126,15 @@ def test_crop_presets_are_keep_free_and_one_to_one_in_order():
     assert 'data-crop-ratio="0.8"' not in overlay
     assert 'data-crop-ratio="1.7777777778"' not in overlay
     assert 'id="cropReset"' not in overlay
+
+
+def test_crop_controls_live_in_the_bottom_strip():
+    overlay = _read("templates", "partials", "crop_overlay.html")
+    assert "crop-topbar" not in overlay
+    assert "cropTitle" not in overlay
+    assert "cropTargetLabel" not in overlay
+    assert "crop-actions" in overlay
+    dims = overlay.index('id="cropDims"')
+    presets = overlay.index('id="cropPresets"')
+    actions = overlay.index('class="crop-actions"')
+    assert dims < presets < actions

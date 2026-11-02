@@ -146,13 +146,23 @@ test('aspect-locked resize respects bounds and minimum size', () => {
   assert.deepStrictEqual(grown, { x: 0, y: 0, width: 100, height: 100 });
 });
 
-test('formats the reduced aspect ratio', () => {
+test('formats exact typical ratios without a tilde', () => {
   assert.strictEqual(cropAspectLabel(800, 600), '4:3');
   assert.strictEqual(cropAspectLabel(1920, 1080), '16:9');
   assert.strictEqual(cropAspectLabel(1024, 1024), '1:1');
-  assert.strictEqual(cropAspectLabel(816, 1216), '51:76');
+  assert.strictEqual(cropAspectLabel(1600, 1000), '16:10');
   assert.strictEqual(cropAspectLabel(0, 100), '');
   assert.strictEqual(cropAspectLabel(100, -1), '');
+});
+
+test('marks approximate typical ratios with a tilde', () => {
+  assert.strictEqual(cropAspectLabel(816, 1216), '~2:3');
+  assert.strictEqual(cropAspectLabel(1234, 1000), '~5:4');
+  assert.strictEqual(cropAspectLabel(1000, 562), '~16:9');
+});
+
+test('falls back to the exact reduced ratio when no typical one is close', () => {
+  assert.strictEqual(cropAspectLabel(1000, 900), '10:9');
 });
 
 test('payload rounds to integers and never overflows the image', () => {

@@ -602,7 +602,6 @@ function openEditCrop() {
   openCropEditor({
     image: target.image,
     proxy: target.proxy,
-    label: target.label,
     onApply: payload => submitCrop(target, payload),
   });
 }

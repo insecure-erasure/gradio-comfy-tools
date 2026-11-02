@@ -134,13 +134,49 @@ function cropResizeRect(rect, handle, dx, dy, bounds, opts = {}) {
   }, b, minSize);
 }
 
-// Human-readable reduced aspect ratio for the live dimensions readout.
-// 800x600 -> 4:3, 1920x1080 -> 16:9, 816x1216 -> 51:76. Empty when either
-// side is not a positive whole number.
+// Typical photo/video aspect ratios. The readout uses the nearest one and
+// marks it with '~' when the crop is not exactly that ratio:
+//   800x600 -> 4:3, 816x1216 -> ~2:3, 1234x1000 -> ~5:4.
+// If no typical ratio is close enough, the exact reduced fraction is shown
+// without '~'.
+const CROP_TYPICAL_RATIOS = [
+  [1, 1],
+  [5, 4], [4, 5],
+  [4, 3], [3, 4],
+  [3, 2], [2, 3],
+  [16, 9], [9, 16],
+  [16, 10], [10, 16],
+  [21, 9], [9, 21],
+  [2, 1], [1, 2],
+];
+const CROP_ASPECT_TOLERANCE = 0.05;
+
 function cropAspectLabel(width, height) {
   const w = Math.round(_cropNumber(width, 0));
   const h = Math.round(_cropNumber(height, 0));
   if (!(w > 0 && h > 0)) return '';
+
+  // Exact typical ratio: no '~'. Cross-multiplication avoids float drift.
+  for (const [rw, rh] of CROP_TYPICAL_RATIOS) {
+    if (w * rh === h * rw) return `${rw}:${rh}`;
+  }
+
+  const ratio = w / h;
+  let best = null;
+  let bestDiff = Infinity;
+  for (const [rw, rh] of CROP_TYPICAL_RATIOS) {
+    const target = rw / rh;
+    const diff = Math.abs(ratio - target) / target;
+    if (diff < bestDiff) {
+      best = [rw, rh];
+      bestDiff = diff;
+    }
+  }
+  if (best && bestDiff <= CROP_ASPECT_TOLERANCE) {
+    return `~${best[0]}:${best[1]}`;
+  }
+
+  // Not close to a typical ratio: show the exact reduced fraction.
   let a = w;
   let b = h;
   while (b) {

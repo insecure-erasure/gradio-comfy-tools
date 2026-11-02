@@ -108,7 +108,6 @@ elements.cropStage = element('cropStage', { clientWidth: 800, clientHeight: 600 
 elements.cropImage = element('cropImage', { tagName: 'IMG' });
 elements.cropBox = element('cropBox');
 elements.cropDims = element('cropDims');
-elements.cropTargetLabel = element('cropTargetLabel');
 elements.cropCancel = element('cropCancel', { tagName: 'BUTTON' });
 elements.cropApply = element('cropApply', { tagName: 'BUTTON' });
 elements.cropPresets = element('cropPresets', { children: presets });
@@ -181,7 +180,6 @@ test('opens with a full-frame selection and a disabled Apply', () => {
   assert.strictEqual(elements.cropOverlay.classList.contains('show'), true);
   assert.strictEqual(elements.cropDims.textContent, '800 × 600 · 4:3');
   assert.strictEqual(elements.cropApply.disabled, true);
-  assert.strictEqual(elements.cropTargetLabel.textContent, '· Source');
   assert.strictEqual(elements.cropStage.style.width, '800px');
   assert.strictEqual(elements.cropStage.style.height, '600px');
 });

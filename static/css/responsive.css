@@ -373,18 +373,25 @@
              max(6px, env(safe-area-inset-bottom))
              max(6px, env(safe-area-inset-left));
   }
-  .crop-topbar,
-  .crop-bottombar { padding: 6px 4px; }
   .crop-btn { min-height: 40px; padding: 0 12px; font-size: .78rem; }
-  .crop-title { font-size: .86rem; }
   .crop-stage-wrap { padding: 6px 0; }
   .crop-bottombar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dims actions"
+      "presets presets";
+    gap: 6px 8px;
+    padding: 6px 4px;
   }
-  .crop-dims { text-align: center; }
-  .crop-presets { justify-content: flex-start; padding-bottom: 2px; }
+  .crop-dims { grid-area: dims; text-align: left; }
+  .crop-actions { grid-area: actions; justify-self: end; }
+  .crop-presets {
+    grid-area: presets;
+    justify-self: center;
+    width: 100%;
+    justify-content: center;
+    padding-bottom: 2px;
+  }
   .crop-preset { min-height: 34px; padding: 0 11px; font-size: .72rem; }
   .crop-handle { width: 44px; height: 44px; }
   .crop-handle::after { width: 20px; height: 20px; }

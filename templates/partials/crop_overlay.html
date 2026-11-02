@@ -1,13 +1,10 @@
 <!-- Crop editor. On desktop it is confined to the output pane (absolute);
      below 1024px the same element becomes a fullscreen dialog (see
-     responsive.css), which is where touch targets and safe areas matter. -->
+     responsive.css), which is where touch targets and safe areas matter.
+     All controls live in the bottom strip; the preview gets the full top
+     area. -->
 <div class="crop-overlay" id="cropOverlay" role="dialog" aria-modal="true"
-     aria-labelledby="cropTitle" aria-hidden="true">
-  <div class="crop-topbar">
-    <button type="button" class="crop-btn" id="cropCancel" title="Cancel (Esc)">Cancel</button>
-    <div class="crop-title" id="cropTitle">Crop <span id="cropTargetLabel"></span></div>
-    <button type="button" class="crop-btn primary" id="cropApply" disabled title="Apply crop (Enter)">Apply</button>
-  </div>
+     aria-label="Crop image" aria-hidden="true">
   <div class="crop-stage-wrap" id="cropStageWrap">
     <div class="crop-stage" id="cropStage">
       <img id="cropImage" alt="Crop source" draggable="false">
@@ -25,6 +22,10 @@
       <button type="button" class="crop-preset" data-crop-ratio="keep" title="Keep the source image aspect ratio">Keep</button>
       <button type="button" class="crop-preset active" data-crop-ratio="0">Free</button>
       <button type="button" class="crop-preset" data-crop-ratio="1">1:1</button>
+    </div>
+    <div class="crop-actions">
+      <button type="button" class="crop-btn" id="cropCancel" title="Cancel (Esc)">Cancel</button>
+      <button type="button" class="crop-btn primary" id="cropApply" disabled title="Apply crop (Enter)">Apply</button>
     </div>
   </div>
 </div>

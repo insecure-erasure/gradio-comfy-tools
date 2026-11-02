@@ -241,10 +241,15 @@ empty and the prompt fills it; see also deviation 14):
   - Desktop (`≥1024px`): **inline in the output pane**.
   - Stacked/vertical layout (`<1024px`): **fullscreen**, with safe-area
     padding and larger touch targets.
+  - There is no top title bar: the preview uses the full top area. The
+    bottom strip has the live dimensions/ratio on the left, the
+    `Keep / Free / 1:1` presets centered and `Cancel / Apply` right-aligned.
   - Drag the four corner handles to resize, drag inside the box to move,
     or pick `Keep` / `Free` / `1:1`. `Keep` uses the image's own aspect ratio
-    and also resets to the full frame. The footer shows live `W × H` and
-    the reduced aspect ratio of the resulting crop (e.g. `600 × 600 · 1:1`).
+    and also resets to the full frame. The dimensions readout shows the
+    nearest **typical** aspect ratio; it is prefixed with `~` when
+    approximate (`816 × 1216 · ~2:3`) and has no tilde when exact
+    (`600 × 600 · 1:1`).
     Arrow keys nudge (Shift = 10 px), `Esc` cancels, `Enter` applies,
     double-clicking inside the selection applies, and clicking the dark
     area outside the image cancels. Apply is disabled while the selection

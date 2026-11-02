@@ -411,8 +411,10 @@ keeps the selection in source pixels, supports dragging the corners, moving
 the box, aspect presets (`Keep`, `Free`, `1:1`; `Keep` uses the image's own
 ratio and also resets to the full frame), keyboard
 nudging, `Esc`/`Enter`, double-click-to-apply inside the selection and
-click-outside-the-image-to-cancel; the footer shows the live `W × H` and its
-reduced aspect ratio. Applying submits the crop, closes the editor and
+click-outside-the-image-to-cancel. The bottom strip holds the live
+dimensions/ratio, the presets centered and Cancel/Apply right-aligned; there
+is no top title. The ratio is the nearest typical one, prefixed with `~`
+unless it is exact (`~2:3` vs `1:1`). Applying submits the crop, closes the editor and
 shows the usual `Original / Cropped` compare toggle; the result is appended
 as `kind="crop"` with the `cropped` badge and recovered through the normal
 Edit job marker.
