@@ -68,9 +68,12 @@ function restoreTabResult(tab) {
   const paneId = paneIds[tab];
   if (!paneId) return;
   const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
+  // A running job owns the shared result-URL row (live progress). Restoring
+  // the incoming tab's last result must not overwrite the node message.
+  const jobRunning = typeof progressTimer !== 'undefined' && !!progressTimer;
   if (paneHasContent(paneId)) {
     // Already showing something — just keep the URL hint in sync.
-    if (typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
+    if (!jobRunning && typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
     return;
   }
 
@@ -97,7 +100,7 @@ function restoreTabResult(tab) {
   }
   // Keep the pane ‹ › nav in sync with the (possibly restored) gallery.
   if (typeof syncPaneNav === 'function') syncPaneNav(tab);
-  if (typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
+  if (!jobRunning && typeof syncResultUrl === 'function') syncResultUrl(tab, entry);
 }
 
 // Restore on load: the ACTIVE tab (what the user sees) AND the Video tab if

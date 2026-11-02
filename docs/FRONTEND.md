@@ -164,7 +164,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   mid-stream neither strands a disabled field nor saves the refined text
   under the wrong tab. On completion it syncs that tab's prompt store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
-  the result row is **cleared** (progress + timing). `lastGeneratedUrl`
+  the result row is **cleared** (progress + timing) — EXCEPT while a
+  generation runs: then the live progress/timing stay put, because the row
+  is the global job-status display. `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video and
   the **base** field of Face swap).
   It always points to the last **image** result (generate/edit/restore/
@@ -626,13 +628,16 @@ duration** (1-decimal, persisted with the gallery entry — survives refresh /
 gallery navigation). A confirmation box floats above the row showing the
 copied URL after a click.
 
-The row **always reflects the image/video currently shown in the pane** —
-also when navigating with the pane ‹ › arrows or switching tabs: every
-render path (finalize of a generation, `paneNav`/`renderPane`,
-`restoreTabResult`, reset/trash) calls `syncResultUrl(tab, entry)`
-(gallery.js), which paints the entry's URL + duration and keeps the entry's
-URL in `currentResultUrl`. It only paints when the tab is the ACTIVE one —
-the row is shared across tabs.
+The row **reflects the image/video currently shown in the pane** — also
+when navigating with the pane ‹ › arrows or switching tabs: every render
+path (finalize of a generation, `paneNav`/`renderPane`, `restoreTabResult`,
+reset/trash) calls `syncResultUrl(tab, entry)` (gallery.js), which paints
+the entry's URL + duration and keeps the entry's URL in `currentResultUrl`.
+It only paints when the tab is the ACTIVE one. **While a generation runs
+the row belongs to the live progress**, so `switchTab` keeps its text/time
+instead of clearing it, and `restoreTabResult` skips `syncResultUrl` for
+the incoming tab — otherwise switching tools replaced the running node
+message with that tab's previous result URL until the next update arrived.
 `copyText` (api.js) is robust on plain-http LAN: it tries
 `navigator.clipboard` first, and when it is missing or rejects (non-secure
 context) falls back to a textarea + `execCommand('copy')` (focused +
@@ -647,9 +652,10 @@ button (the old clearPane registry-drop was removed).
 **While a generation runs**, the same row shows **live progress** instead of
 a URL (`startProgressPolling` in `api.js`): the backend PUSHES every job
 update over the **`/ws/progress` WebSocket** (opened on job start) and the
-page paints the current stage — `⏳ Queued…`, then `<tool emoji>
-<node_title> <value>/<max>` (e.g. `🖍️ SamplerCustomAdvanced 4/8`) as
-ComfyUI moves node to node. The emoji is the nav icon of the tool that
+page paints the current stage — `⏳ Queued…` (written immediately on job
+start), then `<tool emoji> <node_title> <value>/<max>` (e.g.
+`🖍️ SamplerCustomAdvanced 4/8`) as ComfyUI moves node to node. The emoji
+is the nav icon of the tool that
 STARTED the job (`TAB_EMOJI[liveJobTab]`): 🖼️ Generate, 🖍️ Edit, 👨🏻 Face
 swap, 🔍 Upscale, 🎬 Video. It follows the originating tool even if the user
 switches tabs mid-job; the fallback is ⚙️. The classic 1s polling of

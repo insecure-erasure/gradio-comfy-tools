@@ -39,10 +39,18 @@ function switchTab(name) {
   // Reset the result row (progress + timing) when switching tools. The
   // source image URL fields (Edit/Upscale/Video) keep their values and
   // lastGeneratedUrl persists for chaining (🔗 fills the source field).
+  // While a generation runs the row is the GLOBAL live-progress display:
+  // clearing it on every switch made the node message disappear until the
+  // next pushed update. Keep its text/timing and let applyProgress own it.
+  const jobRunning = typeof progressTimer !== 'undefined' && !!progressTimer;
   const rel = document.getElementById('resultUrl');
-  if (rel) { rel.textContent = ''; rel.title = ''; rel.classList.remove('clickable'); }
+  if (rel) {
+    if (!jobRunning) rel.textContent = '';
+    rel.title = '';
+    rel.classList.remove('clickable');
+  }
   const rt = document.getElementById('resultTime');
-  if (rt) rt.textContent = '';
+  if (rt && !jobRunning) rt.textContent = '';
   const rcb = document.getElementById('resultCopyBox');
   if (rcb) { clearTimeout(_resultCopyTimer); rcb.classList.remove('show'); }
   currentResultUrl = '';

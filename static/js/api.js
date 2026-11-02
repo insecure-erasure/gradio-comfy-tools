@@ -489,6 +489,15 @@ function startProgressPolling() {
   _lastJobDurationSecs = 0; // a new job — no duration yet
   progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
   persistJobMarker(liveJobTab); // survives reloads / backgrounded-tab discards
+  // Claim the shared result row immediately: the first WS/POST snapshot is
+  // async, and switching tools in that gap must not leave the previous
+  // result URL looking like the current job's status.
+  const progressEl = document.getElementById('resultUrl');
+  if (progressEl) {
+    progressEl.textContent = '⏳ Queued…';
+    progressEl.title = '';
+    progressEl.classList.remove('clickable');
+  }
   // Elapsed-time clock in the result row (1s precision while it runs).
   startElapsedClock(document.getElementById('resultTime'));
   openProgressWs();   // push channel — falls back to polling if it fails
@@ -584,6 +593,7 @@ function applyProgress(j) {
   }
   el.textContent = txt;
   el.title = ''; // progress text is not a URL — no stale tooltip from a previous result
+  el.classList.remove('clickable'); // nor a stale click-to-copy affordance
   // Live per-step preview (any tab): paint the latest latent decode in
   // the output pane of the tab that started the job, and ONLY while the
   // user is on that tab (switching away pauses the painting; coming
