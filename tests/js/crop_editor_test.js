@@ -164,6 +164,17 @@ function open(source = 'a.png', proxy = '/media/a.png', label = 'Source') {
   flushRaf();
 }
 
+test('the geometry helpers stay independent of the editor state', () => {
+  // crop.js used to define its own _cropBounds, shadowing the pure helper
+  // once the editor script loaded. Calling the helper with an explicit
+  // bounds object must ignore the editor's current image size.
+  const r = sandbox.cropClampRect(
+    { x: 90, y: 90, width: 50, height: 50 },
+    { width: 100, height: 100 }
+  );
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(r)), { x: 50, y: 50, width: 50, height: 50 });
+});
+
 test('opens with a full-frame selection and a disabled Apply', () => {
   open();
   assert.strictEqual(sandbox.cropEditorIsOpen(), true);

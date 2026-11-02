@@ -33,7 +33,7 @@ function _cropById(id) {
   return document.getElementById(id);
 }
 
-function _cropBounds() {
+function _cropImageBounds() {
   return { width: _crop.naturalWidth, height: _crop.naturalHeight };
 }
 
@@ -106,7 +106,7 @@ function _cropImageLoaded() {
     _cropImageFailed();
     return;
   }
-  const bounds = _cropBounds();
+  const bounds = _cropImageBounds();
   if (_crop.initialRect) {
     _crop.rect = cropClampRect(_crop.initialRect, bounds);
   } else {
@@ -187,8 +187,8 @@ function _cropRender() {
   box.style.width = (_crop.rect.width / w * 100) + '%';
   box.style.height = (_crop.rect.height / h * 100) + '%';
 
-  const payload = cropToPayload(_crop.rect, _cropBounds());
-  const full = cropIsFullFrame(_crop.rect, _cropBounds());
+  const payload = cropToPayload(_crop.rect, _cropImageBounds());
+  const full = cropIsFullFrame(_crop.rect, _cropImageBounds());
   if (dims) {
     dims.textContent = `${payload.width} × ${payload.height}`;
     dims.title = `x ${payload.x}, y ${payload.y}`;
@@ -234,7 +234,7 @@ function _cropSetAspect(ratio) {
   const r = Number(ratio) || 0;
   _crop.aspect = r > 0 ? r : 0;
   if (_crop.aspect > 0) {
-    _crop.rect = cropRectForAspect(_cropBounds(), _crop.aspect);
+    _crop.rect = cropRectForAspect(_cropImageBounds(), _crop.aspect);
   }
   _cropRender();
 }
@@ -248,8 +248,8 @@ function cropReset() {
 
 function cropApply() {
   if (!_crop.open || _crop.applying || !_crop.rect) return;
-  const payload = cropToPayload(_crop.rect, _cropBounds());
-  if (cropIsFullFrame(_crop.rect, _cropBounds())) {
+  const payload = cropToPayload(_crop.rect, _cropImageBounds());
+  if (cropIsFullFrame(_crop.rect, _cropImageBounds())) {
     if (typeof showToast === 'function') showToast('Adjust the crop area first');
     return;
   }
@@ -303,14 +303,14 @@ function _cropPointerMove(e) {
   const dx = (e.clientX - d.startX) * scaleX;
   const dy = (e.clientY - d.startY) * scaleY;
   if (d.handle === 'move') {
-    _crop.rect = cropMoveRect(d.rect, dx, dy, _cropBounds());
+    _crop.rect = cropMoveRect(d.rect, dx, dy, _cropImageBounds());
   } else {
     _crop.rect = cropResizeRect(
       d.rect,
       d.handle,
       dx,
       dy,
-      _cropBounds(),
+      _cropImageBounds(),
       { aspect: _crop.aspect }
     );
   }
@@ -377,7 +377,7 @@ function _cropKeyDown(e) {
     _crop.rect,
     delta[0] * step,
     delta[1] * step,
-    _cropBounds()
+    _cropImageBounds()
   );
   _cropRender();
 }
