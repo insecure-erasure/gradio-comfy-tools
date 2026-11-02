@@ -32,7 +32,6 @@ function setRefineButtons(refining) {
 // be edited mid-refinement.
 function setRefining(on) {
   const btnCol = document.getElementById('btnCol');
-  const input = activePromptInput();
   if (btnCol) {
     if (on) {
       btnCol.classList.add('refining');
@@ -52,10 +51,10 @@ function setRefining(on) {
       updateActionButtons();
     }
   }
-  if (input) {
-    input.disabled = !!on;
-    input.classList.toggle('refining', !!on);
-  }
+  // Same as the generation lock: lock/unlock ALL prompt fields, not just
+  // the active one at that instant. Otherwise switching tabs mid-stream
+  // leaves the original field disabled (and .refining) after completion.
+  setPromptInputsLocked(on, 'refining');
 }
 
 function stopRefining() {
@@ -67,6 +66,10 @@ function stopRefining() {
 
 async function refinePrompt() {
   const input = activePromptInput();
+  // Pin the stream to the tab that STARTED the refinement. A tab switch
+  // while the SSE is arriving must not save the refined text under the
+  // newly active tab (the stream still writes into `input`).
+  const refineTab = currentTab;
   const prompt = input ? input.value.trim() : '';
   if (!prompt) return showToast('Please write a prompt first');
   if (_refineController) return; // already refining
@@ -154,8 +157,8 @@ async function refinePrompt() {
     // original prompt in that case too.
     if (_refineController.signal.aborted) {
       if (input) input.value = original;
-      if (promptsByTab && currentTab && currentTab !== 'upscale') {
-        promptsByTab[currentTab] = original;
+      if (promptsByTab && refineTab && refineTab !== 'upscale') {
+        promptsByTab[refineTab] = original;
       }
       if (resultUrlEl) resultUrlEl.textContent = '';
       updateActionButtons();
@@ -170,8 +173,8 @@ async function refinePrompt() {
     }
 
     // Keep the per-tab prompt store + localStorage in sync (promptsByTab).
-    if (promptsByTab && currentTab && currentTab !== 'upscale') {
-      promptsByTab[currentTab] = refined;
+    if (promptsByTab && refineTab && refineTab !== 'upscale') {
+      promptsByTab[refineTab] = refined;
     }
     savePersistedState();
     updateActionButtons();
@@ -180,8 +183,8 @@ async function refinePrompt() {
     if (e && e.name === 'AbortError') {
       // Cancelled: restore the original prompt (the streamed text is partial).
       if (input) input.value = original;
-      if (promptsByTab && currentTab && currentTab !== 'upscale') {
-        promptsByTab[currentTab] = original;
+      if (promptsByTab && refineTab && refineTab !== 'upscale') {
+        promptsByTab[refineTab] = original;
       }
       const r = document.getElementById('resultUrl');
       if (r) r.textContent = '';

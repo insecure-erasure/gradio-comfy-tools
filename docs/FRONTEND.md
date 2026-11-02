@@ -128,17 +128,19 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   and re-enabled as you type; a transparent click-catcher overlays the
   disabled button to show a "Please write a prompt first" toast
   (`updateActionButtons` in `api.js`, `btn-catcher` in `tabs.js`).
-- **During a generation** (any tool): the prompt textarea is **locked**
+- **During a generation** (any tool): every prompt textarea is **locked**
   (typing blocked, dimmed), the 🪄 refine buttons and every OTHER action
   button are disabled — including the complementary 🖌️/🩹/🧩 in Edit (running
   any Edit mode blocks the other two) and the Upscale buttons
   wherever they sit. The action button that STARTED the generation
   transforms into the ⏹ **stop** button (see §4.9). Clicking a disabled
   action shows the "Generation in progress…" toast (click-catcher swap).
-  The lock is released when the request settles (success, error, cancel)
-  and is **re-asserted on tab switch** mid-generation (`switchTab` rebuilds
-  `#btnCol` with fresh buttons — `setGeneratingUi`/`applyGenerationLock` in
-  `api.js`).
+  The lock is released when the request settles (success, error, cancel).
+  `setPromptInputsLocked()` touches ALL `.prompt-input` fields (not just
+  `activePromptInput()`), so switching tools mid-generation cannot strand
+  the original field disabled. Buttons are **re-asserted on tab switch**
+  (`switchTab` rebuilds `#btnCol` with fresh buttons —
+  `setGeneratingUi`/`applyGenerationLock` in `api.js`).
 - `🩹 Restore`, `🧩 Extend` and `🔍 Upscale` never require a prompt.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL, Model and
@@ -156,8 +158,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   /api/refine-prompt` with `stream:true`, read with fetch's ReadableStream),
   showing a live tok/s estimate in the
   result URL row and the final `✨ tokens · tok/s avg` stats on completion;
-  cancel (⏹) restores the original prompt. On completion it syncs the
-  per-tab prompt store.
+  cancel (⏹) restores the original prompt. Refining also locks every
+  `.prompt-input` (`setPromptInputsLocked(on, 'refining')`), and the stream
+  is pinned to the tab that started it (`refineTab`), so switching tools
+  mid-stream neither strands a disabled field nor saves the refined text
+  under the wrong tab. On completion it syncs that tab's prompt store.
 - On tab switch: each tab's parameters **persist** (the DOM is not rebuilt);
   the result row is **cleared** (progress + timing). `lastGeneratedUrl`
   persists for chaining (🔗 fills the source field of Edit/Upscale/Video and

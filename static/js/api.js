@@ -219,18 +219,30 @@ let _genCatchers = [];
 // `btn.onclick = generateUpscale`, no attribute). Restored on unlock.
 const _genStopOrig = new WeakMap();
 
+// Lock/unlock EVERY prompt field together. The generation/refine lock is a
+// global UI state, but a tab switch changes which field is active. Locking
+// (and later unlocking) only activePromptInput() stranded the previously
+// active field when the job settled on another tab — it kept its disabled
+// attribute and .generating/.refining class until a reload. Touching every
+// .prompt-input makes the lock state independent from the active tab.
+function setPromptInputsLocked(on, className) {
+  document.querySelectorAll('.prompt-input').forEach(input => {
+    input.disabled = !!on || input.hasAttribute('data-always-disabled');
+    if (className) input.classList.toggle(className, !!on);
+  });
+}
+
 function setGeneratingUi(on, triggerId) {
   genLockActive = !!on;
   if (on) {
     genTriggerId = triggerId || null;
   }
-  const input = activePromptInput();
   if (on) {
-    if (input) { input.disabled = true; input.classList.add('generating'); }
+    setPromptInputsLocked(true, 'generating');
     applyGenerationLock();
   } else {
     genTriggerId = null;
-    if (input) { input.disabled = input.hasAttribute('data-always-disabled'); input.classList.remove('generating'); }
+    setPromptInputsLocked(false, 'generating');
     const btnCol = document.getElementById('btnCol');
     if (btnCol) {
       btnCol.classList.remove('generating');
