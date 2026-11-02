@@ -53,6 +53,9 @@ function rememberLastSource(tab, value) {
 // retried after its result replaced the source preview. Single-source tabs
 // store { value }; Face swap stores { base, face } pairs.
 let _sourceHistoryTab = null;
+// Monotonic token so an in-flight preflight cannot render after the popover
+// was closed or reopened for another tab (openSourceHistory is async now).
+let _sourceHistoryReq = 0;
 
 // Restore/normalize the persisted history (called by storage.js on startup).
 // Bad entries are dropped; duplicates are removed; each list is capped.
@@ -315,18 +318,19 @@ function renderSourceHistoryGrid(tab) {
 
 function closeSourceHistory() {
   _sourceHistoryTab = null;
+  _sourceHistoryReq++; // cancel an in-flight preflight
   hideSourceHistoryPeek();
   const pop = document.getElementById('sourceHistoryPopover');
   if (pop) pop.classList.remove('show');
 }
 
-function openSourceHistory(tab, btn) {
+async function openSourceHistory(tab, btn) {
+  const req = ++_sourceHistoryReq;
   const pop = document.getElementById('sourceHistoryPopover');
   const grid = document.getElementById('sourceHistoryGrid');
   const title = document.getElementById('sourceHistoryTitle');
   if (!pop || !grid || !btn) return;
-  const list = sourceHistory[tab] || [];
-  if (!list.length) {
+  if (!(sourceHistory[tab] || []).length) {
     showToast(tab === 'face_swap'
       ? 'No recent base + face pairs yet'
       : 'No recent source images yet');
@@ -334,6 +338,17 @@ function openSourceHistory(tab, btn) {
   }
   if (pop.classList.contains('show') && _sourceHistoryTab === tab) {
     closeSourceHistory();
+    return;
+  }
+  // Preflight the persisted thumbnails BEFORE the grid paints: one cached
+  // HEAD per entry, so files the ComfyUI cleanup removed are never even
+  // requested. Confirmed-missing entries are dropped through dropMedia().
+  if (typeof pruneSourceHistory === 'function') await pruneSourceHistory(tab);
+  if (req !== _sourceHistoryReq) return; // closed/reopened while probing
+  if (!(sourceHistory[tab] || []).length) {
+    showToast(tab === 'face_swap'
+      ? 'No recent base + face pairs yet'
+      : 'No recent source images yet');
     return;
   }
   _sourceHistoryTab = tab;

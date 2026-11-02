@@ -145,14 +145,15 @@ function normalizeVideoEntry(e) {
   };
 }
 
-// ── Gallery existence validation (lightweight) ──
+// ── Gallery existence validation (one-shot, no polling) ──
 // localStorage galleries can hold entries whose file no longer exists on
-// the ComfyUI host (output pruning). Each unique filename is checked via
-// GET /api/media-exists (a HEAD/206 probe — no body transferred). Results
-// are cached per session (a filename is probed once), the probe runs with
-// small concurrency, and a transport failure keeps the entry (a missing
-// file is not worth dropping the whole gallery on a hiccup). Entries
-// without a filename (external URLs) are kept as-is.
+// the ComfyUI host (the cleanup task prunes old generations). Each unique
+// filename is checked once per restore via GET /api/media-exists (a HEAD/206
+// probe — no body transferred). This runs ONCE at startup and again when a
+// gallery is opened (force): it is not a poll. Live deletions arrive through
+// /api/media-deleted → /ws/events instead (see media-events.js). A transport
+// failure keeps the entry — a missing file is never assumed from a hiccup.
+// Entries without a filename (external URLs) are kept as-is.
 const _mediaExistsCache = new Map();
 
 async function _mediaExists(filename, type, force) {
@@ -161,7 +162,9 @@ async function _mediaExists(filename, type, force) {
   try {
     const r = await fetch('/api/media-exists?filename=' + encodeURIComponent(filename) + '&type=' + encodeURIComponent(type));
     const j = await r.json();
-    const exists = !!j.exists;
+    // `unknown` means the backend could not ask ComfyUI (outage): that is NOT
+    // a deletion, so keep the entry (a false here would wipe the galleries).
+    const exists = j.unknown ? true : !!j.exists;
     _mediaExistsCache.set(cacheKey, exists);
     return exists;
   } catch (e) {
@@ -170,64 +173,112 @@ async function _mediaExists(filename, type, force) {
   }
 }
 
-// Filter a gallery array, dropping entries whose file is gone. Probes each
-// unique filename once (via the cache) with limited concurrency; preserves
-// order. Returns a Promise of the filtered array.
-async function _pruneDeadEntries(entries, force) {
-  // Unique (filename, type) pairs to probe — a temp file is NOT found under
-  // type=output, so the type embedded in the display URL must be used.
-  const uniq = [];
-  const seen = new Set();
-  for (const e of entries) {
-    const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-    if (!fn) continue; // external/no-name → keep, nothing to probe
-    const type = e.type || (e.src && typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(e.src) : 'output');
-    const key = fn + '|' + type;
-    if (!seen.has(key)) { seen.add(key); uniq.push({ fn, type }); }
-  }
-  // Probe with limited concurrency (5 at a time). force=true bypasses the
-  // per-session cache so a file deleted mid-session is caught on open.
-  const existsMap = new Map();
-  let i = 0;
-  async function worker() {
-    while (i < uniq.length) {
-      const { fn, type } = uniq[i++];
-      existsMap.set(fn + '|' + type, await _mediaExists(fn, type, force));
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(5, uniq.length) }, worker));
-  // In-place removal of confirmed-dead entries. `entries` is the LIVE
-  // reference the caller passed (window.galleryGenerated / ...), so any
-  // entry added while the probes were in flight is preserved — only the
-  // ones the server explicitly says do not exist are spliced out. Never
-  // reassign the global from a stale captured array.
-  for (let j = entries.length - 1; j >= 0; j--) {
-    const e = entries[j];
-    const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-    if (!fn) continue;
-    const type = e.type || (e.src && typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(e.src) : 'output');
-    if (existsMap.get(fn + '|' + type) === false) entries.splice(j, 1);
-  }
+// Collect the unique (filename, type) probes for every registry. A value can
+// be a display URL (/media/x?type=temp, {base}/view?filename=x), a bare
+// filename (an upload — its type is unknown, so probe temp AND output), or an
+// external URL (skipped). Comparison BEFORE files are probed too, so a dead
+// source can be cleared from the slider without dropping the result.
+function _probeCollector() {
+  const map = new Map(); // filename -> Set(types)
+  const addType = (fn, type) => {
+    if (!map.has(fn)) map.set(fn, new Set());
+    map.get(fn).add(type);
+  };
+  return {
+    add(value) {
+      if (!value || typeof value !== 'string') return;
+      const fn = typeof filenameFromUrl === 'function' ? filenameFromUrl(value) : null;
+      if (fn) {
+        const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(value) : 'output';
+        addType(fn, type);
+        return;
+      }
+      // Bare ComfyUI filename (an upload): probe both roots.
+      if (/^[^\s/:\\]+$/.test(value)) {
+        addType(value, 'temp');
+        addType(value, 'output');
+      }
+    },
+    specs() {
+      return Array.from(map, ([fn, types]) => ({ fn, types: Array.from(types) }));
+    },
+  };
 }
 
-// Kick off the async validation of all persisted galleries after load;
-// mutates the live registries in place when dead entries are found.
+// Probe with limited concurrency (5). A filename is dead only when EVERY
+// probed type is missing — a temp file is NOT found under type=output, so a
+// single miss must not drop it.
+async function _deadFilenames(probes, force) {
+  const dead = [];
+  let i = 0;
+  async function worker() {
+    while (i < probes.length) {
+      const { fn, types } = probes[i++];
+      let alive = false;
+      for (const type of types) {
+        if (await _mediaExists(fn, type, force)) { alive = true; break; }
+      }
+      if (!alive) dead.push(fn);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(5, probes.length) }, worker));
+  return dead;
+}
+
+// Preflight ONE entry right before a pane is restored: it comes from
+// localStorage and may have been cleaned while the tab was closed. One HEAD
+// (cached per session) instead of letting the <img> request fail. Returns
+// true when the file exists OR the probe is inconclusive.
+async function ensureEntryExists(entry) {
+  const fn = typeof mediaEntryFilename === 'function' ? mediaEntryFilename(entry) : null;
+  if (!fn) return true; // external URL / no filename: nothing to probe
+  const type = entry && entry.src && typeof fileTypeFromUrl === 'function'
+    ? fileTypeFromUrl(entry.src) : 'output';
+  return _mediaExists(fn, type, false);
+}
+
+// Same preflight for the 🕘 grid of one tab, run when its popover opens: the
+// thumbnails are persisted and may have been cleaned. Confirmed-missing
+// entries go through dropMedia() (which also refreshes the grid if open).
+async function pruneSourceHistory(tab) {
+  const list = (typeof sourceHistory === 'object' && sourceHistory && sourceHistory[tab]) || [];
+  if (!list.length) return;
+  const probes = _probeCollector();
+  list.forEach(e => {
+    if (!e) return;
+    if (e.base !== undefined) { probes.add(e.base); probes.add(e.face); }
+    else probes.add(e.value);
+  });
+  const specs = probes.specs();
+  if (!specs.length) return;
+  const dead = await _deadFilenames(specs, false);
+  if (dead.length && typeof dropMedia === 'function') dropMedia(dead, { quiet: true });
+}
+
+// One-shot validation of everything persisted: generated results, comparison
+// after/before sides and the 🕘 source history. Only CONFIRMED-missing files
+// are reported, and they all go through dropMedia() so the galleries' N/M,
+// the pane ‹ › navigation and the 🕘 grid update together (never a silent
+// splice that leaves the UI showing a ghost). skipVideos: videos are temp
+// files the app deliberately keeps (a missing one just won't play).
 async function verifyStoredGalleries(force) {
-  const jobs = [];
-  if (Array.isArray(window.galleryGenerated)) {
-    jobs.push(_pruneDeadEntries(window.galleryGenerated, force));
-  }
-  // Videos are deliberately NOT pruned: ComfyUI stores them as temp files
-  // that are cleaned on server restart, and the gallery must keep showing
-  // every entry from the session/localStorage (a missing file just won't
-  // play). See openVideoGallery.
-  if (Array.isArray(window.galleryComparisons)) {
-    jobs.push(_pruneDeadEntries(window.galleryComparisons, force));
-  }
-  await Promise.all(jobs);
-  savePersistedState(); // persist the (possibly pruned) set
-  // The prune may have changed entry counts — keep the pane ‹ › nav in sync.
-  if (typeof syncPaneNav === 'function') ['generate', 'edit', 'upscale', 'video', 'face_swap'].forEach(syncPaneNav);
+  const probes = _probeCollector();
+  (window.galleryGenerated || []).forEach(e => probes.add(e && e.src));
+  (window.galleryComparisons || []).forEach(e => {
+    probes.add(e && e.src);
+    probes.add(e && e.before);
+  });
+  Object.values(typeof sourceHistory === 'object' && sourceHistory ? sourceHistory : {})
+    .forEach(list => (list || []).forEach(e => {
+      if (!e) return;
+      if (e.base !== undefined) { probes.add(e.base); probes.add(e.face); }
+      else probes.add(e.value);
+    }));
+  const specs = probes.specs();
+  if (!specs.length) return;
+  const dead = await _deadFilenames(specs, force);
+  if (!dead.length) return;
+  if (typeof dropMedia === 'function') dropMedia(dead, { quiet: true });
 }
 
 // Re-apply persisted per-tab params AFTER onModelFamilyChange ran, so the

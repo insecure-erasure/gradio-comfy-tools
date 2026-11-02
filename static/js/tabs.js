@@ -145,8 +145,10 @@ function switchTab(name) {
   // Same for the 🕘 source-history popover.
   if (typeof closeSourceHistory === 'function') closeSourceHistory();
   // Lazy-restore the incoming tab's last result (only if its pane is empty
-  // — a live session wins over persisted state).
-  restoreTabResult(name);
+  // — a live session wins over persisted state). Preflighted: a stored file
+  // cleaned by ComfyUI is dropped before it is ever requested.
+  if (typeof restoreTabResultChecked === 'function') restoreTabResultChecked(name);
+  else restoreTabResult(name);
 }
 
 // Builds the per-tab toolbar (model dropdown + ⚙️ advanced + ↺ reset) in the

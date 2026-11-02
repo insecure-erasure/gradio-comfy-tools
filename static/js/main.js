@@ -30,7 +30,12 @@ window.addEventListener('DOMContentLoaded', () => {
   restoreActiveTabResult();
   // Validate persisted galleries against the server (async, non-blocking):
   // drop entries whose file no longer exists, then persist the pruned set.
+  // This is the ONE existence check — live deletions arrive as push events.
   verifyStoredGalleries();
+  // Subscribe to ComfyUI's cleanup announcements (/ws/events): the task POSTs
+  // the filenames it deleted and this drops them from the galleries, the pane
+  // and the 🕘 grid — no polling, nothing hidden before it is really gone.
+  if (typeof initMediaEvents === 'function') initMediaEvents();
   // Restore lastGeneratedUrl for chaining (🔗) AFTER the media base is
   // loaded: fullComfyUrl() rebuilds the {base}/view URL from a /media src,
   // which requires baseUrl. Running it before loadSettings() resolved would

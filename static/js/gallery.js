@@ -72,20 +72,7 @@ const paneIdx = { generate: -1, edit: -1, upscale: -1, video: -1, face_swap: -1 
 //          source image's prompt, shown on badge hover; empty otherwise) }.
 window.galleryGenerated = [];
 
-// Identify a generated image by its ComfyUI filename:
-//   /media/FILENAME?type=...            -> FILENAME
-//   {base}/view?filename=FILENAME&...   -> FILENAME
-// Uploads (bare filename) and external URLs -> null (not a generated image).
-function filenameFromUrl(url) {
-  if (!url) return null;
-  try {
-    const u = new URL(url, window.location.origin);
-    const m = u.pathname.match(/\/media\/([^/]+)$/);
-    if (m) return decodeURIComponent(m[1]);
-    if (u.pathname.endsWith('/view')) return u.searchParams.get('filename');
-  } catch (e) {}
-  return null;
-}
+// filenameFromUrl lives in media-events.js (loaded before this file).
 
 // The ComfyUI type ('output' | 'temp') embedded in a display URL like
 // /media/FILENAME?type=temp — needed when probing existence (a temp result
@@ -361,7 +348,9 @@ function closeGallery() {
   // After closing, make sure the ACTIVE tool's pane still shows its last
   // generation (it normally does — the overlay never touches the pane — but
   // if the user deleted the shown entry via 🗑️, restore from the gallery).
-  if (typeof restoreTabResult === 'function' && currentTab) {
+  if (typeof restoreTabResultChecked === 'function' && currentTab) {
+    restoreTabResultChecked(currentTab); // preflighted (stored entry may be gone)
+  } else if (typeof restoreTabResult === 'function' && currentTab) {
     restoreTabResult(currentTab);
   }
 }
@@ -375,7 +364,8 @@ function closeGallery() {
       closeBadgeBox();
       resetGalleryZoom();
       if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
-      if (typeof restoreTabResult === 'function' && currentTab) restoreTabResult(currentTab);
+      if (typeof restoreTabResultChecked === 'function' && currentTab) restoreTabResultChecked(currentTab);
+      else if (typeof restoreTabResult === 'function' && currentTab) restoreTabResult(currentTab);
     }
   })
 );
@@ -876,6 +866,122 @@ function galleryDeleteCurrent() {
   renderGalleryItem();
   if (typeof savePersistedState === 'function') savePersistedState();
   if (currentTab) syncPaneNav(currentTab);
+}
+
+// ── Confirmed deletions (ComfyUI cleanup → UI) ──
+// One code path for every place that shows generation state, so the N/M
+// counter, the pane's ‹ › navigation, the pane content and the 🕘 grid all
+// reflect reality at once. Only CONFIRMED deletions arrive here (the cleanup
+// task's /api/media-deleted hook → /ws/events, or the one-shot restore probe)
+// — nothing is ever hidden by age or by a guess.
+function dropMedia(filenames, opts) {
+  if (typeof mediaDropPlan !== 'function' || !Array.isArray(filenames) || !filenames.length) return;
+  const quiet = !!(opts && opts.quiet);
+  const state = {
+    generated: window.galleryGenerated || [],
+    videos: window.galleryVideos || [],
+    comparisons: window.galleryComparisons || [],
+    sourceHistory: typeof sourceHistory === 'object' && sourceHistory ? sourceHistory : {},
+    lastSources: typeof lastSourceByTab === 'object' && lastSourceByTab ? lastSourceByTab : {},
+    lastGeneratedUrl: typeof lastGeneratedUrl === 'string' ? lastGeneratedUrl : '',
+  };
+  // Which entry each pane was showing, captured BEFORE the arrays change:
+  // paneIdx is positional, so after a removal the same index would point at a
+  // DIFFERENT image. Identity is the only stable anchor.
+  const before = {};
+  Object.keys(paneIdx).forEach(tab => { before[tab] = paneCurrentEntry(tab); });
+
+  const plan = mediaDropPlan(state, filenames);
+  if (!plan.changed) return;
+
+  window.galleryGenerated = plan.generated;
+  window.galleryVideos = plan.videos;
+  window.galleryComparisons = plan.comparisons;
+  if (plan.sourceHistory) sourceHistory = plan.sourceHistory;
+  if (plan.lastSources) Object.assign(lastSourceByTab, plan.lastSources);
+  plan.beforeResets.forEach(e => { e.before = ''; }); // result survives, its source doesn't
+  if (plan.lastGeneratedGone) lastGeneratedUrl = '';
+
+  const paneIds = {
+    generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane',
+    video: 'videoOutputPane', face_swap: 'faceSwapOutputPane',
+  };
+  const collections = {
+    generate: window.galleryGenerated,
+    edit: window.galleryComparisons.filter(c => c.tab === 'edit'),
+    upscale: window.galleryComparisons.filter(c => c.tab === 'upscale'),
+    face_swap: window.galleryComparisons.filter(c => c.tab === 'face_swap'),
+    video: window.galleryVideos,
+  };
+  // Filename the pane's DOM is actually showing (result / video / compare after).
+  const shownFilename = paneId => {
+    const pane = document.getElementById(paneId);
+    if (!pane) return null;
+    const el = pane.querySelector('.result-img')
+      || pane.querySelector('.video-player video')
+      || pane.querySelector('.compare-slider img.side.after');
+    return el && el.src ? filenameFromUrl(el.src) : null;
+  };
+
+  Object.keys(paneIdx).forEach(tab => {
+    const col = collections[tab] || [];
+    const cur = before[tab];
+    const idx = cur ? col.indexOf(cur) : -1;
+    // Same image still exists → keep the pane on it, at its new position
+    // (-1 still means "most recent", so the default survives new arrivals).
+    paneIdx[tab] = idx >= 0 && idx !== col.length - 1 ? idx : -1;
+    if (idx >= 0) {
+      // The after image survives, but its BEFORE file is gone: re-render so
+      // the slider shows the result on both sides instead of a broken image.
+      if (cur && plan.beforeResets.includes(cur)) {
+        const pane = document.getElementById(paneIds[tab]);
+        const slider = pane && pane.querySelector('.compare-slider');
+        if (slider && (slider.style.display || '') !== 'none') renderPane(tab);
+      }
+      return;
+    }
+    // The pane was showing a dropped entry — but only touch the DOM when it
+    // really is the file that disappeared (a pane can be empty/never restored).
+    if (shownFilename(paneIds[tab]) && plan.gone.has(shownFilename(paneIds[tab]))) {
+      if (col.length) renderPane(tab); // fall back to the nearest survivor
+      else { clearPane(paneIds[tab]); syncResultUrl(tab, null); }
+    }
+  });
+
+  // Open fullscreen gallery: re-collect (compare mode holds a COPY of the
+  // registry) and repaint, so the counter and the ‹ › buttons are exact.
+  if (galleryMode) {
+    if (galleryMode === 'lightbox') galleryEntries = window.galleryGenerated;
+    else if (galleryMode === 'video') galleryEntries = window.galleryVideos;
+    else galleryEntries = collectCompareEntries();
+    if (!galleryEntries.length) {
+      closeGallery();
+    } else {
+      if (galleryIdx >= galleryEntries.length) galleryIdx = galleryEntries.length - 1;
+      resetGalleryZoom();
+      renderGalleryItem(); // repaints N/M (galleryCounter)
+    }
+  }
+
+  // 🕘 popover: its grid mixes uploads, URLs and generated results, so the
+  // same drop applies there. No numeric counter, but the grid must match.
+  if (typeof renderSourceHistoryGrid === 'function'
+      && typeof _sourceHistoryTab === 'string' && _sourceHistoryTab) {
+    renderSourceHistoryGrid(_sourceHistoryTab);
+  }
+  if (typeof hideSourceHistoryPeek === 'function') hideSourceHistoryPeek();
+
+  if (typeof savePersistedState === 'function') savePersistedState();
+  Object.keys(paneIdx).forEach(tab => syncPaneNav(tab));
+  // One toast per event, counting FILES (the same generation can live in
+  // several registries: gallery + 🕘 + face-swap base). A before-only reset
+  // leaves the result visible, so it is not announced as a removal.
+  if (!quiet && plan.removed.length) {
+    const n = new Set(plan.removed.map(e => mediaEntryFilename(e)).filter(Boolean)).size || 1;
+    showToast(n > 1
+      ? n + ' generations were cleaned up by ComfyUI and removed'
+      : 'That generation was cleaned up by ComfyUI and removed');
+  }
 }
 
 // ── Prompt panel (Show prompt) ─────────────

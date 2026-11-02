@@ -73,6 +73,9 @@
 
 <!-- Scripts (plain scripts share the global scope; load order matters) -->
 <script src="/static/js/state.js?v={{ asset_version }}"></script>
+<!-- Shared filename matcher + the /api/media-deleted drop planner and its
+     /ws/events client (loaded before storage/gallery, which use them). -->
+<script src="/static/js/media-events.js?v={{ asset_version }}"></script>
 <script src="/static/js/storage.js?v={{ asset_version }}"></script>
 <script src="/static/js/timing.js?v={{ asset_version }}"></script>
 <script src="/static/js/api.js?v={{ asset_version }}"></script>

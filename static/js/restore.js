@@ -63,9 +63,10 @@ function restoreCompareSlider(tab, paneId, cmp) {
 // result-URL hint is still synced to what the pane shows. Restores the
 // entry the pane was navigating (paneCurrentEntry: paneIdx[tab], or the
 // most recent when the user never navigated).
+const PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
+
 function restoreTabResult(tab) {
-  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
-  const paneId = paneIds[tab];
+  const paneId = PANE_IDS[tab];
   if (!paneId) return;
   const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
   // A running job owns the shared result-URL row (live progress). Restoring
@@ -107,12 +108,34 @@ function restoreTabResult(tab) {
 // it has generated videos — so a video as the last generation shows in its
 // pane right after a refresh (the active tab is usually Generate). The
 // other tabs restore lazily when they become active.
-function restoreActiveTabResult() {
-  if (currentTab) restoreTabResult(currentTab);
+async function restoreActiveTabResult() {
+  if (currentTab) await restoreTabResultChecked(currentTab);
   // If the user last generated a video, show it in the Video pane too.
   if (currentTab !== 'video' && window.galleryVideos && window.galleryVideos.length) {
-    restoreTabResult('video');
+    await restoreTabResultChecked('video');
   }
+}
+
+// Preflighted restore (the one every call site should use): the entry comes
+// from localStorage, so BEFORE painting it ask the backend whether the file
+// still exists (one cached HEAD). A confirmed-missing file goes through
+// dropMedia(), and the pane then restores the nearest survivor (or its idle
+// state) instead of requesting a 404. An inconclusive probe keeps the entry:
+// never hide something just because ComfyUI could not be asked.
+async function restoreTabResultChecked(tab) {
+  const paneId = PANE_IDS[tab];
+  const jobRunning = typeof progressTimer !== 'undefined' && !!progressTimer;
+  if (!paneId || jobRunning || paneHasContent(paneId)) {
+    return restoreTabResult(tab); // unchanged path (also keeps the URL row in sync)
+  }
+  const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
+  if (entry && typeof ensureEntryExists === 'function' && !(await ensureEntryExists(entry))) {
+    const fn = typeof mediaEntryFilename === 'function' ? mediaEntryFilename(entry) : null;
+    if (fn && typeof dropMedia === 'function') dropMedia([fn], { quiet: true });
+  }
+  // The pane may have been filled while the probe was in flight;
+  // restoreTabResult re-checks paneHasContent itself.
+  restoreTabResult(tab);
 }
 
 // ── Trash (🗑️): clear the current tool's gallery + refresh its pane ──
