@@ -351,16 +351,22 @@ function setEditExtendView(showOriginal) {
   }
 }
 
-function configureEditExtendToggle(enabled) {
+function configureEditExtendToggle(enabled, resultLabel) {
   const slider = document.getElementById('editCompare');
   const toggle = document.getElementById('editExtendToggle');
+  const resultBtn = document.getElementById('editExtendResultBtn');
   const on = !!enabled;
+  const label = resultLabel || 'Extended';
   if (slider) {
     slider.classList.toggle('extend-toggle-mode', on);
     if (!on) slider.classList.remove('show-original');
   }
-  if (toggle) toggle.style.display = on ? 'flex' : 'none';
-  if (on) setEditExtendView(false); // default: show the extended result
+  if (toggle) {
+    toggle.style.display = on ? 'flex' : 'none';
+    toggle.setAttribute('aria-label', `Compare original and ${label.toLowerCase()}`);
+  }
+  if (resultBtn) resultBtn.textContent = label;
+  if (on) setEditExtendView(false); // default: show the result side
 }
 
 function generateEdit(forceMode) {
@@ -510,6 +516,183 @@ function generateEdit(forceMode) {
       if (btn) btn.disabled = false;
       pane.classList.remove('busy');
       spinner.classList.remove('show');
+      setGenerating(pane, false);
+      setGeneratingUi(false);
+    }
+  });
+}
+
+// ── Crop ──────────────────────────────────
+// Crop is canvas editing, not a generation action: the ✂️ trigger lives on
+// the output pane and opens the shared crop editor (inline on desktop,
+// fullscreen on the stacked layout). The target is the image currently
+// being shown: the active compare side, or the source preview/field.
+function _editCropBackendValue(value) {
+  value = (value || '').trim();
+  if (!value) return '';
+  // The editor/pane uses the same-origin /media proxy; the workflow loader
+  // needs a ComfyUI filename or an absolute URL.
+  if (/^\/media\//.test(value) && typeof fullComfyUrl === 'function') {
+    return fullComfyUrl({ src: value });
+  }
+  return value;
+}
+
+function _editCropTarget() {
+  const pane = document.getElementById('editOutputPane');
+  if (!pane) return null;
+
+  const compare = document.getElementById('editCompare');
+  const compareVisible = !!(compare && compare.style.display !== 'none');
+  const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry('edit') : null;
+  if (compareVisible && entry) {
+    const showOriginal = compare.classList.contains('show-original');
+    const value = showOriginal ? (entry.before || entry.src) : (entry.url || entry.src);
+    const display = showOriginal ? (entry.before || entry.src) : entry.src;
+    const label = showOriginal ? 'Original' : 'Result';
+    if (!value) return null;
+    return {
+      image: _editCropBackendValue(value),
+      proxy: display || (typeof proxiedSrc === 'function' ? proxiedSrc(value) : value),
+      label,
+    };
+  }
+
+  const src = getSourceUrl('edit');
+  if (src) {
+    return {
+      image: _editCropBackendValue(src),
+      proxy: typeof proxiedSrc === 'function' ? proxiedSrc(src) : src,
+      label: 'Source',
+    };
+  }
+
+  // Fallback for a DOM result whose registry entry is missing (e.g. a
+  // restored slider whose compare entry was dropped).
+  const result = pane.querySelector('img.result-img');
+  const value = (result && (result.currentSrc || result.src)) || lastGeneratedUrl || '';
+  if (value) {
+    return {
+      image: _editCropBackendValue(value),
+      proxy: value,
+      label: 'Result',
+    };
+  }
+  return null;
+}
+
+function openEditCrop() {
+  if (typeof cropEditorIsOpen === 'function' && cropEditorIsOpen()) return;
+  const pane = document.getElementById('editOutputPane');
+  if (pane && pane.classList.contains('generating')) {
+    return showToast('Wait for the current job to finish');
+  }
+  const target = _editCropTarget();
+  if (!target) return showToast('Load an image first');
+  if (typeof openCropEditor !== 'function') return;
+  openCropEditor({
+    image: target.image,
+    proxy: target.proxy,
+    label: target.label,
+    onApply: payload => submitCrop(target, payload),
+  });
+}
+
+function submitCrop(target, payload) {
+  const pane = document.getElementById('editOutputPane');
+  const spinner = document.getElementById('editSpinner');
+  const btn = document.getElementById('editCropBtn');
+  if (pane) pane.classList.add('busy');
+  if (spinner) spinner.classList.add('show');
+  if (btn) btn.disabled = true;
+  setGenerating(pane, true);
+  setGeneratingUi(true, null);
+  showToast('Cropping…');
+  startProgressPolling({ mode: 'crop', source: target.image });
+
+  function finalizeCrop(res) {
+    if (!res || !res.display) return;
+    const beforeEl = document.getElementById('editBefore');
+    const afterEl = document.getElementById('editAfter');
+    const cmp = document.getElementById('editCompare');
+    if (beforeEl && afterEl && cmp) {
+      const afterLabel = document.getElementById('editCompareAfterLabel');
+      if (afterLabel) afterLabel.textContent = 'Cropped';
+      beforeEl.src = target.proxy;
+      afterEl.src = res.display;
+      cmp.style.setProperty('--p', '50%');
+      cmp.style.display = '';
+      configureEditExtendToggle(true, 'Cropped');
+      cmp.dataset.gallery = '1';
+      cmp.dataset.kind = 'crop';
+      cmp.dataset.prompt = '';
+      addCompareEntry({
+        src: res.display,
+        before: target.proxy,
+        prompt: '',
+        kind: 'crop',
+        tab: 'edit',
+      });
+      appendTransformedEntry(res, '', 'cropped', target.image);
+    }
+    clearEditExtendPreview();
+    if (pane) {
+      pane.querySelectorAll('.result-img, .output-placeholder, .source-preview, .source-dimensions')
+        .forEach(el => el.remove());
+    }
+    lastGeneratedUrl = res.url;
+    rememberGeneratedImage(res.url);
+    stopProgressPolling();
+    if (typeof syncResultUrl === 'function') syncResultUrl('edit', { url: res.url });
+    showToast('✨ Cropped');
+    if (btn) btn.disabled = false;
+    if (pane) pane.classList.remove('busy');
+    if (spinner) spinner.classList.remove('show');
+    setGenerating(pane, false);
+    setGeneratingUi(false);
+  }
+  registerRecoverHandler(finalizeCrop);
+
+  api('/api/edit', {
+    mode: 'crop',
+    image: target.image,
+    x: payload.x,
+    y: payload.y,
+    width: payload.width,
+    height: payload.height,
+  }).then(res => {
+    finalizeCrop(res);
+  }).catch(err => {
+    const isAbort = err && err.name === 'AbortError';
+    if (!userCancelled && err && err.isHttp && err.status === 408) {
+      // The backend timed out waiting, but ComfyUI may still finish; the
+      // WS listener records it and the recovery path attaches it.
+      recoverPending = true;
+      return;
+    }
+    if (!userCancelled && err && err.isHttp) {
+      syncResultUrl('edit', null);
+      showToast('❌ ' + (err.message || 'Crop failed'));
+      return;
+    }
+    if (isAbort && !userCancelled) {
+      recoverPending = true;
+      return;
+    }
+    if (!userCancelled) {
+      recoverPending = true;
+      showToast('⚠️ Connection lost — waiting for the result…');
+      return;
+    }
+    syncResultUrl('edit', null);
+    showToast('❌ ' + (isAbort ? (userCancelled ? 'Cancelled' : 'Timed out — try again') : (err.message || err)));
+  }).finally(() => {
+    userCancelled = false;
+    if (!recoverPending) {
+      stopProgressPolling();
+      if (btn) btn.disabled = false;
+      if (pane) pane.classList.remove('busy');
+      if (spinner) spinner.classList.remove('show');
       setGenerating(pane, false);
       setGeneratingUi(false);
     }

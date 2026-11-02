@@ -51,10 +51,14 @@ function restoreCompareSlider(tab, paneId, cmp) {
   slider.dataset.gallery = '1';
   slider.dataset.kind = cmp.kind || 'edit';
   slider.dataset.prompt = cmp.prompt || '';
-  // Edit's extend results use the Original/Extended toggle instead of the
+  // Extend and crop results use the Original/Result toggle instead of the
   // overlay slider (their canvas sizes differ).
   if (paneId === 'editOutputPane' && typeof configureEditExtendToggle === 'function') {
-    configureEditExtendToggle((cmp.kind || 'edit') === 'extend');
+    const kind = cmp.kind || 'edit';
+    configureEditExtendToggle(
+      kind === 'extend' || kind === 'crop',
+      typeof compareKindLabel === 'function' ? compareKindLabel(kind) : undefined
+    );
   }
 }
 

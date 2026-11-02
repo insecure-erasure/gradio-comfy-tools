@@ -800,7 +800,10 @@ function finalizeRecoveredJob(tool, res, marker) {
     };
     if (typeof addCompareEntry === 'function') addCompareEntry(compareEntry);
     if (tool === 'edit' && typeof appendTransformedEntry === 'function') {
-      const badge = mode === 'restore' ? 'restored' : mode === 'extend' ? 'extended' : 'edited';
+      const badge = mode === 'restore' ? 'restored'
+        : mode === 'extend' ? 'extended'
+        : mode === 'crop' ? 'cropped'
+        : 'edited';
       appendTransformedEntry(res, prompt, badge, source);
     } else if (tool === 'upscale' && typeof addTransformedEntry === 'function') {
       addTransformedEntry(res, '', 'upscaled', source);

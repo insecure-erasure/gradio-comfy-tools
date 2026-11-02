@@ -525,12 +525,17 @@ function setGalleryExtendView(showOriginal) {
   }
 }
 
-function configureGalleryExtendToggle(enabled) {
+function configureGalleryExtendToggle(enabled, resultLabel) {
   const on = !!enabled;
+  const label = resultLabel || 'Extended';
   gallerySlider.classList.toggle('extend-toggle-mode', on);
   if (!on) gallerySlider.classList.remove('show-original');
-  if (galleryExtendToggle) galleryExtendToggle.style.display = on ? 'flex' : 'none';
-  if (on) setGalleryExtendView(false); // default: show the extended result
+  if (galleryExtendToggle) {
+    galleryExtendToggle.style.display = on ? 'flex' : 'none';
+    galleryExtendToggle.setAttribute('aria-label', `Compare original and ${label.toLowerCase()}`);
+  }
+  if (galleryExtendResultBtn) galleryExtendResultBtn.textContent = label;
+  if (on) setGalleryExtendView(false); // default: show the result side
 }
 
 // ── Render the current gallery item ────────
@@ -585,7 +590,7 @@ function renderGalleryItem() {
     galleryAfter.src = e.src;
     gallerySlider.style.setProperty('--p', '50%');
     galleryLabelAfter.textContent = compareKindLabel(e.kind);
-    configureGalleryExtendToggle(e.kind === 'extend');
+    configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop', compareKindLabel(e.kind));
     galleryBadge.classList.remove('show');
     // Compare mode: the Show-prompt button is visible by DEFAULT when the
     // comparison has a prompt (no click on the slider needed) — same rule
@@ -1103,6 +1108,7 @@ function paneGalleryCount(tab) {
 function compareKindLabel(kind) {
   return kind === 'edit' ? 'Edited' : kind === 'restore' ? 'Restored'
     : kind === 'extend' ? 'Extended'
+    : kind === 'crop' ? 'Cropped'
     : kind === 'upscale' ? 'Upscaled'
     : kind === 'face_swap' ? 'Face swapped' : 'Result';
 }

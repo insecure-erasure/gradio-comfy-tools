@@ -217,7 +217,7 @@ document.addEventListener('keydown', e => {
 // own keyboard handling (notably the fullscreen gallery's ←/→).
 const KEY_BLOCKED_OVERLAYS = '#galleryOverlay.show, #promptModal.show, #modalBackdrop.show, ' +
   '#chipPopover.show, #sourceHistoryPopover.show, .settings-dropdown.show, ' +
-  '#tabsDropdownMenu.show';
+  '#tabsDropdownMenu.show, #cropOverlay.show';
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
