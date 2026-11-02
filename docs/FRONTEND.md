@@ -647,9 +647,13 @@ button (the old clearPane registry-drop was removed).
 **While a generation runs**, the same row shows **live progress** instead of
 a URL (`startProgressPolling` in `api.js`): the backend PUSHES every job
 update over the **`/ws/progress` WebSocket** (opened on job start) and the
-page paints the current stage — `⏳ Queued…`, then `⚙️ <node_title>
-<value>/<max>` (e.g. `⚙️ SamplerCustomAdvanced 4/8`) as ComfyUI moves node
-to node. The classic 1s polling of `GET /api/progress` is kept ONLY as an
+page paints the current stage — `⏳ Queued…`, then `<tool emoji>
+<node_title> <value>/<max>` (e.g. `🖍️ SamplerCustomAdvanced 4/8`) as
+ComfyUI moves node to node. The emoji is the nav icon of the tool that
+STARTED the job (`TAB_EMOJI[liveJobTab]`): 🖼️ Generate, 🖍️ Edit, 👨🏻 Face
+swap, 🔍 Upscale, 🎬 Video. It follows the originating tool even if the user
+switches tabs mid-job; the fallback is ⚙️. The classic 1s polling of
+`GET /api/progress` is kept ONLY as an
 automatic fallback when the WS is unavailable (`wsProgressFailed` in
 api.js) — same payload shape, same painter. On success the row clears (the
 duration chip stays in `#resultTime`); on error the row is cleared (the

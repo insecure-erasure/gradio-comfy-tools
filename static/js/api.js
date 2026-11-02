@@ -447,6 +447,10 @@ function cancelIfRunning() {
 // in the tab where it started"). tab -> output pane id (generate uses
 // 'genOutputPane', the rest match by name).
 const TAB_PANE_IDS = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
+// Emoji shown in the progress line for the tool that STARTED the job (the
+// nav tab icon). Keep this independent from currentTab: switching tools
+// mid-generation must not change the icon of the running job.
+const TAB_EMOJI = { generate: '🖼️', edit: '🖍️', face_swap: '👨🏻', upscale: '🔍', video: '🎬' };
 let liveJobTab = null;
 // Elements hidden while the live preview is painted (placeholder, previous
 // result, source preview) so the preview fills the pane and stays centered;
@@ -545,13 +549,14 @@ function applyProgress(j) {
     return; // no active job — leave the last painted text until the request settles
   }
   let txt;
+  const toolEmoji = TAB_EMOJI[liveJobTab] || '⚙️';
   if (a.stage === 'queued') {
     txt = '⏳ Queued…';
   } else if (a.stage === 'running') {
-    txt = '⚙️ ' + (a.node_title || ('node ' + (a.node ?? '')));
+    txt = toolEmoji + ' ' + (a.node_title || ('node ' + (a.node ?? '')));
     if (a.value != null && a.max) txt += ' — ' + a.value + '/' + a.max;
   } else {
-    txt = '⚙️ ' + (a.node_title || '');
+    txt = toolEmoji + ' ' + (a.node_title || '');
   }
   el.textContent = txt;
   el.title = ''; // progress text is not a URL — no stale tooltip from a previous result
