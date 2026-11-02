@@ -387,9 +387,9 @@
   .crop-presets { justify-content: flex-start; padding-bottom: 2px; }
   .crop-preset { min-height: 40px; padding: 0 14px; font-size: .76rem; }
   .crop-handle { width: 44px; height: 44px; }
-  .crop-handle::after { width: 14px; height: 14px; }
-  .crop-handle.nw::after { left: 6px; top: 6px; }
-  .crop-handle.ne::after { right: 6px; top: 6px; }
-  .crop-handle.se::after { right: 6px; bottom: 6px; }
-  .crop-handle.sw::after { left: 6px; bottom: 6px; }
+  .crop-handle::after { width: 20px; height: 20px; }
+  .crop-handle.nw::after { left: 0; top: 0; }
+  .crop-handle.ne::after { right: 0; top: 0; }
+  .crop-handle.se::after { right: 0; bottom: 0; }
+  .crop-handle.sw::after { left: 0; bottom: 0; }
 }

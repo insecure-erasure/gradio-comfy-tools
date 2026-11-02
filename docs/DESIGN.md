@@ -79,7 +79,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
    prompt field in landscape, inside the compact field / modal in portrait).
    Edit/Restore keep the overlay slider; Extend and Crop use an
    Original/Result toggle because their canvas has a different size. Crop is
-   not an action chip: it is a canvas tool opened from the ✂️ button on the
+   not an action chip: it is a canvas tool opened from the crop button on the
    output pane (inline on desktop, fullscreen on the stacked layout).
 3. **LoRAs are managed exclusively via the advanced modal** — there is no
    dynamic list / `+ Add LoRA` button in the params pane; each tool

@@ -142,7 +142,7 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (`switchTab` rebuilds `#btnCol` with fresh buttons —
   `setGeneratingUi`/`applyGenerationLock` in `api.js`).
 - `🩹 Restore`, `🧩 Extend` and `🔍 Upscale` never require a prompt.
-- **Crop is not an action button.** It is a canvas tool: the ✂️ button sits
+- **Crop is not an action button.** It is a canvas tool: the crop button sits
   on the Edit output pane, next to ⛶, and opens the crop editor directly
   (inline on desktop, fullscreen on the stacked layout). This keeps it out
   of the prompt/chip modal and makes it usable in portrait.
@@ -234,7 +234,7 @@ empty and the prompt fills it; see also deviation 14):
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
 - **Actions**: 🪄 refine · 🩹 Restore · 🧩 Extend · 🖌️ Edit. The Edit button
   requires a prompt; Restore and Extend are always active.
-- **Crop ✂️**: a separate overlay button on the output pane (top-right, left
+- **Crop**: a separate overlay button on the output pane (top-right, left
   of ⛶), not part of the action row. It opens on the image currently shown
   (active compare side or source) and uses a shared editor:
   - Desktop (`≥1024px`): **inline in the output pane**.

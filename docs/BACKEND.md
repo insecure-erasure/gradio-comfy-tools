@@ -362,7 +362,7 @@ Other nodes: `ImageScaleToTotalPixels`, `GetImageSize`, `EmptyFlux2LatentImage`,
 `SamplerCustomAdvanced`, `CFGGuider`, `KSamplerSelect`, `ColorMatch`; output:
 `Random Preview Image`.
 
-### 5.2.2 Crop ✂️ — `crop_image.json`
+### 5.2.2 Crop — `crop_image.json`
 
 Crop is a **deterministic pixel operation**, not a generative one. It uses
 the same `Load Image (URL/Path)` source handling as the other tools, but its
@@ -401,7 +401,7 @@ ranges. It cannot know the source dimensions without downloading it, so the
 UI clamps the rectangle to the loaded image; `ImageCrop` itself clamps `x`/`y`
 to the image and may return a smaller image if `width`/`height` overflow.
 
-**UI behavior** (`static/js/crop.js`): the ✂️ button lives on the output
+**UI behavior** (`static/js/crop.js`): the crop button lives on the output
 pane, next to ⛶ — not in the prompt action row. It opens the crop editor on
 the image currently shown (active compare side, or the source preview/field).
 Desktop (`≥1024px`) renders the editor inline inside the pane; the stacked /

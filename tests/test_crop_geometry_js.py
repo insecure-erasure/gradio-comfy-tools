@@ -90,3 +90,25 @@ def test_crop_editor_lifecycle_unit_tests():
         ["node", str(EDITOR_TEST)], capture_output=True, text=True, timeout=120
     )
     assert proc.returncode == 0, "\n" + proc.stdout + proc.stderr
+
+
+def test_crop_trigger_uses_an_svg_icon_not_the_scissors_emoji():
+    tab = _read("templates", "partials", "tab_edit.html")
+    assert 'id="editCropBtn"' in tab
+    assert "\u2702" not in tab
+    assert "<svg" in tab
+
+
+def test_crop_handles_are_corner_brackets_with_a_visible_cursor():
+    css = _read("static", "css", "components.css")
+    handle_start = css.index(".crop-handle {")
+    handle = css[handle_start:css.index(".crop-handle::after", handle_start)]
+    assert "cursor: default" in handle
+    assert "nwse-resize" not in handle
+    assert "nesw-resize" not in handle
+
+    bracket = css[css.index(".crop-handle::after"):]
+    bracket = bracket[:bracket.index(".crop-dims")]
+    assert "border-left-width" in bracket
+    assert "border-top-width" in bracket
+    assert "border-radius: 50%" not in bracket

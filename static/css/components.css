@@ -2280,35 +2280,45 @@
     position: absolute;
     box-sizing: border-box;
     border: 1.5px solid var(--accent);
-    cursor: move;
+    /* Same reason as the compare slider: minimal cursor themes on some
+       Linux/Wayland setups do not render resize/move cursor shapes at all,
+       leaving the pointer invisible. The brackets/box border already afford
+       the manipulation; the arrow is always visible. */
+    cursor: default;
     touch-action: none;
     box-shadow: 0 0 0 9999px rgba(0,0,0,.55);
   }
-  .crop-box.dragging { cursor: grabbing; }
+  .crop-box.dragging { cursor: default; }
+  /* Conventional corner brackets. The hit area stays 28px (44px on touch)
+     while the visible mark is only the two white lines. Avoid resize
+     cursors here: some Firefox/Linux/Wayland setups do not render them and
+     the pointer disappears; use the always-visible default arrow. */
   .crop-handle {
     position: absolute;
     width: 28px;
     height: 28px;
     z-index: 2;
     touch-action: none;
+    cursor: default;
+    user-select: none;
+    -webkit-user-select: none;
   }
   .crop-handle::after {
     content: '';
     position: absolute;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 2px rgba(0,0,0,.45);
+    width: 14px;
+    height: 14px;
+    border: 0 solid #fff;
+    filter: drop-shadow(0 0 1px rgba(0,0,0,.95)) drop-shadow(0 0 2px rgba(0,0,0,.55));
   }
-  .crop-handle.nw { left: 0; top: 0; cursor: nwse-resize; }
-  .crop-handle.ne { right: 0; top: 0; cursor: nesw-resize; }
-  .crop-handle.se { right: 0; bottom: 0; cursor: nwse-resize; }
-  .crop-handle.sw { left: 0; bottom: 0; cursor: nesw-resize; }
-  .crop-handle.nw::after { left: 3px; top: 3px; }
-  .crop-handle.ne::after { right: 3px; top: 3px; }
-  .crop-handle.se::after { right: 3px; bottom: 3px; }
-  .crop-handle.sw::after { left: 3px; bottom: 3px; }
+  .crop-handle.nw { left: 0; top: 0; }
+  .crop-handle.ne { right: 0; top: 0; }
+  .crop-handle.se { right: 0; bottom: 0; }
+  .crop-handle.sw { left: 0; bottom: 0; }
+  .crop-handle.nw::after { left: 0; top: 0; border-left-width: 2px; border-top-width: 2px; }
+  .crop-handle.ne::after { right: 0; top: 0; border-right-width: 2px; border-top-width: 2px; }
+  .crop-handle.se::after { right: 0; bottom: 0; border-right-width: 2px; border-bottom-width: 2px; }
+  .crop-handle.sw::after { left: 0; bottom: 0; border-left-width: 2px; border-bottom-width: 2px; }
   .crop-dims {
     font: .72rem/1.2 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
     color: rgba(255,255,255,.78);

@@ -523,7 +523,7 @@ function generateEdit(forceMode) {
 }
 
 // ── Crop ──────────────────────────────────
-// Crop is canvas editing, not a generation action: the ✂️ trigger lives on
+// Crop is canvas editing, not a generation action: the crop trigger lives on
 // the output pane and opens the shared crop editor (inline on desktop,
 // fullscreen on the stacked layout). The target is the image currently
 // being shown: the active compare side, or the source preview/field.
