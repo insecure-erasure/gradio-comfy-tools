@@ -203,6 +203,32 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
 });
 
+// ── Keyboard pane navigation ───────────────
+// The normal (non-gallery) preview pane is focusable. When IT has focus,
+// ←/→ navigate that tool's history exactly like the pane ‹ › buttons.
+// Ignore events from children (notably the source-URL input): only the
+// pane itself should react, and never while the fullscreen gallery is open
+// (its own ←/→ listener owns the keys then).
+const PANE_TABS = {
+  genOutputPane: 'generate',
+  editOutputPane: 'edit',
+  faceSwapOutputPane: 'face_swap',
+  upscaleOutputPane: 'upscale',
+  videoOutputPane: 'video',
+};
+document.querySelectorAll('.output-pane').forEach(pane => {
+  pane.addEventListener('keydown', e => {
+    if (e.target !== pane) return;
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const gallery = document.getElementById('galleryOverlay');
+    if (gallery && gallery.classList.contains('show')) return;
+    const tab = PANE_TABS[pane.id];
+    if (!tab) return;
+    e.preventDefault();
+    paneNav(tab, e.key === 'ArrowLeft' ? -1 : 1);
+  });
+});
+
 // ── Gallery (B5): clicking a generated result opens the lightbox ──
 // The ⛶ top-right buttons call openGenerateLightbox()/openCompareFullscreen()
 // directly; this handles the click-on-the-image case (the lightbox positions

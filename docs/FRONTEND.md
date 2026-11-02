@@ -172,7 +172,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   It always points to the last **image** result (generate/edit/restore/
   extend/face swap/upscale) — generated videos never overwrite it (img2vid needs an image
   source, so a video is never a valid chain target).
-- Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal.
+- Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal. The normal
+  (non-gallery) preview pane is focusable (`tabindex="0"`); while it has
+  focus, ←/→ navigate that tool's result history exactly like the pane
+  ‹ › buttons (ignored when focus is on a child such as the source-URL
+  input, and while the fullscreen gallery is open).
 
 ## 3. Control inventory per tab
 
