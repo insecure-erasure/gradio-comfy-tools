@@ -1305,8 +1305,10 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);
   else if (e.key === 'ArrowRight') galleryNav(1);
-  else if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    e.preventDefault(); // Delete is not a browser shortcut here
+  else if ((e.key === 'Delete' || e.key === 'Del' || e.key === 'Supr'
+            || e.code === 'Delete')
+           && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault();
     galleryDeleteCurrent(); // no confirmation — the shown entry only
   }
 });

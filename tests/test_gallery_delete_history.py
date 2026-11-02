@@ -34,8 +34,9 @@ def test_source_history_forget_repaints_an_open_popover():
 
 
 def test_delete_key_removes_the_generation_shown_in_the_pane():
-    assert "if (e.key !== 'Delete') return;" in MAIN
+    assert "e.key === 'Delete' || e.key === 'Del' || e.key === 'Supr'" in MAIN
     assert "if (e.defaultPrevented) return;" in MAIN
+    assert "e.preventDefault();" in MAIN
     assert "paneDeleteCurrent()" in MAIN
     body = _function_body(GALLERY, "function paneDeleteCurrent()")
     assert "forgetSourceHistoryEntry(e)" in body
@@ -47,7 +48,7 @@ def test_delete_key_removes_the_generation_shown_in_the_pane():
 def test_delete_key_removes_the_fullscreen_gallery_entry():
     start = GALLERY.index("// Keyboard: Escape closes")
     body = GALLERY[start:GALLERY.index("\n});", start)]
-    assert "e.key === 'Delete'" in body
+    assert "e.key === 'Delete' || e.key === 'Del' || e.key === 'Supr'" in body
     assert "galleryDeleteCurrent()" in body
     assert "e.preventDefault()" in body
 

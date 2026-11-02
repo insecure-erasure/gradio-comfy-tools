@@ -499,6 +499,12 @@ function startProgressPolling(meta) {
   // Store the prompt plus the small amount of per-tool context a reloaded
   // page needs to rebuild the gallery entry when this job finishes there.
   persistJobMarker(liveJobTab, meta); // survives reloads / backgrounded-tab discards
+  // The prompt is locked while the job runs, so drop focus from it: on
+  // browsers that keep the textarea focused after a click on the action
+  // button, Delete would otherwise keep editing text instead of deleting
+  // the result shown in the pane.
+  const focused = document.activeElement;
+  if (focused && focused.matches && focused.matches('.prompt-input')) focused.blur();
   // Claim the shared result row immediately: the first WS/POST snapshot is
   // async, and switching tools in that gap must not leave the previous
   // result URL looking like the current job's status.
