@@ -10,6 +10,13 @@ let baseUrl = '';
 // fill the Edit/Upscale/Video source field (chaining).
 let lastGeneratedUrl = null;
 
+// Last source value LOADED/USED per single-source tool. Persisted in
+// localStorage and restored on startup; also used as a fallback when the
+// input is empty (page reload / background-tab discard). Kept separate from
+// sourceHistory: generated results are added to the history, but that must
+// not replace the source that the user actually loaded.
+let lastSourceByTab = { edit: '', upscale: '', video: '' };
+
 // Per-tab recent SOURCE images (newest first) shown by the 🕘 button in each
 // source pane: Edit/Upscale/Video hold [{ value, ts }]; Face swap holds
 // [{ base, face, ts }] — pairs, or base-only entries for generated images

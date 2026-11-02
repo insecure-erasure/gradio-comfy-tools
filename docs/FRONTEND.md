@@ -491,7 +491,14 @@ the keyboard — only the visual one does, so the field at the bottom of
 output pane would otherwise be covered). Only on <768px and only for the
 focused field. The value feeds the tool's `image` input
 (filename-vs-URL auto-detection, docs/BACKEND.md §6); empty on generate →
-warning toast.
+warning toast. The **last loaded/used source per tool** is also persisted
+(`lastSources` in the config key, kept separate from the 🕘 history, which
+also contains generated results) and restored into the input on startup.
+If the input is empty — e.g. the browser reloaded/discarded the tab during
+a long generation — `getSourceUrl()` falls back to that saved value and
+refills the field, so another seed can be run without pressing 🔗 again.
+Typed URLs are remembered on `change`; 🔗/🕘/✓/upload and submit update the
+saved value immediately.
 
 **✓ Confirm** (`confirmSourceUrl` in `source.js`): validates the field value
 server-side via `POST /api/check-image` (the browser cannot read
@@ -732,9 +739,10 @@ modal uses that tab's primary pill as the ⏹.
   face_swap, upscale, video, gallery, restore, settings, modal, main.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
-  selections, per-tab prompts, theme AND the galleries (`generated` /
-  `videos` / `comparisons`). Saved on field change / modal save / theme toggle /
-  toolbar change / gallery mutation; restored on load.
+  selections, per-tab prompts, last loaded source per source tool, theme AND
+  the galleries (`generated` / `videos` / `comparisons`). Saved on field
+  change / modal save / theme toggle / toolbar change / gallery mutation;
+  restored on load.
 
 ## 6. Backend endpoints used by the UI
 

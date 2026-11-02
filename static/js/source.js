@@ -25,7 +25,27 @@ function usePreviousSource(tab) {
 
 function getSourceUrl(tab) {
   const input = document.getElementById(`${tab}SourceUrl`);
-  return input ? input.value.trim() : '';
+  let value = input ? input.value.trim() : '';
+  // Reuse the last source loaded in this tool when the field is empty. This
+  // is the reload/background-discard case: the result (and lastGeneratedUrl)
+  // survive in the galleries, but the input is recreated empty. Refill it so
+  // the user can repeat the run with another seed without pressing 🔗 again.
+  if (!value && lastSourceByTab[tab]) {
+    value = lastSourceByTab[tab];
+    if (input) input.value = value;
+  }
+  return value;
+}
+
+// Remember the last source actually loaded/used by a single-source tool.
+// Called by previewSourceImage (🔗 / 🕘 / ✓ / upload) and on submit; kept
+// separate from sourceHistory (which also receives generated results).
+function rememberLastSource(tab, value) {
+  if (!(tab in lastSourceByTab)) return;
+  value = (value || '').trim();
+  if (!value || lastSourceByTab[tab] === value) return;
+  lastSourceByTab[tab] = value;
+  if (typeof savePersistedState === 'function') savePersistedState();
 }
 
 // ── Recent source history (🕘) ─────────────
@@ -82,6 +102,7 @@ function _historyUnshift(list, entry, matches) {
 function rememberSourceHistory(tab, value) {
   value = (value || '').trim();
   if (!value || !Array.isArray(sourceHistory[tab])) return;
+  rememberLastSource(tab, value);
   const list = sourceHistory[tab];
   if (list[0] && list[0].value === value) return; // already the newest
   _historyUnshift(list, { value, ts: Date.now() }, e => e.value === value);
@@ -366,6 +387,12 @@ function initSourceFields() {
     const input = document.getElementById(`${tab}SourceUrl`);
     selectAllOnFocus(input);
     keepSourceFieldVisible(input);
+    // Also remember URLs typed/pasted directly when the field is left, so
+    // the fallback survives a later reload even without pressing ✓.
+    if (input) input.addEventListener('change', () => {
+      const value = input.value.trim();
+      if (value) rememberLastSource(tab, value);
+    });
     // Enter in the field = confirm, exactly like the ✓ button (validate
     // server-side + show the preview + collapse). No-op while a check is
     // already running (the ✓ button is busy).
@@ -453,6 +480,8 @@ function proxiedSrc(value) {
 function previewSourceImage(tab, src) {
   const pane = document.getElementById(`${tab}OutputPane`);
   if (!pane) return;
+  // Persist the value even if the preview image later fails to load.
+  rememberLastSource(tab, src);
   clearSourcePreview(tab);
   pane.querySelectorAll('.output-placeholder').forEach(el => el.remove());
   pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');

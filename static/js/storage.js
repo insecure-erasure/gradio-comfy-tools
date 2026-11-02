@@ -30,6 +30,9 @@ function savePersistedState() {
     advanced: window.advancedValues || {},
     toolbar: toolbarValues,
     prompts: promptsByTab,
+    // Last loaded source per single-source tool — restored into the input so
+    // a generation can be retried with another seed after a reload/discard.
+    lastSources: lastSourceByTab,
     theme: currentTheme,
     // Galleries: persisted so a reload does not lose the history. The
     // stored entries are validated against the server on restore (see
@@ -104,6 +107,20 @@ function restorePersistedState() {
       });
     }
     if (Array.isArray(data.galleries.comparisons)) window.galleryComparisons = data.galleries.comparisons;
+  }
+  // Last loaded source per single-source tool (Edit/Upscale/Video). The
+  // value lives in state.js and is also used as getSourceUrl()'s fallback;
+  // fill the inputs now so the source is reusable after a reload.
+  if (data.lastSources && typeof data.lastSources === 'object') {
+    ['edit', 'upscale', 'video'].forEach(tab => {
+      const value = typeof data.lastSources[tab] === 'string'
+        ? data.lastSources[tab].trim()
+        : '';
+      if (!value) return;
+      lastSourceByTab[tab] = value;
+      const input = document.getElementById(`${tab}SourceUrl`);
+      if (input && !input.value.trim()) input.value = value;
+    });
   }
   // Per-tab recent source images (restored + validated/capped in source.js).
   if (data.sourceHistory && typeof restoreSourceHistory === 'function') {
@@ -254,6 +271,7 @@ function resetAllUserData() {
   window.galleryVideos = [];
   window.galleryComparisons = [];
   sourceHistory = { edit: [], upscale: [], video: [], face_swap: [] };
+  lastSourceByTab = { edit: '', upscale: '', video: '' };
   toolbarValues = { genFamily: 'krea2', vidVersion: 'wan21' };
   promptsByTab = { generate: '', edit: '', video: '', face_swap: '' };
   window.advancedValues = {};
