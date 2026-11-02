@@ -337,6 +337,24 @@ function _cropEndDrag() {
   }
 }
 
+// Clicking the dark area around the image (not the image itself) cancels.
+// Clicks on the stage/stage descendants never reach the cancel path.
+function _cropWrapClick(e) {
+  if (!_crop.open) return;
+  if (e.target.closest && e.target.closest('#cropStage')) return;
+  closeCropEditor();
+}
+
+// Double-clicking inside the selected area applies the crop. Handles are
+// excluded so a double-click near a corner still belongs to the resize.
+function _cropBoxDoubleClick(e) {
+  if (!_crop.open) return;
+  if (e.target.closest && e.target.closest('[data-crop-handle]')) return;
+  if (e.cancelable) e.preventDefault();
+  e.stopPropagation();
+  cropApply();
+}
+
 // ── Keyboard ──────────────────────────────────────────────────────────────
 // Capture phase so the app's global shortcuts (pane arrows/Delete/Escape)
 // never fire while the editor owns the keyboard.
@@ -382,12 +400,15 @@ function _cropKeyDown(e) {
 // ── Wiring ────────────────────────────────────────────────────────────────
 (function _initCropEditor() {
   const stage = _cropById('cropStage');
+  const box = _cropById('cropBox');
   const cancel = _cropById('cropCancel');
   const apply = _cropById('cropApply');
   const presets = _cropById('cropPresets');
   const wrap = _cropById('cropStageWrap');
 
   if (stage) stage.addEventListener('pointerdown', _cropPointerDown);
+  if (box) box.addEventListener('dblclick', _cropBoxDoubleClick);
+  if (wrap) wrap.addEventListener('click', _cropWrapClick);
   if (cancel) cancel.addEventListener('click', closeCropEditor);
   if (apply) apply.addEventListener('click', cropApply);
   if (presets) {

@@ -244,8 +244,10 @@ empty and the prompt fills it; see also deviation 14):
     or pick `Keep` / `Free` / `1:1`. `Keep` uses the image's own aspect ratio
     and also resets to the full frame. The footer shows live `W × H` and
     the reduced aspect ratio of the resulting crop (e.g. `600 × 600 · 1:1`).
-    Arrow keys nudge (Shift = 10 px), `Esc` cancels, `Enter` applies. Apply
-    is disabled while the selection is the full image.
+    Arrow keys nudge (Shift = 10 px), `Esc` cancels, `Enter` applies,
+    double-clicking inside the selection applies, and clicking the dark
+    area outside the image cancels. Apply is disabled while the selection
+    is the full image.
   - The selection is stored in source-image pixels, so resizing/rotating
     keeps it; the rendered box uses percentages.
   - On Apply the editor closes and the result lands as a new `cropped`

@@ -71,6 +71,7 @@ function element(id, extra = {}) {
         return this.dataset.cropHandle ? this : null;
       }
       if (sel === '#cropBox') return this.id === 'cropBox' ? this : null;
+      if (sel === '#cropStage') return this.id === 'cropStage' ? this : null;
       if (sel === 'button, input, textarea, select') {
         return this.tagName === 'BUTTON' ? this : null;
       }
@@ -219,6 +220,45 @@ test('the Keep preset restores the full image ratio after a crop', () => {
   assert.strictEqual(elements.cropApply.disabled, true);
   assert.strictEqual(presets[0].classList.contains('active'), true);
   elements.cropCancel.listeners.click();
+});
+
+test('clicking outside the image cancels, clicking the image does not', () => {
+  open();
+  sandbox.applied = null;
+  const ev = {
+    target: elements.cropStage,
+    cancelable: true,
+    preventDefault() {},
+    stopPropagation() {},
+  };
+  elements.cropStageWrap.listeners.click(ev);
+  assert.strictEqual(sandbox.cropEditorIsOpen(), true);
+
+  elements.cropStageWrap.listeners.click({
+    target: elements.cropStageWrap,
+    cancelable: true,
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  assert.strictEqual(sandbox.cropEditorIsOpen(), false);
+  assert.strictEqual(sandbox.applied, null);
+});
+
+test('double-clicking the selection applies the crop', () => {
+  open();
+  elements.cropPresets.listeners.click({
+    target: presets[2],
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  elements.cropBox.listeners.dblclick({
+    target: elements.cropBox,
+    cancelable: true,
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.applied)), { x: 100, y: 0, width: 600, height: 600 });
+  assert.strictEqual(sandbox.cropEditorIsOpen(), false);
 });
 
 test('cancel closes without calling onApply', () => {
