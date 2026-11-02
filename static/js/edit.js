@@ -545,16 +545,24 @@ function _editCropTarget() {
   const compare = document.getElementById('editCompare');
   const compareVisible = !!(compare && compare.style.display !== 'none');
   const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry('edit') : null;
-  if (compareVisible && entry) {
+  if (compareVisible) {
     const showOriginal = compare.classList.contains('show-original');
-    const value = showOriginal ? (entry.before || entry.src) : (entry.url || entry.src);
-    const display = showOriginal ? (entry.before || entry.src) : entry.src;
-    const label = showOriginal ? 'Original' : 'Result';
+    let value = '';
+    let display = '';
+    if (entry) {
+      value = showOriginal ? (entry.before || entry.src) : (entry.url || entry.src);
+      display = showOriginal ? (entry.before || entry.src) : entry.src;
+    } else {
+      // DOM fallback for a restored slider whose registry entry is gone.
+      const img = document.getElementById(showOriginal ? 'editBefore' : 'editAfter');
+      value = (img && img.getAttribute('src')) || '';
+      display = value;
+    }
     if (!value) return null;
     return {
       image: _editCropBackendValue(value),
       proxy: display || (typeof proxiedSrc === 'function' ? proxiedSrc(value) : value),
-      label,
+      label: showOriginal ? 'Original' : 'Result',
     };
   }
 
