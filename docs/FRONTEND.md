@@ -810,6 +810,13 @@ modal uses that tab's primary pill as the ⏹.
   carries `{error}` so `applyProgress` releases the generating UI the
   moment the error is known — even if the fetch already died — instead of
   leaving the app "generating" until the 60s recovery safety net.
+  A job that finishes while the page is reloaded/discarded is recovered on
+  the next load too (if it ended between reloads, `adoptRunningJob` asks
+  `/api/last-result` directly). The sessionStorage job marker carries the
+  prompt plus the source/mode pair (and the Face swap base/face); the
+  recovered finalize therefore registers the result in the SAME galleries
+  and extra entries as the normal per-tool finalizer, and repaints the
+  compare slider instead of a plain result image.
 
 ### 7.1 Galleries (`gallery.js`)
 

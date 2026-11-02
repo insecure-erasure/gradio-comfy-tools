@@ -290,7 +290,7 @@ function generateFaceSwap() {
   // Drop a stale extraction box from a previous result before the new run.
   pane.querySelectorAll('.face-extract-overlay').forEach(el => el.remove());
   showToast('Face swap submitted to ComfyUI...');
-  startProgressPolling();
+  startProgressPolling({ base, face });
   setGeneratingUi(true, 'btnFaceSwap');
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).

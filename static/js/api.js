@@ -383,6 +383,28 @@ let _recoverSettleTimer = null; // safety-net timer for a stuck recovery (see ap
 let _recoverRetryTimer = null;  // retry loop for a result not yet recorded (see tryRecoverResult)
 let _recoverInFlight = false; // a recovery probe is in flight — no concurrent probes
 function registerRecoverHandler(fn) { recoverHandler = fn; }
+
+// Build the frontend result shape from /api/last-result. Returns null when
+// the recorded URL is absent or has no filename (nothing recoverable).
+function recoveredResultFromLast(j) {
+  if (!j || !j.url) return null;
+  const params = new URLSearchParams((j.url.split('?')[1] || ''));
+  const fn = params.get('filename');
+  if (!fn) return null;
+  const type = params.get('type') || 'output';
+  const res = { url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type };
+  // The recovery record carries the Face swap extracted-face preview too
+  // (the backend stores job.face_url): hand it to the finalize in the same
+  // shape as the direct API response.
+  if (j.face_preview) {
+    const pf = new URLSearchParams((String(j.face_preview).split('?')[1] || ''));
+    const ffn = pf.get('filename');
+    const ftype = pf.get('type') || 'output';
+    if (ffn) res.face_preview = { display: '/media/' + encodeURIComponent(ffn) + '?type=' + ftype };
+  }
+  return res;
+}
+
 async function tryRecoverResult() {
   // Only runs when the original fetch is CONFIRMED dead (recoverPending):
   // while it is still in flight the normal .then() settles the result, and
@@ -411,22 +433,8 @@ async function tryRecoverResult() {
       return;
     }
     // Build the same-origin display URL from the recovered {base}/view URL.
-    const q = (j.url.split('?')[1] || '');
-    const params = new URLSearchParams(q);
-    const fn = params.get('filename');
-    const type = params.get('type') || 'output';
-    if (fn) {
-      const res = { url: j.url, display: '/media/' + encodeURIComponent(fn) + '?type=' + type };
-      // The recovery record carries the Face swap extracted-face preview
-      // too (the backend stores job.face_url): hand it to the per-tool
-      // finalize in the same shape as the direct API response.
-      if (j.face_preview) {
-        const qf = (String(j.face_preview).split('?')[1] || '');
-        const pf = new URLSearchParams(qf);
-        const ffn = pf.get('filename');
-        const ftype = pf.get('type') || 'output';
-        if (ffn) res.face_preview = { display: '/media/' + encodeURIComponent(ffn) + '?type=' + ftype };
-      }
+    const res = recoveredResultFromLast(j);
+    if (res) {
       recoverPending = false;
       recoverHandler(res);
     }
@@ -482,17 +490,15 @@ let liveJobTab = null;
 // so a cancel keeps the previous result visible.
 let liveHidden = [];
 
-function startProgressPolling() {
+function startProgressPolling(meta) {
   stopProgressPolling();
   liveJobTab = currentTab; // tab that initiated the generation
   recoverPending = false;  // fresh job — the in-flight fetch is the primary channel
   _lastJobDurationSecs = 0; // a new job — no duration yet
   progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
-  // Store the prompt with the marker: a recovered job registers its result
-  // in the gallery after a reload, where the textarea may already be cleared.
-  const jobPrompt = (typeof promptsByTab === 'object' && promptsByTab
-    && typeof promptsByTab[liveJobTab] === 'string') ? promptsByTab[liveJobTab] : '';
-  persistJobMarker(liveJobTab, jobPrompt); // survives reloads / backgrounded-tab discards
+  // Store the prompt plus the small amount of per-tool context a reloaded
+  // page needs to rebuild the gallery entry when this job finishes there.
+  persistJobMarker(liveJobTab, meta); // survives reloads / backgrounded-tab discards
   // Claim the shared result row immediately: the first WS/POST snapshot is
   // async, and switching tools in that gap must not leave the previous
   // result URL looking like the current job's status.
@@ -712,12 +718,16 @@ function stopProgressPolling() {
 // localStorage): it is only meaningful while the session lives.
 const JOB_MARKER_KEY = 'comfyTools.activeJob';
 
-function persistJobMarker(tool, prompt) {
-  try {
-    sessionStorage.setItem(JOB_MARKER_KEY, JSON.stringify({
-      tool, prompt: typeof prompt === 'string' ? prompt : '', startedAt: Date.now(),
-    }));
-  } catch (e) {}
+function persistJobMarker(tool, meta) {
+  const prompt = (typeof promptsByTab === 'object' && promptsByTab
+    && typeof promptsByTab[tool] === 'string') ? promptsByTab[tool] : '';
+  const data = { tool, prompt, startedAt: Date.now() };
+  if (meta && typeof meta === 'object') {
+    ['mode', 'source', 'base', 'face'].forEach(key => {
+      if (typeof meta[key] === 'string' && meta[key]) data[key] = meta[key];
+    });
+  }
+  try { sessionStorage.setItem(JOB_MARKER_KEY, JSON.stringify(data)); } catch (e) {}
 }
 
 function clearJobMarker() {
@@ -750,33 +760,73 @@ function releaseGeneratingUi() {
 // Generic finalize for a job adopted after a page reload: shows the result
 // in the tool's pane and registers it in the gallery. The session registries
 // were rebuilt from localStorage, but this job's result landed AFTER that
-// snapshot, so it is not there yet. Only the tools whose gallery entry can be
-// rebuilt from the result alone (video and plain Generate) are registered
-// here; an adopted Edit/Upscale/Face swap would need the source/mode pair,
-// which is not part of the recovery payload.
+// snapshot, so it is not there yet. The job marker carries the small amount
+// of context the registrars need (prompt, source, edit mode, face sources).
 function finalizeRecoveredJob(tool, res, marker) {
   const paneId = TAB_PANE_IDS[tool] || 'genOutputPane';
   const pane = document.getElementById(paneId);
-  // Drop any empty (disabled) player before showing the recovered result
-  // (the .video-player removal in showResult also covers it — this is just
-  // explicit and runs even if the pane is missing).
-  const emptyPlayer = pane && pane.querySelector('.video-empty-player');
-  if (emptyPlayer) emptyPlayer.remove();
-  showResult(paneId, res, tool === 'video');
-  if (tool === 'video') {
-    const vid = pane && pane.querySelector('.result-video');
-    if (vid) vid.dataset.videoGallery = '1';
-    if (currentTab !== 'video') pauseActiveVideo();
-  }
-  // The result appeared after the page reloaded, so the persisted galleries
-  // restored at startup do not contain it yet. Register it now — otherwise
-  // the pane shows the video/image but the fullscreen gallery does not.
-  const prompt = marker && typeof marker.prompt === 'string' ? marker.prompt : '';
+  const meta = marker || {};
+  const prompt = typeof meta.prompt === 'string' ? meta.prompt : '';
+  const source = typeof meta.source === 'string' ? meta.source : '';
+  const base = typeof meta.base === 'string' ? meta.base : '';
+  const mode = typeof meta.mode === 'string' ? meta.mode : 'edit';
+
+  // Register the result in the same galleries (and with the same extra
+  // entries) the per-tool finalizers use. The persisted snapshot restored at
+  // startup predates this result, so without this the pane shows it while
+  // the fullscreen gallery still does not.
+  let compareEntry = null;
   if (tool === 'video' && typeof addGeneratedVideo === 'function') {
     addGeneratedVideo(res, prompt);
   } else if (tool === 'generate' && typeof addGeneratedEntry === 'function') {
     addGeneratedEntry(res, prompt);
+  } else if (tool === 'edit' || tool === 'upscale' || tool === 'face_swap') {
+    const beforeValue = tool === 'face_swap' ? base : source;
+    const before = typeof beforeProxyUrl === 'function'
+      ? beforeProxyUrl(beforeValue) : beforeValue;
+    const kind = tool === 'upscale' ? 'upscale' : tool === 'face_swap' ? 'face_swap' : mode;
+    compareEntry = {
+      src: res.display,
+      before,
+      prompt: tool === 'upscale' ? '' : prompt,
+      kind,
+      tab: tool,
+    };
+    if (typeof addCompareEntry === 'function') addCompareEntry(compareEntry);
+    if (tool === 'edit' && typeof appendTransformedEntry === 'function') {
+      const badge = mode === 'restore' ? 'restored' : mode === 'extend' ? 'extended' : 'edited';
+      appendTransformedEntry(res, prompt, badge, source);
+    } else if (tool === 'upscale' && typeof addTransformedEntry === 'function') {
+      addTransformedEntry(res, '', 'upscaled', source);
+    } else if (tool === 'face_swap' && typeof addFaceSwapEntry === 'function') {
+      addFaceSwapEntry(res, before, prompt);
+    }
   }
+
+  // Paint the result like the normal finalizers do: a compare slider for the
+  // comparison tools, the plain result/video player for the others.
+  if (compareEntry) {
+    if (typeof clearPane === 'function') clearPane(paneId);
+    if (typeof restoreCompareSlider === 'function') restoreCompareSlider(tool, paneId, compareEntry);
+    // Face swap keeps its face reference on top of the comparison; the face
+    // field itself is not part of the persisted per-tab sources.
+    if (tool === 'face_swap' && meta.face && typeof fsPreviewFace === 'function') {
+      fsPreviewFace(meta.face);
+    }
+  } else {
+    // Drop any empty (disabled) player before showing the recovered result
+    // (the .video-player removal in showResult also covers it — this is just
+    // explicit and runs even if the pane is missing).
+    const emptyPlayer = pane && pane.querySelector('.video-empty-player');
+    if (emptyPlayer) emptyPlayer.remove();
+    showResult(paneId, res, tool === 'video');
+    if (tool === 'video') {
+      const vid = pane && pane.querySelector('.result-video');
+      if (vid) vid.dataset.videoGallery = '1';
+      if (currentTab !== 'video') pauseActiveVideo();
+    }
+  }
+
   // Only image tools set lastGeneratedUrl: the 🔗 chain feeds Edit/Upscale/
   // Video, all of which need an IMAGE source (img2img / img2vid) — a
   // generated video is never a valid source. Recovered image results also
@@ -787,7 +837,8 @@ function finalizeRecoveredJob(tool, res, marker) {
   }
   // The hint is timing-only now; pass the gallery entry so its persisted
   // duration shows (there is no elapsed clock for an adopted job).
-  syncResultUrl(tool, typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tool) : { url: res.url });
+  syncResultUrl(tool, compareEntry || (typeof paneCurrentEntry === 'function'
+    ? paneCurrentEntry(tool) : { url: res.url }));
   recoverPending = false;
   releaseGeneratingUi();
   showToast('✅ Generation finished');
@@ -808,7 +859,19 @@ async function adoptRunningJob() {
   try {
     const r = await fetch('/api/progress');
     const j = await r.json();
-    if (!j.active) { clearJobMarker(); return; } // settled while we were gone — galleries restore results
+    if (!j.active) {
+      // The job settled while the page was away (finished or cancelled).
+      // Query the last recorded result: a URL means it completed, so finish
+      // it through the SAME recovered-job path (gallery + pane). No URL
+      // (cancel / failure / never recorded) just drops the stale marker.
+      let last = null;
+      try { last = await (await fetch('/api/last-result')).json(); } catch (e) { /* ignore */ }
+      const res = typeof recoveredResultFromLast === 'function'
+        ? recoveredResultFromLast(last) : null;
+      if (res) finalizeRecoveredJob(marker.tool, res, marker);
+      else clearJobMarker();
+      return;
+    }
     // The backend is still running that job: re-establish the tracking state.
     liveJobTab = marker.tool;
     recoverPending = true; // no in-flight fetch — resolve via recovery

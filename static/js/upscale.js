@@ -27,7 +27,7 @@ function generateUpscale() {
   spinner.classList.add('show');
   setGenerating(pane, true);
   showToast('Upscale submitted to ComfyUI...');
-  startProgressPolling();
+  startProgressPolling({ source: src });
   setGeneratingUi(true, window.matchMedia('(max-width: 1023px)').matches ? 'btnUpscalePane' : 'btnUpscaleLandscape');
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).

@@ -403,7 +403,7 @@ function generateEdit(forceMode) {
   setGenerating(pane, true);
   const modeLabel = mode === 'restore' ? 'Restore' : mode === 'extend' ? 'Extend' : 'Edit';
   showToast(modeLabel + ' submitted to ComfyUI...');
-  startProgressPolling();
+  startProgressPolling({ mode, source: src });
   setGeneratingUi(true, triggerId);
 
   // Shared finalize (normal fetch OR focus-recovery of a lost job).

@@ -51,7 +51,7 @@ function generateVideo() {
   spinner.classList.add('show');
   setGenerating(pane, true);
   showToast('Video submitted to ComfyUI...');
-  startProgressPolling();
+  startProgressPolling({ source: src });
   setGeneratingUi(true, 'btnVideo');
 
   // Shared finalize: called with the finished result — from the normal
