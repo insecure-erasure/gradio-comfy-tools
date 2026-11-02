@@ -165,14 +165,35 @@ function sourceHistoryLabel(value) {
   return value.split('/').pop() || 'Image';
 }
 
+// Square `cover` thumbnail plus a stacked `contain` copy that crossfades in
+// on hover/focus of the card, revealing the whole (uncropped) image without
+// moving the grid cell. The peek copy is decorative: the button title/label
+// already carry the accessible name.
 function _historyThumb(value, alt) {
+  const frame = document.createElement('span');
+  frame.className = 'source-history-frame';
+  const src = proxiedSrc(value);
   const img = document.createElement('img');
-  img.src = proxiedSrc(value);
+  img.className = 'source-history-base';
+  img.src = src;
   img.alt = alt;
   img.loading = 'lazy';
   img.draggable = false;
-  img.addEventListener('error', () => img.classList.add('broken'));
-  return img;
+  img.addEventListener('error', () => {
+    img.classList.add('broken');
+    // No base to reveal: suppress the crossfade so the broken slot stays dim.
+    frame.classList.add('broken');
+  });
+  const peek = document.createElement('img');
+  peek.className = 'source-history-peek';
+  peek.src = src;
+  peek.alt = '';
+  peek.setAttribute('aria-hidden', 'true');
+  peek.loading = 'lazy';
+  peek.draggable = false;
+  peek.addEventListener('error', () => frame.classList.add('broken'));
+  frame.append(img, peek);
+  return frame;
 }
 
 function renderSourceHistoryGrid(tab) {

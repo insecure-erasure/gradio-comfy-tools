@@ -547,9 +547,11 @@ entry refills the field(s), reloads the preview and flashes the field like
 value used) and automatically in every tool's finalize for generated image
 results (`rememberGeneratedImage`), deduplicated by value and persisted in
 localStorage (`sourceHistory` inside the main config key). The current
-value is highlighted; on desktop hover a thumbnail switches from `cover` to
-`contain` plus a small scale-down, so the complete (uncropped) image is
-visible without moving the grid cell. Dead temp files may remain as dimmed
+value is highlighted; each thumbnail stacks a square `cover` copy and a
+`contain` copy that crossfades in on desktop hover (`hover: hover` +
+`pointer: fine`) and on keyboard `:focus-visible`, so the complete
+(uncropped) image is visible without moving or shrinking the grid cell.
+Dead temp files may remain as dimmed
 thumbnails (the restore attempt simply fails to load). The popover closes on click-outside /
 Esc / resize / tab switch, or when the prompt modal opens (`source.js`).
 

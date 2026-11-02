@@ -977,31 +977,65 @@
     cursor: pointer;
     transition: border-color .15s, box-shadow .15s;
   }
-  .source-history-item:hover { border-color: var(--accent); }
+  .source-history-item:hover,
+  .source-history-item:focus-visible { border-color: var(--accent); }
+  /* Keyboard parity for the hover affordances: the same accent border plus an
+     inside ring, so it cannot be clipped by the grid's scroll box. */
+  .source-history-item:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
   .source-history-item.current {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--accent);
   }
-  .source-history-item img {
+  /* The cell keeps its 1:1 box; the two stacked copies inside do the work. */
+  .source-history-frame {
+    position: relative;
     display: block;
     width: 100%;
     aspect-ratio: 1;
-    object-fit: cover;
     background: #000;
-    transition: transform .18s ease;
+    overflow: hidden;
   }
-  /* Hover peek: the square thumbnails use `cover` (they crop tall/wide
-     images), so switching to `contain` plus a small scale-down reveals the
-     WHOLE image with a subtle zoom-out, without moving the grid cell. */
+  .source-history-frame img {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity .2s ease;
+  }
+  /* Hover/focus peek: the square thumbnails use `cover` (they crop tall/wide
+     images), so a `contain` copy crossfades in on top and reveals the WHOLE
+     image without moving the grid cell or shrinking the target. */
+  .source-history-peek {
+    object-fit: contain;
+    opacity: 0;
+  }
   @media (hover: hover) and (pointer: fine) {
-    .source-history-item:hover img {
-      object-fit: contain;
-      transform: scale(.97);
+    .source-history-item:hover .source-history-frame:not(.broken) .source-history-base {
+      opacity: 0;
     }
+    .source-history-item:hover .source-history-frame:not(.broken) .source-history-peek {
+      opacity: 1;
+    }
+  }
+  .source-history-item:focus-visible .source-history-frame:not(.broken) .source-history-base {
+    opacity: 0;
+  }
+  .source-history-item:focus-visible .source-history-frame:not(.broken) .source-history-peek {
+    opacity: 1;
+  }
+  /* The reveal is state, not motion: skip the fade when the user asks for it. */
+  @media (prefers-reduced-motion: reduce) {
+    .source-history-frame img { transition: none; }
   }
   /* A dead temp file / unreachable URL still shows its slot (the user can
      try to restore it); the browser's alt text + dimming signal the problem. */
-  .source-history-item img.broken { opacity: .25; }
+  .source-history-base.broken { opacity: .25; }
+  .source-history-frame.broken .source-history-peek { display: none; }
   .source-history-label {
     display: block;
     padding: 4px 6px;
@@ -1016,7 +1050,6 @@
     grid-template-columns: 1fr 1fr;
     width: 100%;
   }
-  .source-history-pair img { aspect-ratio: 1; }
   /* Base-only Face swap entries (generated images): the second slot keeps
      the pair card the same height. */
   .source-history-slot-empty {
