@@ -340,12 +340,16 @@ function openPromptModal() {
   const input = activePromptInput();
   const wrap = document.querySelector('.prompt-input-wrap');
   const box = document.getElementById('promptModalBox');
+  const dock = document.getElementById('promptChipsDock');
   if (!wrap || !box) return;
-  box.appendChild(wrap);
+  // Keep the chips dock BELOW the field: insert the wrap before it.
+  if (dock && dock.parentElement === box) box.insertBefore(wrap, dock);
+  else box.appendChild(wrap);
   wrap.classList.add('modal-mode');
   modal.classList.add('show');
   fitPromptModal();   // fit to the visible area BEFORE focusing (keyboard)
   updatePromptModalActions();
+  schedulePromptChipsLayout();
   // A generation running while the modal opens: the direct-generate button
   // must become the ⏹ stop button, not a disabled ✨.
   if (genLockActive) {
@@ -365,6 +369,8 @@ function closePromptModal() {
     block.insertBefore(wrap, block.firstChild); // back before the button column
   }
   modal.classList.remove('show');
+  // Return docked chips to the wrap before it leaves the modal.
+  layoutPromptChips();
   // Clear the visual-viewport fit (top/height) so the CSS inset:0 takes over.
   modal.style.top = '';
   modal.style.height = '';
@@ -374,8 +380,8 @@ function closePromptModal() {
 
 // Dismiss the portrait prompt modal when tapping OUTSIDE the prompt field:
 // a click on the modal's backdrop (header, empty box space) closes it, while
-// clicks on the textarea and its overlay buttons/chips (all inside
-// .prompt-input-wrap) keep working. The chip popover (#chipPopover) is a
+// clicks on the textarea, its overlay buttons/chips and the docked chips row
+// (outside the wrap, below it) keep working. The chip popover (#chipPopover) is a
 // TOP-LEVEL element (outside the wrap) but only opens from a chip inside it
 // — without this exemption, tapping the popover's own controls (📐 select,
 // the +/− steppers) would close the whole modal: the AR picker got dismissed
@@ -384,7 +390,9 @@ function closePromptModal() {
 document.addEventListener('click', e => {
   const modal = document.getElementById('promptModal');
   if (!modal || !modal.classList.contains('show')) return;
-  if (!e.target.closest('.prompt-input-wrap, #chipPopover')) closePromptModal();
+  // The docked parameter chips live OUTSIDE .prompt-input-wrap (below it),
+  // so they must be exempt too or tapping them would close the modal.
+  if (!e.target.closest('.prompt-input-wrap, #promptChipsDock, #chipPopover')) closePromptModal();
 });
 
 // ── Prompt modal direct actions ────────────
@@ -436,6 +444,9 @@ function updatePromptModalActions() {
   const extend = document.getElementById('promptExtendBtn');
   const refine = document.getElementById('btnPromptRefine');
   if (!btn) return;
+  // Button visibility/labels differ per tab and change the action-pill width;
+  // re-evaluate whether the parameter chips still fit beside them.
+  schedulePromptChipsLayout();
   const cfg = {
     generate: { glyph: '✨', title: 'Generate' },
     edit: { glyph: '🖌️', title: 'Edit' },
@@ -477,12 +488,14 @@ function fitPromptModal() {
   if (!modal || !modal.classList.contains('show')) return;
   modal.style.top = (vv.offsetTop || 0) + 'px';
   modal.style.height = vv.height + 'px';
+  schedulePromptChipsLayout();
 }
 
 if (window.visualViewport) {
   window.visualViewport.addEventListener('resize', fitPromptModal);
   window.visualViewport.addEventListener('scroll', fitPromptModal);
 }
+window.addEventListener('resize', schedulePromptChipsLayout);
 
 // ── Prompt parameter chips ─────────────────
 // The per-tab parameter buttons are unified as chips OVERLAYED on the prompt
@@ -539,6 +552,55 @@ const CHIP_KIND_INFO = {
 const PARAMS_BLOCK_IDS = {
   generate: 'genParams', edit: 'editParams', video: 'videoParams', face_swap: 'faceSwapParams',
 };
+
+// ── Docked parameter chips (portrait prompt modal) ─────────────────
+// The parameter chips are overlaid on the prompt's bottom-left and the
+// action pills on its bottom-right. On narrow phones their labels can grow
+// enough to collide, so when that happens we move the chips out of the
+// text field into #promptChipsDock, a full-width row below it (inside the
+// modal/app, not anchored to the textarea). When they fit, the overlay
+// layout is left untouched. Only the portrait modal needs this: the compact
+// bottom bar hides the parameter chips, and the wide layout never overlaps.
+let _promptChipsRaf = 0;
+
+function _promptChipsOverlapActions(wrap, chips) {
+  // Measure from the natural overlay position even when currently docked.
+  if (chips.parentElement !== wrap) wrap.appendChild(chips);
+  const actions = document.querySelector('.prompt-actions');
+  if (!actions || getComputedStyle(actions).display === 'none') return false;
+  const c = chips.getBoundingClientRect();
+  const a = actions.getBoundingClientRect();
+  if (!c.width || !a.width) return false;
+  return c.left < a.right && c.right > a.left &&
+         c.top < a.bottom && c.bottom > a.top;
+}
+
+function layoutPromptChips() {
+  const modal = document.getElementById('promptModal');
+  const wrap = document.querySelector('.prompt-input-wrap');
+  const chips = document.getElementById('promptChips');
+  const dock = document.getElementById('promptChipsDock');
+  if (!wrap || !chips || !dock) return;
+
+  const modalOpen = !!modal && modal.classList.contains('show');
+  if (!modalOpen) {
+    if (chips.parentElement !== wrap) wrap.appendChild(chips);
+    dock.classList.remove('show');
+    return;
+  }
+
+  const docked = _promptChipsOverlapActions(wrap, chips);
+  if (docked) dock.appendChild(chips);
+  dock.classList.toggle('show', docked);
+}
+
+function schedulePromptChipsLayout() {
+  if (_promptChipsRaf) return;
+  _promptChipsRaf = requestAnimationFrame(() => {
+    _promptChipsRaf = 0;
+    layoutPromptChips();
+  });
+}
 
 // Render the chips of the active tab and mount its params block into the
 // popover body. Called on every tab switch (switchTab). Blocks are NEVER
@@ -665,6 +727,9 @@ function updatePromptChips() {
   // Keep the Extend popover's Source/Output estimate in sync with the
   // padding controls and the loaded source dimensions.
   if (typeof updateEditExtendInfo === 'function') updateEditExtendInfo();
+  // Chip labels change their width (e.g. ↔/↕ padding totals): re-check the
+  // overlay vs. the modal's action pills.
+  schedulePromptChipsLayout();
 }
 
 // Open the chip popover showing the matching section of the active tab's

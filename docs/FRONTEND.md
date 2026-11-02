@@ -87,8 +87,14 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   the toolbar buttons, and the ✕ is disabled). The wrap's own `.btn-col`
   is hidden inside the modal (`.prompt-input-wrap.modal-mode .btn-col`).
   The chips (📏/👣/🎞️) also
-  appear inside the modal
-  (bottom-left). A header holds a ✓ Done button to close.
+  appear inside the modal: normally overlaid on the field bottom-left, but
+  when their labels would collide with the bottom-right action pills (narrow
+  phones), `layoutPromptChips()` moves them to `#promptChipsDock`, a
+  full-width row below the field inside `#promptModalBox` — so they keep an
+  app/modal-relative position instead of overlapping the generation chips.
+  The dock is only used while the modal is open and only when the overlay
+  positions actually intersect; wide layouts (and tablets with room) keep
+  the original overlay. A header holds a ✓ Done button to close.
   `openPromptModal`/`closePromptModal` (`tabs.js`); closed when crossing
   the breakpoint (`main.js`) or tapping outside the prompt field. The modal
   **fits the visible area when the mobile keyboard opens**: the keyboard
@@ -905,7 +911,10 @@ The
 prompt fills the whole params pane in landscape; in portrait the chips
 appear inside the fullscreen prompt modal (Upscale keeps its pane), and
 the bottom bar shows the prompt field WITH the action chips inside it
-(generate without the modal — see deviation 14 below). The
+(generate without the modal — see deviation 14 below). If the modal's
+parameter chips would overlap the bottom-right action pills, they are
+docked to a separate row below the field (`#promptChipsDock`); otherwise
+they stay overlaid. The
 portrait prompt modal also
 holds **overlay action pills** larger than the chips: ✕ clear (top-right),
 🪄 refine + 🩹 restore (Edit only, right of 🪄) + 🧩 extend (Edit only, right

@@ -39,6 +39,9 @@ def test_index_serves_app_html(client):
     assert resp.status_code == 200
     assert "Comfy Tools" in resp.text
     assert "switchTab" in resp.text
+    # Portrait prompt modal has a dock below the field for parameter chips
+    # that would otherwise overlap the generation action pills.
+    assert 'id="promptChipsDock"' in resp.text
 
 
 def test_settings_get(client, tmp_config):

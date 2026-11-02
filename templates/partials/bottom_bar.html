@@ -79,6 +79,12 @@
       <span class="prompt-modal-title">Prompt</span>
       <button class="prompt-modal-done" onclick="closePromptModal()" title="Done">✓ Done</button>
     </div>
-    <div class="prompt-modal-box" id="promptModalBox"></div>
+    <div class="prompt-modal-box" id="promptModalBox">
+      <!-- Docked parameter chips (portrait modal only): when the parameter
+           chips would collide with the bottom-right action pills, JS moves
+           #promptChips here, below the text field, so they keep their own
+           row instead of overlapping the generation chips. -->
+      <div class="prompt-chips-dock" id="promptChipsDock"></div>
+    </div>
   </div>
 </div>

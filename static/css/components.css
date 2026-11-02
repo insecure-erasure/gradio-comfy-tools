@@ -851,6 +851,28 @@
     font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   }
 
+  /* Docked parameter chips (portrait prompt modal): when the overlay chips
+     would collide with the bottom-right action pills, tabs.js moves them
+     out of .prompt-input-wrap into this row below the field. The row is a
+     sibling of the wrap inside #promptModalBox, so it uses the app/modal
+     width and never overlaps the generation pills. Hidden while empty. */
+  .prompt-chips-dock { display: none; }
+  .prompt-modal-box .prompt-chips-dock.show {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-top: 8px;
+  }
+  .prompt-chips-dock .prompt-chips {
+    position: static;
+    left: auto;
+    bottom: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
   /* Chip popover: small anchored modal with the controls of the clicked
      chip. Reuses .field-row/.field-inline/.stepper from the form block.
      No backdrop: it closes on click-outside / Esc (listener in tabs.js),
