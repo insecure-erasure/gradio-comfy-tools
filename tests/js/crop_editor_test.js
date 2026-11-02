@@ -97,7 +97,7 @@ const elements = {};
 const presets = [
   preset('Free', 0),
   preset('1:1', 1),
-  preset('16:9', 16 / 9),
+  preset('Source', 'source'),
 ];
 elements.cropOverlay = element('cropOverlay');
 elements.cropTopbar = element('cropTopbar');
@@ -110,7 +110,6 @@ elements.cropDims = element('cropDims');
 elements.cropTargetLabel = element('cropTargetLabel');
 elements.cropCancel = element('cropCancel', { tagName: 'BUTTON' });
 elements.cropApply = element('cropApply', { tagName: 'BUTTON' });
-elements.cropReset = element('cropReset', { tagName: 'BUTTON' });
 elements.cropPresets = element('cropPresets', { children: presets });
 
 let rafQueue = [];
@@ -199,6 +198,27 @@ test('an aspect preset enables Apply and produces a centred square', () => {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.applied)), { x: 100, y: 0, width: 600, height: 600 });
   assert.strictEqual(elements.cropOverlay.classList.contains('show'), false);
   assert.strictEqual(sandbox.cropEditorIsOpen(), false);
+});
+
+test('the source preset restores the full image ratio after a crop', () => {
+  open();
+  elements.cropPresets.listeners.click({
+    target: presets[1],
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  assert.strictEqual(elements.cropDims.textContent, '600 × 600');
+
+  elements.cropPresets.listeners.click({
+    target: presets[2],
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  // 800x600 source: the full image is restored and Apply is disabled again.
+  assert.strictEqual(elements.cropDims.textContent, '800 × 600');
+  assert.strictEqual(elements.cropApply.disabled, true);
+  assert.strictEqual(presets[2].classList.contains('active'), true);
+  elements.cropCancel.listeners.click();
 });
 
 test('cancel closes without calling onApply', () => {

@@ -241,10 +241,10 @@ empty and the prompt fills it; see also deviation 14):
   - Stacked/vertical layout (`<1024px`): **fullscreen**, with safe-area
     padding and larger touch targets.
   - Drag the four corner handles to resize, drag inside the box to move,
-    or pick `Free` / `1:1` / `4:5` / `16:9` / `9:16`. The footer shows live
-    `W × H`; `Reset` returns to the full frame. Arrow keys nudge (Shift =
-    10 px), `Esc` cancels, `Enter` applies. Apply is disabled while the
-    selection is the full image.
+    or pick `Free` / `1:1` / `Source` (the image's own aspect ratio;
+    `Source` also resets to the full frame). The footer shows live `W × H`.
+    Arrow keys nudge (Shift = 10 px), `Esc` cancels, `Enter` applies. Apply
+    is disabled while the selection is the full image.
   - The selection is stored in source-image pixels, so resizing/rotating
     keeps it; the rendered box uses percentages.
   - On Apply the editor closes and the result lands as a new `cropped`

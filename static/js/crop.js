@@ -19,6 +19,7 @@ const _crop = {
   label: '',
   naturalWidth: 0,
   naturalHeight: 0,
+  sourceAspect: 0,
   rect: null,
   aspect: 0,
   initialRect: null,
@@ -61,6 +62,7 @@ function openCropEditor(opts) {
   _crop.label = typeof opts.label === 'string' ? opts.label : '';
   _crop.naturalWidth = 0;
   _crop.naturalHeight = 0;
+  _crop.sourceAspect = 0;
   _crop.rect = null;
   _crop.aspect = Number.isFinite(Number(opts.aspect)) ? Number(opts.aspect) : 0;
   _crop.initialRect = opts.rect || null;
@@ -69,7 +71,7 @@ function openCropEditor(opts) {
   _crop.applying = false;
 
   _cropSetTargetLabel();
-  _cropResetPresetButtons();
+  _cropSyncPresetButtons();
   const dims = _cropById('cropDims');
   if (dims) dims.textContent = '—';
   const apply = _cropById('cropApply');
@@ -106,6 +108,7 @@ function _cropImageLoaded() {
     _cropImageFailed();
     return;
   }
+  _crop.sourceAspect = _crop.naturalWidth / _crop.naturalHeight;
   const bounds = _cropImageBounds();
   if (_crop.initialRect) {
     _crop.rect = cropClampRect(_crop.initialRect, bounds);
@@ -211,38 +214,31 @@ function _cropScheduleLayout() {
   });
 }
 
-function _cropResetPresetButtons() {
-  const presets = _cropById('cropPresets');
-  if (!presets) return;
-  presets.querySelectorAll('[data-crop-ratio]').forEach(btn => {
-    const ratio = parseFloat(btn.dataset.cropRatio) || 0;
-    btn.classList.toggle('active', ratio === 0 && _crop.aspect === 0);
-  });
-}
-
 function _cropSyncPresetButtons() {
   const presets = _cropById('cropPresets');
   if (!presets) return;
   presets.querySelectorAll('[data-crop-ratio]').forEach(btn => {
-    const ratio = parseFloat(btn.dataset.cropRatio) || 0;
-    btn.classList.toggle('active', ratio === _crop.aspect);
+    const raw = btn.dataset.cropRatio;
+    const ratio = raw === 'source'
+      ? _crop.sourceAspect
+      : (parseFloat(raw) || 0);
+    const active = raw === 'source'
+      ? (ratio > 0 && Math.abs(ratio - _crop.aspect) < 1e-6)
+      : ratio === _crop.aspect;
+    btn.classList.toggle('active', active);
   });
 }
 
-function _cropSetAspect(ratio) {
+function _cropSetAspect(value) {
   if (!_crop.open) return;
-  const r = Number(ratio) || 0;
-  _crop.aspect = r > 0 ? r : 0;
+  const ratio = value === 'source'
+    ? _crop.sourceAspect
+    : (Number(value) || 0);
+  _crop.aspect = ratio > 0 ? ratio : 0;
   if (_crop.aspect > 0) {
+    // For 'source' this is the full image; it doubles as the reset action.
     _crop.rect = cropRectForAspect(_cropImageBounds(), _crop.aspect);
   }
-  _cropRender();
-}
-
-function cropReset() {
-  if (!_crop.open) return;
-  _crop.aspect = 0;
-  _crop.rect = { x: 0, y: 0, width: _crop.naturalWidth, height: _crop.naturalHeight };
   _cropRender();
 }
 
@@ -387,18 +383,16 @@ function _cropKeyDown(e) {
   const stage = _cropById('cropStage');
   const cancel = _cropById('cropCancel');
   const apply = _cropById('cropApply');
-  const reset = _cropById('cropReset');
   const presets = _cropById('cropPresets');
   const wrap = _cropById('cropStageWrap');
 
   if (stage) stage.addEventListener('pointerdown', _cropPointerDown);
   if (cancel) cancel.addEventListener('click', closeCropEditor);
   if (apply) apply.addEventListener('click', cropApply);
-  if (reset) reset.addEventListener('click', cropReset);
   if (presets) {
     presets.addEventListener('click', e => {
       const btn = e.target.closest('[data-crop-ratio]');
-      if (btn) _cropSetAspect(parseFloat(btn.dataset.cropRatio) || 0);
+      if (btn) _cropSetAspect(btn.dataset.cropRatio);
     });
   }
   document.addEventListener('keydown', _cropKeyDown, true);

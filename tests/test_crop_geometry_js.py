@@ -112,3 +112,13 @@ def test_crop_handles_are_corner_brackets_with_a_visible_cursor():
     assert "border-left-width" in bracket
     assert "border-top-width" in bracket
     assert "border-radius: 50%" not in bracket
+
+
+def test_crop_presets_are_free_one_to_one_and_source():
+    overlay = _read("templates", "partials", "crop_overlay.html")
+    assert 'data-crop-ratio="0">Free<' in overlay
+    assert 'data-crop-ratio="1">1:1<' in overlay
+    assert 'data-crop-ratio="source"' in overlay
+    assert 'data-crop-ratio="0.8"' not in overlay
+    assert 'data-crop-ratio="1.7777777778"' not in overlay
+    assert 'id="cropReset"' not in overlay

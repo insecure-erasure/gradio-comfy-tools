@@ -375,8 +375,8 @@
   }
   .crop-topbar,
   .crop-bottombar { padding: 6px 4px; }
-  .crop-btn { min-height: 44px; padding: 0 14px; font-size: .82rem; }
-  .crop-title { font-size: .9rem; }
+  .crop-btn { min-height: 40px; padding: 0 12px; font-size: .78rem; }
+  .crop-title { font-size: .86rem; }
   .crop-stage-wrap { padding: 6px 0; }
   .crop-bottombar {
     flex-direction: column;
@@ -385,7 +385,7 @@
   }
   .crop-dims { text-align: center; }
   .crop-presets { justify-content: flex-start; padding-bottom: 2px; }
-  .crop-preset { min-height: 40px; padding: 0 14px; font-size: .76rem; }
+  .crop-preset { min-height: 34px; padding: 0 11px; font-size: .72rem; }
   .crop-handle { width: 44px; height: 44px; }
   .crop-handle::after { width: 20px; height: 20px; }
   .crop-handle.nw::after { left: 0; top: 0; }
