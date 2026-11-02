@@ -1,0 +1,33 @@
+<!-- Crop editor. On desktop it is confined to the output pane (absolute);
+     below 1024px the same element becomes a fullscreen dialog (see
+     responsive.css), which is where touch targets and safe areas matter. -->
+<div class="crop-overlay" id="cropOverlay" role="dialog" aria-modal="true"
+     aria-labelledby="cropTitle" aria-hidden="true">
+  <div class="crop-topbar">
+    <button type="button" class="crop-btn" id="cropCancel" title="Cancel (Esc)">Cancel</button>
+    <div class="crop-title" id="cropTitle">Crop <span id="cropTargetLabel"></span></div>
+    <button type="button" class="crop-btn primary" id="cropApply" disabled title="Apply crop (Enter)">Apply</button>
+  </div>
+  <div class="crop-stage-wrap" id="cropStageWrap">
+    <div class="crop-stage" id="cropStage">
+      <img id="cropImage" alt="Crop source" draggable="false">
+      <div class="crop-box" id="cropBox">
+        <span class="crop-handle nw" data-crop-handle="nw" aria-label="Resize top left"></span>
+        <span class="crop-handle ne" data-crop-handle="ne" aria-label="Resize top right"></span>
+        <span class="crop-handle se" data-crop-handle="se" aria-label="Resize bottom right"></span>
+        <span class="crop-handle sw" data-crop-handle="sw" aria-label="Resize bottom left"></span>
+      </div>
+    </div>
+  </div>
+  <div class="crop-bottombar">
+    <div class="crop-dims" id="cropDims" aria-live="polite">—</div>
+    <div class="crop-presets" id="cropPresets" role="group" aria-label="Aspect ratio">
+      <button type="button" class="crop-preset active" data-crop-ratio="0">Free</button>
+      <button type="button" class="crop-preset" data-crop-ratio="1">1:1</button>
+      <button type="button" class="crop-preset" data-crop-ratio="0.8">4:5</button>
+      <button type="button" class="crop-preset" data-crop-ratio="1.7777777778">16:9</button>
+      <button type="button" class="crop-preset" data-crop-ratio="0.5625">9:16</button>
+      <button type="button" class="crop-preset crop-reset" id="cropReset">Reset</button>
+    </div>
+  </div>
+</div>

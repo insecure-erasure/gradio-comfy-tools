@@ -359,3 +359,37 @@
     .params-pane { padding: 6px 12px; gap: 0; }
     .modal-box { width: 95vw; max-height: 90vh; border-radius: 10px; }
   }
+
+/* Crop editor: fullscreen on the stacked/portrait layout. The same markup
+   stays inside the Edit pane; position:fixed is viewport-relative because no
+   ancestor establishes a transformed containing block. */
+@media (max-width: 1023px) {
+  .crop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 320;
+    padding: max(6px, env(safe-area-inset-top))
+             max(6px, env(safe-area-inset-right))
+             max(6px, env(safe-area-inset-bottom))
+             max(6px, env(safe-area-inset-left));
+  }
+  .crop-topbar,
+  .crop-bottombar { padding: 6px 4px; }
+  .crop-btn { min-height: 44px; padding: 0 14px; font-size: .82rem; }
+  .crop-title { font-size: .9rem; }
+  .crop-stage-wrap { padding: 6px 0; }
+  .crop-bottombar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .crop-dims { text-align: center; }
+  .crop-presets { justify-content: flex-start; padding-bottom: 2px; }
+  .crop-preset { min-height: 40px; padding: 0 14px; font-size: .76rem; }
+  .crop-handle { width: 44px; height: 44px; }
+  .crop-handle::after { width: 14px; height: 14px; }
+  .crop-handle.nw::after { left: 6px; top: 6px; }
+  .crop-handle.ne::after { right: 6px; top: 6px; }
+  .crop-handle.se::after { right: 6px; bottom: 6px; }
+  .crop-handle.sw::after { left: 6px; bottom: 6px; }
+}

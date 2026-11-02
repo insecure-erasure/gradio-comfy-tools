@@ -39,6 +39,7 @@
             <button type="button" class="extend-toggle-btn active" id="editExtendResultBtn" onclick="setEditExtendView(false)" aria-pressed="true">Extended</button>
           </div>
           <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
+          {% include "partials/crop_overlay.html" %}
         </div>
         <div class="params-pane">
           <!-- Edit parameters live in the 👣 prompt chip (see #editParams

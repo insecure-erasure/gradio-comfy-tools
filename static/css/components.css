@@ -2197,3 +2197,140 @@
     justify-content: flex-start;   /* left-aligned text (family rule) */
     pointer-events: none;
   }
+
+  /* ── Crop editor ─────────────────────────────
+     Desktop: absolute inside the Edit output pane. Below 1024px it becomes
+     a fullscreen dialog (responsive.css). The stage is sized by crop.js to
+     the rendered image, so the crop box can use percentages without any
+     object-fit letterbox math. */
+  .crop-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    background: #080b16;
+    color: #fff;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .crop-overlay.show { display: flex; }
+  .crop-topbar,
+  .crop-bottombar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(8, 10, 20, .94);
+  }
+  .crop-topbar { border-bottom: 1px solid rgba(255,255,255,.08); }
+  .crop-bottombar {
+    border-top: 1px solid rgba(255,255,255,.08);
+    justify-content: space-between;
+  }
+  .crop-title {
+    flex: 1;
+    text-align: center;
+    font: 600 .82rem/1.2 var(--font);
+    letter-spacing: .02em;
+  }
+  .crop-title span { color: var(--text-secondary); font-weight: 400; }
+  .crop-btn {
+    min-height: 32px;
+    padding: 0 12px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: var(--radius);
+    color: #fff;
+    font: 500 .75rem/1 var(--font);
+    cursor: pointer;
+    transition: .15s;
+  }
+  .crop-btn:hover { background: rgba(255,255,255,.12); border-color: var(--accent); }
+  .crop-btn.primary { background: var(--accent); border-color: var(--accent); }
+  .crop-btn.primary:hover { filter: brightness(1.1); }
+  .crop-btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
+  .crop-stage-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+  }
+  .crop-stage {
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    touch-action: none;
+  }
+  .crop-stage img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .crop-box {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1.5px solid var(--accent);
+    cursor: move;
+    touch-action: none;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.55);
+  }
+  .crop-box.dragging { cursor: grabbing; }
+  .crop-handle {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    z-index: 2;
+    touch-action: none;
+  }
+  .crop-handle::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,0,0,.45);
+  }
+  .crop-handle.nw { left: 0; top: 0; cursor: nwse-resize; }
+  .crop-handle.ne { right: 0; top: 0; cursor: nesw-resize; }
+  .crop-handle.se { right: 0; bottom: 0; cursor: nwse-resize; }
+  .crop-handle.sw { left: 0; bottom: 0; cursor: nesw-resize; }
+  .crop-handle.nw::after { left: 3px; top: 3px; }
+  .crop-handle.ne::after { right: 3px; top: 3px; }
+  .crop-handle.se::after { right: 3px; bottom: 3px; }
+  .crop-handle.sw::after { left: 3px; bottom: 3px; }
+  .crop-dims {
+    font: .72rem/1.2 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
+    color: rgba(255,255,255,.78);
+    white-space: nowrap;
+  }
+  .crop-presets {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .crop-presets::-webkit-scrollbar { display: none; }
+  .crop-preset {
+    flex: 0 0 auto;
+    min-height: 30px;
+    padding: 0 10px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 999px;
+    color: rgba(255,255,255,.78);
+    font: 500 .7rem/1 var(--font);
+    cursor: pointer;
+    transition: .15s;
+  }
+  .crop-preset:hover { color: #fff; border-color: var(--accent); }
+  .crop-preset.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .crop-reset { color: rgba(255,255,255,.58); }
