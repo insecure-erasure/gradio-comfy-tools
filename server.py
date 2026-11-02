@@ -46,6 +46,7 @@ from starlette.requests import Request
 import comfy_client
 from config import Settings
 from tools import _common
+from tools.adjust import adjust_image
 from tools.crop import crop_image
 from tools.edit import edit_image, MODES
 from tools.extend import extend_image
@@ -895,6 +896,18 @@ def api_edit(body: dict) -> dict:
                 height=body.get("height"),
                 x=body.get("x", 0),
                 y=body.get("y", 0),
+            )
+            _mark_latest_done(url, tool="edit")
+            return _tool_response(url)
+        if mode == "adjust":
+            # Same deterministic path as crop: one node applies all three
+            # factors in a single ComfyUI execution.
+            url = adjust_image(
+                s,
+                image=str(body.get("image", "")),
+                brightness=body.get("brightness", 1.0),
+                contrast=body.get("contrast", 1.0),
+                saturation=body.get("saturation", 1.0),
             )
             _mark_latest_done(url, tool="edit")
             return _tool_response(url)

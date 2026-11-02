@@ -610,6 +610,70 @@ def test_api_edit_crop_dispatches_to_crop_tool(client, tmp_config, monkeypatch):
     assert "seed" not in body
 
 
+def test_api_edit_adjust_dispatches_to_adjust_tool(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_adjust(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=adjusted.png&type=temp"
+
+    monkeypatch.setattr(server, "adjust_image", fake_adjust)
+    resp = client.post(
+        "/api/edit",
+        json={
+            "mode": "adjust",
+            "image": "a.png",
+            "brightness": 1.1,
+            "contrast": 0.9,
+            "saturation": 1.25,
+            # Adjust must not resolve/validate the edit-only fields.
+            "seed": "not-a-seed",
+            "steps": 999,
+            "lora_config": "not-json",
+            "color_match": 9,
+        },
+    )
+    assert resp.status_code == 200
+    assert received == {
+        "image": "a.png",
+        "brightness": 1.1,
+        "contrast": 0.9,
+        "saturation": 1.25,
+    }
+    body = resp.json()
+    assert body["filename"] == "adjusted.png"
+    assert body["type"] == "temp"
+    assert "seed" not in body
+
+
+def test_api_edit_adjust_defaults_to_neutral(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_adjust(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=adjusted.png&type=temp"
+
+    monkeypatch.setattr(server, "adjust_image", fake_adjust)
+    resp = client.post("/api/edit", json={"mode": "adjust", "image": "a.png"})
+    assert resp.status_code == 200
+    assert received["brightness"] == 1.0
+    assert received["contrast"] == 1.0
+    assert received["saturation"] == 1.0
+
+
+def test_api_edit_adjust_validation_error_is_400(client, tmp_config, monkeypatch):
+    def boom(settings, **kwargs):
+        raise ValueError("saturation must be in [0.0, 3.0], got 9")
+
+    monkeypatch.setattr(server, "adjust_image", boom)
+    resp = client.post(
+        "/api/edit",
+        json={"mode": "adjust", "image": "a.png", "saturation": 9},
+    )
+    assert resp.status_code == 400
+    assert "saturation must be" in resp.json()["detail"]
+
+
 def test_api_edit_crop_validation_error_is_400(client, tmp_config, monkeypatch):
     def boom(settings, **kwargs):
         raise ValueError("width must be in [1, 16384], got 0")
