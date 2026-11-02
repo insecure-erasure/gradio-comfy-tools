@@ -1,0 +1,34 @@
+<!-- Brightness / contrast / saturation panel. One LayerColor node applies
+     all three in a single ComfyUI pass; this panel only collects the
+     factors and previews them with CSS filters. -->
+<div class="adjust-overlay" id="adjustOverlay" role="dialog" aria-modal="true"
+     aria-labelledby="adjustTitle" aria-hidden="true">
+  <div class="adjust-topbar">
+    <button type="button" class="adjust-btn" id="adjustCancel" title="Cancel (Esc)">Cancel</button>
+    <div class="adjust-title" id="adjustTitle">Adjust <span id="adjustTargetLabel"></span></div>
+    <button type="button" class="adjust-btn primary" id="adjustApply" disabled title="Apply adjustments (Enter)">Apply</button>
+  </div>
+  <div class="adjust-preview-wrap" id="adjustPreviewWrap">
+    <img id="adjustImage" alt="Adjustment preview" draggable="false">
+  </div>
+  <div class="adjust-controls">
+    <div class="adjust-row">
+      <label for="adjustBrightness">Brightness</label>
+      <input type="range" id="adjustBrightness" min="0" max="200" step="1" value="100">
+      <output id="adjustBrightnessValue" for="adjustBrightness">100%</output>
+    </div>
+    <div class="adjust-row">
+      <label for="adjustContrast">Contrast</label>
+      <input type="range" id="adjustContrast" min="0" max="200" step="1" value="100">
+      <output id="adjustContrastValue" for="adjustContrast">100%</output>
+    </div>
+    <div class="adjust-row">
+      <label for="adjustSaturation">Saturation</label>
+      <input type="range" id="adjustSaturation" min="0" max="200" step="1" value="100">
+      <output id="adjustSaturationValue" for="adjustSaturation">100%</output>
+    </div>
+    <div class="adjust-footer">
+      <button type="button" class="adjust-btn small" id="adjustReset">Reset</button>
+    </div>
+  </div>
+</div>
