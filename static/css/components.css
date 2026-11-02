@@ -1004,9 +1004,12 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: cover;
     transition: opacity .2s ease;
   }
+  /* `object-fit` lives on the two classes, NEVER on the shared element rule:
+     `.source-history-frame img` (0,1,1) would outrank `.source-history-peek`
+     (0,1,0) and the peek would keep `cover`, so nothing would ever be revealed. */
+  .source-history-base { object-fit: cover; }
   /* Hover/focus peek: the square thumbnails use `cover` (they crop tall/wide
      images), so a `contain` copy crossfades in on top and reveals the WHOLE
      image without moving the grid cell or shrinking the target. */

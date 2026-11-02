@@ -189,7 +189,9 @@ function _historyThumb(value, alt) {
   peek.src = src;
   peek.alt = '';
   peek.setAttribute('aria-hidden', 'true');
-  peek.loading = 'lazy';
+  // Eager so the reveal never shows an empty layer mid-hover; the base already
+  // requested the same URL, so this is a cache hit rather than a second fetch.
+  peek.loading = 'eager';
   peek.draggable = false;
   peek.addEventListener('error', () => frame.classList.add('broken'));
   frame.append(img, peek);
