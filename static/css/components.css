@@ -988,6 +988,16 @@
     aspect-ratio: 1;
     object-fit: cover;
     background: #000;
+    transition: transform .18s ease;
+  }
+  /* Hover peek: the square thumbnails use `cover` (they crop tall/wide
+     images), so switching to `contain` plus a small scale-down reveals the
+     WHOLE image with a subtle zoom-out, without moving the grid cell. */
+  @media (hover: hover) and (pointer: fine) {
+    .source-history-item:hover img {
+      object-fit: contain;
+      transform: scale(.94);
+    }
   }
   /* A dead temp file / unreachable URL still shows its slot (the user can
      try to restore it); the browser's alt text + dimming signal the problem. */
