@@ -79,3 +79,14 @@ def test_crop_overlay_blocks_global_shortcuts_and_tab_switch_closes_it():
     assert "#cropOverlay.show" in main
     tabs = _read("static", "js", "tabs.js")
     assert "closeCropEditor()" in tabs
+
+
+EDITOR_TEST = ROOT / "tests" / "js" / "crop_editor_test.js"
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node is required for the JS unit tests")
+def test_crop_editor_lifecycle_unit_tests():
+    proc = subprocess.run(
+        ["node", str(EDITOR_TEST)], capture_output=True, text=True, timeout=120
+    )
+    assert proc.returncode == 0, "\n" + proc.stdout + proc.stderr
