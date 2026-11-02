@@ -408,8 +408,8 @@ Desktop (`≥1024px`) renders the editor inline inside the pane; the stacked /
 vertical layout (`<1024px`) turns the same overlay into a fullscreen dialog
 (fixed positioning + safe-area padding, larger touch targets). The editor
 keeps the selection in source pixels, supports dragging the corners, moving
-the box, aspect presets (`Free`, `1:1`, `Source` — the image's own
-ratio, which also resets to the full frame), keyboard
+the box, aspect presets (`Keep`, `Free`, `1:1`; `Keep` uses the image's own
+ratio and also resets to the full frame), keyboard
 nudging and `Esc`/`Enter`. Applying submits the crop, closes the editor and
 shows the usual `Original / Cropped` compare toggle; the result is appended
 as `kind="crop"` with the `cropped` badge and recovered through the normal

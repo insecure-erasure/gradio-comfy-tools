@@ -219,10 +219,10 @@ function _cropSyncPresetButtons() {
   if (!presets) return;
   presets.querySelectorAll('[data-crop-ratio]').forEach(btn => {
     const raw = btn.dataset.cropRatio;
-    const ratio = raw === 'source'
+    const ratio = raw === 'keep'
       ? _crop.sourceAspect
       : (parseFloat(raw) || 0);
-    const active = raw === 'source'
+    const active = raw === 'keep'
       ? (ratio > 0 && Math.abs(ratio - _crop.aspect) < 1e-6)
       : ratio === _crop.aspect;
     btn.classList.toggle('active', active);
@@ -231,12 +231,12 @@ function _cropSyncPresetButtons() {
 
 function _cropSetAspect(value) {
   if (!_crop.open) return;
-  const ratio = value === 'source'
+  const ratio = value === 'keep'
     ? _crop.sourceAspect
     : (Number(value) || 0);
   _crop.aspect = ratio > 0 ? ratio : 0;
   if (_crop.aspect > 0) {
-    // For 'source' this is the full image; it doubles as the reset action.
+    // For 'keep' this is the full image; it doubles as the reset action.
     _crop.rect = cropRectForAspect(_cropImageBounds(), _crop.aspect);
   }
   _cropRender();
