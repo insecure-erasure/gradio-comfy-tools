@@ -204,29 +204,22 @@ document.addEventListener('keydown', e => {
 });
 
 // ── Keyboard pane navigation ───────────────
-// The normal (non-gallery) preview pane is focusable. When IT has focus,
-// ←/→ navigate that tool's history exactly like the pane ‹ › buttons.
-// Ignore events from children (notably the source-URL input): only the
-// pane itself should react, and never while the fullscreen gallery is open
-// (its own ←/→ listener owns the keys then).
-const PANE_TABS = {
-  genOutputPane: 'generate',
-  editOutputPane: 'edit',
-  faceSwapOutputPane: 'face_swap',
-  upscaleOutputPane: 'upscale',
-  videoOutputPane: 'video',
-};
-document.querySelectorAll('.output-pane').forEach(pane => {
-  pane.addEventListener('keydown', e => {
-    if (e.target !== pane) return;
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-    const gallery = document.getElementById('galleryOverlay');
-    if (gallery && gallery.classList.contains('show')) return;
-    const tab = PANE_TABS[pane.id];
-    if (!tab) return;
-    e.preventDefault();
-    paneNav(tab, e.key === 'ArrowLeft' ? -1 : 1);
-  });
+// In the normal view ←/→ navigate the ACTIVE tool's result history exactly
+// like the pane ‹ › buttons. The pane is focusable, but the shortcut also
+// works without clicking it (the click on a result opens the lightbox, so
+// requiring DOM focus there made the keys effectively unreachable).
+// Never steal arrows from text fields/selects, and let overlays keep their
+// own keyboard handling (notably the fullscreen gallery's ←/→).
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+  const blocked = '#galleryOverlay.show, #promptModal.show, #modalBackdrop.show, ' +
+    '#chipPopover.show, #sourceHistoryPopover.show, .settings-dropdown.show, ' +
+    '#tabsDropdownMenu.show';
+  if (document.querySelector(blocked)) return;
+  e.preventDefault();
+  paneNav(currentTab, e.key === 'ArrowLeft' ? -1 : 1);
 });
 
 // ── Gallery (B5): clicking a generated result opens the lightbox ──
