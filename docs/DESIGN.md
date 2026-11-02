@@ -15,7 +15,7 @@ and a full-width prompt bar at the bottom.
 | Tab | Tool | Workflow(s) | Reference (../../open-webui-comfy-tools) |
 |---|---|---|---|
 | 🖼️ Generate | smart_generate_image | `smart_generate_image.json` | `smart_generate_image/` |
-| ✏️ Edit | edit_image | `edit_image.json`, `extend_image.json` | `edit_image/` |
+| ✏️ Edit | edit_image | `edit_image.json`, `extend_image.json`, `crop_image.json` | `edit_image/` |
 | 👨🏻 Face swap | face_swap | `face_swap.json` | — (own workflow) |
 | 🔍 Upscale | upscale_image | `seedvr2_upscale.json` | `upscale_image/` |
 | 🎬 Video | generate_video | `generate_video.json`, `generate_video_wan22.json` | `generate_video/` |
@@ -77,8 +77,10 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 2. **Edit has no mode radio** — the mode is chosen with the action chips:
    🖌️ Edit / 🩹 Restore / 🧩 Extend (order 🪄 · 🩹 · 🧩 · 🖌️; in the
    prompt field in landscape, inside the compact field / modal in portrait).
-   Edit/Restore keep the overlay slider; Extend uses an
-   Original/Extended toggle because the extended canvas has a different size.
+   Edit/Restore keep the overlay slider; Extend and Crop use an
+   Original/Result toggle because their canvas has a different size. Crop is
+   not an action chip: it is a canvas tool opened from the ✂️ button on the
+   output pane (inline on desktop, fullscreen on the stacked layout).
 3. **LoRAs are managed exclusively via the advanced modal** — there is no
    dynamic list / `+ Add LoRA` button in the params pane; each tool
    configures LoRAs through the **visual row editor** of its modal
@@ -120,8 +122,8 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `templates/` + `static/` | Modular working copy of the mockup wired to the real backend (served at `/`) |
 | `server.py` | FastAPI app — renders templates/ + serves static/ + the API (reuses tools/) |
 | `comfy_client.py` | ComfyUI REST client (implemented — see docs/PLAN.md A0) |
-| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `extend.py`, `face_swap.py`, `upscale.py`, `video.py` |
-| `workflows/` | ComfyUI workflow JSON files: `smart_generate_image.json`, `edit_image.json`, `extend_image.json`, `face_swap.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
+| `tools/` | Per-tool modules — `_common.py`, `generate.py`, `edit.py`, `extend.py`, `crop.py`, `face_swap.py`, `upscale.py`, `video.py` |
+| `workflows/` | ComfyUI workflow JSON files: `smart_generate_image.json`, `edit_image.json`, `extend_image.json`, `crop_image.json`, `face_swap.json`, `seedvr2_upscale.json`, `generate_video.json`, `generate_video_wan22.json` — see table below |
 | `dev/check_env.py` | Validates a live ComfyUI (nodes + models) against `workflows/` — `python3 dev/check_env.py [BASE_URL]` |
 | `dev/smoke_client.py` | A0 end-to-end smoke test — health/upload/queue/poll/URL |
 | `dev/run_generate.py` | A1 Generate CLI — `--family zimage|krea2|flux2 --prompt "..." [--ar] [--mp] [--steps] [--seed] [--loras]` |
@@ -141,6 +143,7 @@ The mockup evolved beyond the original DESIGN.md. The docs are already aligned w
 | `smart_generate_image.json` | Generate | Z-Image / Krea / FLUX.2 families |
 | `edit_image.json` | Edit | flux-2-klein + LoRAs + restore + ColorMatch |
 | `extend_image.json` | Edit (Extend) | flux-2-klein + outpaint + ColorMatch + conditional source-density restore |
+| `crop_image.json` | Edit (Crop) | core `ImageCrop` — deterministic, no model/sampler |
 | `face_swap.json` | Face swap | flux-2-klein + head-swap LoRA + face extraction + ColorMatch |
 | `seedvr2_upscale.json` | Upscale | SeedVR2 |
 | `generate_video.json` | Video | Wan 2.1 single path |

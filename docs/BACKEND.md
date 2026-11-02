@@ -362,6 +362,62 @@ Other nodes: `ImageScaleToTotalPixels`, `GetImageSize`, `EmptyFlux2LatentImage`,
 `SamplerCustomAdvanced`, `CFGGuider`, `KSamplerSelect`, `ColorMatch`; output:
 `Random Preview Image`.
 
+### 5.2.2 Crop ✂️ — `crop_image.json`
+
+Crop is a **deterministic pixel operation**, not a generative one. It uses
+the same `Load Image (URL/Path)` source handling as the other tools, but its
+workflow is only:
+
+```text
+Load Image (URL/Path) -> ImageCrop -> Random Preview Image
+```
+
+There is no model, sampler, scheduler, seed, LoRA or ColorMatch. The output
+goes through the usual `Random Preview Image` node, so `/media`, the
+galleries, source history and the deletion events work unchanged.
+
+`POST /api/edit` with `mode="crop"` dispatches to `tools/crop.py` **before**
+the edit seed/LoRA/color validation, so those fields are not required (and
+are ignored if sent):
+
+| UI control | Backend parameter | Workflow node (title) |
+|---|---|---|
+| Image currently shown in the Edit pane | `image` (filename or URL) | `Load Image (URL/Path)` |
+| Crop rectangle | `x`, `y` (0–16384) | `Crop Image` → `x`, `y` |
+| Crop rectangle | `width`, `height` (1–16384) | `Crop Image` → `width`, `height` |
+
+Example:
+
+```json
+POST /api/edit
+{"mode": "crop", "image": "source.png", "x": 100, "y": 50, "width": 640, "height": 480}
+```
+
+Response: `{url, display, filename, type}` (no `seed`). Errors (invalid
+types/ranges) are `400`.
+
+**Validation**: `tools/crop.py` validates the four integers and their
+ranges. It cannot know the source dimensions without downloading it, so the
+UI clamps the rectangle to the loaded image; `ImageCrop` itself clamps `x`/`y`
+to the image and may return a smaller image if `width`/`height` overflow.
+
+**UI behavior** (`static/js/crop.js`): the ✂️ button lives on the output
+pane, next to ⛶ — not in the prompt action row. It opens the crop editor on
+the image currently shown (active compare side, or the source preview/field).
+Desktop (`≥1024px`) renders the editor inline inside the pane; the stacked /
+vertical layout (`<1024px`) turns the same overlay into a fullscreen dialog
+(fixed positioning + safe-area padding, larger touch targets). The editor
+keeps the selection in source pixels, supports dragging the corners, moving
+the box, aspect presets (`Free`, `1:1`, `4:5`, `16:9`, `9:16`), keyboard
+nudging and `Esc`/`Enter`. Applying submits the crop, closes the editor and
+shows the usual `Original / Cropped` compare toggle; the result is appended
+as `kind="crop"` with the `cropped` badge and recovered through the normal
+Edit job marker.
+
+`ImageCrop` is a core ComfyUI node (present in the validated 0.27.0 server);
+`dev/check_env.py` and the environment check should verify `/object_info/ImageCrop`
+when the server is upgraded.
+
 ### 5.3 Upscale 🔍 — `seedvr2_upscale.json`
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |
