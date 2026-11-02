@@ -46,6 +46,7 @@ from starlette.requests import Request
 import comfy_client
 from config import Settings
 from tools import _common
+from tools.crop import crop_image
 from tools.edit import edit_image, MODES
 from tools.extend import extend_image
 from tools.face_swap import FACE_OUTPUT_TITLE, face_swap_image
@@ -882,8 +883,22 @@ def api_edit(body: dict) -> dict:
         global _pending_tool, _pending_prompt
         _pending_tool = "edit"
         _pending_prompt = str(body.get("prompt", ""))
-        seed = _resolve_request_seed(body, "edit")
         mode = str(body.get("mode", "edit")).strip().lower()
+        if mode == "crop":
+            # Crop is deterministic and does not use a seed/LoRA/step stack,
+            # so it must not validate the edit seed fields. The result is
+            # still recorded under the Edit tool for recovery/gallery.
+            url = crop_image(
+                s,
+                image=str(body.get("image", "")),
+                width=body.get("width"),
+                height=body.get("height"),
+                x=body.get("x", 0),
+                y=body.get("y", 0),
+            )
+            _mark_latest_done(url, tool="edit")
+            return _tool_response(url)
+        seed = _resolve_request_seed(body, "edit")
         if mode == "extend":
             url = extend_image(
                 s,

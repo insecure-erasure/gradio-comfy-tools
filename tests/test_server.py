@@ -572,6 +572,58 @@ def test_api_edit_extend_validation_error_is_400(client, tmp_config, monkeypatch
     assert "left must be" in resp.json()["detail"]
 
 
+def test_api_edit_crop_dispatches_to_crop_tool(client, tmp_config, monkeypatch):
+    received = {}
+
+    def fake_crop(settings, **kwargs):
+        received.update(kwargs)
+        return "http://comfy/view?filename=cropped.png&type=temp"
+
+    monkeypatch.setattr(server, "crop_image", fake_crop)
+    resp = client.post(
+        "/api/edit",
+        json={
+            "mode": "crop",
+            "image": "a.png",
+            "x": 12,
+            "y": 34,
+            "width": 640,
+            "height": 480,
+            # Crop must not resolve/validate these edit-only fields.
+            "seed": "not-a-seed",
+            "steps": 999,
+            "lora_config": "not-json",
+            "color_match": 9,
+        },
+    )
+    assert resp.status_code == 200
+    assert received == {
+        "image": "a.png",
+        "x": 12,
+        "y": 34,
+        "width": 640,
+        "height": 480,
+    }
+    body = resp.json()
+    assert body["filename"] == "cropped.png"
+    assert body["type"] == "temp"
+    assert "seed" not in body
+
+
+def test_api_edit_crop_validation_error_is_400(client, tmp_config, monkeypatch):
+    def boom(settings, **kwargs):
+        raise ValueError("width must be in [1, 16384], got 0")
+
+    monkeypatch.setattr(server, "crop_image", boom)
+    resp = client.post(
+        "/api/edit",
+        json={"mode": "crop", "image": "a.png", "width": 0, "height": 10},
+    )
+    assert resp.status_code == 400
+    assert "width must be" in resp.json()["detail"]
+
+
+
 def test_api_generate_keeps_uint64_seed_exact(client, tmp_config, monkeypatch):
     """The UI sends uint64 seeds as decimal strings; the API must not round."""
     received = {}
