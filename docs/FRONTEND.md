@@ -260,8 +260,9 @@ empty and the prompt fills it; see also deviation 14):
     comparison/gallery entry (the source stays available in the gallery).
 - **Adjust**: the button left of Crop opens a panel on the image currently
   shown. It has three sliders — **Brightness**, **Contrast**, **Saturation** —
-  in relative percent (`-100…+100`, `0` = neutral), a live `%` readout
-  (positive values get a `+` sign). All controls live in the bottom strip:
+  labelled with compact symbols (`☀️`, `◐`, `🎨`) and accessible
+  `aria-label`s. Values are relative percent (`-100…+100`, `0` = neutral),
+  with a live `%` readout (positive values get a `+` sign). All controls live in the bottom strip:
   sliders on the left and a `Reset / Cancel / Apply` column on the right;
   there is no top title bar, so the preview gets the full top area.
   The preview uses CSS `brightness() contrast() saturate()` (same order as

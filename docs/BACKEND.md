@@ -460,8 +460,8 @@ output pane next to Crop/⛶, not in the prompt action row. It opens on the
 image currently shown. Desktop renders the panel inline; the stacked layout
 (`<1024px`) turns it into a fullscreen dialog. All controls are in the bottom
 strip (sliders left, Reset/Cancel/Apply column right) with no top title.
-Sliders `-100…+100 %` update a CSS
-preview (`brightness() contrast() saturate()`, same order as the node) and
+Sliders (`-100…+100 %`, labelled with compact symbols and accessible
+aria-labels) update a CSS preview (`brightness() contrast() saturate()`, same order as the node) and
 `Apply` is disabled at the neutral `0/0/0`. The CSS preview is close
 but not pixel-identical to PIL; the final result comes from ComfyUI. Apply
 submits the three factors, closes the panel and shows the usual

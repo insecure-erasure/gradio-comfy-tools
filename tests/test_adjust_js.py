@@ -110,3 +110,11 @@ def test_adjust_controls_live_in_one_bottom_strip_with_action_column():
     cancel = panel.index('id="adjustCancel"')
     apply = panel.index('id="adjustApply"')
     assert reset < cancel < apply
+
+
+def test_adjust_sliders_use_symbol_labels_with_accessible_names():
+    panel = _read("templates", "partials", "adjust_panel.html")
+    for symbol in ("☀️", "◐", "🎨"):
+        assert symbol in panel
+    for label in ("Brightness", "Contrast", "Saturation"):
+        assert f'aria-label="{label}"' in panel

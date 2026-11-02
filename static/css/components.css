@@ -2424,12 +2424,14 @@
   .adjust-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
   }
-  .adjust-row label {
-    flex: 0 0 86px;
-    color: rgba(255,255,255,.72);
-    font: 500 .7rem/1.2 var(--font);
+  .adjust-row label.adjust-symbol {
+    flex: 0 0 26px;
+    text-align: center;
+    color: rgba(255,255,255,.82);
+    font: 1rem/1 var(--font);
+    cursor: help;
   }
   .adjust-row input[type="range"] {
     flex: 1 1 auto;

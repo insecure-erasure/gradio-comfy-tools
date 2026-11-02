@@ -415,9 +415,10 @@
   }
   .adjust-btn { min-height: 40px; padding: 0 12px; font-size: .78rem; }
   .adjust-preview-wrap { padding: 6px 0; }
-  .adjust-controls { padding: 8px 8px 6px; gap: 8px; }
-  .adjust-actions { flex-basis: 78px; }
+  .adjust-controls { padding: 8px 6px 6px; gap: 6px; }
+  .adjust-actions { flex-basis: 72px; }
   .adjust-actions .adjust-btn { min-width: 0; width: 100%; }
-  .adjust-row label { flex-basis: 74px; font-size: .74rem; }
-  .adjust-row output { flex-basis: 42px; font-size: .72rem; }
+  .adjust-row label.adjust-symbol { flex-basis: 24px; font-size: 1.05rem; }
+  .adjust-row input[type="range"] { min-height: 34px; }
+  .adjust-row output { flex-basis: 40px; font-size: .72rem; }
 }
