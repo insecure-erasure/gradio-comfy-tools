@@ -510,7 +510,7 @@ saved value immediately.
 server-side via `POST /api/check-image` (the browser cannot read
 cross-origin headers — CORS is why this cannot be done client-side) and, if
 it is really an image, shows it as a **preview filling the output pane**
-(`source-preview`, slightly dimmed to distinguish input from output —
+(`source-preview`, full opacity — the loaded image keeps its real colors;
 no frame) and **collapses the field back to 10%** (`.collapsed`;
 re-focusing the input expands it again). **Pressing Enter inside the field
 does the same as clicking ✓** (same `confirmSourceUrl`, with the same
@@ -525,8 +525,8 @@ generating.
 **Video tab specifics**: the preview **replaces the video component** — the
 empty (disabled) player and any previous generated video are removed while
 the source image fills the pane. When generation starts the image **recedes
-behind the loading overlay** (dimmed, `.output-pane.busy .source-preview`;
-the `.gen-spinner` overlay, z-index 10, sits above it) and is **removed when
+behind the loading overlay** (`.output-pane.busy .source-preview` drops to
+`opacity: .15`; the `.gen-spinner` overlay, z-index 10, sits above it) and is **removed when
 the generation finishes** (`showResult`) to show the generated video. The
 empty player itself is **removed from the DOM** (not just hidden) when
 the result lands, so it cannot be resurrected by `stopProgressPolling` and
