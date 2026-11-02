@@ -127,11 +127,14 @@ age and never polls. The proxy is the sensor:
   gallery N/M counter, pane ‹ › navigation, pane content and the 🕘 grid
   update together.
 - Cold start (tab closed while the cleanup ran): the entries about to be
-  painted are probed ONCE via `GET /api/media-exists` (HEAD, ~20 ms; GET
-  with `Range: 0-0` fallback for servers that reject HEAD) and confirmed
-  misses go through the same `dropMedia()`. A transport failure returns
-  `{"exists": true, "unknown": true}` — the UI keeps the entry, because
-  "cannot ask" is not "deleted".
+  painted are probed ON DEMAND — one HEAD per entry via
+  `GET /api/media-exists` (~20 ms; `GET` + `Range: 0-0` only for servers
+  that reject HEAD or answer something unexpected) — never in a periodic
+  sweep. Confirmed misses go through the same `dropMedia()`. Transport
+  failures, 401/403 and 5xx return `{"exists": true, "unknown": true}`: the
+  UI keeps the entry, because "cannot ask" is not "deleted". Videos are not
+  cold-probed (a missing one would simply not play); a confirmed event still
+  drops them.
 
 Optional fast path — the cleanup task announces its deletions itself, which
 avoids even the first 404:
@@ -145,11 +148,13 @@ curl -X POST http://app:8000/api/media-deleted \
 
 - `MEDIA_DELETED_TOKEN` (env, optional): when set, requests must carry the
   matching `X-Media-Token` header (401 otherwise). Unset = open hook.
-- Body may use `filenames` or `deleted`; 400 on malformed input, 413 above
-  500 names. Empty lists are no-ops.
+- The body must be **`application/json`** (FastAPI answers 422 otherwise —
+  a plain `curl -d` sends `form-urlencoded`). It may use `filenames` or
+  `deleted`; 400 on malformed input, 413 above 500 names. Empty lists are
+  no-ops.
 - The handler broadcasts the same `{"deleted": [...]}` payload.
 
-## 3. Workflow injection pattern (tools/)## 3. Workflow injection pattern (tools/)
+## 3. Workflow injection pattern (tools/)
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../../open-webui-comfy-tools` (listed in the contract tables of §5).
 
@@ -167,6 +172,9 @@ hierarchy and no "override system LoRAs" concept. Every value is direct
 configuration:
 
 - **Global settings** (🎨 dropdown + defaults): server URL (`COMFYUI_BASE_URL`), media base URL (`COMFYUI_MEDIA_BASE_URL`), theme, default LoRAs, default models.
+- **Env-only**: `COMFYUI_API_KEY` (upstream auth) and `MEDIA_DELETED_TOKEN`
+  (optional shared secret for the `POST /api/media-deleted` hook; not shown
+  in the 🎨 menu).
 - **Per-tab UI controls** (params pane + advanced modal): tool parameters.
 - **Workflow default**: hardcoded values in the JSON.
 

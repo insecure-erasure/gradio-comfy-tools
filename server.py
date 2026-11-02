@@ -549,8 +549,8 @@ def api_media_deleted(
     Body: ``{"filenames": ["ComfyUI_00012_.png", ...]}`` (``{"deleted": ...}``
     is accepted too). Returns ``{"ok": true, "count": n}``. 400 on malformed
     input, 401 when ``MEDIA_DELETED_TOKEN`` is set and ``X-Media-Token`` does
-    not match. Only files the task REALLY removed are announced, so the UI
-    never hides anything that still exists.
+    not match, 413 above 500 names. Only files the task REALLY removed are
+    announced, so the UI never hides anything that still exists.
     """
     token = _settings().media_deleted_token
     if token and x_media_token != token:
@@ -1182,6 +1182,11 @@ async def media(filename: str, type: str = "output", range: str | None = Header(
     NS_ERROR_NET_PARTIAL_NETWORK_TRANSFER even though the upstream served
     the file fully). The client is now created without a context manager and
     closed via BackgroundTask once the response finishes streaming.
+
+    An upstream **404/410** is a real deletion: the response is a **404**
+    (never a 502, which is reserved for outages) and the filename is
+    broadcast as ``{"deleted": [...]}`` on /ws/events so every open browser
+    drops the entry (see gallery.js dropMedia).
     """
     s = _settings()
     url = f"{s.media_base_url}/view?filename={filename}&type={type}"

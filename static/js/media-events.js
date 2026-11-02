@@ -1,13 +1,13 @@
 // ── Media deletion events (ComfyUI cleanup → browser) ─────────────────────
-// The ComfyUI cleanup task deletes generated files when they get old. It
-// POSTs /api/media-deleted with the EXACT filenames it removed; the backend
-// fans that out over /ws/events and this module drops those entries.
-//
-// Two rules shape the design:
-//   • nothing is hidden unless the cleanup task confirmed the file is gone
-//     (no TTLs, no age guesses);
-//   • nothing polls (the event is pushed; the only other check is the
-//     one-shot existence probe when persisted galleries are restored).
+// Files disappear when ComfyUI's cleanup prunes old generations. The app
+// never guesses by age and never polls:
+//   • the /media proxy turns an upstream 404/410 into a 404 plus
+//     {"deleted": [...]} on /ws/events (optional fast path: the cleanup task
+//     itself POSTs /api/media-deleted, which feeds the same socket);
+//   • /ws/events is persistent for the page lifetime and this module applies
+//     each event through dropMedia();
+//   • persisted state is only checked ON DEMAND (one HEAD per entry about to
+//     be painted) — never in a periodic sweep.
 //
 // mediaDropPlan() is deliberately PURE (no DOM, no globals, no mutation) so
 // the data rules can be unit-tested in node — see tests/js/media_events_test.js.

@@ -149,10 +149,12 @@ function normalizeVideoEntry(e) {
 // localStorage galleries can hold entries whose file no longer exists on
 // the ComfyUI host (the cleanup task prunes old generations). Each unique
 // filename is checked once per restore via GET /api/media-exists (a HEAD/206
-// probe — no body transferred). This runs ONCE at startup and again when a
-// gallery is opened (force): it is not a poll. Live deletions arrive through
-// /api/media-deleted → /ws/events instead (see media-events.js). A transport
-// failure keeps the entry — a missing file is never assumed from a hiccup.
+// probe — no body transferred). It runs once at startup, again (force) when
+// a gallery is opened and per entry when a pane or the 🕘 grid is about to
+// paint: on demand, never a poll. Live deletions arrive as events on
+// /ws/events (proxy-detected; the optional hook feeds the same socket) — see
+// media-events.js. An inconclusive probe keeps the entry: a missing file is
+// never assumed from a hiccup.
 // Entries without a filename (external URLs) are kept as-is.
 const _mediaExistsCache = new Map();
 
@@ -259,8 +261,9 @@ async function pruneSourceHistory(tab) {
 // after/before sides and the 🕘 source history. Only CONFIRMED-missing files
 // are reported, and they all go through dropMedia() so the galleries' N/M,
 // the pane ‹ › navigation and the 🕘 grid update together (never a silent
-// splice that leaves the UI showing a ghost). skipVideos: videos are temp
-// files the app deliberately keeps (a missing one just won't play).
+// splice that leaves the UI showing a ghost). Videos are NOT probed here
+// (a missing one would simply not play); confirmed deletions still drop
+// them through dropMedia().
 async function verifyStoredGalleries(force) {
   const probes = _probeCollector();
   (window.galleryGenerated || []).forEach(e => probes.add(e && e.src));

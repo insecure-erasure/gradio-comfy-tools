@@ -119,13 +119,14 @@ the files it deletes, which avoids even that first failed request:
 
 ```bash
 curl -X POST http://localhost:8000/api/media-deleted \
+     -H 'Content-Type: application/json' \
      -d '{"filenames": ["ComfyUI_00042_.png"]}'
 ```
 
 Set `MEDIA_DELETED_TOKEN` on the app and send it as `X-Media-Token` if the
 hook is reachable from outside the machine.
 
-## Troubleshooting## Troubleshooting
+## Troubleshooting
 
 - **"Could not reach the URL"**: check that the ComfyUI server is running and that the URL is correct (☰ menu).
 - **The source image is not valid**: the URL does not point to an accessible image; use 📁 or a direct image URL.

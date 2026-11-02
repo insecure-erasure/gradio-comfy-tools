@@ -779,8 +779,8 @@ modal uses that tab's primary pill as the ⏹.
 | `GET /api/refiner-models` | model ids served by the llama.cpp router (`{models: [id…], default: id}` — `default` is what auto picks; `{models: [], default: ""}` when the refiner is not configured) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
-| `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (one-shot restore validation) |
-| `POST /api/media-deleted` | ComfyUI cleanup hook: `{filenames: [...]}` (or `{deleted: [...]}`) of files just removed. 400 malformed, 401 bad `X-Media-Token`, 413 >500 names. Fans out over `/ws/events` |
+| `GET /api/media-exists` | lightweight probe that a file still exists on ComfyUI: HEAD first (~20 ms), `GET` + `Range: 0-0` only when HEAD is rejected or answers something other than 200/404. A HEAD **404/410 is final** (`exists:false`); transport, 401/403 or 5xx return `{exists:true, unknown:true}` so the UI **keeps** the entry. On demand only (restore/open), never a poll |
+| `POST /api/media-deleted` | optional ComfyUI cleanup hook: `{filenames: [...]}` (or `{deleted: [...]}`) of files just removed, sent as **`application/json`** (422 otherwise). 400 malformed, 401 bad `X-Media-Token`, 413 >500 names. Fans out over `/ws/events` |
 | `WS /ws/events` | pushes `{deleted: [...]}` to every open browser (gallery counters, pane nav and 🕘 grid update via `dropMedia`) |
 | `GET /media/{filename}` | same-origin **streaming** proxy of results (honors the `Range` header — the `<video>` element can seek/buffer progressively; returns 206 for partials). An upstream **404/410** becomes a **404** here and is broadcast on `/ws/events`; other upstream failures stay 502 |
 
@@ -812,10 +812,12 @@ modal uses that tab's primary pill as the ⏹.
 ### 7.1 Galleries (`gallery.js`)
 
 Three session-scoped galleries, **persisted to localStorage** (`storage.js`
-saves them under `comfyTools.userConfig.galleries`; on load they are
-restored and validated ONCE against the server — dead files are dropped,
-never shown. Live deletions arrive as push events, see §7.2 — nothing is
-hidden by age and nothing polls):
+saves them under `comfyTools.userConfig.galleries`). Dead files are dropped,
+never shown; the exception is videos, which are only dropped when a deletion
+is confirmed by an event (§7.2). Validation is always ON DEMAND, never
+periodic: once on load, again when a gallery is opened (force), and per
+entry when a pane or the 🕘 grid is about to paint. Live deletions arrive as
+push events, so nothing is hidden by age and nothing polls:
 
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
@@ -902,7 +904,8 @@ hidden by age and nothing polls):
   before/after slider is re-rendered via `restoreCompareSlider`), Video
   cycles `galleryVideos` (player rebuilt). The nav index resets to the most
   recent when a new result lands or the gallery drops to ≤1 entry
-  (`syncPaneNav`), and stays in sync on delete/trash/restore/prune.
+  (`syncPaneNav`), and stays in sync on delete/trash/restore and on
+  confirmed deletions (§7.2).
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, the 🗑️ deletes the shown entry, the N/M counter
@@ -926,7 +929,8 @@ they are real:
    for the page lifetime (the progress socket only exists while a job
    runs, so it cannot carry these).
 3. **`dropMedia()` (gallery.js) applies it once**, so everything reflects
-   reality at the same time: the gallery registries, the overlay's **N/M
+   reality at the same time: the gallery registries (generated images,
+   comparison pairs **and videos**), the overlay's **N/M
    counter** (re-collect + clamp + `renderGalleryItem`), the pane content
    and its **‹ › index** (`paneIdx` is positional — it is re-derived by
    entry IDENTITY so a removal before the current index cannot silently
@@ -940,19 +944,23 @@ they are real:
    - `restoreTabResultChecked()` probes the entry a pane is about to
      restore (`GET /api/media-exists`, one cached HEAD);
    - `pruneSourceHistory(tab)` probes the 🕘 grid before it paints;
-   - opening a gallery still awaits `verifyStoredGalleries(true)`.
+   - opening an image/comparison gallery awaits `verifyStoredGalleries(true)`.
    A confirmed-missing file goes through the same `dropMedia()`, so the
    pane restores the nearest survivor (or its idle state) instead of ever
    requesting a 404. An **inconclusive** probe (`unknown`: ComfyUI
    unreachable) keeps the entry — "cannot ask" is never "deleted".
+   Videos are NOT cold-probed (a missing video would simply not play), but a
+   confirmed event still drops them.
 5. **Socket down?** An `error` on any `/media` image/video triggers ONE
-   cached probe and drops only a confirmed-missing file.
+   probe (bypassing the session cache) and drops only a confirmed-missing
+   file.
 
 Optional fast path: the cleanup task can also announce its deletions
 directly, which removes even that first 404:
 
 ```bash
 curl -X POST http://app:8000/api/media-deleted \
+     -H 'Content-Type: application/json' \
      -H 'X-Media-Token: <MEDIA_DELETED_TOKEN>' \
      -d '{"filenames": ["ComfyUI_00042_.png"]}'
 ```
@@ -960,7 +968,7 @@ curl -X POST http://app:8000/api/media-deleted \
 `MEDIA_DELETED_TOKEN` is optional (unset = open hook, the normal
 single-user LAN setup); `{"deleted": [...]}` is accepted too.
 
-## 8. Deviations from the mockup (code is source of truth)## 8. Deviations from the mockup (code is source of truth)
+## 8. Deviations from the mockup (code is source of truth)
 
 These are intentional, user-driven changes over the original `docs/mockup.html`:
 
