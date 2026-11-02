@@ -104,7 +104,28 @@ is persisted in the config file (`prompt_refiner_model`).
   `model` id in every request (llama.cpp rejects requests without a model
   name).
 
-## Troubleshooting
+### ComfyUI cleanup (old generations)
+
+ComfyUI removes old generations (for example, a `find … -delete` cron that
+keeps the last 60 minutes). The app **never guesses by age and never
+polls**: each result is served through the app's own proxy, so when
+ComfyUI reports a file as missing the app knows it is really gone and
+removes it everywhere at once — gallery counters, pane navigation and the
+🕘 history. A tab that was closed during the cleanup checks the entries it
+is about to show when it reopens (one cheap existence probe, on demand).
+
+There is nothing to configure. Optionally, the cleanup task can announce
+the files it deletes, which avoids even that first failed request:
+
+```bash
+curl -X POST http://localhost:8000/api/media-deleted \
+     -d '{"filenames": ["ComfyUI_00042_.png"]}'
+```
+
+Set `MEDIA_DELETED_TOKEN` on the app and send it as `X-Media-Token` if the
+hook is reachable from outside the machine.
+
+## Troubleshooting## Troubleshooting
 
 - **"Could not reach the URL"**: check that the ComfyUI server is running and that the URL is correct (☰ menu).
 - **The source image is not valid**: the URL does not point to an accessible image; use 📁 or a direct image URL.

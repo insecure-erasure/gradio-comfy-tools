@@ -556,9 +556,10 @@ whole image really is ~1.25x bigger (sizing the box from the cell instead made
 wide sources look the same size). It stays inside the popover when it fits —
 a wide source may extend past it — and clamps to the viewport otherwise.
 `pointer-events: none` keeps the hover on the item underneath, and it hides on
-leave/blur/scroll/resize. Dead temp files may remain as
-dimmed thumbnails (the restore attempt simply fails to load, and no popout is
-shown). The popover closes on click-outside /
+leave/blur/scroll/resize. A file the cleanup task confirms as deleted is
+removed from the grid (and from the galleries/panes) as soon as the event
+arrives; a thumbnail that fails to load WITHOUT such an event stays as a
+dimmed slot and shows no popout. The popover closes on click-outside /
 Esc / resize / tab switch, or when the prompt modal opens (`source.js`).
 
 Filename-vs-URL follows the backend convention (`normalize_source`,
@@ -778,8 +779,10 @@ modal uses that tab's primary pill as the ⏹.
 | `GET /api/refiner-models` | model ids served by the llama.cpp router (`{models: [id…], default: id}` — `default` is what auto picks; `{models: [], default: ""}` when the refiner is not configured) |
 | `POST /api/upload` | upload image → ComfyUI temp filename |
 | `POST /api/check-image` | validate a source value (URL or temp filename) is an image; returns `{ok, content_type\|error}` |
-| `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (persisted gallery pruning) |
-| `GET /media/{filename}` | same-origin **streaming** proxy of results (honors the `Range` header — the `<video>` element can seek/buffer progressively; returns 206 for partials) |
+| `GET /api/media-exists` | lightweight HEAD/206 probe that a result file still exists on ComfyUI (one-shot restore validation) |
+| `POST /api/media-deleted` | ComfyUI cleanup hook: `{filenames: [...]}` (or `{deleted: [...]}`) of files just removed. 400 malformed, 401 bad `X-Media-Token`, 413 >500 names. Fans out over `/ws/events` |
+| `WS /ws/events` | pushes `{deleted: [...]}` to every open browser (gallery counters, pane nav and 🕘 grid update via `dropMedia`) |
+| `GET /media/{filename}` | same-origin **streaming** proxy of results (honors the `Range` header — the `<video>` element can seek/buffer progressively; returns 206 for partials). An upstream **404/410** becomes a **404** here and is broadcast on `/ws/events`; other upstream failures stay 502 |
 
 ## 7. Session state
 
@@ -810,8 +813,9 @@ modal uses that tab's primary pill as the ⏹.
 
 Three session-scoped galleries, **persisted to localStorage** (`storage.js`
 saves them under `comfyTools.userConfig.galleries`; on load they are
-restored and validated against the server — dead files are dropped,
-never shown):
+restored and validated ONCE against the server — dead files are dropped,
+never shown. Live deletions arrive as push events, see §7.2 — nothing is
+hidden by age and nothing polls):
 
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
@@ -906,7 +910,57 @@ never shown):
   video mode (the player fills the overlay; the prompt would overlap the
   controls).
 
-## 8. Deviations from the mockup (code is source of truth)
+### 7.2 Media deletions (observed, never guessed)
+
+ComfyUI deletes old generations (e.g. a `find … -delete` cron keeping 60
+minutes). The UI must stop showing them **without polling** and **without
+hiding a file that still exists**, so deletions are observed at the moment
+they are real:
+
+1. **The proxy detects them.** Every result is served by the same-origin
+   proxy `GET /media/{filename}`. When ComfyUI answers **404/410** the
+   proxy answers **404** — not 502, so a deletion stays distinguishable
+   from an outage — and broadcasts `{"deleted": [filename]}`. Real
+   upstream failures remain 502 and announce nothing.
+2. **`/ws/events` pushes it** to every open tab. It is a persistent socket
+   for the page lifetime (the progress socket only exists while a job
+   runs, so it cannot carry these).
+3. **`dropMedia()` (gallery.js) applies it once**, so everything reflects
+   reality at the same time: the gallery registries, the overlay's **N/M
+   counter** (re-collect + clamp + `renderGalleryItem`), the pane content
+   and its **‹ › index** (`paneIdx` is positional — it is re-derived by
+   entry IDENTITY so a removal before the current index cannot silently
+   show a different image), `syncPaneNav`, the **🕘 grid** (`sourceHistory`
+   in all four tabs, re-rendered if the popover is open) and localStorage.
+   A deleted comparison BEFORE file keeps its result and clears only the
+   before side; a deleted AFTER drops the comparison.
+4. **Preflight on the cold path** (a tab that was closed during the
+   cleanup): the entries about to be painted are probed first, on demand
+   and never periodically —
+   - `restoreTabResultChecked()` probes the entry a pane is about to
+     restore (`GET /api/media-exists`, one cached HEAD);
+   - `pruneSourceHistory(tab)` probes the 🕘 grid before it paints;
+   - opening a gallery still awaits `verifyStoredGalleries(true)`.
+   A confirmed-missing file goes through the same `dropMedia()`, so the
+   pane restores the nearest survivor (or its idle state) instead of ever
+   requesting a 404. An **inconclusive** probe (`unknown`: ComfyUI
+   unreachable) keeps the entry — "cannot ask" is never "deleted".
+5. **Socket down?** An `error` on any `/media` image/video triggers ONE
+   cached probe and drops only a confirmed-missing file.
+
+Optional fast path: the cleanup task can also announce its deletions
+directly, which removes even that first 404:
+
+```bash
+curl -X POST http://app:8000/api/media-deleted \
+     -H 'X-Media-Token: <MEDIA_DELETED_TOKEN>' \
+     -d '{"filenames": ["ComfyUI_00042_.png"]}'
+```
+
+`MEDIA_DELETED_TOKEN` is optional (unset = open hook, the normal
+single-user LAN setup); `{"deleted": [...]}` is accepted too.
+
+## 8. Deviations from the mockup (code is source of truth)## 8. Deviations from the mockup (code is source of truth)
 
 These are intentional, user-driven changes over the original `docs/mockup.html`:
 

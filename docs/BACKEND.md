@@ -112,7 +112,44 @@
   return 200 on the live server; per-step previews confirmed for flux2,
   krea2 and wan21.
 
-## 3. Workflow injection pattern (tools/)
+### Media deletion events (detected at the proxy)
+
+ComfyUI prunes old generations. The UI must not keep showing them, but it
+must not hide files that still exist either — so the app never guesses by
+age and never polls. The proxy is the sensor:
+
+- `GET /media/{filename}` maps an upstream **404/410** to a **404** (a
+  deletion must stay distinguishable from an outage, which stays 502) and
+  broadcasts `{"deleted": [filename]}` over **`WS /ws/events`**. That
+  socket is persistent for the page lifetime (unlike `/ws/progress`, which
+  only exists while a job runs).
+- The browser applies it with `dropMedia()` (gallery.js): registries,
+  gallery N/M counter, pane ‹ › navigation, pane content and the 🕘 grid
+  update together.
+- Cold start (tab closed while the cleanup ran): the entries about to be
+  painted are probed ONCE via `GET /api/media-exists` (HEAD, ~20 ms; GET
+  with `Range: 0-0` fallback for servers that reject HEAD) and confirmed
+  misses go through the same `dropMedia()`. A transport failure returns
+  `{"exists": true, "unknown": true}` — the UI keeps the entry, because
+  "cannot ask" is not "deleted".
+
+Optional fast path — the cleanup task announces its deletions itself, which
+avoids even the first 404:
+
+```bash
+curl -X POST http://app:8000/api/media-deleted \
+     -H 'X-Media-Token: <MEDIA_DELETED_TOKEN>' \
+     -H 'Content-Type: application/json' \
+     -d '{"filenames": ["ComfyUI_00042_.png", "wan_00007.mp4"]}'
+```
+
+- `MEDIA_DELETED_TOKEN` (env, optional): when set, requests must carry the
+  matching `X-Media-Token` header (401 otherwise). Unset = open hook.
+- Body may use `filenames` or `deleted`; 400 on malformed input, 413 above
+  500 names. Empty lists are no-ops.
+- The handler broadcasts the same `{"deleted": [...]}` payload.
+
+## 3. Workflow injection pattern (tools/)## 3. Workflow injection pattern (tools/)
 
 Identical to the Open WebUI tools: load the JSON, resolve each node by its **unique `_meta.title`** and override `inputs`. The titles used are the same as in `../../open-webui-comfy-tools` (listed in the contract tables of §5).
 
