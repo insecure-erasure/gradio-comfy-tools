@@ -22,9 +22,11 @@
   /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
-  /* Edit: crop sits next to fullscreen (both are canvas-level actions). */
+  /* Edit: adjust/crop sit next to fullscreen (canvas-level actions). */
   .output-overlay-btn.top-right-left { top: 12px; right: 48px; }
-  .output-pane.generating #editCropBtn { display: none !important; }
+  .output-overlay-btn.top-right-left2 { top: 12px; right: 84px; }
+  .output-pane.generating #editCropBtn,
+  .output-pane.generating #editAdjustBtn { display: none !important; }
   /* The video player's fullscreen button renders an SVG icon (no emoji
      glyph — see player.js ICONS). */
   .video-fs-btn svg { width: 16px; height: 16px; }

@@ -54,7 +54,7 @@ def test_edit_exposes_the_crop_trigger_and_request():
 
     edit = _read("static", "js", "edit.js")
     assert "function openEditCrop()" in edit
-    assert "function _editCropTarget()" in edit
+    assert "function _editImageTarget()" in edit
     assert "mode: 'crop'" in edit
     assert "configureEditExtendToggle(true, 'Cropped')" in edit
     assert "addCompareEntry({" in edit

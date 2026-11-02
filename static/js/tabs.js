@@ -7,6 +7,7 @@ function switchTab(name) {
   // The crop editor owns the pane; switching tools must not leave it over a
   // different tab.
   if (typeof closeCropEditor === 'function') closeCropEditor();
+  if (typeof closeAdjustEditor === 'function') closeAdjustEditor();
   // Leaving the Video tab pauses a playing video: hidden behind another tab
   // it would keep consuming resources (CPU/decoding) for nothing. No-op
   // when re-selecting Video itself (Ctrl+4 while already on Video).

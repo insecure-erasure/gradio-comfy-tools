@@ -590,7 +590,7 @@ function renderGalleryItem() {
     galleryAfter.src = e.src;
     gallerySlider.style.setProperty('--p', '50%');
     galleryLabelAfter.textContent = compareKindLabel(e.kind);
-    configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop', compareKindLabel(e.kind));
+    configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust', compareKindLabel(e.kind));
     galleryBadge.classList.remove('show');
     // Compare mode: the Show-prompt button is visible by DEFAULT when the
     // comparison has a prompt (no click on the slider needed) — same rule
@@ -1109,6 +1109,7 @@ function compareKindLabel(kind) {
   return kind === 'edit' ? 'Edited' : kind === 'restore' ? 'Restored'
     : kind === 'extend' ? 'Extended'
     : kind === 'crop' ? 'Cropped'
+    : kind === 'adjust' ? 'Adjusted'
     : kind === 'upscale' ? 'Upscaled'
     : kind === 'face_swap' ? 'Face swapped' : 'Result';
 }

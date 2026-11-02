@@ -57,3 +57,37 @@ def test_adjust_panel_is_fullscreen_only_on_the_stacked_layout():
     marker = css.index(".adjust-overlay")
     assert "@media (max-width: 1023px)" in css
     assert "position: fixed" in css[marker:marker + 500]
+
+
+def test_edit_exposes_the_adjust_trigger_and_request():
+    tab = _read("templates", "partials", "tab_edit.html")
+    assert 'id="editAdjustBtn"' in tab
+    assert "openEditAdjust()" in tab
+
+    edit = _read("static", "js", "edit.js")
+    assert "function openEditAdjust()" in edit
+    assert "function submitAdjust(target, payload)" in edit
+    assert "mode: 'adjust'" in edit
+    assert "configureEditExtendToggle(true, 'Adjusted')" in edit
+    assert "kind: 'adjust'" in edit
+    assert "appendTransformedEntry(res, '', 'adjusted'" in edit
+
+
+def test_adjust_results_join_the_gallery_and_recovery():
+    gallery = _read("static", "js", "gallery.js")
+    assert "kind === 'adjust' ? 'Adjusted'" in gallery
+    assert "e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust'" in gallery
+
+    api = _read("static", "js", "api.js")
+    assert "mode === 'adjust' ? 'adjusted'" in api
+
+    restore = _read("static", "js", "restore.js")
+    assert "kind === 'extend' || kind === 'crop' || kind === 'adjust'" in restore
+
+
+def test_adjust_overlay_blocks_global_shortcuts_and_tab_switch_closes_it():
+    main = _read("static", "js", "main.js")
+    assert "#adjustOverlay.show" in main
+    tabs = _read("static", "js", "tabs.js")
+    assert "closeAdjustEditor()" in tabs
+    assert "closeAdjustEditor()" in _read("static", "js", "api.js")

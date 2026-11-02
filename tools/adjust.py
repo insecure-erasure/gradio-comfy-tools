@@ -97,7 +97,7 @@ def adjust_image(
     brightness: Any = NEUTRAL_FACTOR,
     contrast: Any = NEUTRAL_FACTOR,
     saturation: Any = NEUTRAL_FACTOR,
-    timeout: float = 60.0,
+    timeout: float = 120.0,
 ) -> str:
     """Run the Adjust workflow and return the output image URL."""
     workflow = load_workflow()

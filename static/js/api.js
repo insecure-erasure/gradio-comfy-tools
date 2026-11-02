@@ -190,6 +190,9 @@ function setGenerating(pane, on) {
   if (!pane) return;
   pane.classList.toggle('generating', on);
   if (on) {
+    // Canvas editors are input modes, not concurrent jobs.
+    if (typeof closeCropEditor === 'function') closeCropEditor();
+    if (typeof closeAdjustEditor === 'function') closeAdjustEditor();
     const field = pane.querySelector('.source-url-input');
     if (field && document.activeElement === field) field.blur();
   }
@@ -803,6 +806,7 @@ function finalizeRecoveredJob(tool, res, marker) {
       const badge = mode === 'restore' ? 'restored'
         : mode === 'extend' ? 'extended'
         : mode === 'crop' ? 'cropped'
+        : mode === 'adjust' ? 'adjusted'
         : 'edited';
       appendTransformedEntry(res, prompt, badge, source);
     } else if (tool === 'upscale' && typeof addTransformedEntry === 'function') {

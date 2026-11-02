@@ -56,7 +56,7 @@ function restoreCompareSlider(tab, paneId, cmp) {
   if (paneId === 'editOutputPane' && typeof configureEditExtendToggle === 'function') {
     const kind = cmp.kind || 'edit';
     configureEditExtendToggle(
-      kind === 'extend' || kind === 'crop',
+      kind === 'extend' || kind === 'crop' || kind === 'adjust',
       typeof compareKindLabel === 'function' ? compareKindLabel(kind) : undefined
     );
   }
