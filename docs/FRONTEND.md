@@ -242,7 +242,8 @@ empty and the prompt fills it; see also deviation 14):
     padding and larger touch targets.
   - Drag the four corner handles to resize, drag inside the box to move,
     or pick `Keep` / `Free` / `1:1`. `Keep` uses the image's own aspect ratio
-    and also resets to the full frame. The footer shows live `W × H`.
+    and also resets to the full frame. The footer shows live `W × H` and
+    the reduced aspect ratio of the resulting crop (e.g. `600 × 600 · 1:1`).
     Arrow keys nudge (Shift = 10 px), `Esc` cancels, `Enter` applies. Apply
     is disabled while the selection is the full image.
   - The selection is stored in source-image pixels, so resizing/rotating

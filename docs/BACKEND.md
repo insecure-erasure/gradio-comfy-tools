@@ -410,7 +410,8 @@ vertical layout (`<1024px`) turns the same overlay into a fullscreen dialog
 keeps the selection in source pixels, supports dragging the corners, moving
 the box, aspect presets (`Keep`, `Free`, `1:1`; `Keep` uses the image's own
 ratio and also resets to the full frame), keyboard
-nudging and `Esc`/`Enter`. Applying submits the crop, closes the editor and
+nudging and `Esc`/`Enter`; the footer shows the live `W × H` and its
+reduced aspect ratio. Applying submits the crop, closes the editor and
 shows the usual `Original / Cropped` compare toggle; the result is appended
 as `kind="crop"` with the `cropped` badge and recovered through the normal
 Edit job marker.

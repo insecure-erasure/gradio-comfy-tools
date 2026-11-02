@@ -193,7 +193,8 @@ function _cropRender() {
   const payload = cropToPayload(_crop.rect, _cropImageBounds());
   const full = cropIsFullFrame(_crop.rect, _cropImageBounds());
   if (dims) {
-    dims.textContent = `${payload.width} × ${payload.height}`;
+    const ratio = cropAspectLabel(payload.width, payload.height);
+    dims.textContent = `${payload.width} × ${payload.height}` + (ratio ? ` · ${ratio}` : '');
     dims.title = `x ${payload.x}, y ${payload.y}`;
   }
   if (apply) {

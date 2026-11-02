@@ -178,7 +178,7 @@ test('opens with a full-frame selection and a disabled Apply', () => {
   open();
   assert.strictEqual(sandbox.cropEditorIsOpen(), true);
   assert.strictEqual(elements.cropOverlay.classList.contains('show'), true);
-  assert.strictEqual(elements.cropDims.textContent, '800 × 600');
+  assert.strictEqual(elements.cropDims.textContent, '800 × 600 · 4:3');
   assert.strictEqual(elements.cropApply.disabled, true);
   assert.strictEqual(elements.cropTargetLabel.textContent, '· Source');
   assert.strictEqual(elements.cropStage.style.width, '800px');
@@ -191,7 +191,7 @@ test('an aspect preset enables Apply and produces a centred square', () => {
     preventDefault() {},
     stopPropagation() {},
   });
-  assert.strictEqual(elements.cropDims.textContent, '600 × 600');
+  assert.strictEqual(elements.cropDims.textContent, '600 × 600 · 1:1');
   assert.strictEqual(elements.cropApply.disabled, false);
   sandbox.cropApply();
   // The callback receives an object created in the vm realm; compare values.
@@ -207,7 +207,7 @@ test('the Keep preset restores the full image ratio after a crop', () => {
     preventDefault() {},
     stopPropagation() {},
   });
-  assert.strictEqual(elements.cropDims.textContent, '600 × 600');
+  assert.strictEqual(elements.cropDims.textContent, '600 × 600 · 1:1');
 
   elements.cropPresets.listeners.click({
     target: presets[0],
@@ -215,7 +215,7 @@ test('the Keep preset restores the full image ratio after a crop', () => {
     stopPropagation() {},
   });
   // 800x600 source: the full image is restored and Apply is disabled again.
-  assert.strictEqual(elements.cropDims.textContent, '800 × 600');
+  assert.strictEqual(elements.cropDims.textContent, '800 × 600 · 4:3');
   assert.strictEqual(elements.cropApply.disabled, true);
   assert.strictEqual(presets[0].classList.contains('active'), true);
   elements.cropCancel.listeners.click();

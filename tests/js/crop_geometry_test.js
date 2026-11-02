@@ -17,6 +17,7 @@ const {
   cropResizeRect,
   cropToPayload,
   cropIsFullFrame,
+  cropAspectLabel,
 } = global;
 
 const tests = [];
@@ -143,6 +144,15 @@ test('aspect-locked resize respects bounds and minimum size', () => {
     { aspect: 1 }
   );
   assert.deepStrictEqual(grown, { x: 0, y: 0, width: 100, height: 100 });
+});
+
+test('formats the reduced aspect ratio', () => {
+  assert.strictEqual(cropAspectLabel(800, 600), '4:3');
+  assert.strictEqual(cropAspectLabel(1920, 1080), '16:9');
+  assert.strictEqual(cropAspectLabel(1024, 1024), '1:1');
+  assert.strictEqual(cropAspectLabel(816, 1216), '51:76');
+  assert.strictEqual(cropAspectLabel(0, 100), '');
+  assert.strictEqual(cropAspectLabel(100, -1), '');
 });
 
 test('payload rounds to integers and never overflows the image', () => {

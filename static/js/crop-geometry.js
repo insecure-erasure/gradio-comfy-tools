@@ -134,6 +134,23 @@ function cropResizeRect(rect, handle, dx, dy, bounds, opts = {}) {
   }, b, minSize);
 }
 
+// Human-readable reduced aspect ratio for the live dimensions readout.
+// 800x600 -> 4:3, 1920x1080 -> 16:9, 816x1216 -> 51:76. Empty when either
+// side is not a positive whole number.
+function cropAspectLabel(width, height) {
+  const w = Math.round(_cropNumber(width, 0));
+  const h = Math.round(_cropNumber(height, 0));
+  if (!(w > 0 && h > 0)) return '';
+  let a = w;
+  let b = h;
+  while (b) {
+    const t = a % b;
+    a = b;
+    b = t;
+  }
+  return `${w / a}:${h / a}`;
+}
+
 // Integer payload for the API, guaranteed to stay inside the image.
 function cropToPayload(rect, bounds) {
   const b = _cropBounds(bounds);
