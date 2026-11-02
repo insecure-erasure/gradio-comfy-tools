@@ -996,7 +996,7 @@
   @media (hover: hover) and (pointer: fine) {
     .source-history-item:hover img {
       object-fit: contain;
-      transform: scale(.94);
+      transform: scale(.97);
     }
   }
   /* A dead temp file / unreachable URL still shows its slot (the user can
