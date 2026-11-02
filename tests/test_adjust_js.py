@@ -91,3 +91,9 @@ def test_adjust_overlay_blocks_global_shortcuts_and_tab_switch_closes_it():
     tabs = _read("static", "js", "tabs.js")
     assert "closeAdjustEditor()" in tabs
     assert "closeAdjustEditor()" in _read("static", "js", "api.js")
+
+
+def test_adjust_sliders_use_relative_percent():
+    panel = _read("templates", "partials", "adjust_panel.html")
+    assert panel.count('min="-100" max="100" step="1" value="0"') == 3
+    assert '>0%</output>' in panel

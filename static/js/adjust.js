@@ -1,6 +1,6 @@
 // ── Adjust editor (brightness / contrast / saturation) ─────────────────────
 // The panel is inline on desktop and fullscreen on the stacked layout, like
-// Crop. Sliders work in percent (0–200, 100 = neutral); the final result is
+// Crop. Sliders work in relative percent (-100..+100, 0 = neutral); the final result is
 // computed by one ComfyUI LayerColor node. The preview uses CSS filters,
 // which are close to, but not pixel-identical with, PIL's ImageEnhance.
 
@@ -46,7 +46,7 @@ function openAdjustEditor(opts) {
   _adjust.lastFocus = document.activeElement;
 
   _adjustSetTargetLabel();
-  _adjustSetSliders(100, 100, 100);
+  _adjustSetSliders(0, 0, 0);
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.classList.add('adjust-open');
@@ -138,7 +138,7 @@ function _adjustSync() {
   };
   Object.entries(outputs).forEach(([id, value]) => {
     const el = _adjustById(id);
-    if (el) el.textContent = value + '%';
+    if (el) el.textContent = adjustLabel(value);
   });
   const apply = _adjustById('adjustApply');
   if (apply) {
@@ -151,7 +151,7 @@ function _adjustSync() {
 
 function adjustReset() {
   if (!_adjust.open) return;
-  _adjustSetSliders(100, 100, 100);
+  _adjustSetSliders(0, 0, 0);
 }
 
 function adjustApply() {

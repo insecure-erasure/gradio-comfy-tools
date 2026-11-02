@@ -441,8 +441,8 @@ the edit seed/LoRA/color validation:
 | Contrast slider | `contrast` (0–3, 1 = neutral) | `Adjust Color` → `contrast` |
 | Saturation slider | `saturation` (0–3, 1 = neutral) | `Adjust Color` → `saturation` |
 
-The UI uses percent (`0–200`, 100 = neutral) and converts with
-`factor = percent / 100`; the API accepts the factors directly. All three
+The UI uses relative percent (`-100…+100`, 0 = neutral) and converts with
+`factor = 1 + percent / 100`; the API accepts the factors directly. All three
 values are sent in **one** request, injected into the same node and produce
 one job/one result. Missing fields default to `1.0`.
 
@@ -456,9 +456,9 @@ limits. The node preserves alpha.
 **UI behaviour** (`static/js/adjust.js`): the adjust button lives on the
 output pane next to Crop/⛶, not in the prompt action row. It opens on the
 image currently shown. Desktop renders the panel inline; the stacked layout
-(`<1024px`) turns it into a fullscreen dialog. Sliders `0–200 %` update a CSS
+(`<1024px`) turns it into a fullscreen dialog. Sliders `-100…+100 %` update a CSS
 preview (`brightness() contrast() saturate()`, same order as the node) and
-`Apply` is disabled at the neutral `100/100/100`. The CSS preview is close
+`Apply` is disabled at the neutral `0/0/0`. The CSS preview is close
 but not pixel-identical to PIL; the final result comes from ComfyUI. Apply
 submits the three factors, closes the panel and shows the usual
 `Original / Adjusted` compare toggle; the result is appended as

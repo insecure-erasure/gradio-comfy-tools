@@ -255,7 +255,8 @@ empty and the prompt fills it; see also deviation 14):
     comparison/gallery entry (the source stays available in the gallery).
 - **Adjust**: the button left of Crop opens a panel on the image currently
   shown. It has three sliders — **Brightness**, **Contrast**, **Saturation** —
-  in percent (`0–200`, `100` = neutral), a live `%` readout and `Reset`.
+  in relative percent (`-100…+100`, `0` = neutral), a live `%` readout
+  (positive values get a `+` sign) and `Reset`.
   The preview uses CSS `brightness() contrast() saturate()` (same order as
   the ComfyUI node; close but not pixel-identical to PIL). `Apply` is
   disabled while all three are neutral. One `LayerColor: Brightness &

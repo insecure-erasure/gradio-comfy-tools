@@ -44,7 +44,7 @@ Web application with five image and video tools powered by ComfyUI:
   bar in portrait, params pane in landscape) and press ✨.
 - **Edit / restore / extend**: upload an image (📁), paste a URL, or use 🔗 to take the last generated image. Describe the change and press 🖌️ (edit) or 🩹 (restore). To add canvas on any side, set the padding in the ⛶ chip and press 🧩 (extend).
 - **Crop**: press the crop button over the image (next to ⛶), drag the corner handles or choose an aspect preset, then Apply. The crop editor is inline on desktop and fullscreen on the vertical/mobile layout. The result joins the gallery as `Cropped` and can be chained with 🔗.
-- **Adjust**: press the adjust button over the image, move the brightness/contrast/saturation sliders (100% = neutral) and Apply. It is one ComfyUI node/one job; the result joins the gallery as `Adjusted`.
+- **Adjust**: press the adjust button over the image, move the brightness/contrast/saturation sliders (0% = neutral) and Apply. It is one ComfyUI node/one job; the result joins the gallery as `Adjusted`.
 - **Face swap**: set the **base image** (🖼️ or 🔗) and the **face image** (👨🏻), optionally add extra instructions, and press 🔄.
 - **Upscale**: set the source image and press 🔍.
 - **Generate a video**: set the source image, describe the motion, and press 🎬.

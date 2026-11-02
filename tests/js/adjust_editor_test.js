@@ -65,9 +65,9 @@ const elements = {
   adjustCancel: element('adjustCancel', { tagName: 'BUTTON' }),
   adjustApply: element('adjustApply', { tagName: 'BUTTON' }),
   adjustReset: element('adjustReset', { tagName: 'BUTTON' }),
-  adjustBrightness: element('adjustBrightness', { tagName: 'INPUT', value: 100 }),
-  adjustContrast: element('adjustContrast', { tagName: 'INPUT', value: 100 }),
-  adjustSaturation: element('adjustSaturation', { tagName: 'INPUT', value: 100 }),
+  adjustBrightness: element('adjustBrightness', { tagName: 'INPUT', value: 0 }),
+  adjustContrast: element('adjustContrast', { tagName: 'INPUT', value: 0 }),
+  adjustSaturation: element('adjustSaturation', { tagName: 'INPUT', value: 0 }),
   adjustBrightnessValue: element('adjustBrightnessValue'),
   adjustContrastValue: element('adjustContrastValue'),
   adjustSaturationValue: element('adjustSaturationValue'),
@@ -122,25 +122,25 @@ test('opens neutral with Apply disabled and a CSS preview', () => {
   assert.strictEqual(sandbox.adjustEditorIsOpen(), true);
   assert.strictEqual(elements.adjustOverlay.classList.contains('show'), true);
   assert.strictEqual(elements.adjustTargetLabel.textContent, '· Source');
-  assert.strictEqual(elements.adjustBrightnessValue.textContent, '100%');
+  assert.strictEqual(elements.adjustBrightnessValue.textContent, '0%');
   assert.strictEqual(elements.adjustApply.disabled, true);
   assert.strictEqual(elements.adjustImage.style.filter,
     'brightness(1) contrast(1) saturate(1)');
 });
 
 test('a slider enables Apply and updates its output and filter', () => {
-  elements.adjustBrightness.value = '125';
+  elements.adjustBrightness.value = '25';
   elements.adjustBrightness.listeners.input();
-  assert.strictEqual(elements.adjustBrightnessValue.textContent, '125%');
+  assert.strictEqual(elements.adjustBrightnessValue.textContent, '+25%');
   assert.strictEqual(elements.adjustApply.disabled, false);
   assert.strictEqual(elements.adjustImage.style.filter,
     'brightness(1.25) contrast(1) saturate(1)');
 });
 
 test('applies the three factors in one payload', () => {
-  elements.adjustContrast.value = '90';
+  elements.adjustContrast.value = '-10';
   elements.adjustContrast.listeners.input();
-  elements.adjustSaturation.value = '150';
+  elements.adjustSaturation.value = '50';
   elements.adjustSaturation.listeners.input();
   sandbox.adjustApply();
   assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.applied)), {
@@ -154,12 +154,12 @@ test('applies the three factors in one payload', () => {
 test('Reset returns to neutral and disables Apply', () => {
   sandbox.applied = null;
   open();
-  elements.adjustSaturation.value = '180';
+  elements.adjustSaturation.value = '80';
   elements.adjustSaturation.listeners.input();
   assert.strictEqual(elements.adjustApply.disabled, false);
   elements.adjustReset.listeners.click();
-  assert.strictEqual(elements.adjustSaturation.value, '100');
-  assert.strictEqual(elements.adjustSaturationValue.textContent, '100%');
+  assert.strictEqual(elements.adjustSaturation.value, '0');
+  assert.strictEqual(elements.adjustSaturationValue.textContent, '0%');
   assert.strictEqual(elements.adjustApply.disabled, true);
   elements.adjustCancel.listeners.click();
   assert.strictEqual(sandbox.applied, null);

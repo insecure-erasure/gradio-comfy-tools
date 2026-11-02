@@ -11,6 +11,7 @@ vm.runInThisContext(fs.readFileSync(SRC, 'utf8'), { filename: SRC });
 const {
   adjustClampPercent,
   adjustFactor,
+  adjustLabel,
   adjustFilter,
   adjustPayload,
   adjustIsNeutral,
@@ -19,30 +20,36 @@ const {
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
-test('clamps and rounds slider percentages', () => {
-  assert.strictEqual(adjustClampPercent(-10), 0);
-  assert.strictEqual(adjustClampPercent(250), 200);
-  assert.strictEqual(adjustClampPercent(120.6), 121);
-  assert.strictEqual(adjustClampPercent('80'), 80);
-  assert.strictEqual(adjustClampPercent('nope'), 100);
+test('clamps and rounds relative percentages', () => {
+  assert.strictEqual(adjustClampPercent(-150), -100);
+  assert.strictEqual(adjustClampPercent(250), 100);
+  assert.strictEqual(adjustClampPercent(20.6), 21);
+  assert.strictEqual(adjustClampPercent('-20'), -20);
+  assert.strictEqual(adjustClampPercent('nope'), 0);
 });
 
-test('converts percent to the node factor', () => {
-  assert.strictEqual(adjustFactor(0), 0);
-  assert.strictEqual(adjustFactor(100), 1);
-  assert.strictEqual(adjustFactor(125), 1.25);
-  assert.strictEqual(adjustFactor(200), 2);
+test('converts relative percent to the node factor', () => {
+  assert.strictEqual(adjustFactor(-100), 0);
+  assert.strictEqual(adjustFactor(0), 1);
+  assert.strictEqual(adjustFactor(25), 1.25);
+  assert.strictEqual(adjustFactor(100), 2);
+});
+
+test('formats the percent label with a sign', () => {
+  assert.strictEqual(adjustLabel(-25), '-25%');
+  assert.strictEqual(adjustLabel(0), '0%');
+  assert.strictEqual(adjustLabel(25), '+25%');
 });
 
 test('builds the CSS preview filter in node order', () => {
   assert.strictEqual(
-    adjustFilter(110, 90, 125),
+    adjustFilter(10, -10, 25),
     'brightness(1.1) contrast(0.9) saturate(1.25)'
   );
 });
 
 test('builds the API payload', () => {
-  assert.deepStrictEqual(adjustPayload(110, 100, 50), {
+  assert.deepStrictEqual(adjustPayload(10, 0, -50), {
     brightness: 1.1,
     contrast: 1,
     saturation: 0.5,
@@ -50,9 +57,9 @@ test('builds the API payload', () => {
 });
 
 test('detects the neutral state', () => {
-  assert.strictEqual(adjustIsNeutral(100, 100, 100), true);
-  assert.strictEqual(adjustIsNeutral(100, 99, 100), false);
-  assert.strictEqual(adjustIsNeutral(100, 100, 101), false);
+  assert.strictEqual(adjustIsNeutral(0, 0, 0), true);
+  assert.strictEqual(adjustIsNeutral(0, -1, 0), false);
+  assert.strictEqual(adjustIsNeutral(0, 0, 1), false);
 });
 
 let failed = 0;

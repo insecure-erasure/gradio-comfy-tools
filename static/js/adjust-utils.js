@@ -1,11 +1,12 @@
 // ── Adjust panel helpers (pure) ────────────────────────────────────────────
-// The UI works in percent (0–200, 100 = neutral); ComfyUI's LayerColor node
-// takes factors (0–3, 1 = neutral). Keeping the conversion here makes the
-// slider → payload → CSS preview mapping consistent and unit-testable.
+// The UI works in relative percent (-100..+100, 0 = neutral); ComfyUI's
+// LayerColor node takes factors (0–3, 1 = neutral). Keeping the conversion
+// here makes the slider → payload → CSS preview mapping consistent and
+// unit-testable.
 
-const ADJUST_MIN_PERCENT = 0;
-const ADJUST_MAX_PERCENT = 200;
-const ADJUST_NEUTRAL_PERCENT = 100;
+const ADJUST_MIN_PERCENT = -100;
+const ADJUST_MAX_PERCENT = 100;
+const ADJUST_NEUTRAL_PERCENT = 0;
 
 function adjustClampPercent(value) {
   const n = typeof value === 'number' ? value : parseFloat(value);
@@ -14,7 +15,13 @@ function adjustClampPercent(value) {
 }
 
 function adjustFactor(percent) {
-  return adjustClampPercent(percent) / 100;
+  // -100% -> 0, 0% -> 1, +100% -> 2.
+  return 1 + adjustClampPercent(percent) / 100;
+}
+
+function adjustLabel(percent) {
+  const n = adjustClampPercent(percent);
+  return (n > 0 ? '+' : '') + n + '%';
 }
 
 function adjustFilter(brightness, contrast, saturation) {
