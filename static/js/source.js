@@ -614,7 +614,15 @@ function previewSourceImage(tab, src) {
   rememberLastSource(tab, src);
   clearSourcePreview(tab);
   pane.querySelectorAll('.output-placeholder').forEach(el => el.remove());
-  pane.querySelectorAll('.compare-slider').forEach(el => el.style.display = 'none');
+  // A new source replaces the previous result view: hide the compare slider
+  // AND the Original/Extended|Cropped|Adjusted toggle that crop/adjust/extend
+  // results leave on the pane. Reset the toggle classes too, so the next
+  // result starts from the default result side.
+  pane.querySelectorAll('.compare-slider').forEach(el => {
+    el.style.display = 'none';
+    el.classList.remove('extend-toggle-mode', 'show-original');
+  });
+  pane.querySelectorAll('.extend-toggle').forEach(el => { el.style.display = 'none'; });
   if (tab === 'video') {
     // Video tab: the preview replaces the video component — remove any
     // previous generated video AND the empty (disabled) player (the
