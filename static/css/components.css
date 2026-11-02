@@ -2363,22 +2363,6 @@
     overflow: hidden;
   }
   .adjust-overlay.show { display: flex; }
-  .adjust-topbar {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    background: rgba(8, 10, 20, .94);
-    border-bottom: 1px solid rgba(255,255,255,.08);
-  }
-  .adjust-title {
-    flex: 1;
-    text-align: center;
-    font: 600 .78rem/1.2 var(--font);
-    letter-spacing: .02em;
-  }
-  .adjust-title span { color: var(--text-secondary); font-weight: 400; }
   .adjust-btn {
     min-height: 28px;
     padding: 0 10px;
@@ -2394,7 +2378,6 @@
   .adjust-btn.primary { background: var(--accent); border-color: var(--accent); }
   .adjust-btn.primary:hover { filter: brightness(1.1); }
   .adjust-btn:disabled { opacity: .4; cursor: not-allowed; filter: none; }
-  .adjust-btn.small { min-height: 24px; padding: 0 8px; font-size: .68rem; }
   .adjust-preview-wrap {
     flex: 1;
     min-height: 0;
@@ -2416,12 +2399,28 @@
   .adjust-controls {
     flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    align-items: stretch;
+    gap: 12px;
     padding: 8px 12px 10px;
     background: rgba(8, 10, 20, .94);
     border-top: 1px solid rgba(255,255,255,.08);
   }
+  .adjust-sliders {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .adjust-actions {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .adjust-actions .adjust-btn { min-width: 68px; }
   .adjust-row {
     display: flex;
     align-items: center;
@@ -2444,4 +2443,3 @@
     color: rgba(255,255,255,.78);
     font: .68rem/1.2 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
   }
-  .adjust-footer { display: flex; justify-content: flex-end; }

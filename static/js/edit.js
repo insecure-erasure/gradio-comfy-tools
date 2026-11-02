@@ -721,7 +721,6 @@ function openEditAdjust() {
   openAdjustEditor({
     image: target.image,
     proxy: target.proxy,
-    label: target.label,
     onApply: payload => submitAdjust(target, payload),
   });
 }

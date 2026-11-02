@@ -8,7 +8,6 @@ const _adjust = {
   open: false,
   image: '',
   proxy: '',
-  label: '',
   loaded: false,
   applying: false,
   onApply: null,
@@ -39,13 +38,11 @@ function openAdjustEditor(opts) {
   _adjust.open = true;
   _adjust.image = image;
   _adjust.proxy = proxy;
-  _adjust.label = typeof opts.label === 'string' ? opts.label : '';
   _adjust.loaded = false;
   _adjust.applying = false;
   _adjust.onApply = typeof opts.onApply === 'function' ? opts.onApply : null;
   _adjust.lastFocus = document.activeElement;
 
-  _adjustSetTargetLabel();
   _adjustSetSliders(0, 0, 0);
   overlay.classList.add('show');
   overlay.setAttribute('aria-hidden', 'false');
@@ -60,11 +57,6 @@ function openAdjustEditor(opts) {
     if (cancel) cancel.focus({ preventScroll: true });
   });
   return true;
-}
-
-function _adjustSetTargetLabel() {
-  const label = _adjustById('adjustTargetLabel');
-  if (label) label.textContent = _adjust.label ? '· ' + _adjust.label : '';
 }
 
 function _adjustImageLoaded() {

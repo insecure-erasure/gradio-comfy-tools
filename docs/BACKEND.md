@@ -456,7 +456,9 @@ limits. The node preserves alpha.
 **UI behaviour** (`static/js/adjust.js`): the adjust button lives on the
 output pane next to Crop/⛶, not in the prompt action row. It opens on the
 image currently shown. Desktop renders the panel inline; the stacked layout
-(`<1024px`) turns it into a fullscreen dialog. Sliders `-100…+100 %` update a CSS
+(`<1024px`) turns it into a fullscreen dialog. All controls are in the bottom
+strip (sliders left, Reset/Cancel/Apply column right) with no top title.
+Sliders `-100…+100 %` update a CSS
 preview (`brightness() contrast() saturate()`, same order as the node) and
 `Apply` is disabled at the neutral `0/0/0`. The CSS preview is close
 but not pixel-identical to PIL; the final result comes from ComfyUI. Apply

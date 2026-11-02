@@ -97,3 +97,16 @@ def test_adjust_sliders_use_relative_percent():
     panel = _read("templates", "partials", "adjust_panel.html")
     assert panel.count('min="-100" max="100" step="1" value="0"') == 3
     assert '>0%</output>' in panel
+
+
+def test_adjust_controls_live_in_one_bottom_strip_with_action_column():
+    panel = _read("templates", "partials", "adjust_panel.html")
+    assert "adjust-topbar" not in panel
+    assert "adjustTitle" not in panel
+    assert "adjust-controls" in panel
+    assert "adjust-sliders" in panel
+    assert "adjust-actions" in panel
+    reset = panel.index('id="adjustReset"')
+    cancel = panel.index('id="adjustCancel"')
+    apply = panel.index('id="adjustApply"')
+    assert reset < cancel < apply

@@ -60,7 +60,6 @@ function element(id, extra = {}) {
 
 const elements = {
   adjustOverlay: element('adjustOverlay'),
-  adjustTargetLabel: element('adjustTargetLabel'),
   adjustImage: element('adjustImage', { tagName: 'IMG' }),
   adjustCancel: element('adjustCancel', { tagName: 'BUTTON' }),
   adjustApply: element('adjustApply', { tagName: 'BUTTON' }),
@@ -106,11 +105,10 @@ const flushRaf = () => {
 const tests = [];
 const test = (name, fn) => tests.push([name, fn]);
 
-function open(source = 'a.png', proxy = '/media/a.png', label = 'Source') {
+function open(source = 'a.png', proxy = '/media/a.png') {
   sandbox.openAdjustEditor({
     image: source,
     proxy,
-    label,
     onApply: payload => { sandbox.applied = payload; },
   });
   elements.adjustImage.onload();
@@ -121,7 +119,6 @@ test('opens neutral with Apply disabled and a CSS preview', () => {
   open();
   assert.strictEqual(sandbox.adjustEditorIsOpen(), true);
   assert.strictEqual(elements.adjustOverlay.classList.contains('show'), true);
-  assert.strictEqual(elements.adjustTargetLabel.textContent, '· Source');
   assert.strictEqual(elements.adjustBrightnessValue.textContent, '0%');
   assert.strictEqual(elements.adjustApply.disabled, true);
   assert.strictEqual(elements.adjustImage.style.filter,
