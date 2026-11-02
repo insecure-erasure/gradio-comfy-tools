@@ -261,6 +261,31 @@ test('double-clicking the selection applies the crop', () => {
   assert.strictEqual(sandbox.cropEditorIsOpen(), false);
 });
 
+test('two quick pointer clicks inside the selection apply the crop', () => {
+  open();
+  elements.cropPresets.listeners.click({
+    target: presets[2],
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  const pointer = () => ({
+    target: elements.cropBox,
+    pointerId: 7,
+    button: 0,
+    clientX: 400,
+    clientY: 300,
+    cancelable: true,
+    preventDefault() {},
+    stopPropagation() {},
+  });
+  elements.cropStage.listeners.pointerdown(pointer());
+  elements.cropStage.listeners.pointerup(pointer());
+  assert.strictEqual(sandbox.cropEditorIsOpen(), true);
+  elements.cropStage.listeners.pointerdown(pointer());
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(sandbox.applied)), { x: 100, y: 0, width: 600, height: 600 });
+  assert.strictEqual(sandbox.cropEditorIsOpen(), false);
+});
+
 test('cancel closes without calling onApply', () => {
   sandbox.applied = null;
   open('b.png', '/media/b.png', 'Result');

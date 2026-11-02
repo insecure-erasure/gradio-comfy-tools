@@ -12,6 +12,10 @@
 // The editor is deliberately independent from the prompt/chip system: crop
 // is canvas editing, not a generation action.
 
+const CROP_DOUBLE_CLICK_MS = 350;
+const CROP_DOUBLE_CLICK_PX = 10;
+const CROP_CLICK_MOVE_PX = 8;
+
 const _crop = {
   open: false,
   image: '',
@@ -26,6 +30,7 @@ const _crop = {
   onApply: null,
   lastFocus: null,
   drag: null,
+  lastClick: null,
   raf: 0,
   applying: false,
 };
@@ -256,6 +261,19 @@ function cropApply() {
   if (cb) cb(payload);
 }
 
+// Native dblclick is unreliable here: pointerdown calls preventDefault()
+// and captures the pointer, which can suppress the compatibility click/dblclick
+// events. Track two quick pointerups inside the box instead (also covers touch).
+function _cropIsDoubleClick(e) {
+  const last = _crop.lastClick;
+  if (!last) return false;
+  const dt = Date.now() - last.time;
+  const dx = e.clientX - last.x;
+  const dy = e.clientY - last.y;
+  return dt <= CROP_DOUBLE_CLICK_MS &&
+    Math.hypot(dx, dy) <= CROP_DOUBLE_CLICK_PX;
+}
+
 // ── Pointer interaction ───────────────────────────────────────────────────
 function _cropStageRect() {
   const stage = _cropById('cropStage');
@@ -273,11 +291,17 @@ function _cropPointerDown(e) {
   e.preventDefault();
   e.stopPropagation();
   const handle = handleEl ? handleEl.dataset.cropHandle : 'move';
+  if (handle === 'move' && _cropIsDoubleClick(e)) {
+    _crop.lastClick = null;
+    cropApply();
+    return;
+  }
   _crop.drag = {
     pointerId: e.pointerId,
     handle,
     startX: e.clientX,
     startY: e.clientY,
+    moved: false,
     rect: { ..._crop.rect },
   };
   try { stage.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
@@ -299,6 +323,9 @@ function _cropPointerMove(e) {
   const scaleY = _crop.naturalHeight / rect.height;
   const dx = (e.clientX - d.startX) * scaleX;
   const dy = (e.clientY - d.startY) * scaleY;
+  if (Math.hypot(e.clientX - d.startX, e.clientY - d.startY) > CROP_CLICK_MOVE_PX) {
+    d.moved = true;
+  }
   if (d.handle === 'move') {
     _crop.rect = cropMoveRect(d.rect, dx, dy, _cropImageBounds());
   } else {
@@ -318,6 +345,14 @@ function _cropPointerMove(e) {
 function _cropPointerUp(e) {
   const d = _crop.drag;
   if (d && e && e.pointerId != null && e.pointerId !== d.pointerId) return;
+  if (d) {
+    // Only a click (no drag) inside the selection can start a double-click.
+    // A resize handle never records it, so double-clicking a corner keeps
+    // its resize behaviour.
+    _crop.lastClick = (d.handle === 'move' && !d.moved)
+      ? { time: Date.now(), x: e.clientX, y: e.clientY }
+      : null;
+  }
   _cropEndDrag();
 }
 
