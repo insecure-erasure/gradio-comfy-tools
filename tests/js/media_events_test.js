@@ -21,6 +21,15 @@ const STORAGE_SRC = path.join(__dirname, '..', '..', 'static', 'js', 'storage.js
 vm.runInThisContext(fs.readFileSync(STORAGE_SRC, 'utf8'), { filename: STORAGE_SRC });
 const { _mediaExists } = global;
 
+// source.js registers the 🕘 history. It only defines functions at load time,
+// but wires document/window listeners, so provide the minimal browser stubs.
+global.window.matchMedia = () => ({ matches: false });
+global.window.addEventListener = () => {};
+global.document = { addEventListener() {}, getElementById() { return null; } };
+const SOURCE_SRC = path.join(__dirname, '..', '..', 'static', 'js', 'source.js');
+vm.runInThisContext(fs.readFileSync(SOURCE_SRC, 'utf8'), { filename: SOURCE_SRC });
+const { forgetSourceHistoryEntry } = global;
+
 async function withFetch(handler, fn) {
   const prev = global.fetch;
   global.fetch = handler;
@@ -196,6 +205,31 @@ test('results are cached unless force is set', async () => {
     assert.strictEqual(await _mediaExists('cached.png', 'output', true), false);
     assert.strictEqual(calls, 2);
   });
+});
+
+test('a manual gallery delete forgets the image in the 🕘 history', () => {
+  global.sourceHistory = {
+    edit: [{ value: '/media/gen1.png?type=temp' }, { value: 'upload.png' }],
+    upscale: [{ value: '/media/gen1.png?type=temp' }],
+    video: [],
+    face_swap: [
+      { base: '/media/gen1.png?type=temp', face: '' },
+      { base: '/media/gen2.png?type=temp', face: '' },
+    ],
+  };
+  global.lastSourceByTab = { edit: '/media/gen1.png?type=temp', upscale: 'upload.png', video: '' };
+  global.lastGeneratedUrl = '/media/gen1.png?type=temp';
+  global.savePersistedState = () => {};
+  const entry = { src: '/media/gen1.png?type=temp', filename: 'gen1.png' };
+
+  assert.strictEqual(forgetSourceHistoryEntry(entry), true);
+  assert.deepStrictEqual(global.sourceHistory.edit, [{ value: 'upload.png' }]);
+  assert.deepStrictEqual(global.sourceHistory.upscale, []);
+  assert.deepStrictEqual(global.sourceHistory.face_swap,
+    [{ base: '/media/gen2.png?type=temp', face: '' }]);
+  assert.strictEqual(global.lastSourceByTab.edit, '');
+  assert.strictEqual(global.lastSourceByTab.upscale, 'upload.png');
+  assert.strictEqual(global.lastGeneratedUrl, '');
 });
 
 // ── runner ────────────────────────────────────────────────────────────────

@@ -811,6 +811,10 @@ function galleryDeleteCurrent() {
   closeGalleryPrompt();
   closeBadgeBox();
 
+  // Generated results are also source candidates in the 🕘 popover, so a
+  // manual delete here must forget the image there as well (all tabs).
+  if (typeof forgetSourceHistoryEntry === 'function') forgetSourceHistoryEntry(e);
+
   // 1) Remove from the persisted registry (the source of truth).
   if (galleryMode === 'lightbox') {
     // galleryGenerated: by filename (prefer) or by src URL.

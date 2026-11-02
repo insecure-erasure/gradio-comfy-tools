@@ -558,7 +558,9 @@ a wide source may extend past it — and clamps to the viewport otherwise.
 `pointer-events: none` keeps the hover on the item underneath, and it hides on
 leave/blur/scroll/resize. A file the cleanup task confirms as deleted is
 removed from the grid (and from the galleries/panes) as soon as the event
-arrives; a thumbnail that fails to load WITHOUT such an event stays as a
+arrives; deleting an entry from a gallery (the fullscreen 🗑️) forgets the
+same file in every 🕘 list too, so the grid never offers an image the user
+removed. A thumbnail that fails to load WITHOUT such an event stays as a
 dimmed slot and shows no popout. The popover closes on click-outside /
 Esc / resize / tab switch, or when the prompt modal opens (`source.js`).
 

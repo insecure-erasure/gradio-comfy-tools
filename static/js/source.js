@@ -150,6 +150,32 @@ function rememberGeneratedImage(url) {
   if (typeof savePersistedState === 'function') savePersistedState();
 }
 
+// Forget a gallery image in EVERY 🕘 list. Generated results are remembered
+// automatically as source candidates, so a manual delete from a gallery must
+// remove them there too — otherwise the popover keeps offering a file the
+// user just removed. Reuse the pure media-drop planner (the same filename /
+// base+face matching confirmed ComfyUI deletions use) so the rules stay in
+// one place. Returns true when anything changed.
+function forgetSourceHistoryEntry(entry) {
+  const fn = typeof mediaEntryFilename === 'function' ? mediaEntryFilename(entry) : null;
+  if (!fn || typeof mediaDropPlan !== 'function') return false;
+  const plan = mediaDropPlan({
+    sourceHistory: typeof sourceHistory === 'object' && sourceHistory ? sourceHistory : {},
+    lastSources: typeof lastSourceByTab === 'object' && lastSourceByTab ? lastSourceByTab : {},
+    lastGeneratedUrl: typeof lastGeneratedUrl === 'string' ? lastGeneratedUrl : '',
+  }, [fn]);
+  if (!plan.changed) return false;
+  sourceHistory = plan.sourceHistory;
+  Object.assign(lastSourceByTab, plan.lastSources);
+  if (plan.lastGeneratedGone) lastGeneratedUrl = '';
+  // An open popover must repaint now, not keep a ghost until it is reopened.
+  if (typeof _sourceHistoryTab === 'string' && _sourceHistoryTab) {
+    renderSourceHistoryGrid(_sourceHistoryTab);
+  }
+  if (typeof savePersistedState === 'function') savePersistedState();
+  return true;
+}
+
 // Short filename for a history card's caption.
 function sourceHistoryLabel(value) {
   try {
