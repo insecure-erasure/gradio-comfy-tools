@@ -488,7 +488,11 @@ function startProgressPolling() {
   recoverPending = false;  // fresh job — the in-flight fetch is the primary channel
   _lastJobDurationSecs = 0; // a new job — no duration yet
   progressTimer = {}; // marker: a generation is running (cleared in stopProgressPolling)
-  persistJobMarker(liveJobTab); // survives reloads / backgrounded-tab discards
+  // Store the prompt with the marker: a recovered job registers its result
+  // in the gallery after a reload, where the textarea may already be cleared.
+  const jobPrompt = (typeof promptsByTab === 'object' && promptsByTab
+    && typeof promptsByTab[liveJobTab] === 'string') ? promptsByTab[liveJobTab] : '';
+  persistJobMarker(liveJobTab, jobPrompt); // survives reloads / backgrounded-tab discards
   // Claim the shared result row immediately: the first WS/POST snapshot is
   // async, and switching tools in that gap must not leave the previous
   // result URL looking like the current job's status.
@@ -708,8 +712,12 @@ function stopProgressPolling() {
 // localStorage): it is only meaningful while the session lives.
 const JOB_MARKER_KEY = 'comfyTools.activeJob';
 
-function persistJobMarker(tool) {
-  try { sessionStorage.setItem(JOB_MARKER_KEY, JSON.stringify({ tool, startedAt: Date.now() })); } catch (e) {}
+function persistJobMarker(tool, prompt) {
+  try {
+    sessionStorage.setItem(JOB_MARKER_KEY, JSON.stringify({
+      tool, prompt: typeof prompt === 'string' ? prompt : '', startedAt: Date.now(),
+    }));
+  } catch (e) {}
 }
 
 function clearJobMarker() {
@@ -740,9 +748,13 @@ function releaseGeneratingUi() {
 }
 
 // Generic finalize for a job adopted after a page reload: shows the result
-// in the tool's pane (no gallery registration — the session registries were
-// rebuilt from localStorage) and releases the UI.
-function finalizeRecoveredJob(tool, res) {
+// in the tool's pane and registers it in the gallery. The session registries
+// were rebuilt from localStorage, but this job's result landed AFTER that
+// snapshot, so it is not there yet. Only the tools whose gallery entry can be
+// rebuilt from the result alone (video and plain Generate) are registered
+// here; an adopted Edit/Upscale/Face swap would need the source/mode pair,
+// which is not part of the recovery payload.
+function finalizeRecoveredJob(tool, res, marker) {
   const paneId = TAB_PANE_IDS[tool] || 'genOutputPane';
   const pane = document.getElementById(paneId);
   // Drop any empty (disabled) player before showing the recovered result
@@ -755,6 +767,15 @@ function finalizeRecoveredJob(tool, res) {
     const vid = pane && pane.querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
     if (currentTab !== 'video') pauseActiveVideo();
+  }
+  // The result appeared after the page reloaded, so the persisted galleries
+  // restored at startup do not contain it yet. Register it now — otherwise
+  // the pane shows the video/image but the fullscreen gallery does not.
+  const prompt = marker && typeof marker.prompt === 'string' ? marker.prompt : '';
+  if (tool === 'video' && typeof addGeneratedVideo === 'function') {
+    addGeneratedVideo(res, prompt);
+  } else if (tool === 'generate' && typeof addGeneratedEntry === 'function') {
+    addGeneratedEntry(res, prompt);
   }
   // Only image tools set lastGeneratedUrl: the 🔗 chain feeds Edit/Upscale/
   // Video, all of which need an IMAGE source (img2img / img2vid) — a
@@ -796,7 +817,7 @@ async function adoptRunningJob() {
     openProgressWs();
     paintProgress();
     setGeneratingUi(true, null); // lock the UI; the ⏹ fallback appears on the primary action
-    registerRecoverHandler(res => finalizeRecoveredJob(marker.tool, res));
+    registerRecoverHandler(res => finalizeRecoveredJob(marker.tool, res, marker));
     showToast('⏳ Reconnected to a generation in progress…');
   } catch (e) { /* ignore */ }
 }
