@@ -866,6 +866,67 @@ def test_media_proxy(client, tmp_config, monkeypatch):
     assert resp.headers["content-type"] == "image/png"
 
 
+def _fake_proxy_client(monkeypatch, status_code, seen_headers=None):
+    """Fake AsyncClient for the streaming /media proxy with a fixed status."""
+    import httpx
+
+    class FakeResp:
+        def __init__(self):
+            self.status_code = status_code
+            self.headers = {"content-type": "image/png"}
+
+        async def aiter_bytes(self):
+            yield b""
+
+        async def aclose(self):
+            pass
+
+    class FakeRequest:
+        def __init__(self, url, headers):
+            self.url = url
+            self.headers = headers or {}
+
+    class FakeAsyncClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def build_request(self, method, url, headers=None):
+            return FakeRequest(url, headers)
+
+        async def send(self, request, stream=False):
+            return FakeResp()
+
+        async def aclose(self):
+            pass
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
+
+
+def test_media_proxy_404_broadcasts_the_deletion(client, tmp_config, monkeypatch):
+    """Upstream 404 → the proxy answers 404 (not 502) and announces the file,
+    so every open browser drops the entry (counters, panes and 🕘 included)."""
+    broadcasts = []
+    monkeypatch.setattr(server, "_broadcast_event", lambda p: broadcasts.append(p))
+    _fake_proxy_client(monkeypatch, 404)
+
+    resp = client.get("/media/gone.png?type=temp")
+
+    assert resp.status_code == 404
+    assert broadcasts == [{"deleted": ["gone.png"]}]
+
+
+def test_media_proxy_5xx_does_not_announce_a_deletion(client, tmp_config, monkeypatch):
+    """An upstream failure is NOT a deletion: keep it a 502 and announce nothing."""
+    broadcasts = []
+    monkeypatch.setattr(server, "_broadcast_event", lambda p: broadcasts.append(p))
+    _fake_proxy_client(monkeypatch, 500)
+
+    resp = client.get("/media/out.png?type=output")
+
+    assert resp.status_code == 502
+    assert broadcasts == []
+
+
 def test_media_proxy_range_206(client, tmp_config, monkeypatch):
     """The proxy must pass Range through and stream with a 206 so <video>
     elements can seek/buffer progressively (videos were unplayable with the
@@ -1524,8 +1585,67 @@ def test_media_exists_404(client, tmp_config, monkeypatch):
     assert resp.json() == {"exists": False, "status": 404}
 
 
-def test_media_exists_transport_error(client, tmp_config, monkeypatch):
-    """Transport failure → exists False with error (not an HTTP 500)."""
+def test_media_exists_head_404_is_final(client, tmp_config, monkeypatch):
+    """ComfyUI answers HEAD correctly → a HEAD 404 is final, one request."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 404
+            return r
+
+        def get(self, url, headers=None):
+            raise AssertionError("GET fallback must not run after a HEAD 404")
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=gone.png&type=temp")
+    assert resp.status_code == 200
+    assert resp.json() == {"exists": False, "status": 404}
+
+
+def test_media_exists_auth_error_is_inconclusive(client, tmp_config, monkeypatch):
+    """401/403 (auth misconfigured) or 5xx must NOT look like a deletion."""
+    import httpx
+
+    class FakeClient:
+        def __init__(self, *a, **kw):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return None
+
+        def head(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 403
+            return r
+
+        def get(self, url, headers=None):
+            r = type("R", (), {})()
+            r.status_code = 403
+            return r
+
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+    resp = client.get("/api/media-exists?filename=out.png&type=output")
+    assert resp.status_code == 200
+    assert resp.json() == {"exists": True, "unknown": True, "status": 403}
+
+
+def test_media_exists_transport_error_keeps_the_entry(client, tmp_config, monkeypatch):
+    """Transport failure is INCONCLUSIVE: reported as unknown (keep), never
+    as missing — otherwise a ComfyUI outage would wipe the galleries."""
     import httpx
 
     class FakeClient:
@@ -1547,8 +1667,7 @@ def test_media_exists_transport_error(client, tmp_config, monkeypatch):
     monkeypatch.setattr(httpx, "Client", FakeClient)
     resp = client.get("/api/media-exists?filename=out.png&type=output")
     assert resp.status_code == 200
-    assert resp.json()["exists"] is False
-    assert resp.json()["error"] == "transport"
+    assert resp.json() == {"exists": True, "unknown": True}
 
 
 def test_listener_captures_face_preview_on_executed(client, tmp_config, monkeypatch):

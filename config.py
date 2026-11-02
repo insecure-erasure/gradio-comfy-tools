@@ -47,6 +47,9 @@ class Settings:
         self.comfyui_base_url: str = os.environ.get("COMFYUI_BASE_URL", DEFAULT_BASE_URL)
         self.comfyui_media_base_url: str = os.environ.get("COMFYUI_MEDIA_BASE_URL", "")
         self.api_key: str = os.environ.get("COMFYUI_API_KEY", "")
+        # Shared secret for the ComfyUI cleanup hook (POST /api/media-deleted).
+        # Empty = the endpoint accepts unauthenticated calls (localhost/LAN).
+        self.media_deleted_token: str = os.environ.get("MEDIA_DELETED_TOKEN", "")
         self.prompt_refiner_base_url: str = os.environ.get("PROMPT_REFINER_BASE_URL", "")
         self.prompt_refiner_model: str = os.environ.get("PROMPT_REFINER_MODEL", DEFAULT_REFINER_MODEL)
         self.refiner_exclude: list[str] = [

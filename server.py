@@ -18,6 +18,8 @@ Endpoints:
     POST /api/check-image         validate that a URL/filename is an image
     GET/POST /api/settings        global settings (for the 🎨 menu)
     WS   /ws/progress             live generation progress push (frontend no longer polls)
+    POST /api/media-deleted       ComfyUI cleanup hook: files just deleted
+    WS   /ws/events               pushes {"deleted": [...]} to open browsers
 
 Run:  .venv/bin/uvicorn server:app --host 0.0.0.0 --port 8000
 """
@@ -455,7 +457,10 @@ def _broadcast_progress(job: dict | None) -> None:
     with _progress_clients_lock:
         clients = list(_progress_clients.values())
     for q in clients:
-        loop.call_soon_threadsafe(q.put_nowait, payload)
+        try:
+            loop.call_soon_threadsafe(q.put_nowait, payload)
+        except RuntimeError:
+            pass  # the loop closed between the check and the call
 
 
 @app.websocket("/ws/progress")
@@ -503,6 +508,110 @@ async def ws_progress(ws: WebSocket) -> None:
         task.cancel()
         with _progress_clients_lock:
             _progress_clients.pop(ws, None)
+
+
+# --------------------------------------------------------------------------- #
+# Media deletion events (ComfyUI cleanup -> browser, pushed over /ws/events)
+# --------------------------------------------------------------------------- #
+# The ComfyUI cleanup task deletes generated files when they get old. The
+# browser must stop showing them, but WITHOUT polling and WITHOUT hiding a
+# file that still exists. The task POSTs /api/media-deleted with the exact
+# filenames it removed; every connected browser receives {"deleted": [...]}
+# and drops those entries through the same path as the gallery's 🗑️ button
+# (dropMedia in gallery.js) — counters, pane navigation and the 🕘 grid
+# included. With MEDIA_DELETED_TOKEN unset the hook is open (local app).
+_event_clients: dict[WebSocket, asyncio.Queue] = {}
+_event_clients_lock = threading.Lock()
+_event_loop: asyncio.AbstractEventLoop | None = None
+_MAX_DELETED_PER_CALL = 500
+
+
+def _broadcast_event(payload: dict) -> None:
+    """Fan out one payload to every /ws/events client. Safe from any thread."""
+    loop = _event_loop
+    if loop is None or loop.is_closed() or not _event_clients:
+        return
+    with _event_clients_lock:
+        clients = list(_event_clients.values())
+    for q in clients:
+        try:
+            loop.call_soon_threadsafe(q.put_nowait, payload)
+        except RuntimeError:
+            pass  # the loop closed between the check and the call
+
+
+@app.post("/api/media-deleted")
+def api_media_deleted(
+    body: dict, x_media_token: str | None = Header(default=None)
+) -> dict:
+    """ComfyUI cleanup hook: announce the files that were just deleted.
+
+    Body: ``{"filenames": ["ComfyUI_00012_.png", ...]}`` (``{"deleted": ...}``
+    is accepted too). Returns ``{"ok": true, "count": n}``. 400 on malformed
+    input, 401 when ``MEDIA_DELETED_TOKEN`` is set and ``X-Media-Token`` does
+    not match. Only files the task REALLY removed are announced, so the UI
+    never hides anything that still exists.
+    """
+    token = _settings().media_deleted_token
+    if token and x_media_token != token:
+        raise HTTPException(401, "invalid media-deleted token")
+    raw = body.get("filenames", body.get("deleted"))
+    if not isinstance(raw, list):
+        raise HTTPException(400, "filenames must be a list")
+    names: list[str] = []
+    seen: set[str] = set()
+    for value in raw:
+        if not isinstance(value, str):
+            raise HTTPException(400, "filenames must be strings")
+        name = value.strip()
+        if not name or len(name) > 512 or any(ord(c) < 32 for c in name):
+            raise HTTPException(400, "invalid filename")
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+    if len(names) > _MAX_DELETED_PER_CALL:
+        raise HTTPException(413, f"at most {_MAX_DELETED_PER_CALL} filenames per call")
+    if names:
+        _broadcast_event({"deleted": names})
+    return {"ok": True, "count": len(names)}
+
+
+@app.websocket("/ws/events")
+async def ws_events(ws: WebSocket) -> None:
+    """Push channel for media-deletion events — no snapshot, no polling.
+
+    The client only reacts to ``{"deleted": [...]}``; the connection stays
+    open for the whole page lifetime and reconnects with backoff on drop.
+    """
+    global _event_loop
+    await ws.accept()
+    _event_loop = asyncio.get_running_loop()
+    q: asyncio.Queue = asyncio.Queue()
+    with _event_clients_lock:
+        _event_clients[ws] = q
+
+    async def sender() -> None:
+        while True:
+            payload = await q.get()
+            if payload is _WS_SENTINEL:
+                break
+            try:
+                await ws.send_json(payload)
+            except Exception:
+                break
+
+    task = asyncio.create_task(sender())
+    try:
+        while True:
+            await ws.receive_text()  # client sends nothing — wait for disconnect
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        task.cancel()
+        with _event_clients_lock:
+            _event_clients.pop(ws, None)
 
 
 def _latest_job() -> dict | None:
@@ -988,11 +1097,14 @@ def api_media_exists(filename: str, type: str = "output") -> dict:
     """Lightweight check that a result file still exists on the ComfyUI host.
 
     Used when restoring persisted galleries from localStorage: entries whose
-    file has been deleted (ComfyUI can prune its output folder) must not be
-    shown. Implemented as a HEAD to the upstream /view (no body transferred);
-    some servers reject HEAD, so it falls back to a GET with
-    ``Range: bytes=0-0`` (expects 206, transfers nothing). Never proxies the
-    body — this is deliberately the cheapest possible probe.
+    file has been deleted (ComfyUI prunes old generations) must not be shown.
+    Implemented as a HEAD to the upstream /view (no body transferred); a HEAD
+    404 is final, and the GET with ``Range: bytes=0-0`` fallback is only for
+    servers that reject HEAD. Never proxies the body — this is deliberately
+    the cheapest possible probe.
+
+    A transport failure is reported as ``{"exists": true, "unknown": true}``:
+    the caller keeps the entry, because "cannot ask" is not "deleted".
     """
     from urllib.parse import urlencode
 
@@ -1000,21 +1112,34 @@ def api_media_exists(filename: str, type: str = "output") -> dict:
     url = f"{s.media_base_url}/view?{urlencode({'filename': filename, 'type': type})}"
     try:
         with httpx.Client(timeout=10) as client:
-            # HEAD first (cheapest); if the server rejects it, GET with a
-            # 0-byte Range (206 Partial Content, no body streamed).
+            # HEAD first (cheapest). ComfyUI answers HEAD correctly
+            # (200/206 vs 404), so both are FINAL and cost one request; the
+            # GET+Range fallback is only for servers that reject HEAD (405 /
+            # 501) or answer something unexpected.
             try:
                 r = client.head(url, headers={"Accept": "*/*"})
                 if r.status_code in (200, 206):
                     return {"exists": True, "status": r.status_code}
+                if r.status_code in (404, 410):
+                    return {"exists": False, "status": r.status_code}
             except Exception:
                 pass  # fall through to GET+Range
             try:
                 r = client.get(url, headers={"Range": "bytes=0-0"})
-                return {"exists": r.status_code in (200, 206), "status": r.status_code}
+                if r.status_code in (200, 206):
+                    return {"exists": True, "status": r.status_code}
+                if r.status_code in (404, 410):
+                    return {"exists": False, "status": r.status_code}
+                # 401/403 (auth) or 5xx: ambiguous — only 404/410 prove that
+                # the file is gone, so keep the entry.
+                return {"exists": True, "unknown": True, "status": r.status_code}
             except Exception:
-                return {"exists": False, "error": "transport"}
+                # Inconclusive: MUST NOT be reported as "missing" — the UI
+                # would drop entries that may still exist (e.g. ComfyUI is
+                # temporarily unreachable). `unknown` = keep.
+                return {"exists": True, "unknown": True}
     except Exception:
-        return {"exists": False, "error": "transport"}
+        return {"exists": True, "unknown": True}
 
 
 # --------------------------------------------------------------------------- #
@@ -1068,6 +1193,15 @@ async def media(filename: str, type: str = "output", range: str | None = Header(
     except Exception as e:
         await client.aclose()
         raise HTTPException(502, f"Could not fetch {url}: {e}") from e
+    if resp.status_code in (404, 410):
+        # ComfyUI's cleanup really removed this file. Answer 404 (NOT 502:
+        # an outage and a deletion must stay distinguishable) and tell every
+        # open browser, so the galleries' counters, the pane ‹ › navigation
+        # and the 🕘 grid drop the entry at once (dropMedia in gallery.js).
+        await resp.aclose()
+        await client.aclose()
+        _broadcast_event({"deleted": [filename]})
+        raise HTTPException(404, f"{filename} is no longer available")
     if resp.status_code >= 400:
         await resp.aclose()
         await client.aclose()
