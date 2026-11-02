@@ -129,9 +129,9 @@ def test_build_workflow_color_match_wiring(wf):
 
 def test_build_workflow_color_match_default_keeps_workflow_value(wf):
     built, meta = build_workflow(wf, image="a.png", left=1)
-    # Extend's workflow default is full match (1.0); an API client that
-    # omits color_match keeps it.
-    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 1
+    # Extend's workflow default is a 0.5 match; an API client that omits
+    # color_match keeps it.
+    assert resolve_workflow(built)["Color Match"]["inputs"]["strength"] == 0.5
     assert meta["color_match"] is None
 
 
@@ -182,7 +182,7 @@ def test_deep_copy_not_mutating_source(wf):
     assert src["Pad Image for Outpainting"]["inputs"]["left"] == 0
     assert src["RandomNoise"]["inputs"]["noise_seed"] == 0
     assert src["Flux2Scheduler"]["inputs"]["steps"] == 6
-    assert src["Color Match"]["inputs"]["strength"] == 1
+    assert src["Color Match"]["inputs"]["strength"] == 0.5
     built_nodes = resolve_workflow(built)
     assert built_nodes["Pad Image for Outpainting"]["inputs"]["left"] == 10
     assert built_nodes["RandomNoise"]["inputs"]["noise_seed"] == 3

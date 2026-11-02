@@ -16,6 +16,9 @@ const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
 // Edit / Restore / Extend.
 const EDIT_COLOR_MATCH_ID = 'editColorMatch';
 const EDIT_COLOR_MATCH_DEFAULT = 0;
+// Extend's default: a softer match than a full transfer (1.0) preserves the
+// source palette without pulling the new canvas too aggressively toward it.
+const EDIT_EXTEND_COLOR_MATCH_DEFAULT = 0.5;
 
 // Live Extend preview. The dashed frame is the FINAL canvas (centered in
 // the pane) and the source image sits at its REAL padding offset inside it,
@@ -636,13 +639,13 @@ function _setEditColorMatchValue(value) {
   if (typeof savePersistedState === 'function') savePersistedState();
 }
 
-// Extend always benefits from full source-color matching: any padding change
-// with at least one edge > 0 sets the ColorMatch strength to 1. (Feathering is
-// not a canvas dimension and does not trigger this.)
+// Extending benefits from source-color matching: any padding change with at
+// least one edge > 0 sets the ColorMatch strength to Extend's default (0.5).
+// (Feathering is not a canvas dimension and does not trigger this.)
 function _autoSetExtendColorMatch() {
   const anyPad = ['left', 'right', 'top', 'bottom']
     .some(field => getEditPadValue(field) > 0);
-  if (anyPad) _setEditColorMatchValue(1);
+  if (anyPad) _setEditColorMatchValue(EDIT_EXTEND_COLOR_MATCH_DEFAULT);
 }
 
 // ── ↺ Reset ───────────────────────────────

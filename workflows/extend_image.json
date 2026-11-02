@@ -302,7 +302,7 @@
   "167": {
     "inputs": {
       "method": "mkl",
-      "strength": 1,
+      "strength": 0.5,
       "multithread": true,
       "image_ref": [
         "308",

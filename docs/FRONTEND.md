@@ -235,7 +235,7 @@ empty and the prompt fills it; see also deviation 14):
     `🎨 0` when off (e.g. `6 🎨 0 🎲`, or `6 🎨 0.5 🎲` after raising it); the old `·`
     separators were removed. Changing any
     Extend padding (with at least one edge > 0) automatically sets the
-    strength to 1; pressing 🩹 Restore sets it to 0 (Restore does not use
+    strength to 0.5; pressing 🩹 Restore sets it to 0 (Restore does not use
     ColorMatch for now, so the control reflects the actual run).
   - **⛶ Extend** — shows only the modified axes: `↔ h` and/or `↕ v` (e.g.
     `↔ 500`, `↕ 300`, `↔ 500 ↕ 300`); a zero axis is omitted. The ⛶ icon is

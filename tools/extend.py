@@ -30,9 +30,9 @@ MIN_PAD, MAX_PAD = 0, 1024
 MIN_FEATHERING, MAX_FEATHERING = 0, 256
 DEFAULT_FEATHERING = 40
 MIN_STEPS, MAX_STEPS = 1, 15
-# ColorMatch node already present in extend_image.json (strength 1.0 by
-# default). The UI can lower it; API clients that omit color_match keep the
-# workflow default.
+# ColorMatch node already present in extend_image.json (strength 0.5 by
+# default). The UI can lower/raise it; API clients that omit color_match keep
+# the workflow default.
 MIN_COLOR_MATCH, MAX_COLOR_MATCH = 0.0, 1.0
 
 _INT_RE = re.compile(r"[+-]?\d+")
@@ -169,7 +169,7 @@ def build_workflow(
     # LoRAs
     _common.apply_loras(nodes["Power Lora Loader (rgthree)"]["inputs"], loras)
 
-    # Optional ColorMatch strength (workflow default 1.0).
+    # Optional ColorMatch strength (workflow default 0.5).
     if color_match is not None:
         nodes["Color Match"]["inputs"]["strength"] = color_match
 
