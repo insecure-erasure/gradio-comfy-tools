@@ -421,6 +421,51 @@ Edit job marker.
 `dev/check_env.py` and the environment check should verify `/object_info/ImageCrop`
 when the server is upgraded.
 
+### 5.2.3 Adjust — `adjust_image.json`
+
+A deterministic post-process: **one** custom node applies brightness,
+contrast and saturation in a single ComfyUI execution. There is no model,
+sampler, seed or LoRA.
+
+```text
+Load Image (URL/Path) -> LayerColor: Brightness & Contrast -> Random Preview Image
+```
+
+`POST /api/edit` with `mode="adjust"` dispatches to `tools/adjust.py` before
+the edit seed/LoRA/color validation:
+
+| UI control | Backend parameter | Workflow node (title) |
+|---|---|---|
+| Image currently shown in the Edit pane | `image` (filename or URL) | `Load Image (URL/Path)` |
+| Brightness slider | `brightness` (0–3, 1 = neutral) | `Adjust Color` → `brightness` |
+| Contrast slider | `contrast` (0–3, 1 = neutral) | `Adjust Color` → `contrast` |
+| Saturation slider | `saturation` (0–3, 1 = neutral) | `Adjust Color` → `saturation` |
+
+The UI uses percent (`0–200`, 100 = neutral) and converts with
+`factor = percent / 100`; the API accepts the factors directly. All three
+values are sent in **one** request, injected into the same node and produce
+one job/one result. Missing fields default to `1.0`.
+
+**Node behaviour**: `LayerColor: Brightness & Contrast` (from
+**ComfyUI_LayerStyle**) applies `brightness` → `contrast` → `saturation`,
+using PIL `ImageEnhance` internally. Saturation is the PIL `Color` blend
+between the grayscale version and the original: `0` = grayscale, `1` =
+unchanged, `>1` = stronger; it preserves luminance and clips at the channel
+limits. The node preserves alpha.
+
+**UI behaviour** (`static/js/adjust.js`): the adjust button lives on the
+output pane next to Crop/⛶, not in the prompt action row. It opens on the
+image currently shown. Desktop renders the panel inline; the stacked layout
+(`<1024px`) turns it into a fullscreen dialog. Sliders `0–200 %` update a CSS
+preview (`brightness() contrast() saturate()`, same order as the node) and
+`Apply` is disabled at the neutral `100/100/100`. The CSS preview is close
+but not pixel-identical to PIL; the final result comes from ComfyUI. Apply
+submits the three factors, closes the panel and shows the usual
+`Original / Adjusted` compare toggle; the result is appended as
+`kind="adjust"` with the `adjusted` badge and recovered through the normal
+Edit job marker. The workflow requires the `LayerColor` node; `check_env`
+reports it missing on environments that do not have the pack.
+
 ### 5.3 Upscale 🔍 — `seedvr2_upscale.json`
 
 | UI control (FRONTEND) | Backend parameter | Workflow node (title) |

@@ -142,10 +142,11 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   (`switchTab` rebuilds `#btnCol` with fresh buttons —
   `setGeneratingUi`/`applyGenerationLock` in `api.js`).
 - `🩹 Restore`, `🧩 Extend` and `🔍 Upscale` never require a prompt.
-- **Crop is not an action button.** It is a canvas tool: the crop button sits
-  on the Edit output pane, next to ⛶, and opens the crop editor directly
-  (inline on desktop, fullscreen on the stacked layout). This keeps it out
-  of the prompt/chip modal and makes it usable in portrait.
+- **Crop and Adjust are not action buttons.** They are canvas tools: their
+  buttons sit on the Edit output pane (Adjust left of Crop, both left of
+  ⛶) and open their editor directly (inline on desktop, fullscreen on the
+  stacked layout). This keeps them out of the prompt/chip modal and makes
+  them usable in portrait.
 - **🪄 prompt refiner**: refines the active tab's prompt via a llama-server
   OpenAI-compatible API (configured in the ☰ menu — Refiner URL, Model and
   System prompt). The **🤖 Model** select lists what the llama.cpp router
@@ -224,10 +225,10 @@ empty and the prompt fills it; see also deviation 14):
 
 - **Output pane**: collapsible URL field (bottom-left) + 📁/🔗/🕘 buttons
   (bottom-right, 📁 just left of 🔗 and 🕘 left of 📁) over the **compare slider**
-  (Original | Edited / Restored). Extend and Crop results use an
-  **Original / Extended** or **Original / Cropped** toggle instead: their
-  canvas has a different size/aspect than the source, so the two images are
-  shown one at a time (the result side by default) rather than overlaid.
+  (Original | Edited / Restored). Extend, Crop and Adjust results use an
+  **Original / Extended**, **Original / Cropped** or **Original / Adjusted**
+  toggle instead: their canvas can differ from the source, so the two images
+  are shown one at a time (the result side by default) rather than overlaid.
   While the **source preview** is shown, a discreet `W × H` badge sits
   above the 📁/🔗 buttons (right-aligned, no MP) with the loaded image's
   natural dimensions.
@@ -252,6 +253,15 @@ empty and the prompt fills it; see also deviation 14):
     keeps it; the rendered box uses percentages.
   - On Apply the editor closes and the result lands as a new `cropped`
     comparison/gallery entry (the source stays available in the gallery).
+- **Adjust**: the button left of Crop opens a panel on the image currently
+  shown. It has three sliders — **Brightness**, **Contrast**, **Saturation** —
+  in percent (`0–200`, `100` = neutral), a live `%` readout and `Reset`.
+  The preview uses CSS `brightness() contrast() saturate()` (same order as
+  the ComfyUI node; close but not pixel-identical to PIL). `Apply` is
+  disabled while all three are neutral. One `LayerColor: Brightness &
+  Contrast` node applies all three in one job; the result lands as
+  `kind="adjust"` with an `Original / Adjusted` toggle and an `adjusted`
+  badge.
 - **Params**: two chips over the prompt textarea:
   - **👣 Steps & seed** — shows `steps 🎲` (steps only when the seed is
     fixed — the dice disappears). Its popover holds, in order, the `👣
@@ -291,10 +301,10 @@ empty and the prompt fills it; see also deviation 14):
     after closing them, so on a phone the user can leave the prompt modal
     and inspect the result. It clears when the source changes, a result
     lands, the tab changes, or a generation starts.
-- **Extend/Crop result**: `#editCompare` reuses its two image layers but
-  hides the divider/handle/labels and shows a top-left
-  `Original | Extended` or `Original | Cropped` toggle (result side by
-  default). The slider drag is disabled in this mode.
+- **Extend/Crop/Adjust result**: `#editCompare` reuses its two image layers
+  but hides the divider/handle/labels and shows a top-left
+  `Original | Extended`, `Original | Cropped` or `Original | Adjusted`
+  toggle (result side by default). The slider drag is disabled in this mode.
 
 ### 3.3 Face swap 👨🏻
 
