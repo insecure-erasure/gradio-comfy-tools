@@ -150,5 +150,12 @@
             </div>
           </div>
         </div>
+        <!-- Confirm/leave the popover (and the portrait prompt modal) so the
+             persistent Extend preview is visible, or clear the extend
+             dimensions back to their defaults. -->
+        <div class="extend-actions">
+          <button type="button" class="extend-action-btn" id="editExtendReset" onclick="resetEditExtend()" title="Reset padding and feathering">Reset</button>
+          <button type="button" class="extend-action-btn primary" id="editExtendApply" onclick="applyEditExtend()" title="Apply and close">Apply</button>
+        </div>
       </div>
     </div>

@@ -1043,6 +1043,40 @@
     font-size: .62rem;
     line-height: 1.35;
   }
+  /* Small confirm/reset row at the bottom of the ⛶ popover. */
+  .extend-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .extend-action-btn {
+    flex: 1;
+    padding: 5px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    font-family: var(--font);
+    font-size: .7rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .extend-action-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .extend-action-btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .extend-action-btn.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+  }
   .result-url {
     font-size: .6rem;
     color: var(--text-secondary);

@@ -17,10 +17,12 @@ const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
 const EDIT_COLOR_MATCH_ID = 'editColorMatch';
 const EDIT_COLOR_MATCH_DEFAULT = 0;
 
-// Live Extend preview (⛶ popover). The dashed frame is the FINAL canvas
-// (centered in the pane) and the source image sits at its REAL padding
-// offset inside it, so asymmetric padding is visible. The frame/guide are
-// static markup in tab_edit.html (#editExtendPreview).
+// Live Extend preview. The dashed frame is the FINAL canvas (centered in
+// the pane) and the source image sits at its REAL padding offset inside it,
+// so asymmetric padding is visible. The frame/guide are static markup in
+// tab_edit.html (#editExtendPreview). It is persistent while Edit has a
+// source and any padding: closing the ⛶ popover / portrait prompt modal
+// must NOT hide it (the user needs to see the result after applying).
 // `bottom` leaves room for the source URL field + 📁/🔗 buttons.
 const EXTEND_PREVIEW_SAFE = { left: 12, right: 12, top: 12, bottom: 56 };
 let _extendPreviewRaf = 0;
@@ -130,6 +132,28 @@ function readEditExtendParams() {
   };
 }
 
+// ⛶ popover footer: values are live, so Apply just closes the popover and,
+// in portrait, the fullscreen prompt modal — revealing the persistent
+// preview over the output pane. Reset restores the extend defaults (all
+// padding to 0, feathering to 40); the global ↺ reset does the same for the
+// whole Edit tab.
+function applyEditExtend() {
+  if (typeof closeChipPopover === 'function') closeChipPopover();
+  if (typeof closePromptModal === 'function') closePromptModal();
+  updateEditExtendPreview();
+}
+
+function resetEditExtend() {
+  Object.values(EDIT_PAD_IDS).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '0';
+  });
+  const feather = document.getElementById(EDIT_FEATHER_ID);
+  if (feather) feather.value = '40';
+  updatePromptChips();
+  if (typeof savePersistedState === 'function') savePersistedState();
+}
+
 // Mirror ImageScaleToTotalPixels (ComfyUI counts a "megapixel" as 1024²).
 function scaleToTotalPixels(width, height, megapixels) {
   const total = megapixels * 1024 * 1024;
@@ -176,8 +200,9 @@ function updateEditExtendInfo() {
 }
 
 // ── Live Extend preview ────────────────────
-// Geometry of the dashed frame drawn over the source preview while the
-// ⛶ popover is open. Padding is expressed in pixels of the 1.5 MP WORKING
+// Geometry of the dashed frame drawn over the source preview whenever Edit
+// has a source image and at least one padding edge. Padding is expressed in
+// pixels of the 1.5 MP WORKING
 // canvas (the workflow scales the source before padding it), so it must be
 // converted to source-image pixels: pad_src = pad_work * src / work.
 function _extendPreviewGeometry(pane) {
@@ -250,11 +275,13 @@ function updateEditExtendPreview() {
   const box = document.getElementById('editExtendPreview');
   if (!pane || !box) return;
 
-  // Only while the ⛶ chip popover (the controls that define the padding) is
-  // open on the Edit tab.
-  const active = currentTab === 'edit'
-    && typeof chipPopoverKind !== 'undefined'
-    && chipPopoverKind === 'extend';
+  // Persistent on the Edit tab: the padding controls live inside the ⛶
+  // popover, which in portrait is itself inside the fullscreen prompt modal.
+  // Tying the frame to the popover made it disappear as soon as the modal
+  // was closed (the only way to see the output pane on a phone). Keep it
+  // alive while the source and padding exist; clear only when the geometry
+  // no longer applies (no source, all edges 0, result/source changes).
+  const active = currentTab === 'edit';
   const geom = active ? _extendPreviewGeometry(pane) : null;
   if (!geom) { clearEditExtendPreview(); return; }
 

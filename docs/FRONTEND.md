@@ -245,15 +245,21 @@ empty and the prompt fills it; see also deviation 14):
     `1 → 2 → 4 → 8 → 16 → 32 → 64` every 8 repeat ticks (400 ms delay,
     80→25 ms interval). The popover also shows `Source: W × H` and a live
     `Output ≈ W × H` estimate (the latter mirrors ImageScaleToTotalPixels +
-    the conditional source-density restore, without MP). While this popover
-    is open **and at least one edge is > 0**, the source preview shows a live
-    dashed frame of the resulting canvas: the frame is centered in the
-    available pane area (leaving room for the bottom controls) and the image
-    sits at its **real padding offset** inside it (asymmetric padding is
-    visible), scaled down to fit. Padding is converted from working-canvas
-    pixels (`pad * src / work`) before drawing. With all edges at 0 no frame
-    is drawn. The frame disappears when the popover closes, the source
-    changes, a result lands, or a generation starts.
+    the conditional source-density restore, without MP). The popover footer
+    has small **Reset** and **Apply** buttons: Reset restores all padding to
+    0 and feathering to 40; Apply closes the popover and, in portrait, the
+    fullscreen prompt modal so the output pane is visible.
+    Whenever the Edit tab has a source image **and at least one edge is
+    > 0**, the source preview shows a live dashed frame of the resulting
+    canvas: the frame is centered in the available pane area (leaving room
+    for the bottom controls) and the image sits at its **real padding
+    offset** inside it (asymmetric padding is visible), scaled down to fit.
+    Padding is converted from working-canvas pixels (`pad * src / work`)
+    before drawing. With all edges at 0 no frame is drawn. The preview is
+    **persistent and independent of the popover/modal**: it stays visible
+    after closing them, so on a phone the user can leave the prompt modal
+    and inspect the result. It clears when the source changes, a result
+    lands, the tab changes, or a generation starts.
 - **Extend result**: `#editCompare` reuses its two image layers but hides
   the divider/handle/labels and shows a top-left `Original | Extended`
   toggle (default `Extended`). The slider drag is disabled in this mode.

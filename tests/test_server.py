@@ -746,6 +746,9 @@ def test_index_serves_extend_controls(client, tmp_config):
     # Live extension frame over the source preview.
     assert 'id="editExtendPreview"' in html
     assert 'id="editExtendPreviewSource"' in html
+    # Extend popover footer: apply/close + reset extend defaults.
+    assert 'id="editExtendApply"' in html
+    assert 'id="editExtendReset"' in html
 
 
 def test_api_loras(client, tmp_config, monkeypatch):
