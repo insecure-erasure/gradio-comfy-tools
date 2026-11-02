@@ -800,6 +800,34 @@ async function galleryDownload() {
   }
 }
 
+// Remove one entry from the registry that owns the gallery it was shown in.
+// lightbox → galleryGenerated, video → galleryVideos, compare →
+// galleryComparisons. Matching keeps the historical behavior of the 🗑️
+// button: by ComfyUI filename when available (so a persisted/DOM-fallback
+// entry still matches), by AFTER src for comparisons, and by src for entries
+// without a filename.
+function removeGalleryEntryFromRegistry(e, mode) {
+  if (!e) return;
+  const fn = e.filename || (e.src && typeof filenameFromUrl === 'function'
+    ? filenameFromUrl(e.src) : null);
+  if (mode === 'lightbox') {
+    window.galleryGenerated = (window.galleryGenerated || []).filter(x => {
+      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
+      return !(fn && xf === fn) && !(!fn && x.src === e.src);
+    });
+  } else if (mode === 'video') {
+    window.galleryVideos = (window.galleryVideos || []).filter(x => {
+      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
+      return !(fn && xf === fn) && !(!fn && x.src === e.src);
+    });
+  } else {
+    const afterSrc = e.src || galleryAfter.src;
+    window.galleryComparisons = (window.galleryComparisons || []).filter(
+      x => !(x.src === e.src) && !(afterSrc && x.src === afterSrc)
+    );
+  }
+}
+
 // ── Delete current gallery entry ────────────
 // The 🗑️ overlay button (bottom-left) removes ONLY the entry currently
 // shown fullscreen — from the live registry AND the persisted storage —
@@ -816,25 +844,7 @@ function galleryDeleteCurrent() {
   if (typeof forgetSourceHistoryEntry === 'function') forgetSourceHistoryEntry(e);
 
   // 1) Remove from the persisted registry (the source of truth).
-  if (galleryMode === 'lightbox') {
-    // galleryGenerated: by filename (prefer) or by src URL.
-    window.galleryGenerated = (window.galleryGenerated || []).filter(x => {
-      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
-      return !(fn && xf === fn) && !(!fn && x.src === e.src);
-    });
-  } else if (galleryMode === 'video') {
-    // video gallery: by src (display URL) or filename.
-    window.galleryVideos = (window.galleryVideos || []).filter(x => {
-      const xf = x.filename || (x.src && filenameFromUrl ? filenameFromUrl(x.src) : null);
-      return !(fn && xf === fn) && !(!fn && x.src === e.src);
-    });
-  } else {
-    // compare mode: by AFTER src (identity) — the entry's src or the after img.
-    const afterSrc = e.src || galleryAfter.src;
-    window.galleryComparisons = (window.galleryComparisons || []).filter(
-      x => !(x.src === e.src) && !(afterSrc && x.src === afterSrc)
-    );
-  }
+  removeGalleryEntryFromRegistry(e, galleryMode);
 
   // If the deleted entry was what the ACTIVE tool's pane was showing, clear
   // the pane so closing the gallery restores the next/last generation (or
@@ -870,6 +880,65 @@ function galleryDeleteCurrent() {
   renderGalleryItem();
   if (typeof savePersistedState === 'function') savePersistedState();
   if (currentTab) syncPaneNav(currentTab);
+}
+
+// Empty one tool's output pane and result row after its LAST gallery entry
+// was deleted. Shared by the toolbar trash and the per-entry Delete key.
+function clearPaneResult(tab) {
+  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
+  const paneId = paneIds[tab];
+  if (!paneId) return;
+  clearPane(paneId);
+  const pane = document.getElementById(paneId);
+  if (pane && !pane.querySelector('.output-placeholder') && tab === 'generate') {
+    const ph = document.createElement('div');
+    ph.className = 'output-placeholder';
+    ph.innerHTML = '<div class="icon">🖼️</div><p>Your generated image<br>will appear here</p>' +
+                   '<p style="font-size:.75rem;margin-top:6px;">Click to open lightbox</p>';
+    pane.insertBefore(ph, pane.firstChild);
+  }
+  // Clear the shared result row only when the emptied pane is the ACTIVE tab.
+  if (currentTab !== tab) return;
+  const rel = document.getElementById('resultUrl');
+  if (rel) { rel.textContent = ''; rel.title = ''; rel.classList.remove('clickable'); }
+  const rt = document.getElementById('resultTime');
+  if (rt) rt.textContent = '';
+  const rcb = document.getElementById('resultCopyBox');
+  if (rcb) { clearTimeout(_resultCopyTimer); rcb.classList.remove('show'); }
+  currentResultUrl = '';
+}
+
+// Delete the generation SHOWN IN THE ACTIVE TOOL'S PANE (Delete key). Mirrors
+// the fullscreen 🗑️ for that single entry: forget the source-history entry,
+// remove it from its registry, then show the next survivor or the idle state.
+function paneDeleteCurrent() {
+  const tab = currentTab;
+  if (!tab) return false;
+  // A running job owns the pane progress/lock; don't mutate history under it.
+  if (typeof progressTimer !== 'undefined' && progressTimer) return false;
+  const e = paneCurrentEntry(tab);
+  if (!e) return false;
+  const mode = tab === 'generate' ? 'lightbox' : tab === 'video' ? 'video' : 'compare';
+  const listOf = () => tab === 'generate' ? (window.galleryGenerated || [])
+    : tab === 'video' ? (window.galleryVideos || [])
+    : (window.galleryComparisons || []).filter(c => c.tab === tab);
+  const idx = listOf().indexOf(e);
+
+  if (typeof forgetSourceHistoryEntry === 'function') forgetSourceHistoryEntry(e);
+  removeGalleryEntryFromRegistry(e, mode);
+
+  const next = listOf();
+  if (!next.length) {
+    paneIdx[tab] = -1;
+    clearPaneResult(tab);
+  } else {
+    // Show the entry that took the deleted one's position, or the new last.
+    paneIdx[tab] = idx >= 0 && idx < next.length ? idx : -1;
+    renderPane(tab);
+  }
+  if (typeof savePersistedState === 'function') savePersistedState();
+  syncPaneNav(tab);
+  return true;
 }
 
 // ── Confirmed deletions (ComfyUI cleanup → UI) ──
@@ -1236,4 +1305,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);
   else if (e.key === 'ArrowRight') galleryNav(1);
+  else if (e.key === 'Delete' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    e.preventDefault(); // Delete is not a browser shortcut here
+    galleryDeleteCurrent(); // no confirmation — the shown entry only
+  }
 });

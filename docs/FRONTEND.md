@@ -174,11 +174,12 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   source, so a video is never a valid chain target).
 - Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal. In the
   normal view ←/→ navigate the ACTIVE tool's result history exactly like the
-  pane ‹ › buttons. The preview pane is also focusable (`tabindex="0"`) for
+  pane ‹ › buttons, and `Delete` removes the generation shown in the pane
+  (no confirmation). The preview pane is also focusable (`tabindex="0"`) for
   the focus ring, but the arrows do not require clicking it (a click on the
-  result opens the lightbox). Text inputs/selects keep their own arrows,
-  and overlays (fullscreen gallery, prompt/advanced modals, chip/source
-  popovers, menus) keep their own keyboard handling.
+  result opens the lightbox). Text inputs/selects keep their own arrows and
+  `Delete`; overlays (fullscreen gallery, prompt/advanced modals,
+  chip/source popovers, menus) keep their own keyboard handling.
 
 ## 3. Control inventory per tab
 
@@ -902,7 +903,8 @@ push events, so nothing is hidden by age and nothing polls:
   instead of the slider.
   The N/M counter and the ‹ › buttons are always visible; with a single
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
-  Escape/✕/backdrop close; ←/→ navigate.
+  Escape/✕/backdrop close; ←/→ navigate; `Delete` (or the 🗑️ button)
+  removes the shown entry immediately, without confirmation.
 - **Pane ‹ › navigation (normal view)**: each tool's output pane shows its
   gallery's most recent entry; when the tool's gallery holds more than one
   entry, ‹ › buttons appear vertically centered on the pane's sides
@@ -917,10 +919,10 @@ push events, so nothing is hidden by age and nothing polls:
   confirmed deletions (§7.2).
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
-  edge) — ‹ › navigates, the 🗑️ deletes the shown entry, the N/M counter
-  is bottom-right. The badge AND the Show-prompt button are NOT shown in
-  video mode (the player fills the overlay; the prompt would overlap the
-  controls).
+  edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M
+  counter is bottom-right. The badge AND the Show-prompt button are NOT
+  shown in video mode (the player fills the overlay; the prompt would overlap
+  the controls).
 
 ### 7.2 Media deletions (observed, never guessed)
 

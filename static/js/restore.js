@@ -168,32 +168,9 @@ function clearTabGallery(tab) {
       break;
   }
   // Refresh the pane: drop the result / slider / video, restore the
-  // placeholder. The resets already clearPane, but here we do it directly
-  // so the pane shows the idle state regardless of the tab.
-  const paneIds = { generate: 'genOutputPane', edit: 'editOutputPane', upscale: 'upscaleOutputPane', video: 'videoOutputPane', face_swap: 'faceSwapOutputPane' };
-  const paneId = paneIds[tab];
-  if (paneId) {
-    clearPane(paneId);
-    const pane = document.getElementById(paneId);
-    if (pane && !pane.querySelector('.output-placeholder') && tab === 'generate') {
-      const ph = document.createElement('div');
-      ph.className = 'output-placeholder';
-      ph.innerHTML = '<div class="icon">🖼️</div><p>Your generated image<br>will appear here</p>' +
-                     '<p style="font-size:.75rem;margin-top:6px;">Click to open lightbox</p>';
-      pane.insertBefore(ph, pane.firstChild);
-    }
-  }
-  // Clear the result row (progress + timing) for this tab (it is shared,
-  // so only when the current tab is the one being cleared).
-  if (currentTab === tab) {
-    const rel = document.getElementById('resultUrl');
-    if (rel) { rel.textContent = ''; rel.title = ''; rel.classList.remove('clickable'); }
-    const rt = document.getElementById('resultTime');
-    if (rt) rt.textContent = '';
-    const rcb = document.getElementById('resultCopyBox');
-    if (rcb) { clearTimeout(_resultCopyTimer); rcb.classList.remove('show'); }
-    currentResultUrl = '';
-  }
+  // placeholder, and clear the shared result row when this is the active tab.
+  // The same helper is used by Delete on a single pane entry.
+  clearPaneResult(tab);
   savePersistedState();
   if (typeof syncPaneNav === 'function') syncPaneNav(tab);
   showToast(tab === 'generate' ? '🗑️ Generated images cleared'

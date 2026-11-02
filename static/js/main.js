@@ -215,16 +215,31 @@ document.addEventListener('keydown', e => {
 // requiring DOM focus there made the keys effectively unreachable).
 // Never steal arrows from text fields/selects, and let overlays keep their
 // own keyboard handling (notably the fullscreen gallery's ←/→).
+const KEY_BLOCKED_OVERLAYS = '#galleryOverlay.show, #promptModal.show, #modalBackdrop.show, ' +
+  '#chipPopover.show, #sourceHistoryPopover.show, .settings-dropdown.show, ' +
+  '#tabsDropdownMenu.show';
+
 document.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
-  const blocked = '#galleryOverlay.show, #promptModal.show, #modalBackdrop.show, ' +
-    '#chipPopover.show, #sourceHistoryPopover.show, .settings-dropdown.show, ' +
-    '#tabsDropdownMenu.show';
-  if (document.querySelector(blocked)) return;
+  if (document.querySelector(KEY_BLOCKED_OVERLAYS)) return;
   e.preventDefault();
   paneNav(currentTab, e.key === 'ArrowLeft' ? -1 : 1);
+});
+
+// Delete removes the generation shown in the ACTIVE tool's pane, without a
+// confirmation (same per-entry semantics as the fullscreen 🗑️). Text fields
+// keep Delete for editing; overlays keep their own handling (the fullscreen
+// gallery deletes its shown entry from its own keydown listener).
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Delete') return;
+  if (e.defaultPrevented) return; // an overlay (fullscreen gallery) already deleted it
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+  if (document.querySelector(KEY_BLOCKED_OVERLAYS)) return;
+  if (typeof paneDeleteCurrent !== 'function') return;
+  if (paneDeleteCurrent()) e.preventDefault();
 });
 
 // ── Gallery (B5): clicking a generated result opens the lightbox ──
