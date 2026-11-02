@@ -121,6 +121,9 @@ function _cropImageLoaded() {
   }
   _cropLayout();
   _cropRender();
+  // The overlay may have been laid out in the same frame as the image load;
+  // recompute once more after the browser has settled (cached images).
+  _cropScheduleLayout();
 }
 
 function _cropImageFailed() {
@@ -158,8 +161,13 @@ function _cropLayout() {
   const wrap = _cropById('cropStageWrap');
   const stage = _cropById('cropStage');
   if (!wrap || !stage) return;
-  const availW = wrap.clientWidth;
-  const availH = wrap.clientHeight;
+  // clientWidth/Height include the wrap's padding; subtract it so the
+  // stage never overflows (and gets clipped) at the edges.
+  const cs = typeof getComputedStyle === 'function' ? getComputedStyle(wrap) : null;
+  const padX = cs ? (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) : 0;
+  const padY = cs ? (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0) : 0;
+  const availW = wrap.clientWidth - padX;
+  const availH = wrap.clientHeight - padY;
   if (availW <= 0 || availH <= 0) return;
   const scale = Math.min(availW / _crop.naturalWidth, availH / _crop.naturalHeight);
   stage.style.width = Math.max(1, _crop.naturalWidth * scale) + 'px';
