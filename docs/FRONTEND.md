@@ -696,7 +696,11 @@ so the UI settles immediately (toast `Cancelled`). While the job runs the
 row shows progress + timing only; once the result lands it shows the
 clickable URL + duration. The transform
 survives tab switches mid-generation (`switchTab` re-asserts the lock with
-`applyGenerationLock` and re-transforms the trigger button).
+`applyGenerationLock`). If the job started on another tool, its trigger
+button no longer exists after `#btnCol` is rebuilt: the lock then
+transforms the ACTIVE tab's primary action (`primaryActionButton()` — e.g.
+🖌️ Edit, never the first secondary 🩹 Restore), and the portrait prompt
+modal uses that tab's primary pill as the ⏹.
 
 - The stop-transformed trigger is ENABLED, so the click-catcher overlay
   must not sit on top of it — `.btn-col.generating .btn-wrap:has(.btn-generate:not(:disabled))

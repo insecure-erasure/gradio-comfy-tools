@@ -287,6 +287,26 @@ function restoreStopButton(el) {
   _genStopOrig.delete(el);
 }
 
+// The primary action of the ACTIVE tab. Used when a job started on another
+// tool and its trigger button no longer exists after switchTab rebuilt
+// #btnCol: the stop control must land on this tab's main action (Edit's
+// 🖌️ Edit, for example), never on the first secondary button (🩹 Restore).
+function primaryActionButton() {
+  const upscaleId = window.matchMedia('(max-width: 1023px)').matches
+    ? 'btnUpscalePane'
+    : 'btnUpscaleLandscape';
+  const id = {
+    generate: 'btnGenerate',
+    edit: 'btnEdit',
+    face_swap: 'btnFaceSwap',
+    video: 'btnVideo',
+    upscale: upscaleId,
+  }[currentTab];
+  return (id && document.getElementById(id))
+    || document.querySelector('#btnCol .btn-generate')
+    || document.querySelector('.btn-generate');
+}
+
 // Disable every action + refine button, wherever it lives, and swap the
 // click-catchers to the "Generation in progress…" toast. The action button
 // that started the job becomes the ⏹ stop button instead of being disabled
@@ -299,11 +319,12 @@ function applyGenerationLock() {
     else b.disabled = true;
   });
   if (!triggerFound) {
-    // No trigger button matched — the page reloaded mid-generation and the
-    // job was adopted (genTriggerId is null), or the trigger id is stale.
-    // Turn the current primary action into the ⏹ stop button so the user
-    // can always cancel the running job.
-    const primary = document.querySelector('#btnCol .btn-generate') || document.querySelector('.btn-generate');
+    // No trigger button matched — the job started on another tool (its
+    // button was rebuilt away by switchTab), the page reloaded mid-jobs
+    // (adopted, genTriggerId is null), or the trigger id is stale. Turn
+    // THIS tab's primary action into the ⏹ stop button, not whichever
+    // secondary button happens to come first in #btnCol.
+    const primary = primaryActionButton();
     if (primary) makeStopButton(primary);
   }
   document.querySelectorAll('.btn-refine, .prompt-refine-btn').forEach(b => { b.disabled = true; });
@@ -311,13 +332,16 @@ function applyGenerationLock() {
   // becomes the ⏹ stop button (✨ for generate/video, 🖌️ for edit, 🩹 for
   // restore — the OTHER modal action stays disabled), and the ✕ clear is
   // disabled — the prompt is locked.
+  // When the trigger belongs to THIS tab, honour the exact mode (🩹/🧩);
+  // when it belongs to another tool, use this tab's primary modal action
+  // instead of a hidden secondary pill left over from the other tool.
   const modalActionForTrigger = {
     btnGenerate: 'promptGenerateBtn',
     btnVideo: 'promptGenerateBtn',
     btnEdit: 'promptGenerateBtn',
     btnRestore: 'promptRestoreBtn',
     btnExtend: 'promptExtendBtn',
-  }[genTriggerId] || 'promptGenerateBtn';
+  }[triggerFound ? genTriggerId : ''] || 'promptGenerateBtn';
   const modalStop = document.getElementById(modalActionForTrigger);
   if (modalStop) makeStopButton(modalStop);
   document.querySelectorAll('.prompt-clear').forEach(b => { b.disabled = true; });
