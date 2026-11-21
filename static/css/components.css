@@ -30,20 +30,19 @@
   .output-overlay-btn.pane-delete-btn { bottom: 12px; left: 12px; }
   .output-overlay-btn.pane-grid-btn { bottom: 12px; right: 12px; }
   /* The pane's thumbnail button shows the gallery position as N/M (same
-     information as the fullscreen counter). FIXED width so the 6px gap to
-     the next button in the row stays identical to the other buttons
-     (30px + 6px steps) — an auto-width pill made that gap vary with the
-     digits. */
+     information as the fullscreen counter): a compact auto-width text pill
+     (it hugs the digits — no fixed width). syncPaneCount() publishes the
+     measured width as --pane-counter-w on the pane so the source cluster
+     starts exactly 6px after it, the same gap as between its own buttons. */
   .output-overlay-btn.pane-grid-btn {
-    width: 56px;
-    min-width: 56px;
-    padding: 0 6px;
+    width: auto;
+    min-width: 38px;
+    padding: 0 8px;
     justify-content: center;
-    font: 400 11px/1 system-ui, sans-serif;
+    font: 400 12px/1 system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
     letter-spacing: .02em;
     white-space: nowrap;
-    overflow: hidden;
   }
   /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
@@ -65,12 +64,14 @@
      upload/history buttons, 36px apart (30px button + 6px gap).
      Edit/Upscale/Video: 🔗 · 📁 · 🕘. Face swap: 🔗 · 👨🏻 · 🖼️ · 🕘. */
   /* Source cluster: stays in the bottom row (only the 🗑️ corner needed the
-     field raised) and starts after the 56px counter + the SAME 6px gap as
-     between its own buttons: 12 + 56 + 6 = 74, then +36 per slot. */
-  .output-overlay-btn.bottom-right { bottom: 12px; right: 74px; }
-  .output-overlay-btn.bottom-right-left { bottom: 12px; right: 110px; }
-  .output-overlay-btn.bottom-right-left2 { bottom: 12px; right: 146px; }
-  .output-overlay-btn.bottom-right-left3 { bottom: 12px; right: 182px; }
+     field raised) and starts right after the counter pill + the SAME 6px gap
+     as between its own buttons: 12 + width + 6, then +36 per slot. The pill's
+     width is measured by syncPaneCount() (fallback 44px before the first
+     paint). */
+  .output-overlay-btn.bottom-right { bottom: 12px; right: calc(18px + var(--pane-counter-w, 44px)); }
+  .output-overlay-btn.bottom-right-left { bottom: 12px; right: calc(54px + var(--pane-counter-w, 44px)); }
+  .output-overlay-btn.bottom-right-left2 { bottom: 12px; right: calc(90px + var(--pane-counter-w, 44px)); }
+  .output-overlay-btn.bottom-right-left3 { bottom: 12px; right: calc(126px + var(--pane-counter-w, 44px)); }
   /* Pane navigation ‹ › (normal view): vertically-centered side buttons
      on the output pane — the same navigation as the fullscreen gallery
      but without leaving the app. Visible when the tool's gallery holds

@@ -1881,6 +1881,15 @@ function syncPaneCount(tab) {
   const btn = document.querySelector(`#tab-${tab} .pane-grid-btn`);
   if (!btn) return;
   btn.textContent = paneCounterText(tab);
+  // The pill hugs its digits (auto width), so the source cluster is offset by
+  // CSS using its MEASURED width: same 6px gap as between the other buttons.
+  // A hidden tab measures 0 → the CSS fallback keeps the row sane; the
+  // measurement happens again when the tab is activated (syncPaneNav).
+  const pane = btn.closest('.output-pane');
+  if (pane) {
+    const w = Math.round(btn.getBoundingClientRect().width);
+    if (w) pane.style.setProperty('--pane-counter-w', w + 'px');
+  }
 }
 
 function syncPaneNav(tab) {

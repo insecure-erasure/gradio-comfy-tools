@@ -1064,11 +1064,12 @@ push events, so nothing is hidden by age and nothing polls:
   cluster row** (`openPaneGrid()`; text pill instead of an icon — the same
   information as the fullscreen counter, kept in sync by `syncPaneCount()`
   from `syncPaneNav()`/`renderPane()`; `0/0` when the tool has no results).
-  The counter shares that bottom row (`bottom: 12px`, `right: 12px`) with a
-  **fixed 56px width** so the 6px gap to the next button stays identical to
-  the other buttons (an auto-width pill made it depend on the digits); the
-  cluster starts at `12 + 56 + 6 = 74` (🔗 74 · 📁 110 · 🕘 146, +36 per extra
-  face-swap button). Only the **source URL field was raised one row**
+  The counter shares that bottom row (`bottom: 12px`, `right: 12px`) as a
+  compact auto-width pill that hugs its digits; `syncPaneCount()` measures it
+  and publishes `--pane-counter-w` on the pane, so the cluster starts exactly
+  6px after it (`right: calc(18px + var(--pane-counter-w))`, then +36 per
+  slot: 18/54/90/126 + width). That keeps the same 6px gap as between the
+  other buttons without forcing a wider pill. Only the **source URL field was raised one row**
   (`bottom: 48px`; 46 on phones) so the 🗑️ corner can breathe — the
   face-swap face field follows at 48px, its base field at 88px, the face
   reference preview at 128px and the live Extend frame's safe bottom at 92px.

@@ -47,14 +47,13 @@ def test_css_positions_and_hides_them_while_generating():
     # The source field/cluster moved up one row (36px) to make room.
     assert ".source-url-field {\n    position: absolute;\n    /* Raised one row (36px)" in css
     # The cluster keeps its row (bottom 12) and only slides left for the pill.
-    # 12 (inset) + 56 (fixed pill) + 6 (same gap as the other buttons) = 74,
-    # then +36 per slot.
-    assert ".output-overlay-btn.bottom-right { bottom: 12px; right: 74px; }" in css
-    assert ".output-overlay-btn.bottom-right-left { bottom: 12px; right: 110px; }" in css
-    assert ".output-overlay-btn.bottom-right-left2 { bottom: 12px; right: 146px; }" in css
-    assert ".output-overlay-btn.bottom-right-left3 { bottom: 12px; right: 182px; }" in css
-    # Fixed pill width: an auto-width pill made the gap depend on the digits.
-    assert "width: 56px;\n    min-width: 56px;" in css
+    # The pill hugs its digits; the cluster is offset from the MEASURED width
+    # so the 6px gap matches the other buttons: 12 + w + 6, then +36 per slot.
+    assert "width: auto;\n    min-width: 38px;\n    padding: 0 8px;" in css
+    assert ".output-overlay-btn.bottom-right { bottom: 12px; right: calc(18px + var(--pane-counter-w, 44px)); }" in css
+    assert ".output-overlay-btn.bottom-right-left { bottom: 12px; right: calc(54px + var(--pane-counter-w, 44px)); }" in css
+    assert ".output-overlay-btn.bottom-right-left2 { bottom: 12px; right: calc(90px + var(--pane-counter-w, 44px)); }" in css
+    assert ".output-overlay-btn.bottom-right-left3 { bottom: 12px; right: calc(126px + var(--pane-counter-w, 44px)); }" in css
     assert "bottom: 88px;   /* one row above the face field (48px) */" in css
     # Nothing left on top of the ℹ️ column.
     assert "top-left-2" not in css
@@ -74,6 +73,9 @@ def test_pane_actions_are_wired():
     assert "function syncPaneCount(tab)" in gallery
     assert "syncPaneCount(tab);" in gallery
     assert "btn.textContent = paneCounterText(tab);" in gallery
+    # The measured pill width drives the cluster offset (uniform 6px gap).
+    assert "pane.style.setProperty('--pane-counter-w', w + 'px');" in gallery
+    assert "btn.getBoundingClientRect().width" in gallery
     assert "showToast('Nothing to delete')" in gallery
     assert "async function openPaneGrid(tab)" in gallery
     assert "showToast('Nothing to show yet')" in gallery
