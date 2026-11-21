@@ -64,8 +64,8 @@ Web application with five image and video tools powered by ComfyUI:
 
 The **🎨** control in the 👣 step & seed popover matches the result palette to
 the source/base image (`0` = off, `1` = full; step 0.01, hold to accelerate).
-Edit defaults to 0; Restore forces 0; setting an Extend padding (with at
-least one edge > 0) forces 1; Face swap defaults to 0.
+Edit defaults to 0.25; Restore forces 0; setting an Extend padding (with at
+least one edge > 0) forces 0.5; Face swap defaults to 0.
 
 ### During a generation
 

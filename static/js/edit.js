@@ -15,7 +15,7 @@ const EDIT_FEATHER_STEP_SIZES = [1, 2, 4, 8, 16];
 // ColorMatch strength (0 = off, 1 = full): the Edit tab uses one value for
 // Edit / Restore / Extend.
 const EDIT_COLOR_MATCH_ID = 'editColorMatch';
-const EDIT_COLOR_MATCH_DEFAULT = 0;
+const EDIT_COLOR_MATCH_DEFAULT = 0.25;
 // Extend's default: a softer match than a full transfer (1.0) preserves the
 // source palette without pulling the new canvas too aggressively toward it.
 const EDIT_EXTEND_COLOR_MATCH_DEFAULT = 0.5;
