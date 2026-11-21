@@ -806,6 +806,7 @@ function closeGalleryInfo() {
     galleryInfoPanel.classList.remove('pane-mode');
   }
   _infoSizeGetter = null;
+  _infoSourceGetter = null;
   _clearInfoAnchor();
   if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'false');
 }
@@ -842,6 +843,23 @@ const COMPACT_INFO_KINDS = ['upscale', 'upscaled', 'crop', 'cropped', 'adjust', 
 function _infoIsCompact(entry) {
   if (!entry) return false;
   return COMPACT_INFO_KINDS.includes(entry.kind) || COMPACT_INFO_KINDS.includes(entry.badge);
+}
+
+// SOURCE resolution (the before side of the comparison), shown only for the
+// operations whose result canvas differs from the source: upscale, crop and
+// extend. It is read from the already-loaded <img> (naturalWidth/Height)
+// without any backend call, and only rendered when it actually differs from
+// the result (never a duplicated number).
+let _infoSourceGetter = null;
+const SOURCE_INFO_KINDS = ['upscale', 'upscaled', 'crop', 'cropped', 'extend', 'extended'];
+function _infoShowsSource(entry) {
+  if (!entry) return false;
+  return SOURCE_INFO_KINDS.includes(entry.kind) || SOURCE_INFO_KINDS.includes(entry.badge);
+}
+function _infoSourceSizeNow() {
+  if (typeof _infoSourceGetter !== 'function') return { w: 0, h: 0 };
+  const size = _infoSourceGetter() || {};
+  return { w: size.w || 0, h: size.h || 0 };
 }
 
 let _galleryInfoSnapshot = null;
@@ -893,7 +911,6 @@ function _appendGalleryInfoPromptRows(entry) {
 
 function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   if (!galleryInfoRows) return;
-  _galleryInfoSnapshot = { meta, fallbackW, fallbackH, note, entry };
   const w = (meta && meta.width) || fallbackW || 0;
   const h = (meta && meta.height) || fallbackH || 0;
   const loras = (meta && Array.isArray(meta.loras)) ? meta.loras : [];
@@ -904,20 +921,24 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   // execution prompt, when the workflow loads one). Everything else keeps the
   // full list untouched.
   const compact = _infoIsCompact(entry);
-  const rows = compact
-    ? [
-        ['Resolution', w && h ? `${w} × ${h}` : '—'],
-        ...(_galleryInfoList(meta && meta.models) !== '—'
-          ? [['Model', _galleryInfoList(meta && meta.models)]]
-          : []),
-      ]
-    : [
-        ['Resolution', w && h ? `${w} × ${h}` : '—'],
-        ['Steps', _galleryInfoList(meta && meta.steps)],
-        ['Sampler', _galleryInfoList(meta && meta.samplers)],
-        ['Scheduler', _galleryInfoList(meta && meta.schedulers)],
-        ['Model', _galleryInfoList(meta && meta.models)],
-      ];
+  // Source resolution: only for the canvas-changing operations (upscale,
+  // crop, extend) and only when it differs from the result. A missing or
+  // unloadable source simply renders no row.
+  const source = _infoShowsSource(entry) ? _infoSourceSizeNow() : { w: 0, h: 0 };
+  const showSource = !!(w && h && source.w && source.h
+    && (source.w !== w || source.h !== h));
+  _galleryInfoSnapshot = { meta, fallbackW, fallbackH, note, entry, sourceW: source.w, sourceH: source.h };
+  const models = _galleryInfoList(meta && meta.models);
+  const rows = [['Resolution', w && h ? `${w} × ${h}` : '—']];
+  if (showSource) rows.push(['Source', `${source.w} × ${source.h}`]);
+  if (!compact) {
+    rows.push(['Steps', _galleryInfoList(meta && meta.steps)]);
+    rows.push(['Sampler', _galleryInfoList(meta && meta.samplers)]);
+    rows.push(['Scheduler', _galleryInfoList(meta && meta.schedulers)]);
+  }
+  // The full layout always lists Model (even "—"); the compact one only when
+  // the workflow actually loads one.
+  if (!compact || models !== '—') rows.push(['Model', models]);
 
   galleryInfoRows.innerHTML = '';
   rows.forEach(([key, value]) => {
@@ -962,9 +983,11 @@ function _infoSizeNow() {
 function _refreshGalleryInfoSize() {
   if (!_galleryInfoSnapshot || !galleryInfoPanel.classList.contains('show')) return;
   const { w, h } = _infoSizeNow();
-  if (!w || !h) return;
+  const src = _infoSourceSizeNow();
   const s = _galleryInfoSnapshot;
-  if (w === s.fallbackW && h === s.fallbackH) return;
+  // Nothing the panel shows has changed (result and, for upscale, source).
+  if (w === s.fallbackW && h === s.fallbackH && src.w === s.sourceW && src.h === s.sourceH) return;
+  if (!w && !h) return;
   _renderGalleryInfo(s.meta, w, h, s.note, s.entry);
 }
 
@@ -998,21 +1021,24 @@ function _clearInfoAnchor() {
 // backend reads the parameters from the PNG metadata ComfyUI embeds, falling
 // back to ComfyUI's history when the save node writes none.
 //
-// opts: {entry, src, isVideo, skipMedia, paneMode, getSize}
+// opts: {entry, src, isVideo, skipMedia, paneMode, getSize, getSourceSize}
+//   getSourceSize — () => {w,h} of the before image (upscale/crop/extend)
 //   entry     — the gallery entry (prompts + filename)
 //   src       — the media URL (used for the filename/type detection)
 //   isVideo   — title + skip_media (do not download the MP4)
 //   paneMode  — opened from a pane: the backdrop catches the dismiss click
 //   getSize   — () => {w,h} the browser knows (refreshed on video metadata)
+//   sourceEl  — the before <img> (refresh when it finishes loading)
 //   anchorEl  — pane-mode: the output pane the box centers on
 // Toggles: calling it while the panel is open closes it.
 async function _openInfoPanel(opts) {
-  const { entry, src, isVideo, skipMedia, paneMode, getSize, anchorEl } = opts || {};
+  const { entry, src, isVideo, skipMedia, paneMode, getSize, anchorEl, getSourceSize, sourceEl } = opts || {};
   if (galleryInfoPanel.classList.contains('show')) {
     closeGalleryInfo();
     return;
   }
   _infoSizeGetter = typeof getSize === 'function' ? getSize : null;
+  _infoSourceGetter = typeof getSourceSize === 'function' ? getSourceSize : null;
   galleryInfoPanel.classList.toggle('pane-mode', !!paneMode);
 
   const requestId = ++galleryInfoRequest;
@@ -1039,6 +1065,12 @@ async function _openInfoPanel(opts) {
       const el = video ? video.querySelector('video') : null;
       if (el) el.addEventListener('loadedmetadata', _refreshGalleryInfoSize, { once: true });
     }
+  }
+
+  // The before image may still be loading — repaint when it lands so the
+  // Source row appears without reopening the panel.
+  if (sourceEl && _infoShowsSource(entry) && !(sourceEl.naturalWidth && sourceEl.naturalHeight)) {
+    sourceEl.addEventListener('load', _refreshGalleryInfoSize, { once: true });
   }
 
   const filename = (entry && entry.filename)
@@ -1090,11 +1122,18 @@ async function galleryShowInfo() {
   const isVideo = galleryMode === 'video';
   const src = e.src || (isVideo ? (e.url || e.src || '')
     : galleryMode === 'compare' ? galleryAfter.src : galleryBig.src);
+  // The before image of the comparison (upscale/crop/extend; in lightbox mode
+  // galleryBefore still holds the previous comparison — never use it there).
+  const compareBefore = galleryMode === 'compare' ? galleryBefore : null;
   await _openInfoPanel({
     entry: e,
     src,
     isVideo,
     skipMedia: isVideo,
+    sourceEl: compareBefore,
+    getSourceSize: () => (compareBefore
+      ? { w: compareBefore.naturalWidth || 0, h: compareBefore.naturalHeight || 0 }
+      : { w: 0, h: 0 }),
     getSize: () => {
       if (isVideo) {
         const video = galleryVideoWrap ? galleryVideoWrap.querySelector('video') : null;
@@ -1128,6 +1167,9 @@ function paneShowInfo(tab) {
   const img = pane
     ? (pane.querySelector('.compare-slider img.side.after') || pane.querySelector('.result-img'))
     : null;
+  // The before side of the pane comparison (its natural size is the source
+  // resolution — used by upscale/crop/extend).
+  const beforeImg = pane ? pane.querySelector('.compare-slider img.side.before') : null;
   const video = pane ? pane.querySelector('video') : null;
   const src = isVideo
     ? (entry.url || entry.src || entry.display || '')
@@ -1139,6 +1181,10 @@ function paneShowInfo(tab) {
     skipMedia: isVideo,
     paneMode: true,
     anchorEl: pane,
+    sourceEl: beforeImg,
+    getSourceSize: () => (beforeImg
+      ? { w: beforeImg.naturalWidth || 0, h: beforeImg.naturalHeight || 0 }
+      : { w: 0, h: 0 }),
     getSize: () => (isVideo
       ? { w: (video && video.videoWidth) || 0, h: (video && video.videoHeight) || 0 }
       : { w: (img && img.naturalWidth) || 0, h: (img && img.naturalHeight) || 0 }),

@@ -81,3 +81,23 @@ def test_compact_info_for_workflows_without_sampler():
     assert "_appendGalleryInfoPromptRows(entry);" in GALLERY
     # The compact branch never renders the sampler rows.
     assert "['Steps', _galleryInfoList" in GALLERY  # still there for the full layout
+
+def test_source_resolution_only_for_canvas_changing_kinds():
+    import re
+
+    # Source resolution is offered only where the result canvas differs from
+    # the source: upscale, crop, extend.
+    match = re.search(r"const SOURCE_INFO_KINDS = \[(.*?)\];", GALLERY, re.S)
+    assert match, "SOURCE_INFO_KINDS missing"
+    kinds = set(re.findall(r"'([^']+)'", match.group(1)))
+    assert kinds == {"upscale", "upscaled", "crop", "cropped", "extend", "extended"}
+    for excluded in ("'edit'", "'restore'", "'face_swap'", "'adjust'"):
+        assert excluded not in kinds, excluded
+
+    assert "function _infoShowsSource(entry)" in GALLERY
+    assert "const source = _infoShowsSource(entry) ? _infoSourceSizeNow()" in GALLERY
+    # Only rendered when it really differs from the result.
+    assert "const showSource = !!(w && h && source.w && source.h" in GALLERY
+    # Same position in BOTH layouts: right after Resolution.
+    assert "const rows = [['Resolution'" in GALLERY
+    assert "if (showSource) rows.push(['Source', `${source.w} × ${source.h}`]);" in GALLERY

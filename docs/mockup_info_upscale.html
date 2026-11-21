@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mockup — ℹ️ información de Upscale (propuesta 2: minimalista)</title>
+<title>Mockup — ℹ️ información: Upscale / Crop / Extend</title>
 <style>
   /* Mockup estático: reproduce las clases reales del panel
      (.gallery-info-* de static/css/components.css) sobre un pane simulado.
@@ -65,6 +65,14 @@
     color: rgba(255,255,255,.7);
     font-size: .9rem;
   }
+  .pane-size {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font: 400 12px/1 var(--font);
+    color: rgba(255,255,255,.28);
+    letter-spacing: .08em;
+  }
   .output-overlay-btn.top-left { top: 12px; left: 12px; }
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
   .output-overlay-btn.hot { border-color: var(--accent); color: #fff; }
@@ -120,8 +128,8 @@
 </head>
 <body>
 
-<h1>ℹ️ Información de Upscale — propuesta 2 (minimalista)
-  <small>Sólo Resolution + Model. Sin Steps/Sampler/Scheduler/LoRAs (no existen en este flujo), sin Seed, sin Prompt, sin Scale y sin las constantes del workflow (target, max, blend, color correction). Datos de un job real (fuente 1248 × 832).</small>
+<h1>ℹ️ Información — Upscale · Crop · Extend
+  <small>Filas compactas para workflows sin sampler y <code>Source</code> (resolución de la imagen de partida) sólo cuando el lienzo cambia: upscale, crop y extend. Datos de jobs reales.</small>
 </h1>
 
 <div class="row">
@@ -147,13 +155,14 @@
 
   <!-- 2) PROPUESTA 2 -->
   <div class="col">
-    <div class="col-label next">Propuesta 2 — 2 filas</div>
+    <div class="col-label next">Propuesta 2 — 3 filas</div>
     <div class="pane">
       <span class="output-overlay-btn top-left hot">ℹ</span>
       <span class="output-overlay-btn top-right">⛶</span>
       <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
         <div class="gallery-info-title">Image information</div>
         <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">2048 × 1364</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Source</span><span class="gallery-info-value">1248 × 832<span class="tag new">new</span></span></div>
         <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value">seedvr2_ema_7b-Q4_K_M.gguf</span></div>
       </div>
     </div>
@@ -168,8 +177,50 @@
       <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
         <div class="gallery-info-title">Image information</div>
         <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">2048 × 1364</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Source</span><span class="gallery-info-value">1248 × 832</span></div>
         <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value dim">—</span></div>
         <div class="gallery-info-note">Technical metadata is not available for this entry.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<div class="row">
+
+  <!-- 4) CROP -->
+  <div class="col">
+    <div class="col-label next">Crop — compacto + Source</div>
+    <div class="pane">
+      <span class="output-overlay-btn top-left hot">ℹ</span>
+      <span class="output-overlay-btn top-right">⛶</span>
+      <span class="pane-size">816 × 1216</span>
+      <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
+        <div class="gallery-info-title">Image information</div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">816 × 1216</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Source</span><span class="gallery-info-value">1200 × 1800<span class="tag new">new</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5) EXTEND -->
+  <div class="col">
+    <div class="col-label next">Extend — completo + Source</div>
+    <div class="pane">
+      <span class="output-overlay-btn top-left hot">ℹ</span>
+      <span class="output-overlay-btn top-right">⛶</span>
+      <span class="pane-size">1920 × 1600</span>
+      <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
+        <div class="gallery-info-title">Image information</div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">1920 × 1600</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Source</span><span class="gallery-info-value">1408 × 1056<span class="tag new">new</span></span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Steps</span><span class="gallery-info-value">6</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Sampler</span><span class="gallery-info-value">euler</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Scheduler</span><span class="gallery-info-value">Flux2Scheduler</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value">flux-2-klein-9b-nvfp4.safetensors</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">LoRAs</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Prompt</span><span class="gallery-info-value">remove the green part, snowy mountains at dusk</span></div>
       </div>
     </div>
   </div>
@@ -180,6 +231,9 @@
   <b>Reglas de la propuesta 2</b>
   <ul>
     <li><b>Upscale muestra sólo las filas con datos reales del resultado</b>: <code>Resolution</code> (cabecera PNG del archivo) y <code>Model</code> (prompt de ejecución).</li>
+    <li><b><code>Source</code></b> (nuevo): tamaño natural de la imagen de partida, leído del lado <em>before</em> de la comparación (<code>naturalWidth/Height</code>, sin backend). Aparece en <b>Upscale, Crop y Extend</b> (los que cambian el lienzo) y <b>sólo si difiere</b> de <code>Resolution</code>; en Edit/Restore/Adjust/Face swap nunca se pinta.</li>
+    <li>Si la fuente ya no se puede cargar (borrada por la limpieza de ComfyUI), la fila <code>Source</code> simplemente no aparece; si tarda en cargar, aparece en cuanto termina (sin reabrir el panel).</li>
+    <li><b>Crop</b> usa el layout compacto (sin sampler ni modelo): <code>Resolution</code> + <code>Source</code>. <b>Extend</b> conserva el layout completo (FLUX.2 sí tiene sampler) con <code>Source</code> justo debajo de <code>Resolution</code>.</li>
     <li><b>Se omiten</b> las filas sin dato en este flujo (<code>Steps</code>, <code>Sampler</code>, <code>Scheduler</code>, <code>LoRAs</code>) y las constantes del workflow (<code>Resolution target</code>, <code>Max resolution</code>, <code>Blend</code>, <code>Color correction</code>): son iguales en todos los upscales, no describen esta imagen.</li>
     <li><b>Sin</b> <code>Seed</code>, <b>sin</b> <code>Prompt</code>/<code>Source prompt</code> y <b>sin</b> <code>Scale</code>.</li>
     <li>El resto de herramientas (Generate/Edit/Face swap/Video) <b>no cambian</b>: mismas filas y mismo orden que hoy.</li>

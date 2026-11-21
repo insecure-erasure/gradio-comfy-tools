@@ -847,6 +847,13 @@ entering the gallery.
   The workflow's fixed constants (`resolution`, `max_resolution`,
   `blend_factor`, `color_correction`) are config, not per-result data, so they
   are not listed either. Every other tool keeps the full layout.
+- **`Source` resolution** (upscale, crop, extend — `SOURCE_INFO_KINDS` /
+  `_infoShowsSource()`): the natural size of the comparison's BEFORE side,
+  read from the already-loaded `<img>` (pane `.compare-slider img.side.before`
+  or `#galleryBefore`) — no backend call. Placed right after `Resolution` in
+  both layouts and rendered **only when it differs** from the result, so
+  Edit/Restore/Adjust/Face swap never show it. A missing/unloadable source
+  renders no row; if it is still loading the row appears when it lands.
 
 ## 5. How the code is organized
 
