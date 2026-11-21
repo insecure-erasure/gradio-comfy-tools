@@ -31,17 +31,29 @@ def test_every_pane_has_delete_and_grid_buttons():
         assert "paneDeleteShown()" in body, partial
         assert "pane-grid-btn" in body, partial
         assert "openPaneGrid()" in body, partial
-        # Stacked under the ℹ️ button of the same pane.
-        assert "top-left-2 pane-delete-btn" in body, partial
-        assert "top-left-3 pane-grid-btn" in body, partial
+        # Bottom corners, mirroring the fullscreen gallery (not the ℹ️ stack).
+        assert 'class="output-overlay-btn pane-delete-btn"' in body, partial
+        assert 'class="output-overlay-btn pane-grid-btn"' in body, partial
         # The button is the pane's gallery counter: N/M text, no icon.
         assert 'aria-label="Thumbnails">0/0</button>' in body, partial
 
 
 def test_css_positions_and_hides_them_while_generating():
     css = _read("static", "css", "components.css")
-    assert ".output-overlay-btn.top-left-2 { top: 48px; left: 12px; }" in css
-    assert ".output-overlay-btn.top-left-3 { top: 84px; left: 12px; }" in css
+    # 🗑️ owns the bottom-left corner; the counter is the RIGHTMOST button of
+    # the source cluster row (bottom 48), which slides left to make room.
+    assert ".output-overlay-btn.pane-delete-btn { bottom: 12px; left: 12px; }" in css
+    assert ".output-overlay-btn.pane-grid-btn { bottom: 48px; right: 12px; }" in css
+    # The source field/cluster moved up one row (36px) to make room.
+    assert ".source-url-field {\n    position: absolute;\n    /* Raised one row (36px)" in css
+    assert ".output-overlay-btn.bottom-right { bottom: 48px; right: 72px; }" in css
+    assert ".output-overlay-btn.bottom-right-left { bottom: 48px; right: 108px; }" in css
+    assert ".output-overlay-btn.bottom-right-left2 { bottom: 48px; right: 144px; }" in css
+    assert ".output-overlay-btn.bottom-right-left3 { bottom: 48px; right: 180px; }" in css
+    assert "bottom: 88px;   /* one row above the face field (48px) */" in css
+    # Nothing left on top of the ℹ️ column.
+    assert "top-left-2" not in css
+    assert "top-left-3" not in css
     assert ".output-pane.generating .pane-delete-btn" in css
     assert ".output-pane.generating .pane-grid-btn" in css
     # Text pill (N/M), not the square icon shape.

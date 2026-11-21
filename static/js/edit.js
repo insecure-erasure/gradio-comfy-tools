@@ -27,7 +27,7 @@ const EDIT_EXTEND_COLOR_MATCH_DEFAULT = 0.5;
 // source and any padding: closing the ⛶ popover / portrait prompt modal
 // must NOT hide it (the user needs to see the result after applying).
 // `bottom` leaves room for the source URL field + 📁/🔗 buttons.
-const EXTEND_PREVIEW_SAFE = { left: 12, right: 12, top: 12, bottom: 56 };
+const EXTEND_PREVIEW_SAFE = { left: 12, right: 12, top: 12, bottom: 92 };
 let _extendPreviewRaf = 0;
 
 let _editStepCfg = null;

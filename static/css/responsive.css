@@ -339,7 +339,7 @@
     .tabs-inner { padding-left: 8px; }
     .tabs-title { font-size: .78rem; padding: 4px 8px; }
     .output-pane { padding: 0; }
-    .source-url-field { bottom: 10px; left: 10px; width: 70%; }
+    .source-url-field { bottom: 46px; left: 10px; width: 70%; }
     .source-url-input { width: 100%; }
     /* Mobile: the source URL fields are COLLAPSED by default — the idle
        overlay shows a minimal sliver (10% width) and only expands while
