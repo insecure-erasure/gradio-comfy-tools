@@ -1037,7 +1037,10 @@ push events, so nothing is hidden by age and nothing polls:
   with a **▶ badge overlaid** on it; entries persisted before that field
   existed (or whose poster fails to load) fall back to the plain ▶ tile.
   No `<video>` in the grid: decoding N MP4s is slow/heavy. No type badges; a
-  small index number per tile.
+  small index number per tile. The poster survives a reload:
+  `normalizeVideoEntry()` in `storage.js` is a field whitelist and **keeps
+  `source`** (dropping it there is what made the sheet lose the poster after
+  refreshing; videos registered before the field existed keep the ▶ tile).
   **Thumbnails are loaded on demand, never preloaded**: each `<img>` is
   created WITHOUT `src` and an `IntersectionObserver` rooted on the sheet's
   scroll box assigns it when the tile is within ~240 px of the visible area,

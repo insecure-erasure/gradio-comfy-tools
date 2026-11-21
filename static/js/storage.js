@@ -142,6 +142,10 @@ function normalizeVideoEntry(e) {
     prompt: e.prompt || '',
     filename: e.filename !== undefined ? e.filename
       : (typeof filenameFromUrl === 'function' ? filenameFromUrl(display) : null),
+    // Poster of the video's thumbnail: the SOURCE image the video was made
+    // from (same-origin /media URL). This is a whitelist — dropping it here
+    // is what made the sheet lose the poster after a reload.
+    source: typeof e.source === 'string' ? e.source : '',
   };
 }
 

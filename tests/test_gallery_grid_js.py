@@ -134,6 +134,10 @@ def test_video_thumbs_use_the_source_image_as_poster():
     assert "addGeneratedVideo(res, prompt, typeof beforeProxyUrl === 'function'" in video
     assert "function addGeneratedVideo(result, prompt, source)" in gallery
     assert "source: source || ''," in gallery
+    # storage.js normalizes video entries with a WHITELIST of fields: it must
+    # keep `source` or the poster disappears on every reload.
+    storage = _read("static", "js", "storage.js")
+    assert "source: typeof e.source === 'string' ? e.source : ''," in storage
     # The sheet shows it through the same lazy loader, with a ▶ badge on top.
     assert "tile._gridThumb = { img, url: e.source };" in gallery
     assert "galleryMode === 'video' && e.source" in gallery
