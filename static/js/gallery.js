@@ -6,33 +6,25 @@
 //   • Generate (lightbox): navigates the GENERATED history — every image
 //     generated this session (window.galleryGenerated), even after the pane
 //     only shows the last one. An edit/restore APPENDS a new entry (the
-//     transformation's own prompt is shown via the Show prompt button;
-//     if the source was itself a gallery image, its prompt is preserved as
-//     the badge hover hint). An upscale REPLACES the original entry (badge
-//     "Upscaled", no hover hint). Badges are top-center ("Edited" /
-//     "Restored" / "Upscaled"). The prompt is never a bottom caption:
-//     Show prompt opens a semi-transparent modal with a
-//     device-appropriate font size (see .gallery-prompt-* CSS).
+//     transformation's own prompt and the source's original prompt are both
+//     shown in the ℹ️ info panel). An upscale REPLACES the original entry
+//     (badge "Upscaled"). Badges are top-center ("Edited" / "Restored" /
+//     "Upscaled").
 //   • Edit/Upscale (compare): opens the fullscreen overlay with its own
 //     interactive slider; the gallery there ONLY navigates the
 //     edited/restored/upscaled comparisons (never generated images).
 //
-// Prompt access: the prompt is NOT shown as a bottom caption. A Show
-// prompt button (bottom-center, shown only when the entry has a prompt)
-// reveals it on HOVER — no click needed — as a BOTTOM panel
-// (galleryPromptModal) styled exactly like the original-prompt hover hint
-// (.gallery-badge-hint): a grey translucent pill, centered 500-weight
-// text, no title/✕. The overlay layer is pointer-transparent, so the image
-// and the gallery buttons stay usable while it is open. The panel hides
-// when the pointer leaves (short grace delay), on ✕ / Escape / gallery
-// navigation (‹ › / ←/→ — the click/key navigates AND closes, so the shown
-// prompt never goes stale) and gallery close. Click/tap still toggles it
-// for touch/keyboard.
+// Prompt access: the prompt is no longer a bottom caption nor a separate
+// "Show prompt" button — it lives INSIDE the ℹ️ image-info panel, together
+// with the technical parameters. The panel opens from the top-left ℹ️
+// button or the `i` key, and closes with `i`, Escape, a click anywhere or
+// gallery navigation/close.
 //
 // Close ✕ is top-RIGHT, ℹ️ image info top-LEFT (inverted vs the reference —
 // project decision). The ℹ️ panel reads the parameters ComfyUI embeds in
 // the PNG (resolution, steps, sampler, scheduler, model, LoRAs/weights) via
-// GET /api/image-info. Video results are only COLLECTED (data-video-gallery
+// GET /api/image-info, falling back to ComfyUI history when the save node
+// writes no metadata. Video results are only COLLECTED (data-video-gallery
 // marker + window.galleryVideos) for a future video gallery — see docs/PLAN.md.
 
 const galleryOverlay = document.getElementById('galleryOverlay');
@@ -44,9 +36,6 @@ const galleryAfter = document.getElementById('galleryAfter');
 const galleryExtendToggle = document.getElementById('galleryExtendToggle');
 const galleryExtendOriginalBtn = document.getElementById('galleryExtendOriginalBtn');
 const galleryExtendResultBtn = document.getElementById('galleryExtendResultBtn');
-const galleryPromptBtn = document.getElementById('galleryPromptBtn');
-const galleryPromptModal = document.getElementById('galleryPromptModal');
-const galleryPromptText = document.getElementById('galleryPromptText');
 const galleryCounter = document.getElementById('galleryCounter');
 const galleryLabelAfter = document.getElementById('galleryLabelAfter');
 const galleryBadge = document.getElementById('galleryBadge');
@@ -110,8 +99,8 @@ function addGeneratedEntry(res, prompt) {
 // the generated history (the base stays in the gallery — the swap is a new
 // image). ``before`` is the same-origin proxy URL of the base (the BEFORE
 // side of the comparison, persisted for restore). ``prompt`` is the user's
-// OPTIONAL extra prompt (shown via the gallery Show-prompt button when
-// present). Called from face_swap.js when a result lands; the pane ‹ › nav
+// OPTIONAL extra prompt (shown in the gallery ℹ️ info panel when present).
+// Called from face_swap.js when a result lands; the pane ‹ › nav
 // and ⛶ gallery use the COMPARISON registry (addCompareEntry) instead —
 // see paneGalleryCount.
 function addFaceSwapEntry(res, before, prompt) {
@@ -178,8 +167,8 @@ function appendTransformedEntry(res, prompt, badge, sourceSrc) {
       // image before the edit. For a DIRECT edit that is the source entry's
       // own prompt; for a CHAINED edit (source is itself a transformation)
       // the source's originalPrompt already holds the true original — never
-      // fall back to the intermediate edit prompt (the bottom Show-prompt
-      // box already carries the transformation text).
+      // fall back to the intermediate edit prompt (the ℹ️ panel already
+      // carries the transformation text).
       originalPrompt = srcEntry.originalPrompt || srcEntry.prompt || '';
     }
   }
@@ -319,24 +308,22 @@ function closeBadgeBox() {
   if (galleryBadgeBox) galleryBadgeBox.classList.remove('show');
 }
 
-// Close EVERY gallery text box (the badge prompt box, the Show-prompt panel
-// and the ℹ️ image-info panel) and restore the badge that a box-open hid.
-// Returns true when anything was closed. Shared by click-outside and Escape.
+// Close the gallery text boxes (the badge's original-prompt box and the ℹ️
+// image-info panel) and restore the badge that a box-open hid. Returns true
+// when anything was closed. Shared by click-outside and Escape.
 function closeTextBoxes() {
   let changed = false;
-  if (galleryPromptModal.classList.contains('show')) { closeGalleryPrompt(); changed = true; }
   if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); changed = true; }
   if (galleryInfoPanel.classList.contains('show')) { closeGalleryInfo(); changed = true; }
-  // Re-render the CURRENT item from its data so the badge AND the
-  // Show-prompt button always come back to their proper state (a badge
-  // hidden by click must never stay gone — the render derives the
-  // visibility from the entry, not from accumulated classList toggles).
+  // Re-render the CURRENT item from its data so the badge always comes back
+  // to its proper state (a badge hidden by click must never stay gone — the
+  // render derives the visibility from the entry, not from accumulated
+  // classList toggles).
   if (changed) renderGalleryItem();
   return changed;
 }
 
 function closeGallery() {
-  closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
   closeGalleryInfo(); // an info panel must not linger over the next opening
   configureGalleryExtendToggle(false);
@@ -367,7 +354,6 @@ function closeGallery() {
     if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
       galleryOverlay.classList.remove('show');
       galleryMode = null;
-      closeGalleryPrompt();
       closeBadgeBox();
       closeGalleryInfo();
       resetGalleryZoom();
@@ -558,14 +544,6 @@ function renderGalleryItem() {
   if (galleryMode === 'lightbox') {
     configureGalleryExtendToggle(false);
     galleryBig.src = e.src;
-    // Show prompt: visible only when the entry has a prompt. The prompt
-    // itself is never rendered here — hovering the button reveals it.
-    if (e.prompt) {
-      galleryPromptBtn.classList.add('show');
-    } else {
-      galleryPromptBtn.classList.remove('show');
-      closeGalleryPrompt(); // an entry without a prompt — never leave the panel open
-    }
     // Badge overlay (top-center): the transform that produced this image.
     // The badge is shown alone — the prompt boxes only appear when it is
     // CLICKED (see the badge click handler), which hides the badge.
@@ -591,10 +569,6 @@ function renderGalleryItem() {
     galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url, true));
     galleryBadge.classList.remove('show');
     galleryBadge.textContent = '';
-    // NO Show-prompt button in the video gallery: the player fills the
-    // overlay edge-to-edge and the button would overlap the controls.
-    galleryPromptBtn.classList.remove('show');
-    closeGalleryPrompt();
     // No image metadata in the video gallery: hide the ℹ️ button instead of
     // showing a panel full of dashes over the player controls.
     galleryInfoBtn.style.display = 'none';
@@ -605,11 +579,6 @@ function renderGalleryItem() {
     galleryLabelAfter.textContent = compareKindLabel(e.kind);
     configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust', compareKindLabel(e.kind));
     galleryBadge.classList.remove('show');
-    // Compare mode: the Show-prompt button is visible by DEFAULT when the
-    // comparison has a prompt (no click on the slider needed) — same rule
-    // as the lightbox and video modes.
-    if (e.prompt) galleryPromptBtn.classList.add('show');
-    else { galleryPromptBtn.classList.remove('show'); closeGalleryPrompt(); }
     fitGallerySlider();
   }
   // N/M paginator (bottom-right): always visible in the gallery. The ‹ ›
@@ -629,7 +598,6 @@ function renderGalleryItem() {
 
 function galleryNav(delta) {
   if (!galleryMode || galleryEntries.length < 2) return;
-  closeGalleryPrompt(); // a new entry — don't leave the old prompt open
   closeBadgeBox();
   galleryIdx = ((galleryIdx + delta) % galleryEntries.length + galleryEntries.length) % galleryEntries.length;
   resetGalleryZoom(); // a new entry always starts at 1x
@@ -754,8 +722,7 @@ async function openCompareFullscreen(kind) {
 
 // Video fullscreen: the ⛶ button on the Video tab opens the generated
 // videos gallery (window.galleryVideos) — the custom player fills the
-// overlay, ‹› navigates, the 🗑️ deletes the shown entry, Show prompt
-// reveals its prompt.
+// overlay, ‹› navigates and the 🗑️ deletes the shown entry.
 async function openVideoGallery() {
   // NO existence verification here: videos are ComfyUI temp files that get
   // cleaned on server restart, and the user wants the gallery to show every
@@ -825,7 +792,20 @@ function _galleryInfoList(values) {
   return values.map(v => String(v)).join(' / ');
 }
 
-function _renderGalleryInfo(meta, fallbackW, fallbackH, note) {
+function _appendGalleryInfoTextRow(key, text, extraClass) {
+  const row = document.createElement('div');
+  row.className = 'gallery-info-row';
+  const keyEl = document.createElement('span');
+  keyEl.className = 'gallery-info-key';
+  keyEl.textContent = key;
+  const valueEl = document.createElement('span');
+  valueEl.className = 'gallery-info-value' + (extraClass ? ' ' + extraClass : '');
+  valueEl.textContent = text;
+  row.append(keyEl, valueEl);
+  galleryInfoRows.appendChild(row);
+}
+
+function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   if (!galleryInfoRows) return;
   const w = (meta && meta.width) || fallbackW || 0;
   const h = (meta && meta.height) || fallbackH || 0;
@@ -881,6 +861,17 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note) {
   loraRow.append(loraKey, loraValue);
   galleryInfoRows.appendChild(loraRow);
 
+  // The prompt moved here from the old Show-prompt button: the ℹ️ panel is
+  // now the single place to inspect an image (parameters + prompts).
+  const prompt = entry && typeof entry.prompt === 'string' ? entry.prompt : '';
+  _appendGalleryInfoTextRow('Prompt', prompt || '—',
+    prompt ? 'gallery-info-prompt' : '');
+  const originalPrompt = entry && typeof entry.originalPrompt === 'string'
+    ? entry.originalPrompt : '';
+  if (originalPrompt && originalPrompt !== prompt) {
+    _appendGalleryInfoTextRow('Original prompt', originalPrompt, 'gallery-info-prompt');
+  }
+
   if (galleryInfoNote) {
     galleryInfoNote.textContent = note || '';
     galleryInfoNote.style.display = note ? 'block' : 'none';
@@ -894,7 +885,6 @@ async function galleryShowInfo() {
     closeGalleryInfo();
     return;
   }
-  closeGalleryPrompt();
   closeBadgeBox();
 
   const requestId = ++galleryInfoRequest;
@@ -903,7 +893,7 @@ async function galleryShowInfo() {
   const fallbackH = (image && image.naturalHeight) || 0;
   // Show the panel immediately with what the browser knows (resolution),
   // then fill the technical rows when the backend answers.
-  _renderGalleryInfo(null, fallbackW, fallbackH, '');
+  _renderGalleryInfo(null, fallbackW, fallbackH, '', e);
   galleryInfoPanel.classList.add('show');
   galleryInfoBtn.setAttribute('aria-expanded', 'true');
 
@@ -912,7 +902,7 @@ async function galleryShowInfo() {
     ? filenameFromUrl(src) : null);
   if (!filename) {
     _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this image.');
+      'Technical metadata is not available for this image.', e);
     return;
   }
   const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(src) : 'output';
@@ -924,11 +914,11 @@ async function galleryShowInfo() {
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
     _renderGalleryInfo(meta, fallbackW, fallbackH,
       meta && meta.has_metadata === false
-        ? 'Technical metadata is not available for this image.' : '');
+        ? 'Technical metadata is not available for this image.' : '', e);
   } catch (err) {
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
     _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this image.');
+      'Technical metadata is not available for this image.', e);
   }
 }
 
@@ -968,8 +958,8 @@ function galleryDeleteCurrent() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
   const fn = e.filename || (e.src && typeof filenameFromUrl === 'function' ? filenameFromUrl(e.src) : null);
-  closeGalleryPrompt();
   closeBadgeBox();
+  closeGalleryInfo();
 
   // Generated results are also source candidates in the 🕘 popover, so a
   // manual delete here must forget the image there as well (all tabs).
@@ -1189,32 +1179,6 @@ function dropMedia(filenames, opts) {
   }
 }
 
-// ── Prompt panel (Show prompt) ─────────────
-// BOTTOM panel with the current entry's prompt — SAME STYLE as the
-// original-prompt hover hint (.gallery-badge-hint): a grey translucent
-// pill with centered text, no title, no close button. Only available in
-// lightbox mode and only when the entry has a prompt (the button is
-// hidden otherwise).
-//
-// HOVER-revealed: hovering the button (mouse) shows the panel; moving away
-// hides it after a short grace delay (avoids flicker on tiny movements).
-// Click/tap still toggles it (touch devices have no hover; keyboard
-// activation works too) and Escape / navigation (‹ › / ←/→ — which also
-// navigate) / gallery close always close it.
-let promptPinned = false;   // the Show-prompt panel was opened by CLICK (button hidden)
-
-function openGalleryPrompt() {
-  const e = galleryEntries[galleryIdx];
-  if (!e || !e.prompt) return;
-  galleryPromptText.textContent = e.prompt; // textContent — never innerHTML
-  galleryPromptModal.classList.add('show');
-}
-
-function closeGalleryPrompt() {
-  promptPinned = false;
-  galleryPromptModal.classList.remove('show');
-}
-
 // ── Pane navigation ‹ › (normal view) ──────
 // Each tool's output pane shows its gallery's most recent entry. The ‹ ›
 // buttons on the pane (visible when the tool's gallery holds more than one
@@ -1371,80 +1335,67 @@ galleryInfoBtn.addEventListener('click', e => {
   galleryShowInfo();
 });
 galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
-// ‹ › while the prompt panel is open: close it and navigate (one action —
-// the shown prompt never goes stale). The overlay is pointer-transparent,
-// so these buttons stay clickable under it.
+// ‹ › navigate and close any open text box (the shown information never
+// goes stale). The overlay is pointer-transparent, so these buttons stay
+// clickable under an open panel.
 galleryPrevBtn.addEventListener('click', e => {
   e.stopPropagation();
   if (galleryPrevBtn.disabled) return; // single entry — nothing to navigate
-  closeGalleryPrompt();
   galleryNav(-1);
 });
 galleryNextBtn.addEventListener('click', e => {
   e.stopPropagation();
   if (galleryNextBtn.disabled) return; // single entry — nothing to navigate
-  closeGalleryPrompt();
   galleryNav(1);
 });
 // Badge click/tap: HIDE the badge and show ONE box with ONLY the ORIGINAL
-// generation prompt (and hide the bottom Show-prompt button meanwhile — one
-// box at a time). Clicking again (or closing via click-outside/navigation)
-// re-renders from the data, so the badge AND the bottom button always come
-// back.
+// generation prompt (the ℹ️ panel also carries it, but the badge offers a
+// quick glance without opening the full parameters). Clicking again (or
+// closing via click-outside/navigation) re-renders from the data, so the
+// badge always comes back.
 galleryBadge.addEventListener('click', e => {
   e.stopPropagation();
   const e2 = galleryEntries[galleryIdx];
   if (!e2 || !e2.badge) return;
   if (e2.badge === 'upscaled') return; // informational only
   if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); renderGalleryItem(); return; }
-  closeGalleryPrompt();
   closeGalleryInfo(); // ONE box at a time — never over the ℹ️ panel
   if (!e2.originalPrompt) return; // nothing to show
   galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadge.classList.remove('show');
   galleryBadge.textContent = '';
-  // ONE box at a time: hide the bottom Show-prompt button too while the
-  // badge box is open (its panel would overlap the original prompt with the
-  // transformation text). renderGalleryItem re-derives its visibility from
-  // the entry on close/navigate, so it always comes back.
-  galleryPromptBtn.classList.remove('show');
   galleryBadgeBox.classList.add('show');
 });
-// CLICK only (no hover — hover timers were fragile). The two badges are
-// independent: clicking the top badge never touches the bottom one.
-galleryPromptBtn.addEventListener('click', e => {
-  e.stopPropagation();
-  // Toggle: if the panel is already open, close it and restore the button
-  // (render from data); otherwise hide the button and pin the panel open.
-  if (galleryPromptModal.classList.contains('show')) {
-    closeGalleryPrompt();
-    renderGalleryItem();
-    return;
-  }
-  closeGalleryInfo(); // ONE box at a time — never over the ℹ️ panel
-  promptPinned = true;
-  galleryPromptBtn.classList.remove('show');
-  openGalleryPrompt();
-});
 // Clicking ANYWHERE on the screen (image, backdrop…) closes any open text
-// box — the badge prompt box and the Show-prompt panel — restoring the
-// badge. Only when no box is open does clicking the dark backdrop close
-// the gallery itself.
+// box — the badge prompt box and the ℹ️ info panel — restoring the badge.
+// Only when no box is open does clicking the dark backdrop close the
+// gallery itself.
 galleryOverlay.addEventListener('click', e => {
   if (closeTextBoxes()) return;
   if (e.target === galleryOverlay) closeGallery();
 });
 
-// Keyboard: Escape closes; ←/→ navigate while the overlay is open. While
-// the prompt panel is open, Escape closes ONLY the panel (the gallery
-// stays) and navigation is suspended so the shown prompt never goes stale.
+// Keyboard: Escape closes; ←/→ navigate; `i` toggles the ℹ️ info panel.
+// While any text box is open, Escape closes ONLY the box (the gallery
+// stays) and navigation is suspended so the shown information never goes
+// stale. The `i` shortcut is handled FIRST so pressing it while the panel
+// is open really closes it (instead of closeTextBoxes reopening it).
 document.addEventListener('keydown', e => {
   if (!galleryOverlay.classList.contains('show')) return;
-  // While any text box is open (prompt, badge or ℹ️ info), Escape closes it
-  // and navigation is suspended so the shown information never goes stale.
+  const target = e.target;
+  const tag = target && target.tagName ? String(target.tagName).toLowerCase() : '';
+  const typing = tag === 'input' || tag === 'textarea'
+    || (target && target.isContentEditable);
+  if (!typing && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey
+      && String(e.key).toLowerCase() === 'i') {
+    e.preventDefault();
+    galleryShowInfo(); // toggles the panel: open when closed, close when open
+    return;
+  }
+  // While any text box is open (badge or ℹ️ info), Escape closes it and
+  // navigation is suspended so the shown information never goes stale.
   if (closeTextBoxes() && e.key === 'Escape') return;
-  if (galleryPromptModal.classList.contains('show')
-      || galleryBadgeBox.classList.contains('show')
+  if (galleryBadgeBox.classList.contains('show')
       || galleryInfoPanel.classList.contains('show')) return;
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);

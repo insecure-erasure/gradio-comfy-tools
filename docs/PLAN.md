@@ -531,45 +531,46 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     its own interactive slider; the gallery there **ONLY navigates the
     edited/restored/upscaled comparisons** (never generated images), the
     AFTER image being the identity (like the reference's #thumb).
-  - **Prompt display (updated 2026-08-11)**: the prompt is **no longer a
-    bottom caption**. A **Show prompt** button sits bottom-center (only when
-    the entry has a prompt) and **hovering it is enough** — the prompt
-    appears as a **bottom panel**; **clicking the button hides it and PINNS
-    the panel open** (`promptPinned`). ALL gallery text boxes share ONE
-    unified family (`.gallery-prompt-btn`, `.gallery-prompt-box`,
-    `.gallery-badge`, `.gallery-counter`, compare-slider labels): system-ui
-    weight 400 (no bold), 13px/1.5, `rgba(28,28,28,.72)` surface, 1px
-    border, 10px radius, `8px 14px` padding, same shadow, `text-align:
-    left` (the button is centered). Both prompt boxes use the same
-    container (`left:50% + translateX(-50%)`) and max-width
-    (`min(560px, 86vw)`); in portrait they expand to full width (margins
-    0 12px). The panel is pointer-transparent; it hides on pointer leave,
-    Escape, navigation and gallery close; **any open box closes on a click
-    anywhere** (`closeTextBoxes()` restores the badge + button).
+  - **Prompt display (updated 2026-11-21)**: the prompt is **no longer a
+    bottom caption**, and the separate **Show prompt** button was removed
+    too. The prompt now lives inside the **ℹ️ image-information panel**
+    (`#galleryInfoPanel`), opened by the top-left ℹ️ button or the **`i`**
+    key and closed by `i` / Escape / a click anywhere / navigation / gallery
+    close. The panel shows the technical parameters returned by
+    `GET /api/image-info` first, then the entry's **Prompt** and (when
+    different) its **Original prompt**. ALL gallery text boxes share ONE
+    unified family (`.gallery-prompt-box`, `.gallery-badge`,
+    `.gallery-counter`, `.gallery-info-box`): system-ui weight 400 (no
+    bold), 13px/1.5, `rgba(28,28,28,.72)` surface, 1px border, 10px
+    radius, same shadow, `text-align: left`. The info box is
+    `min(440px, 90vw)` and scrolls when needed; **any open box closes on a
+    click anywhere** (`closeTextBoxes()` restores the badge).
   - **Transformation behavior (user requirement, updated 2026-08-08)** —
     edits/restores **APPEND** a new entry to the generated history (the
     original image stays), upscales **REPLACE** the source entry:
-    - **Edit ✏️ / Restore 🩹 / Extend 🧩**: the appended entry's own text is what the
-      Show prompt modal shows; if the source was itself a gallery
-      image, its prompt is kept as `originalPrompt`. **Clicking the
-      "Edited"/"Restored" badge hides it and shows a single box
-      (`#galleryBadgeBox`) with ONLY the ORIGINAL prompt** (no label, no
-      transformation text; nothing if there is no original prompt).
-      Restore may have no prompt — the Show prompt button is hidden but
-      the badge still opens the original-prompt box. Edits of non-gallery
-      sources (uploads / external URLs) have no original prompt, so the
-      badge click shows nothing.
+    - **Edit ✏️ / Restore 🩹 / Extend 🧩**: the appended entry's own text is
+      the ℹ️ panel's **Prompt**; if the source was itself a gallery image,
+      its prompt is kept as `originalPrompt` and shown as **Original
+      prompt** in the same panel. **Clicking the "Edited"/"Restored" badge
+      hides it and shows a single box (`#galleryBadgeBox`) with ONLY the
+      ORIGINAL prompt** (no label, no transformation text; nothing if there
+      is no original prompt). Restore may have no transformation prompt —
+      the ℹ️ Prompt row shows "—", but the badge still opens the
+      original-prompt box when there is one. Edits of non-gallery sources
+      (uploads / external URLs) have no original prompt, so the badge click
+      shows nothing.
     - **Upscale 🔍**: **replaces** the source entry in place — the
-      generation prompt stays as the Show prompt content, badge "Upscaled"
-      top-center, **informational only (`.no-action`, default cursor)** — no
-      click action (an upscale has no original prompt to show).
+      generation prompt stays as the ℹ️ **Prompt** content, badge
+      "Upscaled" top-center, **informational only (`.no-action`, default
+      cursor)** — no click action (an upscale has no original prompt to
+      show).
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
   - **Video**: now NAVIGABLE in the gallery — `openVideoGallery` (⛶ on
     the Video tab) shows `window.galleryVideos` in the overlay with the
     custom player edge-to-edge: ‹ › navigates, 🗑️ deletes the shown entry,
-    N/M counter bottom-right. The badge AND Show-prompt button are NOT
-    shown in video mode (the player fills the overlay). The result still
+    N/M counter bottom-right. The badge AND ℹ️ info button are NOT shown
+    in video mode (the player fills the overlay). The result still
     carries a `data-video-gallery="1"` marker; videos are collected in
     `window.galleryVideos` and persisted like the images (see docs/FRONTEND.md §7.1).
 - **FIX (2026-08-08, superseded 2026-08-11)**: **LoRA modals broken on Windows (dual-boot)** — the
@@ -680,13 +681,12 @@ Launch a generation in the UI; verify the result URL row shows live progress
 - **Gallery in a live session (not stubbed)**: generate 2+ images, open the
   lightbox (click the result or ⛶) and verify the history navigates all of
   them (counter n/N, ‹ ›, ←/→); then edit/restore one of them and verify it
-  APPENDS a new entry (Show prompt = edit text, badge click = original
-  prompt box) while the original stays; upscale one and verify it REPLACES
-  its entry (Show prompt = generation prompt, badge "Upscaled" — no click
-  action). Also verify the Show prompt panel appears on hover over the
-  button and that clicking the button pins it open (button hides); a click
-  anywhere closes it and restores the badge + button; Escape / navigation
-  also close. Confirm the ⛶ compare
+  APPENDS a new entry (ℹ️ Prompt = edit text, badge click = original prompt
+  box) while the original stays; upscale one and verify it REPLACES its
+  entry (ℹ️ Prompt = generation prompt, badge "Upscaled" — no click
+  action). Verify the ℹ️ panel opens with the button and with the `i` key,
+  shows the prompt and closes with `i` / Escape / a click anywhere /
+  navigation. Confirm the ⛶ compare
   overlay in Edit/Upscale only lists edited/restored/upscaled comparisons
   **and that several edits/restores/upscales done on the same tab all stay
   in the gallery** (regression: the first edit used to vanish once the

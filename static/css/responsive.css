@@ -320,18 +320,16 @@
          flex-grow and shove the button past the row edge. */
       margin-left: -4px;
     }
-    /* Gallery — prompt boxes (vertical): BOTH the badge box (top) and the
-       Show-prompt panel (bottom) span the FULL width (small side margins),
-       never narrowed — landscape keeps the fitted centered box. */
-    .gallery-badge-box,
-    .gallery-prompt-modal {
+    /* Gallery — original-prompt box (vertical): spans the FULL width
+       (small side margins), never narrowed — landscape keeps the fitted
+       centered box. */
+    .gallery-badge-box {
       left: 0;
       right: 0;
       transform: none;
       margin: 0 12px;
     }
-    .gallery-badge-box .gallery-prompt-box,
-    .gallery-prompt-modal .gallery-prompt-box {
+    .gallery-badge-box .gallery-prompt-box {
       width: 100%;
       max-width: none;
     }

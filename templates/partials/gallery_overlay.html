@@ -2,19 +2,15 @@
      viewers (../open-webui-comfy-tools smart_generate_image / edit_image /
      upscale_image). Two modes, one overlay:
        • lightbox (Generate): a centered big image + gallery navigation
-         (‹ ›, n/N counter, Show prompt button, ℹ️ image info). Close ✕ is
-         top-RIGHT, info is top-LEFT (inverted vs the reference — project
-         decision). The ℹ️ button shows the technical parameters embedded in
+         (‹ ›, n/N counter, ℹ️ image info). Close ✕ is top-RIGHT, info is
+         top-LEFT (inverted vs the reference — project decision). The ℹ️
+         button (or the `i` key) opens the technical parameters embedded in
          the image (resolution, steps, sampler, scheduler, model, LoRAs and
-         weights) instead of downloading it.
-         The prompt is NOT shown as a bottom caption anymore: a Show prompt
-         button (visible only when the entry has a prompt) reveals it on
-         hover — no click needed — as a semi-transparent BOTTOM panel with
-         a modest, device-appropriate font size (see .gallery-prompt-* in
-         components.css).
+         weights) AND the prompt/s — the old Show-prompt button was removed
+         and its content lives in this panel.
        • compare (Edit/Upscale): the interactive before/after slider fills
          the screen; the gallery there only navigates the edited/upscaled
-         comparisons, and edited entries show the edit prompt as caption.
+         comparisons, and the ℹ️ panel shows the result's prompt too.
      The overlay element itself is fullscreened (not documentElement) so the
      page state is untouched; Escape / backdrop / ✕ close it.
      Opened/closed by static/js/gallery.js. -->
@@ -33,12 +29,6 @@
     <button type="button" class="extend-toggle-btn" id="galleryExtendOriginalBtn" onclick="setGalleryExtendView(true)" aria-pressed="false">Original</button>
     <button type="button" class="extend-toggle-btn active" id="galleryExtendResultBtn" onclick="setGalleryExtendView(false)" aria-pressed="true">Extended</button>
   </div>
-  <button class="gallery-prompt-btn" id="galleryPromptBtn" title="Show prompt">Show prompt</button>
-  <div class="gallery-prompt-modal" id="galleryPromptModal">
-    <div class="gallery-prompt-box" id="galleryPromptBox">
-      <div class="gallery-prompt-text" id="galleryPromptText"></div>
-    </div>
-  </div>
   <div class="gallery-badge" id="galleryBadge"></div>
   <!-- Prompt box shown when the badge is CLICKED: the badge hides and this
        box appears with ONLY the ORIGINAL generation prompt (the prompt of
@@ -55,11 +45,13 @@
   <button class="gallery-btn gallery-info" id="galleryInfo" title="Image information" aria-label="Image information" aria-expanded="false" aria-controls="galleryInfoPanel">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg>
   </button>
-  <!-- Technical parameters of the CURRENT image (resolution, steps, sampler,
-       scheduler, model, LoRAs). The backend reads them from the PNG metadata
-       ComfyUI embeds, falling back to ComfyUI's history when the save node
-       writes none. Populated by gallery.js; hidden by default. Tap anywhere
-       closes it, exactly like the other gallery text boxes. -->
+  <!-- Image information of the CURRENT entry: technical parameters
+       (resolution, steps, sampler, scheduler, model, LoRAs/weights) AND the
+       prompt (plus the original prompt when the entry is a transformation).
+       The backend reads the parameters from the PNG metadata ComfyUI embeds,
+       falling back to ComfyUI's history when the save node writes none.
+       Populated by gallery.js; hidden by default. Opened with the ℹ️ button
+       or the `i` key; tap anywhere closes it, like the other text boxes. -->
   <div class="gallery-info-panel" id="galleryInfoPanel" role="dialog" aria-label="Image information">
     <div class="gallery-info-box">
       <div class="gallery-info-title">Image information</div>

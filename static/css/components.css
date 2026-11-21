@@ -2029,15 +2029,12 @@
     height: 100%;
   }
   /* ── Gallery text boxes — ONE unified family ──
-     Every text box in the gallery (Show-prompt button, prompt panel,
-     badge, prompt stack, counter) shares the SAME font and styles: system-ui
-     weight 400 (no bold anywhere), 13px/1.5, white on the dark translucent
-     surface, 1px light border, 10px radius, one box-shadow, and the SAME
-     fixed padding (8px 14px). Boxes hug their text (fit-content) so the
-     box size adapts to the content, never to a fixed width.
-     Alignment: LEFT everywhere except the Show-prompt button, whose label
-     is CENTERED (it is a button, not a text box). */
-  .gallery-prompt-btn,
+     Every text box in the gallery (prompt box, badge, counter) shares the
+     SAME font and styles: system-ui weight 400 (no bold anywhere),
+     13px/1.5, white on the dark translucent surface, 1px light border,
+     10px radius, one box-shadow, and the SAME fixed padding (8px 14px).
+     Boxes hug their text (fit-content) so the box size adapts to the
+     content, never to a fixed width. */
   .gallery-prompt-box,
   .gallery-badge,
   .gallery-counter {
@@ -2050,47 +2047,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,.35);
     text-align: left;
   }
-  /* Show-prompt button (bottom-center, only when the entry has a prompt):
-     a button — its label is CENTERED. */
-  .gallery-prompt-btn {
-    position: absolute;
-    left: 50%; bottom: 16px;
-    transform: translateX(-50%);
-    z-index: 1000;
-    display: none;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    text-align: center;
-    cursor: pointer;
-    transition: .15s;
-  }
-  .gallery-prompt-btn.show { display: inline-flex; }
-  .gallery-prompt-btn:hover { background: rgba(70,70,80,.9); color: #fff; }
-  /* Prompt BOTTOM panel — same family as above. No title, no ✕ — a pure
-     hover peek (hover the Show prompt button to reveal it; leaving hides
-     it). The overlay layer is pointer-transparent (image + gallery buttons
-     stay usable); the panel closes on pointer leave, Escape, gallery
-     navigation and gallery close. The prompt text is LEFT-aligned (reads
-     as normal text, not a centered column). */
-  .gallery-prompt-modal {
-    position: absolute;
-    left: 50%;                   /* SAME container as the badge box above:
-                                    centered via translateX, no side padding */
-    bottom: 16px;
-    transform: translateX(-50%);
-    z-index: 1100;               /* above every gallery button */
-    display: none;
-    align-items: center;         /* same as the badge box */
-    justify-content: center;
-    padding: 0;
-    background: transparent;     /* no dim: the panel is the modal */
-    /* wrapper stays pointer-transparent: the empty area around the text
-       box passes taps through (tap anywhere still closes); only the inner
-       .gallery-prompt-box captures events, to scroll long prompts. */
-    pointer-events: none;        /* image + gallery buttons stay clickable */
-  }
-  .gallery-prompt-modal.show { display: flex; }
+  /* Original-prompt box (badge click) — same family as above. */
   .gallery-prompt-box {
     width: fit-content;            /* hugs the text — never wider than needed */
     max-width: min(560px, 86vw);   /* SAME max-width as the badge box */
@@ -2212,6 +2169,7 @@
   .gallery-info-row:first-child { border-top: 0; }
   .gallery-info-key { color: rgba(255,255,255,.55); }
   .gallery-info-value { min-width: 0; word-break: break-word; }
+  .gallery-info-prompt { white-space: pre-wrap; }
   .gallery-info-lora {
     display: flex;
     align-items: baseline;

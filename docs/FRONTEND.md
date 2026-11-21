@@ -874,62 +874,45 @@ push events, so nothing is hidden by age and nothing polls:
 - **`window.galleryGenerated`** — the Generate lightbox history. Every
   generation joins it via `addGeneratedEntry`. Transformations:
   - **Edit ✏️ / Restore 🩹 / Extend 🧩** `appendTransformedEntry` — APPEND a
-    new entry
-    (the original image stays): the transformation's own text is what the
-    Show prompt panel shows; if the source was a gallery image, its
-    prompt is kept as `originalPrompt`. **Clicking the "Edited"/"Restored"/
-    "Extended"
+    new entry (the original image stays): the transformation's own text is
+    the entry's `prompt`; if the source was a gallery image, its prompt is
+    kept as `originalPrompt`. **Clicking the "Edited"/"Restored"/"Extended"
     badge hides it and shows a single box (`#galleryBadgeBox`) with ONLY
     the ORIGINAL generation prompt** (no label, no transformation text;
     nothing appears when the entry has no original prompt). The box always
     carries the TRUE original generation prompt: for a CHAINED edit/restore
     (the source is itself a transformation) the source entry's
     `originalPrompt` is inherited, never the intermediate transformation
-    text (the bottom Show-prompt box holds that). While the badge box is
-    open the bottom Show-prompt button is hidden too (one box at a time) —
-    both always come back on close/navigate (renderGalleryItem re-derives
-    them from the entry). Restore may
-    have no prompt — the Show prompt button is hidden, but the badge
-    still opens the original-prompt box when there is one. Edits of
-    non-gallery sources (uploads / external URLs) have no original
-    prompt, so the badge click shows nothing.
+    text (that lives in the ℹ️ panel). Restore may have no transformation
+    prompt — the ℹ️ panel shows "—" for Prompt, but the badge still opens
+    the original-prompt box when there is one. Edits of non-gallery sources
+    (uploads / external URLs) have no original prompt, so the badge click
+    shows nothing.
   - **Upscale 🔍** `addTransformedEntry` — REPLACES the source entry in
-    place: the generation prompt stays as the Show prompt content, badge
-    "Upscaled" — **informational only, no click action** (`.no-action`,
-    default cursor; an upscale has no original prompt to show).
-  - **Prompt display**: the prompt is NOT a bottom caption anymore. A
-    **Show prompt** button sits bottom-center, visible only when the entry
-    has a prompt; **hovering it is enough** — the prompt appears as a
-    **bottom panel** (`#galleryPromptModal`). **Clicking the button hides
-    it and PINNS the panel open** (`promptPinned` — the pointerleave fired
-    when the button disappears does not close it); clicking anywhere else
-    (or Escape) closes the panel and restores the button. **ALL gallery
-    text boxes share ONE unified family** (`.gallery-prompt-btn`,
-    `.gallery-prompt-box`, `.gallery-badge`, `.gallery-counter` and the
-    compare-slider labels): system-ui, weight 400 (no bold anywhere),
-    13px/1.5, white on the dark translucent surface
-    (`rgba(28,28,28,.72)`), 1px light border, 10px radius, one box-shadow,
-    and the SAME fixed padding (8px 14px) — the prompt BOXES reduce the
-    vertical part to 4px so they hug the text tightly (the height adapts
-    to the content; long text caps at `calc(100dvh - 96px)` and scrolls,
-    text anchored TOP). Boxes hug their text
-    (`width: fit-content`) so the size adapts to the content, with the
-    SAME max-width (`min(560px, 86vw)`). Alignment: LEFT everywhere except
-    the Show-prompt button, whose label is CENTERED (it is a button).
-    **The Show-prompt panel and the badge box use the SAME container**
-    (centered via `left:50% + translateX(-50%)`, `padding:0`) and in
-    **portrait (<1024px) BOTH expand to the full screen width** (margins
-    0 12px, box width 100%) — landscape keeps the fitted box.
-    The panel's overlay layer is pointer-transparent, so the image and
-    the gallery buttons stay usable. An open box renders ABOVE the
-    overlay controls (✕, ⬇, ‹ ›, 🗑️, counter): where the box covers a
-    button, the first tap closes the box (tap-anywhere) and the button
-    works on the next tap — deliberate progressive dismiss. It hides on
-    pointer leave (grace
-    delay), Escape, gallery navigation (‹ › / ←/→) and gallery close;
-    navigation also closes the badge box. **Any open text box closes on a
-    click anywhere** (image, box, backdrop) via `closeTextBoxes()`, which
-    restores the badge and the Show-prompt button.
+    place: the generation prompt stays as the ℹ️ panel's Prompt content,
+    badge "Upscaled" — **informational only, no click action**
+    (`.no-action`, default cursor; an upscale has no original prompt to
+    show).
+  - **Prompt display**: the prompt is not a bottom caption and there is no
+    separate Show-prompt button anymore. It lives inside the **ℹ️ image
+    information panel** (`#galleryInfoPanel`), opened by the top-left ℹ️
+    button or the **`i` key** and closed by `i`, Escape, a click anywhere,
+    navigation or gallery close. The panel shows the technical parameters
+    (resolution, steps, sampler, scheduler, model, LoRAs/weights — fetched
+    from `GET /api/image-info`) followed by the entry's **Prompt** and, when
+    different, its **Original prompt**. **ALL gallery text boxes share ONE
+    unified family** (`.gallery-prompt-box`, `.gallery-badge`,
+    `.gallery-counter` and `.gallery-info-box`): system-ui, weight 400 (no
+    bold anywhere), 13px/1.5, white on the dark translucent surface
+    (`rgba(28,28,28,.72)`), 1px light border, 10px radius, one box-shadow.
+    The badge's original-prompt box caps at `calc(100dvh - 96px)` and
+    scrolls, text anchored TOP. The info box is `min(440px, 90vw)` wide and
+    also scrolls. An open box renders ABOVE the overlay controls (✕, ℹ️,
+    ‹ ›, 🗑️, counter): where the box covers a button, the first tap closes
+    the box (tap-anywhere) and the button works on the next tap —
+    deliberate progressive dismiss. **Any open text box closes on a click
+    anywhere** (image, box, backdrop) via `closeTextBoxes()`, which restores
+    the badge.
   - Identification by ComfyUI filename (`filenameFromUrl` handles
     `/media/..`, `/view?filename=..`).
 - **`window.galleryComparisons`** — the Edit/Upscale ⛶ compare gallery:
@@ -937,9 +920,9 @@ push events, so nothing is hidden by age and nothing polls:
   the AFTER image URL). `collectCompareEntries()` merges the registry with
   any `[data-gallery="1"]` sliders still in the DOM (reload fallback).
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
-  (big image **edge to edge — `100vw/100vh`, no frame/radius** + Show
-  prompt button + badge (click → original-prompt box) + ‹ › + N/M counter
-  bottom-right + ℹ️ info top-left + close ✕ top-right), compare slider for
+  (big image **edge to edge — `100vw/100vh`, no frame/radius** + badge
+  (click → original-prompt box) + ‹ › + N/M counter bottom-right + ℹ️ info
+  top-left, also opened with `i`, + close ✕ top-right), compare slider for
   Edit/Restore/Upscale (interactive before/after, also maximized to the
   viewport). Extend entries use the top-center `Original | Extended` toggle
   instead of the slider.
@@ -962,8 +945,8 @@ push events, so nothing is hidden by age and nothing polls:
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M
-  counter is bottom-right. The badge AND the Show-prompt button are NOT
-  shown in video mode (the player fills the overlay; the prompt would overlap
+  counter is bottom-right. The badge AND the ℹ️ info button are NOT shown in
+  video mode (the player fills the overlay; the info panel would overlap
   the controls).
 
 ### 7.2 Media deletions (observed, never guessed)
@@ -1099,5 +1082,6 @@ must not close the dialog).
 16. **Gallery badge box (click-only)**: the Edited/Restored/Extended badge
 hides itself on click and shows a single box with ONLY the original prompt
 (`#galleryBadgeBox`); the Upscaled badge is informational only (no
-action); the Show-prompt button also hides itself on click (pinned
-panel); in portrait BOTH prompt boxes expand to full width — see §7.1.
+action). The prompt itself is shown in the ℹ️ image-information panel
+(top-left button or `i` key), not in a separate Show-prompt control; in
+portrait the original-prompt box expands to full width — see §7.1.

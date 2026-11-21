@@ -20,6 +20,11 @@ def test_overlay_has_info_button_and_panel_instead_of_download():
     assert 'id="galleryInfoRows"' in OVERLAY
     assert 'id="galleryDl"' not in OVERLAY
     assert "gallery-dl" not in OVERLAY
+    # The old Show-prompt control was folded into the info panel.
+    assert 'id="galleryPromptBtn"' not in OVERLAY
+    assert 'id="galleryPromptModal"' not in OVERLAY
+    assert "gallery-prompt-btn" not in OVERLAY
+    assert "gallery-prompt-modal" not in OVERLAY
 
 
 def test_gallery_js_opens_info_and_closes_it_with_other_boxes():
@@ -27,6 +32,12 @@ def test_gallery_js_opens_info_and_closes_it_with_other_boxes():
     assert "galleryInfoBtn.addEventListener('click'" in GALLERY
     assert "galleryInfoPanel.classList.contains('show')" in GALLERY
     assert "function galleryDownload()" not in GALLERY
+    # The `i` key toggles the panel (handled before closeTextBoxes).
+    assert "String(e.key).toLowerCase() === 'i'" in GALLERY
+    # The prompt moved into the panel.
+    assert "_appendGalleryInfoTextRow('Prompt'" in GALLERY
+    assert "_appendGalleryInfoTextRow('Original prompt'" in GALLERY
+    assert "galleryPromptBtn" not in GALLERY
     # The panel must not survive navigation/closing or a fullscreen exit.
     assert "closeGalleryInfo();" in GALLERY
 
@@ -35,3 +46,4 @@ def test_css_has_info_button_and_panel():
     assert ".gallery-info { top: 14px; left: 14px; }" in CSS
     assert ".gallery-info-panel" in CSS
     assert ".gallery-info-lora" in CSS
+    assert ".gallery-info-prompt" in CSS
