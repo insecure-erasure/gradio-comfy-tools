@@ -68,7 +68,7 @@ def test_css_uses_cover_cells_and_hides_the_individual_controls():
 def test_gallery_js_wiring():
     gallery = _read("static", "js", "gallery.js")
     for symbol in (
-        "function openGalleryGrid()",
+        "function openGalleryGrid(fromPane)",
         "function closeGalleryGrid()",
         "function toggleGalleryGrid()",
         "function renderGalleryGrid()",
@@ -81,8 +81,11 @@ def test_gallery_js_wiring():
     assert "galleryCounter.addEventListener('click'" in gallery
     assert "toggleGalleryGrid();" in gallery
     assert "galleryGrid.addEventListener('click'" in gallery
-    # Selecting a thumb closes the sheet and shows the individual view.
-    assert "closeGalleryGrid();\n  resetGalleryZoom();\n  renderGalleryItem();" in gallery
+    # Selecting a thumb closes the sheet; from the in-gallery counter it shows
+    # the individual fullscreen view (from a pane it returns to the pane, see
+    # tests/test_pane_actions_js.py).
+    assert "closeGalleryGrid();" in gallery
+    assert "resetGalleryZoom();\n  renderGalleryItem();" in gallery
     # The sheet never survives the overlay, and never opens with it.
     assert "closeGalleryGrid(); // the sheet never survives the overlay" in gallery
     assert "closeGalleryGrid(); // always open on the individual view" in gallery

@@ -348,6 +348,7 @@ function closeTextBoxes() {
 }
 
 function closeGallery() {
+  _paneGridTab = null; // a closed gallery never keeps the pane origin
   closeGalleryGrid(); // the sheet never survives the overlay
   closeBadgeBox(); // a badge box opened by click must not survive the close
   closeGalleryInfo(); // an info panel must not linger over the next opening
@@ -642,6 +643,9 @@ function renderGalleryItem() {
 let galleryGridOpen = false;
 let galleryGridCols = 1;
 let _galleryGridSignature = '';
+// When the sheet was opened from a PANE (▦ button), picking a thumb must land
+// in the pane — not in the fullscreen individual view. Holds the tab.
+let _paneGridTab = null;
 
 const GALLERY_GRID_CONCURRENCY = 6;   // simultaneous thumbnail requests
 let _gridObserver = null;
@@ -814,8 +818,11 @@ function syncGalleryGrid() {
   syncGalleryGridActive();
 }
 
-function openGalleryGrid() {
+// fromPane: the tab whose ▦ opened the sheet (selection returns to its pane);
+// omitted when the in-gallery counter opens it (selection stays fullscreen).
+function openGalleryGrid(fromPane) {
   if (!galleryGrid || !galleryEntries.length) return;
+  _paneGridTab = fromPane || null;
   closeTextBoxes(); // one panel at a time
   galleryGridOpen = true;
   galleryGrid.classList.add('show');
@@ -850,13 +857,58 @@ function toggleGalleryGrid() {
   else openGalleryGrid();
 }
 
-// Select a thumb: close the sheet and show that entry in the INDIVIDUAL view.
+// Entries of a tab's pane gallery (the registries the pane navigates).
+function paneEntriesFor(tab) {
+  if (tab === 'generate') return window.galleryGenerated || [];
+  if (tab === 'video') return window.galleryVideos || [];
+  return (window.galleryComparisons || []).filter(c => c.tab === tab);
+}
+
+// Select a thumb: close the sheet and show that entry.
+//  • opened from the pane (▦) → close the overlay and paint the PANE;
+//  • opened from the in-gallery counter → stay in the fullscreen view.
 function galleryGridSelect(i) {
   if (!(i >= 0) || i >= galleryEntries.length) return;
+  const fromPane = _paneGridTab;
+  const chosen = galleryEntries[i];
   galleryIdx = i;
   closeGalleryGrid();
+  if (fromPane) {
+    // Identity by reference first, then by URL/filename (the compare gallery
+    // navigates a COLLECTED copy, so the object may differ).
+    const list = paneEntriesFor(fromPane);
+    let idx = list.indexOf(chosen);
+    if (idx < 0 && chosen) {
+      idx = list.findIndex(x => x && (
+        (x.src && chosen.src && absUrl(x.src) === absUrl(chosen.src))
+        || (x.filename && chosen.filename && x.filename === chosen.filename)
+      ));
+    }
+    paneIdx[fromPane] = idx >= 0 ? idx : -1;
+    closeGallery(); // clears _paneGridTab and restores the pane
+    if (idx >= 0) renderPane(fromPane);
+    if (typeof syncPaneNav === 'function') syncPaneNav(fromPane);
+    return;
+  }
   resetGalleryZoom();
   renderGalleryItem();
+}
+
+// ▦ in a pane: open this tool's gallery positioned on the shown entry and go
+// straight to the sheet. Picking a thumb then returns to the pane.
+async function openPaneGrid(tab) {
+  tab = tab || currentTab;
+  if (!tab) return;
+  if (!paneGalleryCount(tab)) {
+    showToast('Nothing to show yet');
+    return;
+  }
+  if (tab === 'generate') await openGenerateLightbox();
+  else if (tab === 'video') await openVideoGallery();
+  else if (tab === 'face_swap') await openFaceSwapGallery();
+  else await openCompareFullscreen(tab);
+  if (!galleryOverlay.classList.contains('show')) return; // the opener toasted
+  openGalleryGrid(tab);
 }
 
 // Resize/orientation (and the mobile URL bar) change the visible box: only
@@ -1551,6 +1603,13 @@ function clearPaneResult(tab) {
 // Delete the generation SHOWN IN THE ACTIVE TOOL'S PANE (Delete key). Mirrors
 // the fullscreen 🗑️ for that single entry: forget the source-history entry,
 // remove it from its registry, then show the next survivor or the idle state.
+// Pane 🗑️ button: the same action as the Delete key, with feedback when the
+// pane has nothing to delete.
+function paneDeleteShown() {
+  if (typeof paneDeleteCurrent === 'function' && paneDeleteCurrent()) return;
+  showToast('Nothing to delete');
+}
+
 function paneDeleteCurrent() {
   const tab = currentTab;
   if (!tab) return false;
@@ -1808,12 +1867,29 @@ function onUrlCopied(url) {
 
 // Show/hide the pane ‹ › buttons of a tool; when the gallery no longer
 // supports navigation the index resets to -1 (show the most recent).
+// Position of the entry the pane is showing, as N/M (the same information as
+// the fullscreen counter). -1 means "most recent".
+function paneCounterText(tab) {
+  const n = paneGalleryCount(tab);
+  if (!n) return '0/0';
+  const idx = paneIdx[tab] === -1 ? n - 1 : paneIdx[tab];
+  return (idx + 1) + '/' + n;
+}
+
+// The pane's ▦ button IS the counter (label N/M) that opens the sheet.
+function syncPaneCount(tab) {
+  const btn = document.querySelector(`#tab-${tab} .pane-grid-btn`);
+  if (!btn) return;
+  btn.textContent = paneCounterText(tab);
+}
+
 function syncPaneNav(tab) {
   const multi = paneGalleryCount(tab) > 1;
   document.querySelectorAll(`#tab-${tab} .pane-nav`).forEach(btn => {
     btn.style.display = multi ? 'flex' : 'none';
   });
   if (!multi) paneIdx[tab] = -1;
+  syncPaneCount(tab);
 }
 
 // Render the pane at its current nav index (called by paneNav only — the
@@ -1832,6 +1908,7 @@ function renderPane(tab) {
     showResult('videoOutputPane', { display: e.src || e.display || e.url }, true);
   }
   syncResultUrl(tab, e);
+  syncPaneCount(tab);
 }
 
 // Navigate a tool's pane by delta (wrap around). No-op with <2 entries.
@@ -1978,3 +2055,7 @@ document.addEventListener('keydown', e => {
     galleryDeleteCurrent(); // no confirmation — the shown entry only
   }
 });
+
+// Initial labels for the pane N/M buttons: storage.js already loaded the
+// persisted registries, so the counts are known before any result lands.
+Object.keys(paneIdx).forEach(tab => syncPaneNav(tab));

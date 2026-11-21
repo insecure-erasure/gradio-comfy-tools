@@ -1056,6 +1056,20 @@ push events, so nothing is hidden by age and nothing polls:
   recent when a new result lands or the gallery drops to ≤1 entry
   (`syncPaneNav`), and stays in sync on delete/trash/restore and on
   confirmed deletions (§7.2).
+- **Pane action buttons (top-left column)**: every output pane stacks ℹ️
+  (info panel, §4.10), **🗑️** (`paneDeleteShown()` → the same action as the
+  `Delete` key: removes the shown entry from its registry and repaints the
+  pane, toasting «Nothing to delete» when empty) and the **gallery counter
+  `N/M`** (`openPaneGrid()`; text pill instead of an icon — the same
+  information as the fullscreen counter, kept in sync by `syncPaneCount()`
+  from `syncPaneNav()`/`renderPane()`; `0/0` when the tool has no results)
+  under it. The counter button opens this tool's gallery positioned on the
+  shown entry and goes straight to the **thumbnail sheet** (§7.1); picking a thumb
+  then **closes the overlay and paints that entry IN THE PANE** (it sets
+  `paneIdx[tab]`, closes the gallery and calls `renderPane`), never the
+  fullscreen individual view — that is reserved for the in-gallery counter.
+  The three buttons are hidden while a generation runs
+  (`.output-pane.generating`).
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M

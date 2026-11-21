@@ -19,9 +19,23 @@
     color: #fff;
     border-color: var(--accent);
   }
-  /* Top-left: the ℹ️ information button of the NORMAL view (the fullscreen
-     gallery keeps its own ℹ️ in the overlay's top-left corner). */
+  /* Top-left column of the NORMAL view: ℹ️ information, 🗑️ delete the shown
+     result and ▦ the thumbnail picker (the fullscreen gallery keeps its own
+     equivalents in the overlay corners). */
   .output-overlay-btn.top-left { top: 12px; left: 12px; }
+  .output-overlay-btn.top-left-2 { top: 48px; left: 12px; }
+  .output-overlay-btn.top-left-3 { top: 84px; left: 12px; }
+  /* The pane's thumbnail button shows the gallery position as N/M (same
+     information as the fullscreen counter), so it needs a text pill instead
+     of the square icon shape. */
+  .output-overlay-btn.pane-grid-btn {
+    width: auto;
+    min-width: 38px;
+    padding: 0 8px;
+    font: 400 12px/1 system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
+  }
   /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
@@ -30,9 +44,11 @@
   .output-overlay-btn.top-right-left2 { top: 12px; right: 84px; }
   .output-pane.generating #editCropBtn,
   .output-pane.generating #editAdjustBtn { display: none !important; }
-  /* The pane ℹ️ describes the result currently shown: hide it while a
+  /* The pane ℹ️/🗑️/▦ act on the result currently shown: hide them while a
      generation runs (the pane shows the live preview instead). */
-  .output-pane.generating .pane-info-btn { display: none !important; }
+  .output-pane.generating .pane-info-btn,
+  .output-pane.generating .pane-delete-btn,
+  .output-pane.generating .pane-grid-btn { display: none !important; }
   /* The video player's fullscreen button renders an SVG icon (no emoji
      glyph — see player.js ICONS). */
   .video-fs-btn svg { width: 16px; height: 16px; }
