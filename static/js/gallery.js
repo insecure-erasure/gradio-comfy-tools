@@ -797,7 +797,11 @@ let galleryInfoRequest = 0;
 
 function closeGalleryInfo() {
   galleryInfoRequest++; // ignore an in-flight response for a closed panel
-  if (galleryInfoPanel) galleryInfoPanel.classList.remove('show');
+  if (galleryInfoPanel) {
+    galleryInfoPanel.classList.remove('show');
+    galleryInfoPanel.classList.remove('pane-mode');
+  }
+  _infoSizeGetter = null;
   if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'false');
 }
 
@@ -902,36 +906,108 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   }
 }
 
-// Resolution fallback while the backend does not know it: image natural
-// size, or the <video> element's dimensions in the video gallery.
-function _galleryInfoFallbackSize() {
-  if (galleryMode === 'video') {
-    const video = galleryVideoWrap
-      ? galleryVideoWrap.querySelector('video') : null;
-    return {
-      w: (video && video.videoWidth) || 0,
-      h: (video && video.videoHeight) || 0,
-    };
-  }
-  const image = galleryMode === 'compare' ? galleryAfter : galleryBig;
-  return {
-    w: (image && image.naturalWidth) || 0,
-    h: (image && image.naturalHeight) || 0,
-  };
+// Resolution the browser already knows for the CURRENT panel entry (image
+// natural size, or the <video> element's dimensions). Set per open so the
+// panel can refresh it when a video's metadata arrives.
+let _infoSizeGetter = null;
+
+function _infoSizeNow() {
+  if (typeof _infoSizeGetter !== 'function') return { w: 0, h: 0 };
+  const size = _infoSizeGetter() || {};
+  return { w: size.w || 0, h: size.h || 0 };
 }
 
 // The video's dimensions are 0 until its metadata loads; refresh just the
 // resolution row when that happens (the panel may already be open).
 function _refreshGalleryInfoSize() {
-  if (galleryMode !== 'video' || !_galleryInfoSnapshot
-      || !galleryInfoPanel.classList.contains('show')) return;
-  const { w, h } = _galleryInfoFallbackSize();
+  if (!_galleryInfoSnapshot || !galleryInfoPanel.classList.contains('show')) return;
+  const { w, h } = _infoSizeNow();
   if (!w || !h) return;
   const s = _galleryInfoSnapshot;
   if (w === s.fallbackW && h === s.fallbackH) return;
   _renderGalleryInfo(s.meta, w, h, s.note, s.entry);
 }
 
+// The SHARED panel (fullscreen gallery + normal view): technical parameters
+// (resolution, steps, sampler, scheduler, model, LoRAs/weights) AND the
+// prompt (plus the original prompt when the entry is a transformation). The
+// backend reads the parameters from the PNG metadata ComfyUI embeds, falling
+// back to ComfyUI's history when the save node writes none.
+//
+// opts: {entry, src, isVideo, skipMedia, paneMode, getSize}
+//   entry     — the gallery entry (prompts + filename)
+//   src       — the media URL (used for the filename/type detection)
+//   isVideo   — title + skip_media (do not download the MP4)
+//   paneMode  — opened from a pane: the backdrop catches the dismiss click
+//   getSize   — () => {w,h} the browser knows (refreshed on video metadata)
+// Toggles: calling it while the panel is open closes it.
+async function _openInfoPanel(opts) {
+  const { entry, src, isVideo, skipMedia, paneMode, getSize } = opts || {};
+  if (galleryInfoPanel.classList.contains('show')) {
+    closeGalleryInfo();
+    return;
+  }
+  _infoSizeGetter = typeof getSize === 'function' ? getSize : null;
+  galleryInfoPanel.classList.toggle('pane-mode', !!paneMode);
+
+  const requestId = ++galleryInfoRequest;
+  let fallbackW = 0;
+  let fallbackH = 0;
+  // Show the panel immediately with what the browser knows (resolution),
+  // then fill the technical rows when the backend answers.
+  ({ w: fallbackW, h: fallbackH } = _infoSizeNow());
+  if (galleryInfoTitle) {
+    galleryInfoTitle.textContent = isVideo ? 'Video information' : 'Image information';
+  }
+  _renderGalleryInfo(null, fallbackW, fallbackH, '', entry);
+  galleryInfoPanel.classList.add('show');
+  if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'true');
+  if (isVideo) {
+    const size = _infoSizeNow();
+    if (size.w && size.h) _refreshGalleryInfoSize();
+    else {
+      // The panel is opened from the gallery or from the Video pane: find
+      // the <video> element through the size getter's own source.
+      const video = (paneMode ? document.getElementById('videoOutputPane') : galleryVideoWrap);
+      const el = video ? video.querySelector('video') : null;
+      if (el) el.addEventListener('loadedmetadata', _refreshGalleryInfoSize, { once: true });
+    }
+  }
+
+  const filename = (entry && entry.filename)
+    || (src && typeof filenameFromUrl === 'function' ? filenameFromUrl(src) : null);
+  if (!filename) {
+    _renderGalleryInfo(null, fallbackW, fallbackH,
+      'Technical metadata is not available for this entry.', entry);
+    return;
+  }
+  const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(src) : 'output';
+  // Videos: do not download the (possibly large) MP4 just to read metadata —
+  // the <video> element already provides the resolution, and the parameters
+  // come from ComfyUI history.
+  const url = '/api/image-info?filename=' + encodeURIComponent(filename)
+    + '&type=' + encodeURIComponent(type)
+    + (skipMedia ? '&skip_media=1' : '');
+  try {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const meta = await r.json();
+    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    // Recompute the fallback: the video's metadata may have loaded while
+    // the backend was answering, so the resolution is available now.
+    ({ w: fallbackW, h: fallbackH } = _infoSizeNow());
+    _renderGalleryInfo(meta, fallbackW, fallbackH,
+      meta && meta.has_metadata === false
+        ? 'Technical metadata is not available for this entry.' : '', entry);
+  } catch (err) {
+    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    ({ w: fallbackW, h: fallbackH } = _infoSizeNow());
+    _renderGalleryInfo(null, fallbackW, fallbackH,
+      'Technical metadata is not available for this entry.', entry);
+  }
+}
+
+// Fullscreen gallery: the CURRENT entry (ℹ️ button / `i` key).
 async function galleryShowInfo() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
@@ -944,60 +1020,61 @@ async function galleryShowInfo() {
     renderGalleryItem(); // restore the badge the box had hidden
   }
 
-  const requestId = ++galleryInfoRequest;
-  let fallbackW = 0;
-  let fallbackH = 0;
-  // Show the panel immediately with what the browser knows (resolution),
-  // then fill the technical rows when the backend answers.
-  ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
-  if (galleryInfoTitle) {
-    galleryInfoTitle.textContent = galleryMode === 'video'
-      ? 'Video information' : 'Image information';
-  }
-  _renderGalleryInfo(null, fallbackW, fallbackH, '', e);
-  galleryInfoPanel.classList.add('show');
-  galleryInfoBtn.setAttribute('aria-expanded', 'true');
-  if (galleryMode === 'video') {
-    const video = galleryVideoWrap ? galleryVideoWrap.querySelector('video') : null;
-    if (video) {
-      if (video.videoWidth) _refreshGalleryInfoSize();
-      else video.addEventListener('loadedmetadata', _refreshGalleryInfoSize, { once: true });
-    }
-  }
-
-  const src = e.src || (galleryMode === 'video' ? (e.url || e.src || '')
+  const isVideo = galleryMode === 'video';
+  const src = e.src || (isVideo ? (e.url || e.src || '')
     : galleryMode === 'compare' ? galleryAfter.src : galleryBig.src);
-  const filename = e.filename || (src && typeof filenameFromUrl === 'function'
-    ? filenameFromUrl(src) : null);
-  if (!filename) {
-    _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this entry.', e);
+  await _openInfoPanel({
+    entry: e,
+    src,
+    isVideo,
+    skipMedia: isVideo,
+    getSize: () => {
+      if (isVideo) {
+        const video = galleryVideoWrap ? galleryVideoWrap.querySelector('video') : null;
+        return { w: (video && video.videoWidth) || 0, h: (video && video.videoHeight) || 0 };
+      }
+      const image = galleryMode === 'compare' ? galleryAfter : galleryBig;
+      return { w: (image && image.naturalWidth) || 0, h: (image && image.naturalHeight) || 0 };
+    },
+  });
+}
+
+// NORMAL view: the result currently shown in a pane (pane ℹ️ button / `i`
+// key). Same panel, same rows; the resolution fallback comes from the pane's
+// own <img>/<video> element. Toggles like the gallery's.
+function paneShowInfo(tab) {
+  tab = tab || currentTab;
+  if (!tab) return;
+  if (galleryInfoPanel.classList.contains('show')) {
+    closeGalleryInfo();
     return;
   }
-  const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(src) : 'output';
-  // Videos: do not download the (possibly large) MP4 just to read metadata —
-  // the <video> element already provides the resolution, and the parameters
-  // come from ComfyUI history.
-  const url = '/api/image-info?filename=' + encodeURIComponent(filename)
-    + '&type=' + encodeURIComponent(type)
-    + (galleryMode === 'video' ? '&skip_media=1' : '');
-  try {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const meta = await r.json();
-    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
-    // Recompute the fallback: the video's metadata may have loaded while
-    // the backend was answering, so the resolution is available now.
-    ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
-    _renderGalleryInfo(meta, fallbackW, fallbackH,
-      meta && meta.has_metadata === false
-        ? 'Technical metadata is not available for this entry.' : '', e);
-  } catch (err) {
-    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
-    ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
-    _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this entry.', e);
+  const entry = typeof paneCurrentEntry === 'function' ? paneCurrentEntry(tab) : null;
+  if (!entry) {
+    showToast('Nothing to show yet');
+    return;
   }
+  const isVideo = tab === 'video';
+  const paneId = (typeof TAB_PANE_IDS !== 'undefined' && TAB_PANE_IDS[tab])
+    || (tab + 'OutputPane');
+  const pane = document.getElementById(paneId);
+  const img = pane
+    ? (pane.querySelector('.compare-slider img.side.after') || pane.querySelector('.result-img'))
+    : null;
+  const video = pane ? pane.querySelector('video') : null;
+  const src = isVideo
+    ? (entry.url || entry.src || entry.display || '')
+    : (entry.src || '');
+  _openInfoPanel({
+    entry,
+    src,
+    isVideo,
+    skipMedia: isVideo,
+    paneMode: true,
+    getSize: () => (isVideo
+      ? { w: (video && video.videoWidth) || 0, h: (video && video.videoHeight) || 0 }
+      : { w: (img && img.naturalWidth) || 0, h: (img && img.naturalHeight) || 0 }),
+  });
 }
 
 // Remove one entry from the registry that owns the gallery it was shown in.
@@ -1451,6 +1528,17 @@ galleryBadge.addEventListener('click', e => {
 galleryOverlay.addEventListener('click', e => {
   if (closeTextBoxes()) return;
   if (e.target === galleryOverlay) closeGallery();
+});
+
+// Pane-mode ℹ️ panel: the backdrop opts into pointer events (see
+// .gallery-info-panel.pane-mode), so the first click dismisses the panel
+// WITHOUT activating the control underneath. Clicks inside the box are
+// ignored. (In gallery mode the panel stays click-transparent and the
+// overlay's handler above closes it.)
+galleryInfoPanel.addEventListener('click', e => {
+  if (!galleryInfoPanel.classList.contains('pane-mode')) return;
+  if (e.target.closest('.gallery-info-box')) return;
+  closeGalleryInfo();
 });
 
 // Keyboard: Escape closes; ←/→ navigate; `i` toggles the ℹ️ info panel.

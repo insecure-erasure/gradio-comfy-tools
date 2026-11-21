@@ -10,6 +10,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OVERLAY = (ROOT / "templates" / "partials" / "gallery_overlay.html").read_text(encoding="utf-8")
+INFO_PANEL = (ROOT / "templates" / "partials" / "info_panel.html").read_text(encoding="utf-8")
+INDEX = (ROOT / "templates" / "index.html").read_text(encoding="utf-8")
 GALLERY = (ROOT / "static" / "js" / "gallery.js").read_text(encoding="utf-8")
 CSS = (ROOT / "static" / "css" / "components.css").read_text(encoding="utf-8")
 UPSCALE = (ROOT / "static" / "js" / "upscale.js").read_text(encoding="utf-8")
@@ -17,8 +19,14 @@ UPSCALE = (ROOT / "static" / "js" / "upscale.js").read_text(encoding="utf-8")
 
 def test_overlay_has_info_button_and_panel_instead_of_download():
     assert 'id="galleryInfo"' in OVERLAY
-    assert 'id="galleryInfoPanel"' in OVERLAY
-    assert 'id="galleryInfoRows"' in OVERLAY
+    # The panel itself moved OUT of the overlay (top level, fixed) so the
+    # NORMAL view can open it too; the overlay keeps the ℹ️ trigger.
+    assert 'id="galleryInfoPanel"' not in OVERLAY
+    assert 'id="galleryInfoPanel"' in INFO_PANEL
+    assert 'id="galleryInfoRows"' in INFO_PANEL
+    assert 'id="galleryInfoTitle"' in INFO_PANEL
+    assert 'id="galleryInfoNote"' in INFO_PANEL
+    assert "partials/info_panel.html" in INDEX
     assert 'id="galleryDl"' not in OVERLAY
     assert "gallery-dl" not in OVERLAY
     # The old Show-prompt control was folded into the info panel.
@@ -41,7 +49,7 @@ def test_gallery_js_opens_info_and_closes_it_with_other_boxes():
     assert "galleryPromptBtn" not in GALLERY
     # Videos use the same panel: resolution from the <video> element and the
     # rest from history (skip_media avoids downloading the MP4).
-    assert "_galleryInfoFallbackSize" in GALLERY
+    assert "_infoSizeNow()" in GALLERY
     assert "&skip_media=1" in GALLERY
     assert "galleryInfoBtn.style.display = 'none'" not in GALLERY
 

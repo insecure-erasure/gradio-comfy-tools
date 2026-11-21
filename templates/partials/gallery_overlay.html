@@ -45,20 +45,9 @@
   <button class="gallery-btn gallery-info" id="galleryInfo" title="Image information" aria-label="Image information" aria-expanded="false" aria-controls="galleryInfoPanel">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg>
   </button>
-  <!-- Image information of the CURRENT entry: technical parameters
-       (resolution, steps, sampler, scheduler, model, LoRAs/weights) AND the
-       prompt (plus the original prompt when the entry is a transformation).
-       The backend reads the parameters from the PNG metadata ComfyUI embeds,
-       falling back to ComfyUI's history when the save node writes none.
-       Populated by gallery.js; hidden by default. Opened with the ℹ️ button
-       or the `i` key; tap anywhere closes it, like the other text boxes. -->
-  <div class="gallery-info-panel" id="galleryInfoPanel" role="dialog" aria-label="Image information">
-    <div class="gallery-info-box">
-      <div class="gallery-info-title" id="galleryInfoTitle">Image information</div>
-      <div class="gallery-info-rows" id="galleryInfoRows"></div>
-      <div class="gallery-info-note" id="galleryInfoNote" style="display:none"></div>
-    </div>
-  </div>
+  <!-- Image information panel: shared with the NORMAL view — it lives in
+       partials/info_panel.html at the top level (fixed), so both the
+       fullscreen ℹ️/`i` and the pane ℹ️/`i` can use it. -->
   <button class="gallery-btn gallery-trash" id="galleryTrash" title="Delete this entry" aria-label="Delete this entry">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
   </button>

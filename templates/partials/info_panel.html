@@ -1,0 +1,14 @@
+<!-- Image/video information panel — SHARED by the fullscreen gallery and the
+     NORMAL (pane) view. It must live at the top level (NOT inside
+     #galleryOverlay, which is display:none in the normal view): position
+     fixed over the whole app, so the pane ℹ️ button / `i` key can open it
+     too. The technical rows + prompts are filled by gallery.js; opened by
+     the gallery's ℹ️ / `i` or by a pane's ℹ️ / `i` (paneShowInfo), and
+     closed by a tap/click outside the box, `i` again or Escape. -->
+<div class="gallery-info-panel" id="galleryInfoPanel" role="dialog" aria-label="Image information">
+  <div class="gallery-info-box">
+    <div class="gallery-info-title" id="galleryInfoTitle">Image information</div>
+    <div class="gallery-info-rows" id="galleryInfoRows"></div>
+    <div class="gallery-info-note" id="galleryInfoNote" style="display:none"></div>
+  </div>
+</div>

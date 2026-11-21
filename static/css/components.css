@@ -19,6 +19,9 @@
     color: #fff;
     border-color: var(--accent);
   }
+  /* Top-left: the ℹ️ information button of the NORMAL view (the fullscreen
+     gallery keeps its own ℹ️ in the overlay's top-left corner). */
+  .output-overlay-btn.top-left { top: 12px; left: 12px; }
   /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
   .output-overlay-btn.top-right { top: 12px; right: 12px; }
@@ -27,6 +30,9 @@
   .output-overlay-btn.top-right-left2 { top: 12px; right: 84px; }
   .output-pane.generating #editCropBtn,
   .output-pane.generating #editAdjustBtn { display: none !important; }
+  /* The pane ℹ️ describes the result currently shown: hide it while a
+     generation runs (the pane shows the live preview instead). */
+  .output-pane.generating .pane-info-btn { display: none !important; }
   /* The video player's fullscreen button renders an SVG icon (no emoji
      glyph — see player.js ICONS). */
   .video-fs-btn svg { width: 16px; height: 16px; }
@@ -2140,10 +2146,16 @@
      Same surface/font as the other gallery text boxes; the WRAPPER stays
      pointer-transparent so a tap anywhere still closes it, while the box
      itself takes pointer events to scroll long LoRA lists. */
+  /* Shared info panel (fullscreen gallery AND normal view): FIXED over the
+     whole app so the pane ℹ️/`i` can show it while the gallery is closed.
+     The backdrop is click-transparent in gallery mode (the overlay's
+     click-anywhere handler closes it); in pane mode it opts into pointer
+     events so the first click dismisses the panel WITHOUT activating the
+     control underneath. */
   .gallery-info-panel {
-    position: absolute;
+    position: fixed;
     inset: 0;
-    z-index: 1100;
+    z-index: 1100;         /* above the gallery overlay (300) and its controls */
     display: none;
     align-items: center;
     justify-content: center;
@@ -2151,6 +2163,7 @@
     pointer-events: none;
   }
   .gallery-info-panel.show { display: flex; }
+  .gallery-info-panel.pane-mode { pointer-events: auto; }
   .gallery-info-box {
     width: min(440px, 90vw);
     max-height: calc(100dvh - 96px);

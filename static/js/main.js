@@ -217,7 +217,8 @@ document.addEventListener('keydown', e => {
 // own keyboard handling (notably the fullscreen gallery's ←/→).
 const KEY_BLOCKED_OVERLAYS = '#galleryOverlay.show, #promptModal.show, #modalBackdrop.show, ' +
   '#chipPopover.show, #sourceHistoryPopover.show, .settings-dropdown.show, ' +
-  '#tabsDropdownMenu.show, #cropOverlay.show, #adjustOverlay.show';
+  '#tabsDropdownMenu.show, #cropOverlay.show, #adjustOverlay.show, ' +
+  '#galleryInfoPanel.show';
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
@@ -226,6 +227,36 @@ document.addEventListener('keydown', e => {
   if (document.querySelector(KEY_BLOCKED_OVERLAYS)) return;
   e.preventDefault();
   paneNav(currentTab, e.key === 'ArrowLeft' ? -1 : 1);
+});
+
+// ── ℹ️ Information in the NORMAL view (pane) ──
+// `i` toggles the SAME shared panel as the fullscreen gallery, for the result
+// currently shown in the active pane. Blocked while any overlay is open (the
+// fullscreen gallery owns its own `i`) and while typing. Escape closes it;
+// the panel also closes on a click outside the box (gallery.js).
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+  if (typeof galleryInfoPanel === 'undefined' || !galleryInfoPanel) return;
+  const isInfoKey = String(e.key).toLowerCase() === 'i';
+  if (!isInfoKey && e.key !== 'Escape') return;
+  if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]')) return;
+  // The info panel is itself in KEY_BLOCKED_OVERLAYS (so ←/→/Delete do not act
+  // behind it) — that pair of keys must still be able to close it, so the
+  // guard skips the info entry.
+  const otherOverlay = KEY_BLOCKED_OVERLAYS
+    .split(',').map(s => s.trim())
+    .filter(sel => sel !== '#galleryInfoPanel.show').join(', ');
+  if (document.querySelector(otherOverlay)) return; // overlays keep their own keys
+  const open = galleryInfoPanel.classList.contains('show');
+  if (e.key === 'Escape') {
+    if (!open) return;
+    e.preventDefault();
+    closeGalleryInfo();
+    return;
+  }
+  e.preventDefault();
+  if (open) closeGalleryInfo();
+  else if (typeof paneShowInfo === 'function') paneShowInfo(currentTab);
 });
 
 // Delete removes the generation shown in the ACTIVE tool's pane, without a

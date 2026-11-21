@@ -179,8 +179,9 @@ Full-screen app (`100dvh`, no page scroll), in columns:
   source, so a video is never a valid chain target).
 - Shortcuts: `Ctrl+1..5` switches tabs; `Esc` closes the modal. In the
   normal view ←/→ navigate the ACTIVE tool's result history exactly like the
-  pane ‹ › buttons, and `Delete` removes the generation shown in the pane
-  (no confirmation). The preview pane is also focusable (`tabindex="0"`) for
+  pane ‹ › buttons, `Delete` removes the generation shown in the pane
+  (no confirmation) and **`i`** toggles the ℹ️ information panel of the
+  shown result (§4.10; the same key works inside the fullscreen gallery). The preview pane is also focusable (`tabindex="0"`) for
   the focus ring, but the arrows do not require clicking it (a click on the
   result opens the lightbox). Text inputs/selects keep their own arrows and
   `Delete`; overlays (fullscreen gallery, prompt/advanced modals,
@@ -809,6 +810,31 @@ modal uses that tab's primary pill as the ⏹.
   🩹; 🧩 extend → 🧩; ✨/🖌️/🎬 → ✨) and the other modal actions stay
   disabled.
 
+### 4.10 ℹ️ Image/video information (normal view + fullscreen)
+
+The **same panel** (`#galleryInfoPanel`, `templates/partials/info_panel.html`)
+is used by the fullscreen gallery AND by the normal view. It lives at the
+top level (NOT inside `#galleryOverlay`, which is `display:none` when
+closed) and is positioned `fixed` over the app, so it can be opened without
+entering the gallery.
+
+- **Normal view**: each output pane has a **ℹ️ button at its top-left**
+  (`.output-overlay-btn.top-left.pane-info-btn`, hidden while a generation
+  runs). It shows the rows of the result **currently shown in the pane**
+  (`paneCurrentEntry(tab)`: resolution, steps, sampler, scheduler, model,
+  LoRAs/weights from `GET /api/image-info`, plus the entry's Prompt and
+  Original prompt). The **`i` key** toggles the same panel; `i` again,
+  `Escape` or a **click outside the box** closes it (the panel opts into
+  pointer events in this mode, so the dismissing click never activates the
+  control underneath). The resolution fallback comes from the pane's own
+  `<img>`/`<video>` element (videos use `skip_media=1`). It closes on tab
+  switch and when a pane is cleared.
+- **Fullscreen gallery**: unchanged — ℹ️ top-left button or `i`, backdrop
+  click / Escape closes; the panel stays click-transparent there, and the
+  overlay's own click-anywhere handler dismisses it.
+- Keys are never stolen while typing, and the panel is part of
+  `KEY_BLOCKED_OVERLAYS` (`main.js`) so ←/→/Delete do not act behind it.
+
 ## 5. How the code is organized
 
 - **`templates/index.html`**: shell + Jinja2 includes + script/css links.
@@ -924,8 +950,9 @@ push events, so nothing is hidden by age and nothing polls:
     (`sourceImagePrompt`) so the ℹ️ panel there is not blank.
   - **Prompt display**: the prompt is not a bottom caption and there is no
     separate Show-prompt button anymore. It lives inside the **ℹ️ image
-    information panel** (`#galleryInfoPanel`), opened by the top-left ℹ️
-    button or the **`i` key** and closed by `i`, Escape, a click anywhere,
+    information panel** (`#galleryInfoPanel`, shared with the normal view —
+    §4.10), opened by the pane's top-left ℹ️ button or the **`i` key** and
+    closed by `i`, Escape, a click anywhere,
     navigation or gallery close. The panel shows the technical parameters
     (resolution, steps, sampler, scheduler, model, LoRAs/weights — fetched
     from `GET /api/image-info`) followed by the entry's **Prompt** and, when
