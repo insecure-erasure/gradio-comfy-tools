@@ -1380,10 +1380,15 @@
   .compare-slider.extend-toggle-mode.show-original .after { display: none; }
   .compare-slider.extend-toggle-mode:not(.show-original) .before { display: none; }
 
+  /* Pane Original | Result toggle (static/js/pane-compare.js): the normal
+     view is ALWAYS this toggle, centered at the top of the pane. It must
+     stay clear of the top-right overlay buttons (⛶/crop/adjust), so it is
+     centered and never wider than the free middle area. */
   .extend-toggle {
     position: absolute;
     top: 12px;
-    left: 12px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 6;
     display: flex;
     gap: 2px;
@@ -1406,6 +1411,10 @@
   }
   .extend-toggle-btn:hover { color: #fff; }
   .extend-toggle-btn.active { background: var(--accent); color: #fff; }
+  /* Panes only: keep the centered toggle clear of the top-right overlay
+     buttons (⛶ / crop / adjust) on narrow panes. The gallery's own toggle
+     spans the full viewport and is not limited. */
+  .output-pane .extend-toggle { max-width: calc(100% - 132px); }
   .output-pane.generating .extend-toggle { display: none !important; }
   .gallery-extend-toggle {
     top: 12px;

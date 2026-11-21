@@ -332,41 +332,12 @@ if (typeof ResizeObserver === 'function') {
   if (_editPane) new ResizeObserver(scheduleEditExtendPreview).observe(_editPane);
 }
 
-// Extend results have a different canvas size than the source, so the
-// overlay slider is replaced by an Original/Extended toggle (one image at a
-// time). The slider container is reused for the two <img> layers.
-function setEditExtendView(showOriginal) {
-  const slider = document.getElementById('editCompare');
-  const originalBtn = document.getElementById('editExtendOriginalBtn');
-  const resultBtn = document.getElementById('editExtendResultBtn');
-  const original = !!showOriginal;
-  if (slider) slider.classList.toggle('show-original', original);
-  if (originalBtn) {
-    originalBtn.classList.toggle('active', original);
-    originalBtn.setAttribute('aria-pressed', String(original));
-  }
-  if (resultBtn) {
-    resultBtn.classList.toggle('active', !original);
-    resultBtn.setAttribute('aria-pressed', String(!original));
-  }
-}
-
+// Edit's compare presentation in the NORMAL view is ALWAYS the
+// Original | Result toggle (never the draggable slider) — the shared
+// implementation lives in static/js/pane-compare.js. This wrapper keeps the
+// historical name used by the rest of edit.js (recovery paths).
 function configureEditExtendToggle(enabled, resultLabel) {
-  const slider = document.getElementById('editCompare');
-  const toggle = document.getElementById('editExtendToggle');
-  const resultBtn = document.getElementById('editExtendResultBtn');
-  const on = !!enabled;
-  const label = resultLabel || 'Extended';
-  if (slider) {
-    slider.classList.toggle('extend-toggle-mode', on);
-    if (!on) slider.classList.remove('show-original');
-  }
-  if (toggle) {
-    toggle.style.display = on ? 'flex' : 'none';
-    toggle.setAttribute('aria-label', `Compare original and ${label.toLowerCase()}`);
-  }
-  if (resultBtn) resultBtn.textContent = label;
-  if (on) setEditExtendView(false); // default: show the result side
+  configurePaneCompare('edit', enabled, resultLabel);
 }
 
 function generateEdit(forceMode) {
@@ -432,9 +403,9 @@ function generateEdit(forceMode) {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
-      // Extend uses a toggle (different canvas sizes); the other modes keep
-      // the overlay slider.
-      configureEditExtendToggle(mode === 'extend');
+      // The NORMAL view is always the toggle (one image at a time); only
+      // the fullscreen gallery varies its presentation per kind.
+      configureEditExtendToggle(true, mode === 'restore' ? 'Restored' : mode === 'extend' ? 'Extended' : 'Edited');
       // Gallery marker: the edited/restored result joins the compare
       // gallery (identity = AFTER image); kind is the actual mode.
       cmp.dataset.gallery = '1';

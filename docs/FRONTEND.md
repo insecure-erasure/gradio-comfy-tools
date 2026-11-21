@@ -224,12 +224,12 @@ empty and the prompt fills it; see also deviation 14):
 ### 3.2 Edit ✏️
 
 - **Output pane**: collapsible URL field (bottom-left) + 📁/🔗/🕘 buttons
-  (bottom-right, 📁 just left of 🔗 and 🕘 left of 📁) over the **compare slider**
-  (Original | Edited / Restored). Extend, Crop and Adjust results use an
-  **Original / Extended**, **Original / Cropped** or **Original / Adjusted**
-  toggle instead: their canvas can differ from the source, so the two images
-  are shown one at a time (the result side by default) rather than overlaid.
-  While the **source preview** is shown, a discreet `W × H` badge sits
+  (bottom-right, 📁 just left of 🔗 and 🕘 left of 📁) over an
+  **`Original | <Result>` toggle** (Original | Edited / Restored / Extended /
+  Cropped / Adjusted): the pane ALWAYS shows one image at a time, with the
+  toggle centered at the top of the image (see §4.4). The result side is the
+  default; `Original` reveals the source. While the **source preview** is
+  shown, a discreet `W × H` badge sits
   above the 📁/🔗 buttons (right-aligned, no MP) with the loaded image's
   natural dimensions.
 - **Toolbar**: ⚙️ + ↺ (no model selector; the model is fixed flux-2-klein).
@@ -310,10 +310,11 @@ empty and the prompt fills it; see also deviation 14):
     after closing them, so on a phone the user can leave the prompt modal
     and inspect the result. It clears when the source changes, a result
     lands, the tab changes, or a generation starts.
-- **Extend/Crop/Adjust result**: `#editCompare` reuses its two image layers
-  but hides the divider/handle/labels and shows a top-left
-  `Original | Extended`, `Original | Cropped` or `Original | Adjusted`
-  toggle (result side by default). The slider drag is disabled in this mode.
+- **Extend/Crop/Adjust result**: same `#editCompare` layers, same
+  **`Original | <Result>` toggle** (`Original | Extended`, `Original |
+  Cropped`, `Original | Adjusted`), result side by default — the pane is
+  always the toggle (no overlay slider, no drag), also for single-image
+  kinds (Edited/Restored).
 
 ### 3.3 Face swap 👨🏻
 
@@ -322,8 +323,10 @@ empty and the prompt fills it; see also deviation 14):
   image** (Picture 2, the face to copy, previewed as a small reference
   overlay). Each field accepts a pasted URL (✓ validates) or an upload
   (🖼️ base / 👨🏻 face) plus 🕘 recent base+face pairs and base-only
-  generated images; 🔗 fills the **base** with the last generated image. The result is shown as a **compare slider** (Original | Face
-  swapped), like Edit. While the sources are previewed, a discreet
+  generated images; 🔗 fills the **base** with the last generated image. The
+  result is shown as an **`Original | Face swapped` toggle** centered at the
+  top of the pane (one image at a time, result side by default — the panes
+  never use the draggable slider). While the sources are previewed, a discreet
   two-line badge above the bottom-right buttons shows the loaded sizes:
   `Base W × H` and `Face W × H` (each line appears once its image loads;
   no MP).
@@ -347,7 +350,8 @@ empty and the prompt fills it; see also deviation 14):
 ### 3.4 Upscale 🔍
 
 - **Output pane**: 📁 + URL field + 🔗 + 🕘 (bottom-right, 📁 left of 🔗,
-  🕘 left of 📁) over the **compare slider** (Original | Upscaled). While the source preview is
+  🕘 left of 📁) over an **`Original | Upscaled` toggle** centered at the top
+  of the pane (one image at a time, result side by default). While the source preview is
   shown, the same discreet `W × H` badge appears above the buttons.
 - **Toolbar**: ↺ only (no model, no ⚙️).
 - **Params**: the `🌱 Seed` stepper + `🎲` directly in the params pane —
@@ -502,13 +506,27 @@ height = max(vae_scale, round(raw_h / vae_scale) × vae_scale)
 ± component with centered input. Steps/Seed step 1; MP step 0.1; Frames
 step 4 with 4n+1 snap and 81–161 clamp.
 
-### 4.4 Compare slider (Edit and Upscale)
+### 4.4 Comparison presentation (panes vs gallery)
 
-Two stacked `<img>` with `clip-path` via `--p`, draggable divider, labels
-Original/Edited (or Upscaled) — ported from the reference compare_images.
-The slider **fills the output pane** (width/height 100%, `min-height: 200px`
-so it never collapses in portrait; the portrait pane also gets
-`min-height: 40vh`) and the images use `object-fit: contain` (like the
+**The normal view (panes) ALWAYS uses a toggle.** Edit, Upscale and Face swap
+reuse the two stacked `<img>` layers of `.compare-slider` but show **one
+image at a time** (`.extend-toggle-mode` hides the divider/handle/labels and
+disables the drag): an `Original | <Result>` pill pair centered at the **top
+center of the image** — `alignPaneCompareToggle()` (`pane-compare.js`) offsets
+it to the image's top edge instead of the pane's, since `object-fit: contain
+leaves letterbox bars. Labels follow the operation (Edited / Restored /
+Extended / Cropped / Adjusted / Upscaled / Face swapped), the result side is
+shown by default, and the toggle re-aligns per side because the two images can
+differ in aspect ratio (Crop/Adjust/Extend). Hide/reset paths: `setGenerating`
+(`.output-pane.generating` hides it), `clearPane` (`api.js`) and
+`previewSourceImage` (`source.js`).
+
+**The fullscreen gallery keeps its own presentation**: the draggable overlay
+slider (`#gallerySlider`) for the framing-preserving kinds (edit, restore,
+upscale, face swap) and the same toggle for extend/crop/adjust. Two stacked
+`<img>` with `clip-path` via `--p`, draggable divider, labels
+Original/<Result> — ported from the reference compare_images. The slider
+**fills the overlay** and the images use `object-fit: contain` (like the
 Generate result) so both sides are fully visible without cropping; the
 divider/handle follow `--p`. **The BEFORE image goes through the same
 same-origin `/media` proxy as the results** (`beforeProxyUrl()` in
@@ -516,9 +534,9 @@ same-origin `/media` proxy as the results** (`beforeProxyUrl()` in
 bare temp filename — to a `/media` URL; the raw ComfyUI host is never fed
 to an `<img>`, which is what left the original black on devices that cannot
 reach that hostname). **Drag is delegated** (`setupCompareSlider` in
-`main.js`) and works for the pane sliders AND the fullscreen gallery
-slider (`#gallerySlider`). The AFTER label follows the mode
-(Edited/Restored/Extended) — not hardcoded.
+`main.js`) and only applies to the gallery slider now (a pane slider is
+always in toggle mode, where the drag handlers bail out). The AFTER label
+follows the mode (Edited/Restored/…) — not hardcoded.
 
 ### 4.5 Source image URL field (Edit/Upscale/Video)
 
@@ -797,8 +815,12 @@ modal uses that tab's primary pill as the ⏹.
   toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, storage, api, player, refine, source, tabs, generate, edit,
-  face_swap, upscale, video, gallery, restore, settings, modal, main.
+  state, media-events, storage, timing, api, seed, **pane-compare**, player,
+  refine, source, tabs, generate, edit, crop-geometry, crop, adjust-utils,
+  adjust, upscale, face_swap, video, gallery, restore, settings, modal, main.
+  `pane-compare.js` owns the pane comparison presentation (always the
+  `Original | <Result>` toggle, top-center); the fullscreen gallery keeps its
+  own per-kind presentation in `gallery.js`.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, per-tab prompts, last loaded source per source tool, theme AND
@@ -924,9 +946,10 @@ push events, so nothing is hidden by age and nothing polls:
   (big image **edge to edge — `100vw/100vh`, no frame/radius** + badge
   (click → original-prompt box) + ‹ › + N/M counter bottom-right + ℹ️ info
   top-left, also opened with `i`, + close ✕ top-right), compare slider for
-  Edit/Restore/Upscale (interactive before/after, also maximized to the
-  viewport). Extend entries use the top-center `Original | Extended` toggle
-  instead of the slider.
+  Edit/Restore/Upscale/Face swap (interactive before/after, also maximized to
+  the viewport). Extend/Crop/Adjust entries use the top-center
+  `Original | Extended/Cropped/Adjusted` toggle instead of the slider. (The
+  PANES are always the toggle — §4.4.)
   The N/M counter and the ‹ › buttons are always visible; with a single
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate; `Delete` (or the 🗑️ button)
@@ -937,8 +960,9 @@ push events, so nothing is hidden by age and nothing polls:
   (`.output-overlay-btn.pane-nav`, hidden with a single entry). They
   navigate the SAME session registries as the fullscreen gallery — without
   leaving the app: Generate cycles `galleryGenerated` (pane shows a plain
-  result image), Edit/Upscale cycle their `galleryComparisons` (the
-  before/after slider is re-rendered via `restoreCompareSlider`), Video
+  result image), Edit/Upscale/Face swap cycle their `galleryComparisons`
+  (the `Original | <Result>` toggle is repainted via `restoreCompareSlider`
+  → `configurePaneCompare`), Video
   cycles `galleryVideos` (player rebuilt). The nav index resets to the most
   recent when a new result lands or the gallery drops to ≤1 entry
   (`syncPaneNav`), and stays in sync on delete/trash/restore and on
@@ -1087,3 +1111,9 @@ hides itself on click and shows a single box with ONLY the original prompt
 action). The prompt itself is shown in the ℹ️ image-information panel
 (top-left button or `i` key), not in a separate Show-prompt control; in
 portrait the original-prompt box expands to full width — see §7.1.
+17. **Pane comparison is a toggle** (`refactor/pane-compare-toggle`): the
+panes of Edit, Upscale and Face swap never show the draggable overlay
+slider — they show one image at a time with an `Original | <Result>` toggle
+centered at the TOP CENTER OF THE IMAGE (`pane-compare.js`,
+`alignPaneCompareToggle`). The fullscreen gallery keeps the slider for the
+framing-preserving kinds and the toggle for extend/crop/adjust (§4.4).

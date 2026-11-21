@@ -51,12 +51,14 @@ function restoreCompareSlider(tab, paneId, cmp) {
   slider.dataset.gallery = '1';
   slider.dataset.kind = cmp.kind || 'edit';
   slider.dataset.prompt = cmp.prompt || '';
-  // Extend and crop results use the Original/Result toggle instead of the
-  // overlay slider (their canvas sizes differ).
-  if (paneId === 'editOutputPane' && typeof configureEditExtendToggle === 'function') {
-    const kind = cmp.kind || 'edit';
-    configureEditExtendToggle(
-      kind === 'extend' || kind === 'crop' || kind === 'adjust',
+  // NORMAL view: ALWAYS the Original | Result toggle (one image at a time)
+  // for every pane comparison — see static/js/pane-compare.js. The
+  // fullscreen gallery keeps its own per-kind presentation.
+  if (typeof configurePaneCompare === 'function') {
+    const kind = cmp.kind || (tab === 'face_swap' ? 'face_swap' : tab === 'upscale' ? 'upscale' : 'edit');
+    configurePaneCompare(
+      tab,
+      true,
       typeof compareKindLabel === 'function' ? compareKindLabel(kind) : undefined
     );
   }

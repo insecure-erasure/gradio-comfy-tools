@@ -98,6 +98,9 @@ function fsPreviewBase(value) {
   // base preview. The FACE overlay is deliberately kept — the two sources
   // are independent (and stays as the reference once a result lands).
   pane.querySelectorAll('.compare-slider').forEach(el => { el.style.display = 'none'; });
+  // The pane comparison is an Original | Result toggle now: hide it with the
+  // slider it belongs to (a stale toggle must not float over the preview).
+  pane.querySelectorAll('.extend-toggle').forEach(el => { el.style.display = 'none'; });
   pane.querySelectorAll('.source-preview, .result-img, .output-placeholder, .preview-live, .face-extract-overlay')
     .forEach(el => el.remove());
   fsClearDimensions('base');
@@ -309,6 +312,8 @@ function generateFaceSwap() {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
+      // NORMAL view: always the Original | Face swapped toggle (top-center).
+      configurePaneCompare('face_swap', true, 'Face swapped');
       // Gallery marker: the result joins the compare gallery (identity =
       // AFTER image); kind is the face swap's own.
       cmp.dataset.gallery = '1';

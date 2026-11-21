@@ -47,6 +47,8 @@ function generateUpscale() {
       afterEl.src = res.display;
       cmp.style.setProperty('--p', '50%');
       cmp.style.display = '';
+      // NORMAL view: always the Original | Upscaled toggle (top-center).
+      configurePaneCompare('upscale', true, 'Upscaled');
       // Gallery marker: the upscaled result joins the compare gallery
       // (identity = AFTER image); no prompt caption for upscale.
       cmp.dataset.gallery = '1';

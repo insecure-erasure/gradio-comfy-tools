@@ -26,6 +26,12 @@
             <div class="divider"></div>
             <div class="handle"><span></span><span></span></div>
           </div>
+          <!-- Normal-view comparison: ALWAYS the Original | Upscaled toggle
+               (top-center) — see static/js/pane-compare.js. -->
+          <div class="extend-toggle" id="upscaleCompareToggle" role="group" aria-label="Compare original and upscaled" style="display:none">
+            <button type="button" class="extend-toggle-btn" id="upscaleCompareOriginalBtn" onclick="setPaneCompareView('upscale', true)" aria-pressed="false">Original</button>
+            <button type="button" class="extend-toggle-btn active" id="upscaleCompareResultBtn" onclick="setPaneCompareView('upscale', false)" aria-pressed="true">Upscaled</button>
+          </div>
           <div class="gen-spinner" id="upscaleSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">

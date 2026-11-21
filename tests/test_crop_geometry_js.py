@@ -71,7 +71,9 @@ def test_crop_results_join_the_gallery_and_recovery():
     assert "mode === 'crop' ? 'cropped'" in api
 
     restore = _read("static", "js", "restore.js")
-    assert "kind === 'extend' || kind === 'crop'" in restore
+    # The pane restore now always paints the toggle (pane-compare.js), so
+    # crop no longer needs its own kind condition there.
+    assert "configurePaneCompare(" in restore
 
 
 def test_crop_overlay_blocks_global_shortcuts_and_tab_switch_closes_it():

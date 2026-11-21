@@ -82,7 +82,9 @@ def test_adjust_results_join_the_gallery_and_recovery():
     assert "mode === 'adjust' ? 'adjusted'" in api
 
     restore = _read("static", "js", "restore.js")
-    assert "kind === 'extend' || kind === 'crop' || kind === 'adjust'" in restore
+    # The pane restore now always paints the toggle (pane-compare.js), so
+    # adjust no longer needs its own kind condition there.
+    assert "configurePaneCompare(" in restore
 
 
 def test_adjust_overlay_blocks_global_shortcuts_and_tab_switch_closes_it():

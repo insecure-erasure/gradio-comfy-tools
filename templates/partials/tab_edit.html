@@ -40,9 +40,13 @@
             <div class="divider"></div>
             <div class="handle"><span></span><span></span></div>
           </div>
-          <div class="extend-toggle" id="editExtendToggle" role="group" aria-label="Compare original and extended" style="display:none">
-            <button type="button" class="extend-toggle-btn" id="editExtendOriginalBtn" onclick="setEditExtendView(true)" aria-pressed="false">Original</button>
-            <button type="button" class="extend-toggle-btn active" id="editExtendResultBtn" onclick="setEditExtendView(false)" aria-pressed="true">Extended</button>
+          <!-- Normal-view comparison: ALWAYS the Original | Result toggle
+               (top-center), never the draggable slider — see
+               static/js/pane-compare.js. The fullscreen gallery keeps the
+               slider for edit/restore and the toggle for extend/crop/adjust. -->
+          <div class="extend-toggle" id="editExtendToggle" role="group" aria-label="Compare original and edited" style="display:none">
+            <button type="button" class="extend-toggle-btn" id="editExtendOriginalBtn" onclick="setPaneCompareView('edit', true)" aria-pressed="false">Original</button>
+            <button type="button" class="extend-toggle-btn active" id="editExtendResultBtn" onclick="setPaneCompareView('edit', false)" aria-pressed="true">Edited</button>
           </div>
           <div class="gen-spinner" id="editSpinner"><div class="ring"></div></div>
           {% include "partials/crop_overlay.html" %}

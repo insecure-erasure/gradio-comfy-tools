@@ -172,7 +172,7 @@ function setupCompareSlider(slider) {
   const onBtn = e => e.target.closest && e.target.closest('.btn');
   slider.addEventListener('pointerdown', e => {
     if (onBtn(e)) return;
-    if (slider.classList.contains('extend-toggle-mode')) return; // no slider in Extend
+    if (slider.classList.contains('extend-toggle-mode')) return; // toggle mode — no slider
     dragging = true;
     dragPointerId = e.pointerId;
     try { slider.setPointerCapture(e.pointerId); } catch (e) {}
@@ -180,7 +180,7 @@ function setupCompareSlider(slider) {
     e.preventDefault();
   });
   slider.addEventListener('pointermove', e => {
-    if (slider.classList.contains('extend-toggle-mode')) return; // no slider in Extend
+    if (slider.classList.contains('extend-toggle-mode')) return; // toggle mode — no slider
     // e.buttons === 0: the button was already released somewhere the page
     // never saw (outside the window) — never drag without a pressed button.
     if ((dragging || e.pointerType === 'mouse') && !onBtn(e)) {

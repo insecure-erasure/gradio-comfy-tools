@@ -42,6 +42,12 @@
             <div class="divider"></div>
             <div class="handle"><span></span><span></span></div>
           </div>
+          <!-- Normal-view comparison: ALWAYS the Original | Face swapped
+               toggle (top-center) — see static/js/pane-compare.js. -->
+          <div class="extend-toggle" id="faceSwapCompareToggle" role="group" aria-label="Compare original and face swapped" style="display:none">
+            <button type="button" class="extend-toggle-btn" id="faceSwapCompareOriginalBtn" onclick="setPaneCompareView('face_swap', true)" aria-pressed="false">Original</button>
+            <button type="button" class="extend-toggle-btn active" id="faceSwapCompareResultBtn" onclick="setPaneCompareView('face_swap', false)" aria-pressed="true">Face swapped</button>
+          </div>
           <div class="gen-spinner" id="faceSwapSpinner"><div class="ring"></div></div>
         </div>
         <div class="params-pane">
