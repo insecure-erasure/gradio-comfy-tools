@@ -42,6 +42,9 @@ def test_counter_is_the_grid_toggle_and_the_sheet_exists():
     assert 'aria-controls="galleryGrid"' in overlay
     assert 'aria-expanded="false"' in overlay
     assert 'id="galleryCounterText"' in overlay      # N/M repaints alone
+    # Decision: the counter is plain text, no glyph/icon.
+    assert "gallery-counter-glyph" not in overlay
+    assert "▦" not in overlay
     assert 'id="galleryGrid"' in overlay
     assert 'id="galleryGridThumbs"' in overlay
     assert 'id="galleryGridTitle"' in overlay
@@ -54,6 +57,7 @@ def test_css_uses_cover_cells_and_hides_the_individual_controls():
     assert ".gallery-thumb {" in css
     # Decision: uniform cells filled by the image (corners cropped).
     assert "object-fit: cover;" in css
+    assert "gallery-counter-glyph" not in css
     assert ".gallery-thumb.is-video" in css
     assert ".gallery-thumb-index" in css
     # While the sheet is open the individual-view buttons would act behind it.
@@ -90,6 +94,20 @@ def test_gallery_js_wiring():
     # A pure navigation updates the ring instead of rebuilding the thumbnails.
     assert "_galleryGridSignature" in gallery
     assert "syncGalleryGridActive();" in gallery
+    # Thumbnails are NOT preloaded: the <img> starts without src and the
+    # IntersectionObserver assigns it near the view, with bounded concurrency.
+    assert "const GALLERY_GRID_CONCURRENCY = 6;" in gallery
+    assert "new IntersectionObserver(" in gallery
+    assert "root: galleryGridThumbs" in gallery
+    assert "rootMargin: '240px 0px'" in gallery
+    assert "_requestGridThumb(tile, rec.img, rec.url)" in gallery
+    assert "img.src = url;" in gallery
+    assert "img.src = e.src" not in gallery
+    # Resizing only re-lays out (no rebuild → no reload, scroll survives).
+    assert "function layoutGalleryGrid()" in gallery
+    assert "function refitGalleryGrid() {\n  if (!galleryGridOpen) return;\n  layoutGalleryGrid();" in gallery
+    # Closing frees the observer/queue and the tiles.
+    assert "_resetGridLoader();" in gallery
 
 
 def test_keyboard_behaviour_in_the_sheet():

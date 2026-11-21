@@ -2269,12 +2269,10 @@
     display: none;
     align-items: center;
     justify-content: flex-start;   /* left-aligned text (family rule) */
-    gap: 8px;
     cursor: pointer;
     transition: border-color .15s, background .15s;
   }
   .gallery-counter:hover { border-color: var(--accent); background: rgba(40,40,46,.8); }
-  .gallery-counter-glyph { color: rgba(255,255,255,.6); font-size: 12px; line-height: 1; }
   .gallery-counter[aria-expanded="true"] { border-color: var(--accent); }
 
   /* ── Thumbnail grid (the counter button) ─────

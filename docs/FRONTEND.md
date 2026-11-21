@@ -1010,7 +1010,8 @@ push events, so nothing is hidden by age and nothing polls:
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate; `Delete` (or the 🗑️ button)
   removes the shown entry immediately, without confirmation.
-- **Thumbnail grid (counter button, `⌗`)**: the N/M counter is a button that
+- **Thumbnail grid (counter button)**: the N/M counter is a plain-text button
+  (no icon) that
   turns the overlay into a **contact sheet** of the CURRENT gallery
   (`galleryGenerated` / this tool's `galleryComparisons` / `galleryVideos`) —
   it fills the visible area (not a small popover). Cell size comes from
@@ -1027,6 +1028,15 @@ push events, so nothing is hidden by age and nothing polls:
   layout; an incomplete last row stays centered (`flex-wrap` + `justify:
   center`). Video entries are **tiles with ▶** (no `<video>`: decoding N
   MP4s is slow/heavy). No type badges; a small index number per tile.
+  **Thumbnails are loaded on demand, never preloaded**: each `<img>` is
+  created WITHOUT `src` and an `IntersectionObserver` rooted on the sheet's
+  scroll box assigns it when the tile is within ~240 px of the visible area,
+  with at most 6 requests in flight (a FIFO queue in `_pumpGridQueue()`); a
+  failed load dims the tile and frees the slot. Closing the sheet disconnects
+  the observer, clears the queue and drops the tiles. `resize` /
+  `orientationchange` / `visualViewport` resize only **re-lay out**
+  (`layoutGalleryGrid()`: cell size + title) — they never rebuild, so images,
+  decodes and the scroll position survive.
   Clicking a thumb **closes the sheet and shows that entry** in the
   individual view. The counter toggles it; `Esc`/click on the sheet's empty
   area close only the sheet, and the individual-view controls (‹ ›, ℹ️, 🗑️,

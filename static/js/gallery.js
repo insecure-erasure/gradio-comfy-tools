@@ -631,16 +631,27 @@ function renderGalleryItem() {
 // ── Thumbnail grid (the counter button) ─────
 // The contact sheet REPLACES the individual view inside the same overlay: it
 // lists galleryEntries and selecting a thumb closes the grid and shows that
-// entry. The cell size comes from galleryGridMetrics() (gallery-grid.js), which
-// adapts to the entry count and the visible box with MIN/MAX bounds.
+// entry. The cell size comes from galleryGridMetrics() (gallery-grid.js).
+//
+// PERFORMANCE: tiles are cheap (one <button> per entry) but the images are
+// NOT preloaded — a 300-entry gallery would fire 300 requests. Each thumb is
+// only requested when it approaches the visible area (IntersectionObserver on
+// the sheet's scroll box) and at most GALLERY_GRID_CONCURRENCY requests are in
+// flight at once. Resizing only re-lays out (CSS variables), never rebuilds,
+// so scrolling/decoding never restarts.
 let galleryGridOpen = false;
 let galleryGridCols = 1;
 let _galleryGridSignature = '';
 
+const GALLERY_GRID_CONCURRENCY = 6;   // simultaneous thumbnail requests
+let _gridObserver = null;
+let _gridQueue = [];
+let _gridInFlight = 0;
+
 function galleryGridMetricsNow(n) {
-  // The grid's box = viewport − top bar (58) − padding (16/16). The SVG-free
-  // container is inset the same way in CSS, and visualViewport covers the
-  // mobile URL bar changing height while the gallery is open.
+  // The grid's box = viewport − top bar (58) − padding (16/16). The container
+  // is inset the same way in CSS, and visualViewport covers the mobile URL bar
+  // changing height while the gallery is open.
   const vv = window.visualViewport;
   const width = (vv && vv.width) || window.innerWidth || 0;
   const height = (vv && vv.height) || window.innerHeight || 0;
@@ -652,6 +663,61 @@ function galleryGridTitleText() {
   return `${label} · ${galleryIdx + 1}/${galleryEntries.length}`;
 }
 
+// Drop the observer, the pending queue and the counters (closing the sheet or
+// rebuilding it). Detached tiles are skipped by _pumpGridQueue().
+function _resetGridLoader() {
+  if (_gridObserver) {
+    try { _gridObserver.disconnect(); } catch (e) {}
+    _gridObserver = null;
+  }
+  _gridQueue = [];
+  _gridInFlight = 0;
+}
+
+function _pumpGridQueue() {
+  while (_gridInFlight < GALLERY_GRID_CONCURRENCY && _gridQueue.length) {
+    const job = _gridQueue.shift();
+    const { tile, img, url } = job;
+    if (!tile || !img || !img.isConnected) continue;
+    _gridInFlight++;
+    const settle = ok => {
+      _gridInFlight = Math.max(0, _gridInFlight - 1);
+      if (!ok) tile.classList.add('broken');
+      _pumpGridQueue();
+    };
+    img.addEventListener('load', () => settle(true), { once: true });
+    img.addEventListener('error', () => settle(false), { once: true });
+    img.src = url;
+  }
+}
+
+function _requestGridThumb(tile, img, url) {
+  if (!url || !img || img.getAttribute('src')) return;
+  _gridQueue.push({ tile, img, url });
+  _pumpGridQueue();
+}
+
+// Observe every image tile: the request happens only when the tile is within
+// ~240px of the visible area (prefetch margin), so scrolling loads as you go.
+function _observeGridTiles(tiles) {
+  if (!galleryGridThumbs || !tiles.length) return;
+  if (typeof IntersectionObserver !== 'function') {
+    // Very old browser: fall back to loading them (still bounded by the queue).
+    tiles.forEach(({ tile, img, url }) => _requestGridThumb(tile, img, url));
+    return;
+  }
+  _gridObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const tile = entry.target;
+      if (_gridObserver) _gridObserver.unobserve(tile);
+      const rec = tile._gridThumb;
+      if (rec) _requestGridThumb(tile, rec.img, rec.url);
+    });
+  }, { root: galleryGridThumbs, rootMargin: '240px 0px', threshold: 0.01 });
+  tiles.forEach(({ tile }) => _gridObserver.observe(tile));
+}
+
 function renderGalleryGrid() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
   const n = galleryEntries.length;
@@ -661,7 +727,9 @@ function renderGalleryGrid() {
   galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
   galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
   if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+  _resetGridLoader();
   galleryGridThumbs.innerHTML = '';
+  const imageTiles = [];
   galleryEntries.forEach((e, i) => {
     const tile = document.createElement('button');
     tile.type = 'button';
@@ -678,16 +746,15 @@ function renderGalleryGrid() {
       play.textContent = '▶';
       tile.appendChild(play);
     } else {
+      // The <img> exists immediately (so the cell is laid out) but has NO src
+      // yet: the observer above assigns it when the tile gets near the view.
       const img = document.createElement('img');
-      img.src = e.src;
       img.alt = '';
       img.draggable = false;
-      img.loading = 'lazy';
       img.decoding = 'async';
-      // A file the cleanup removed stays as a dimmed slot (the /ws/events
-      // deletion prunes the registry and re-renders the grid).
-      img.addEventListener('error', () => tile.classList.add('broken'));
       tile.appendChild(img);
+      tile._gridThumb = { img, url: e.src };
+      imageTiles.push({ tile, img, url: e.src });
     }
     const idx = document.createElement('span');
     idx.className = 'gallery-thumb-index';
@@ -699,7 +766,20 @@ function renderGalleryGrid() {
     });
     galleryGridThumbs.appendChild(tile);
   });
+  _observeGridTiles(imageTiles);
   _scrollActiveThumbIntoView(m.scroll);
+}
+
+// Re-layout WITHOUT rebuilding: update the cell size and the title, keep the
+// already-rendered tiles (and their loaded images / scroll position).
+function layoutGalleryGrid() {
+  if (!galleryGridOpen || !galleryGridThumbs) return;
+  const m = galleryGridMetricsNow(galleryEntries.length);
+  galleryGridCols = m.cols;
+  galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
+  galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
+  if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+  _scrollActiveThumbIntoView(false);
 }
 
 function _scrollActiveThumbIntoView(force) {
@@ -760,6 +840,7 @@ function closeGalleryGrid() {
   galleryOverlay.classList.remove('grid-open');
   if (galleryCounter) galleryCounter.setAttribute('aria-expanded', 'false');
   // Drop the thumbnails: a closed grid must not keep N images/decodes around.
+  _resetGridLoader();
   if (galleryGridThumbs) galleryGridThumbs.innerHTML = '';
   _galleryGridSignature = '';
 }
@@ -778,11 +859,11 @@ function galleryGridSelect(i) {
   renderGalleryItem();
 }
 
-// Resize/orientation (and the mobile URL bar) change the visible box: the
-// grid recomputes so the cells keep fitting.
+// Resize/orientation (and the mobile URL bar) change the visible box: only
+// re-layout, so the thumbnails (and their scroll position) survive.
 function refitGalleryGrid() {
   if (!galleryGridOpen) return;
-  renderGalleryGrid();
+  layoutGalleryGrid();
 }
 
 function galleryNav(delta) {
