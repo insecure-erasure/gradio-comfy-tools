@@ -1329,6 +1329,51 @@ def _unique(values: list) -> list:
     return out
 
 
+def _contains_filename(value: object, filename: str, depth: int = 0) -> bool:
+    """Deep-search a ComfyUI history ``outputs`` tree for a filename."""
+    if depth > 10:
+        return False
+    if isinstance(value, dict):
+        if str(value.get("filename") or "") == filename:
+            return True
+        return any(_contains_filename(v, filename, depth + 1) for v in value.values())
+    if isinstance(value, list):
+        return any(_contains_filename(v, filename, depth + 1) for v in value)
+    return False
+
+
+def _history_prompt_for_filename(filename: str) -> dict | None:
+    """Find the API prompt that produced ``filename`` in ComfyUI history.
+
+    Fallback for save nodes that do not embed the ``prompt`` chunk in the
+    PNG. ComfyUI keeps the queued API prompt in every history entry (the
+    entry whose outputs contain the file), so the original technical
+    parameters are still recoverable without touching the save node.
+    """
+    if not filename:
+        return None
+    try:
+        from comfy_client import ComfyClient
+
+        with ComfyClient(settings=_settings(), timeout=30) as client:
+            history = client.history(max_items=200)
+    except Exception:
+        return None
+    if not isinstance(history, dict):
+        return None
+    for entry in history.values():
+        if not isinstance(entry, dict):
+            continue
+        outputs = entry.get("outputs")
+        if isinstance(outputs, dict) and _contains_filename(outputs, filename):
+            prompt = entry.get("prompt")
+            # Standard ComfyUI history shape: [number, prompt_id, prompt, ...]
+            if isinstance(prompt, list) and len(prompt) >= 3:
+                prompt = prompt[2]
+            return prompt if isinstance(prompt, dict) else None
+    return None
+
+
 def _image_prompt_metadata(prompt: dict) -> dict:
     """Extract the technical parameters from a ComfyUI API prompt."""
     nodes = [n for n in prompt.values() if isinstance(n, dict)]
@@ -1430,12 +1475,15 @@ def _image_prompt_metadata(prompt: dict) -> dict:
 
 @app.get("/api/image-info")
 def api_image_info(filename: str, type: str = "output") -> dict:
-    """Technical metadata of a generated image, read from its PNG chunks.
+    """Technical metadata of a generated image.
 
     The fullscreen gallery's ℹ️ button calls this with the ComfyUI filename
-    of the currently shown entry. ``prompt`` is the API prompt ComfyUI
-    embeds in the PNG, so the reported steps/sampler/scheduler/model/LoRAs
-    describe the ACTUAL execution — not the parameters of the tab today.
+    of the currently shown entry. The API prompt is read from the PNG
+    metadata ComfyUI's default save node embeds; when the save node does not
+    write it (custom save nodes), the prompt is recovered from ComfyUI's
+    ``/history`` by matching the filename in the outputs. Either way the
+    reported steps/sampler/scheduler/model/LoRAs describe the ACTUAL
+    execution — not the parameters of the tab today.
     """
     from urllib.parse import urlencode
 
@@ -1459,6 +1507,14 @@ def api_image_info(filename: str, type: str = "output") -> dict:
         prompt = json.loads(chunks.get("prompt", ""))
     except (TypeError, ValueError):
         prompt = None
+    source = "png" if isinstance(prompt, dict) else None
+    if not isinstance(prompt, dict):
+        # The save node may not embed PNG metadata (custom save nodes). The
+        # queued API prompt is still in ComfyUI's history, keyed by outputs
+        # that reference this filename.
+        prompt = _history_prompt_for_filename(filename)
+        if isinstance(prompt, dict):
+            source = "history"
     if isinstance(prompt, dict):
         metadata = _image_prompt_metadata(prompt)
 
@@ -1467,6 +1523,7 @@ def api_image_info(filename: str, type: str = "output") -> dict:
         "width": width,
         "height": height,
         "has_metadata": isinstance(prompt, dict),
+        "metadata_source": source,
         **metadata,
     }
 

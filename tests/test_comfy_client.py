@@ -91,6 +91,17 @@ def test_list_diffusion_models_unexpected():
         client.list_diffusion_models()
 
 
+def test_history_passes_max_items_and_offset():
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/history"
+        assert request.url.params.get("max_items") == "50"
+        assert request.url.params.get("offset") == "100"
+        return httpx.Response(200, json={"prompt-1": {"prompt": [], "outputs": {}}})
+
+    client = make_client(handler)
+    assert "prompt-1" in client.history(max_items=50, offset=100)
+
+
 def test_upload_image_returns_name():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path == "/upload/image"

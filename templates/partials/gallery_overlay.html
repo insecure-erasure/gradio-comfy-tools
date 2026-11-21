@@ -55,10 +55,11 @@
   <button class="gallery-btn gallery-info" id="galleryInfo" title="Image information" aria-label="Image information" aria-expanded="false" aria-controls="galleryInfoPanel">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg>
   </button>
-  <!-- Technical parameters of the CURRENT image, read from the PNG metadata
-       ComfyUI embeds (resolution, steps, sampler, scheduler, model, LoRAs).
-       Populated by gallery.js; hidden by default. Tap anywhere closes it,
-       exactly like the other gallery text boxes. -->
+  <!-- Technical parameters of the CURRENT image (resolution, steps, sampler,
+       scheduler, model, LoRAs). The backend reads them from the PNG metadata
+       ComfyUI embeds, falling back to ComfyUI's history when the save node
+       writes none. Populated by gallery.js; hidden by default. Tap anywhere
+       closes it, exactly like the other gallery text boxes. -->
   <div class="gallery-info-panel" id="galleryInfoPanel" role="dialog" aria-label="Image information">
     <div class="gallery-info-box">
       <div class="gallery-info-title">Image information</div>

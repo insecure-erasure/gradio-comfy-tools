@@ -799,10 +799,12 @@ window.addEventListener('resize', () => { if (galleryMode === 'compare') fitGall
 
 // ── Image information (currently shown image) ───────
 // The ℹ️ button replaces the old download button: it reads the technical
-// parameters ComfyUI embeds in the PNG (resolution, steps, sampler,
-// scheduler, model, LoRAs and weights) through GET /api/image-info. Reading
-// the file metadata (instead of the current tab controls) means an entry
-// restored from localStorage reports what REALLY produced it.
+// parameters (resolution, steps, sampler, scheduler, model, LoRAs and
+// weights) through GET /api/image-info. The backend reads the PNG metadata
+// ComfyUI embeds and, for custom save nodes that write none, falls back to
+// ComfyUI's history. Reading the real execution data (instead of the
+// current tab controls) means an entry restored from localStorage reports
+// what REALLY produced it.
 let galleryInfoRequest = 0;
 
 function closeGalleryInfo() {
@@ -922,7 +924,7 @@ async function galleryShowInfo() {
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
     _renderGalleryInfo(meta, fallbackW, fallbackH,
       meta && meta.has_metadata === false
-        ? 'No technical metadata is embedded in this image.' : '');
+        ? 'Technical metadata is not available for this image.' : '');
   } catch (err) {
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
     _renderGalleryInfo(null, fallbackW, fallbackH,

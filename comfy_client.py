@@ -150,6 +150,15 @@ class ComfyClient:
                 names.append(str(item["name"]))
         return names
 
+    def history(self, max_items: int = 200, offset: int = 0) -> dict[str, Any]:
+        """GET /history — recent prompt entries (newest first).
+
+        Each entry carries ``prompt`` (the API prompt that was queued) and
+        ``outputs``. Used by the image-info endpoint as a fallback when the
+        saved file has no embedded PNG metadata (a custom save node).
+        """
+        return self._get(f"/history?max_items={int(max_items)}&offset={int(offset)}")
+
     def upload_image(self, file_path: str | Path) -> str:
         """Upload a local image; returns the ComfyUI temp filename.
 

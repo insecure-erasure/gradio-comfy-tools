@@ -43,11 +43,16 @@
 
 ### Image information (fullscreen gallery ℹ️)
 - `GET /api/image-info?filename=...&type=output` fetches the image from
-  ComfyUI and reads the PNG metadata ComfyUI embeds (`prompt` / `workflow`
-  text chunks). The API prompt gives the parameters that ACTUALLY produced
-  the file: resolution (IHDR), steps, sampler, scheduler, diffusion model and
-  the enabled LoRAs with their weights. This also works for entries restored
-  from localStorage, where the request parameters are no longer in memory.
+  ComfyUI and reads the PNG metadata ComfyUI's default save node embeds
+  (`prompt` / `workflow` text chunks). The API prompt gives the parameters
+  that ACTUALLY produced the file: resolution (IHDR), steps, sampler,
+  scheduler, diffusion model and the enabled LoRAs with their weights. This
+  also works for entries restored from localStorage, where the request
+  parameters are no longer in memory.
+- **Custom save nodes without PNG metadata**: the endpoint falls back to
+  ComfyUI's `GET /history?max_items=200`, finds the entry whose outputs
+  reference the filename and extracts the queued API prompt from it. No
+  workflow/save-node change is required.
 - The parser resolves API-prompt links (e.g. Generate's steps live in an
   `easy int` node) and follows the `Switch (SIGMAS)` node to report the
   active scheduler (BasicScheduler vs Flux2Scheduler).

@@ -160,9 +160,87 @@ def test_image_info_without_embedded_prompt_still_returns_resolution(client, mon
 
     monkeypatch.setattr(server, "_settings", lambda: FakeSettings())
     monkeypatch.setattr(server.httpx, "Client", FakeClient)
+    monkeypatch.setattr(server, "_history_prompt_for_filename", lambda filename: None)
 
     body = client.get("/api/image-info?filename=plain.png").json()
     assert body["has_metadata"] is False
+    assert body["metadata_source"] is None
     assert (body["width"], body["height"]) == (512, 512)
     assert body["steps"] == []
     assert body["loras"] == []
+
+
+def test_image_info_falls_back_to_comfyui_history(client, monkeypatch):
+    """A custom save node without PNG metadata: use the queued API prompt."""
+    png = _make_png(512, 512, {})
+
+    class FakeSettings:
+        media_base_url = "http://comfy.test"
+
+    class FakeResponse:
+        status_code = 200
+        content = png
+
+        def raise_for_status(self):
+            pass
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url):
+            return FakeResponse()
+
+    monkeypatch.setattr(server, "_settings", lambda: FakeSettings())
+    monkeypatch.setattr(server.httpx, "Client", FakeClient)
+    monkeypatch.setattr(
+        server, "_history_prompt_for_filename",
+        lambda filename: _prompt() if filename == "plain.png" else None,
+    )
+
+    body = client.get("/api/image-info?filename=plain.png").json()
+    assert body["has_metadata"] is True
+    assert body["metadata_source"] == "history"
+    assert body["steps"] == [9]
+    assert body["models"] == ["zImageTurbo.safetensors"]
+    assert body["loras"] == [{"name": "style.safetensors", "weight": 0.75}]
+
+
+def test_history_lookup_matches_the_output_filename(monkeypatch):
+    import comfy_client
+
+    history = {
+        "prompt-1": {
+            "prompt": [0, "prompt-1", _prompt(), {}, ["9"]],
+            "outputs": {"9": {"images": [{"filename": "other.png", "type": "output"}]}},
+        },
+        "prompt-2": {
+            "prompt": [0, "prompt-2", _prompt(), {}, ["9"]],
+            "outputs": {"9": {"images": [{"filename": "target.png", "type": "output"}]}},
+        },
+    }
+
+    class FakeHistoryClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def history(self, max_items=200):
+            assert max_items == 200
+            return history
+
+    monkeypatch.setattr(comfy_client, "ComfyClient", FakeHistoryClient)
+    prompt = server._history_prompt_for_filename("target.png")
+    assert prompt["1"]["class_type"] == "UNETLoader"
+    assert server._history_prompt_for_filename("missing.png") is None
