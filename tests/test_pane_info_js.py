@@ -48,6 +48,14 @@ def test_panel_is_top_level_and_fixed():
     block = block[: block.index("}")]
     assert "position: fixed" in block
     assert ".gallery-info-panel.pane-mode { pointer-events: auto; }" in css
+    # Pane mode: the BOX centers on the image (the anchor pane), not on the
+    # viewport, while the backdrop keeps covering the screen.
+    assert ".gallery-info-panel.pane-mode .gallery-info-box {" in css
+    assert "left: var(--info-cx, 50%);" in css
+    assert "top: var(--info-cy, 50%);" in css
+    assert "transform: translate(-50%, -50%);" in css
+    assert "var(--info-max-w, 90vw)" in css
+    assert "var(--info-max-h, 100dvh)" in css
     # The pane button is not clickable while the pane shows a live preview.
     assert ".output-pane.generating .pane-info-btn" in css
 
@@ -64,6 +72,13 @@ def test_pane_info_toggles_and_shares_the_panel():
     assert "galleryInfoPanel.addEventListener('click'" in gallery
     # Videos in the pane: skip downloading the MP4.
     assert "skipMedia: isVideo" in gallery
+    # Centered on the output pane (not the viewport) and kept in place when
+    # the layout changes.
+    assert "function _positionInfoPanel()" in gallery
+    assert "anchorEl: pane" in gallery
+    assert "window.addEventListener('resize', _positionInfoPanel);" in gallery
+    assert "window.addEventListener('orientationchange', _positionInfoPanel);" in gallery
+    assert "function _clearInfoAnchor()" in gallery
 
 
 def test_i_key_and_escape_work_in_the_normal_view():

@@ -784,6 +784,10 @@ function fitGallerySlider() {
 galleryBefore.addEventListener('load', fitGallerySlider);
 galleryAfter.addEventListener('load', fitGallerySlider);
 window.addEventListener('resize', () => { if (galleryMode === 'compare') fitGallerySlider(); });
+// The pane-mode ℹ️ box is centered on its output pane: keep it centered when
+// the layout changes (window resize, orientation, bottom bar, viewport).
+window.addEventListener('resize', _positionInfoPanel);
+window.addEventListener('orientationchange', _positionInfoPanel);
 
 // ── Image information (currently shown image) ───────
 // The ℹ️ button replaces the old download button: it reads the technical
@@ -802,6 +806,7 @@ function closeGalleryInfo() {
     galleryInfoPanel.classList.remove('pane-mode');
   }
   _infoSizeGetter = null;
+  _clearInfoAnchor();
   if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'false');
 }
 
@@ -928,6 +933,30 @@ function _refreshGalleryInfoSize() {
   _renderGalleryInfo(s.meta, w, h, s.note, s.entry);
 }
 
+// The pane the pane-mode panel is anchored to (see _positionInfoPanel).
+let _infoAnchorEl = null;
+
+// Pane mode: center the BOX on the IMAGE (the output pane), not on the whole
+// viewport — the backdrop still covers the screen for the click-anywhere
+// dismiss. Recomputed on open and on every resize/orientation change while
+// the panel is open (the pane changes size with the layout).
+function _positionInfoPanel() {
+  if (!_infoAnchorEl || !galleryInfoPanel || !galleryInfoPanel.classList.contains('pane-mode')) return;
+  const r = _infoAnchorEl.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  galleryInfoPanel.style.setProperty('--info-cx', `${Math.round(r.left + r.width / 2)}px`);
+  galleryInfoPanel.style.setProperty('--info-cy', `${Math.round(r.top + r.height / 2)}px`);
+  galleryInfoPanel.style.setProperty('--info-max-w', `${Math.max(180, Math.round(r.width - 24))}px`);
+  galleryInfoPanel.style.setProperty('--info-max-h', `${Math.max(120, Math.round(r.height - 24))}px`);
+}
+
+function _clearInfoAnchor() {
+  _infoAnchorEl = null;
+  if (!galleryInfoPanel) return;
+  ['--info-cx', '--info-cy', '--info-max-w', '--info-max-h']
+    .forEach(prop => galleryInfoPanel.style.removeProperty(prop));
+}
+
 // The SHARED panel (fullscreen gallery + normal view): technical parameters
 // (resolution, steps, sampler, scheduler, model, LoRAs/weights) AND the
 // prompt (plus the original prompt when the entry is a transformation). The
@@ -940,9 +969,10 @@ function _refreshGalleryInfoSize() {
 //   isVideo   — title + skip_media (do not download the MP4)
 //   paneMode  — opened from a pane: the backdrop catches the dismiss click
 //   getSize   — () => {w,h} the browser knows (refreshed on video metadata)
+//   anchorEl  — pane-mode: the output pane the box centers on
 // Toggles: calling it while the panel is open closes it.
 async function _openInfoPanel(opts) {
-  const { entry, src, isVideo, skipMedia, paneMode, getSize } = opts || {};
+  const { entry, src, isVideo, skipMedia, paneMode, getSize, anchorEl } = opts || {};
   if (galleryInfoPanel.classList.contains('show')) {
     closeGalleryInfo();
     return;
@@ -961,6 +991,8 @@ async function _openInfoPanel(opts) {
   }
   _renderGalleryInfo(null, fallbackW, fallbackH, '', entry);
   galleryInfoPanel.classList.add('show');
+  _infoAnchorEl = paneMode && anchorEl ? anchorEl : null;
+  _positionInfoPanel();
   if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'true');
   if (isVideo) {
     const size = _infoSizeNow();
@@ -1071,6 +1103,7 @@ function paneShowInfo(tab) {
     isVideo,
     skipMedia: isVideo,
     paneMode: true,
+    anchorEl: pane,
     getSize: () => (isVideo
       ? { w: (video && video.videoWidth) || 0, h: (video && video.videoHeight) || 0 }
       : { w: (img && img.naturalWidth) || 0, h: (img && img.naturalHeight) || 0 }),

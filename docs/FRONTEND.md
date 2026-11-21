@@ -823,12 +823,16 @@ entering the gallery.
   runs). It shows the rows of the result **currently shown in the pane**
   (`paneCurrentEntry(tab)`: resolution, steps, sampler, scheduler, model,
   LoRAs/weights from `GET /api/image-info`, plus the entry's Prompt and
-  Original prompt). The **`i` key** toggles the same panel; `i` again,
-  `Escape` or a **click outside the box** closes it (the panel opts into
-  pointer events in this mode, so the dismissing click never activates the
-  control underneath). The resolution fallback comes from the pane's own
-  `<img>`/`<video>` element (videos use `skip_media=1`). It closes on tab
-  switch and when a pane is cleared.
+  Original prompt). The panel is **centered on the IMAGE** (the output pane
+  is passed as `anchorEl`; `_positionInfoPanel()` sets the box's
+  `--info-cx/--info-cy` and clamps its width/height to the pane), not on the
+  viewport, and re-centers on resize/orientation change. The backdrop still
+  covers the whole screen for the click-anywhere dismiss. The **`i` key**
+  toggles the same panel; `i` again, `Escape` or a **click outside the box**
+  closes it (the panel opts into pointer events in this mode, so the
+  dismissing click never activates the control underneath). The resolution
+  fallback comes from the pane's own `<img>`/`<video>` element (videos use
+  `skip_media=1`). It closes on tab switch and when a pane is cleared.
 - **Fullscreen gallery**: unchanged — ℹ️ top-left button or `i`, backdrop
   click / Escape closes; the panel stays click-transparent there, and the
   overlay's own click-anywhere handler dismisses it.

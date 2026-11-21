@@ -2164,6 +2164,18 @@
   }
   .gallery-info-panel.show { display: flex; }
   .gallery-info-panel.pane-mode { pointer-events: auto; }
+  /* Pane mode: the box centers on the IMAGE (the output pane passed as
+     `anchorEl`), not on the whole viewport — the backdrop still covers the
+     screen so the click-anywhere dismiss keeps working. The vars come from
+     _positionInfoPanel() and are refreshed on resize. */
+  .gallery-info-panel.pane-mode .gallery-info-box {
+    position: absolute;
+    left: var(--info-cx, 50%);
+    top: var(--info-cy, 50%);
+    transform: translate(-50%, -50%);
+    width: min(440px, 90vw, var(--info-max-w, 90vw));
+    max-height: min(calc(100dvh - 96px), var(--info-max-h, 100dvh));
+  }
   .gallery-info-box {
     width: min(440px, 90vw);
     max-height: calc(100dvh - 96px);
