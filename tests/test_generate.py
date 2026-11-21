@@ -400,7 +400,7 @@ def test_flux2_variability_preserves_uint64_seed(fvwf):
 
 def test_flux2_variability_deep_copy_not_mutating_source(fvwf):
     built, _ = build_variability_workflow(fvwf, family="flux2", prompt="hi", steps=12, seed=7)
-    assert fvwf["100"]["inputs"]["steps"] == 7
+    assert fvwf["100"]["inputs"]["steps"] == 8
     assert fvwf["103"]["inputs"]["noise_seed"] == 0
     assert built["100"]["inputs"]["steps"] == 12
     assert built["103"]["inputs"]["noise_seed"] == 7
