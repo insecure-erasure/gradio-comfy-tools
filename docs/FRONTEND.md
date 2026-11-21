@@ -195,12 +195,12 @@ Toolbar (nav): Model dropdown + ⚙️ + ↺.
 | Model | auto steps | vae scale |
 |---|---|---|
 | Krea 2 (default) | 8 | 16 |
-| FLUX.2 Klein | 8 | 16 |
+| FLUX.2 Klein | 6 | 16 |
 | Z-Image Turbo | 9 | 16 |
 
 With **Increase randomness** enabled the step budget and rounding come from
 the variability config instead: Z-Image Turbo 10 steps / 16, Krea 2 9 steps /
-16, FLUX.2 8 steps / 16.
+16, FLUX.2 7 steps / 16.
 
 The per-family defaults (labels, auto steps, VAE scale and variability step
 budget) come from `FAMILY_DEFAULTS` in `static/js/state.js`, the frontend

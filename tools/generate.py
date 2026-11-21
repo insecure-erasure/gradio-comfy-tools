@@ -88,14 +88,14 @@ FAMILY_CONFIGS: dict[str, dict[str, Any]] = {
         "standard": {
             "vae_scale_factor": 16,
             "cfg": 1.0,
-            "steps": 8,
+            "steps": 6,
             "sampler": "euler",
             "scheduler": "",
             "sigma_selector_index": 2,
         },
         "variability": {
             "workflow": "workflows/flux2_var.json",
-            "steps": 8,
+            "steps": 7,
             "timestep_threshold": 0.13,
             "divisible_by": 16,
         },

@@ -42,7 +42,7 @@ let toolbarValues = {
 // mirrors FAMILY_CONFIGS in tools/generate.py (keep in sync).
 const FAMILY_DEFAULTS = {
   krea2:  { label: 'Krea 2',        steps: 8,  vae: 16, varSteps: 9  },
-  flux2:  { label: 'FLUX.2 Klein',  steps: 8,  vae: 16, varSteps: 8  },
+  flux2:  { label: 'FLUX.2 Klein',  steps: 6,  vae: 16, varSteps: 7  },
   zimage: { label: 'Z-Image Turbo', steps: 9,  vae: 16, varSteps: 10 },
 };
 

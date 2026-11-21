@@ -206,11 +206,11 @@ Other relevant nodes: `SamplerCustomAdvanced`, `KSamplerSelect`, `CFGGuider`, `S
 |---|---|---|---|---|---|---|---|---|
 | Z-Image Turbo | zImageTurbo-mxfp8.safetensors | qwen3_4b_instruct_2507_mxfp8 | Z-Image_half_natural_vae | 16 | 1.0 | 9 | euler | simple |
 | Krea 2 | krea2_turbo_mixed_nvfp4 | qwen3_vl_4b_instruct_mxfp8 | qwen_image_vae | 16 | 1.0 | 8 | euler | simple |
-| FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 16 | 1.0 | 8 | euler | (flux.2) |
+| FLUX.2 Klein | flux-2-klein-9b-nvfp4 | qwen_3_8b_nvfp4 | flux2-vae-small-bf16 | 16 | 1.0 | 6 | euler | (flux.2) |
 
 `steps` accepts **1–50** (`MIN_STEPS` / `MAX_STEPS`). The ceiling covers
 undistilled checkpoints: FLUX.2 \[klein] Base is not step-distilled and BFL
-recommends ~50 steps for it, while the distilled families here default to 8–9.
+recommends ~50 steps for it, while the distilled families here default to 6–9.
 The GUI's `👣 Steps` stepper uses the same bounds (`MIN_GEN_STEPS` /
 `MAX_GEN_STEPS` in `static/js/state.js`), so a value the user can pick reaches
 the workflow unchanged.
@@ -241,7 +241,7 @@ view):
 |---|---|---|---|---|---|
 | Z-Image Turbo | `dit_var.json` | zImageTurbo-mxfp8 / qwen3_4b_instruct_2507_mxfp8 / Z-Image_half_natural_vae | 10 | 0.105 | 16 |
 | Krea 2 | `dit_var.json` | krea2_turbo_mixed_nvfp4 / qwen3_vl_4b_instruct_mxfp8 / qwen_image_vae | 9 | 0.112 | 16 |
-| FLUX.2 Klein | `flux2_var.json` | flux-2-klein-9b-nvfp4 / qwen_3_8b_nvfp4 / flux2-vae-small-bf16 | 8 | 0.13 | 16 |
+| FLUX.2 Klein | `flux2_var.json` | flux-2-klein-9b-nvfp4 / qwen_3_8b_nvfp4 / flux2-vae-small-bf16 | 7 | 0.13 | 16 |
 
 Why 16: the official Krea-2 inference code aligns width/height to a multiple
 of 16 (Qwen-Image VAE 8× × Krea-2 patch size 2), and FLUX.2 uses a 16× VAE

@@ -311,7 +311,7 @@ def test_flux2_variability_resolve_titles(fvwf):
 def test_flux2_variability_build_defaults(fvwf):
     built, meta = build_variability_workflow(fvwf, family="flux2", prompt="hello")
     assert meta["family"] == "flux2"
-    assert meta["steps"] == 8
+    assert meta["steps"] == 7
     assert meta["timestep_threshold"] == 0.13
     assert meta["divisible_by"] == 16
     assert meta["workflow"] == "flux2_var.json"
@@ -323,7 +323,7 @@ def test_flux2_variability_build_defaults(fvwf):
     assert nodes["Flux Resolution Calc"]["inputs"]["divisible_by"] == "16"
     assert nodes["ConditioningTimestepThreshold"]["inputs"]["value"] == 0.13
     assert nodes["Prompt here"]["inputs"]["text"] == "hello"
-    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 8
+    assert nodes["Flux2Scheduler"]["inputs"]["steps"] == 7
     assert nodes["SplitSigmas"]["inputs"]["step"] == 1
     assert nodes["KSamplerSelect 1"]["inputs"]["sampler_name"] == "res_multistep"
     assert nodes["KSamplerSelect 2"]["inputs"]["sampler_name"] == "euler"
@@ -400,7 +400,7 @@ def test_flux2_variability_preserves_uint64_seed(fvwf):
 
 def test_flux2_variability_deep_copy_not_mutating_source(fvwf):
     built, _ = build_variability_workflow(fvwf, family="flux2", prompt="hi", steps=12, seed=7)
-    assert fvwf["100"]["inputs"]["steps"] == 8
+    assert fvwf["100"]["inputs"]["steps"] == 7
     assert fvwf["103"]["inputs"]["noise_seed"] == 0
     assert built["100"]["inputs"]["steps"] == 12
     assert built["103"]["inputs"]["noise_seed"] == 7
@@ -437,12 +437,12 @@ def test_family_default_steps():
     assert {f: MODEL_CONFIGS[f]["steps"] for f in MODEL_CONFIGS} == {
         "zimage": 9,
         "krea2": 8,
-        "flux2": 8,
+        "flux2": 6,
     }
     assert {f: VARIABILITY_CONFIGS[f]["steps"] for f in VARIABILITY_CONFIGS} == {
         "zimage": 10,
         "krea2": 9,
-        "flux2": 8,
+        "flux2": 7,
     }
 
 
