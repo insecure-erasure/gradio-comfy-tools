@@ -1038,7 +1038,11 @@ push events, so nothing is hidden by age and nothing polls:
   (`layoutGalleryGrid()`: cell size + title) — they never rebuild, so images,
   decodes and the scroll position survive.
   Clicking a thumb **closes the sheet and shows that entry** in the
-  individual view. The counter toggles it; `Esc`/click on the sheet's empty
+  individual view, and — because picking is an explicit choice — it also
+  sets that entry as the tab's pane selection (`paneIdx[tab]`,
+  `_paneRepaintOnClose`), so **leaving fullscreen shows the picked image in
+  the pane** (✕/Esc/backdrop included). Plain ‹ › navigation still leaves the
+  pane untouched. The counter toggles it; `Esc`/click on the sheet's empty
   area close only the sheet, and the individual-view controls (‹ ›, ℹ️, 🗑️,
   extend toggle, badge) are hidden while it is open. With the sheet open the
   arrows move by one (←/→) or by a row (↑/↓), `Enter`/`Space` opens the

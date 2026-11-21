@@ -315,6 +315,7 @@ function _stampLastEntryDuration(tab, durationSecs) {
 // ── Open / close ───────────────────────────
 function openGalleryOverlay() {
   closeGalleryGrid(); // always open on the individual view
+  _paneRepaintOnClose = null;
   galleryOverlay.classList.add('show');
   // Fullscreen the OVERLAY element (not documentElement): it is already
   // position:fixed inset:0, so the browser expands it to the window without
@@ -372,6 +373,15 @@ function closeGallery() {
     restoreTabResultChecked(currentTab); // preflighted (stored entry may be gone)
   } else if (typeof restoreTabResult === 'function' && currentTab) {
     restoreTabResult(currentTab);
+  }
+  // A thumb PICKED in the fullscreen sheet must be what the pane shows after
+  // closing (‹ › navigation alone leaves the pane as it was).
+  const repaintTab = _paneRepaintOnClose;
+  _paneRepaintOnClose = null;
+  _galleryTab = null;
+  if (repaintTab && typeof renderPane === 'function'
+      && (paneEntriesFor(repaintTab) || []).length) {
+    renderPane(repaintTab);
   }
 }
 
@@ -646,6 +656,11 @@ let _galleryGridSignature = '';
 // When the sheet was opened from a PANE (▦ button), picking a thumb must land
 // in the pane — not in the fullscreen individual view. Holds the tab.
 let _paneGridTab = null;
+// Tab whose gallery the overlay is showing (set by the openers) and, when a
+// thumb is PICKED (not just navigated with ‹ ›), the tab whose pane must be
+// repainted with that choice once the overlay closes.
+let _galleryTab = null;
+let _paneRepaintOnClose = null;
 
 const GALLERY_GRID_CONCURRENCY = 6;   // simultaneous thumbnail requests
 let _gridObserver = null;
@@ -867,6 +882,21 @@ function paneEntriesFor(tab) {
 // Select a thumb: close the sheet and show that entry.
 //  • opened from the pane (▦) → close the overlay and paint the PANE;
 //  • opened from the in-gallery counter → stay in the fullscreen view.
+// Index of `chosen` inside a tab's pane gallery: identity by reference first,
+// then by URL/filename (the compare gallery navigates a COLLECTED copy, so the
+// object may differ). -1 when it cannot be located.
+function paneIndexOfEntry(tab, chosen) {
+  const list = paneEntriesFor(tab);
+  let idx = list.indexOf(chosen);
+  if (idx < 0 && chosen) {
+    idx = list.findIndex(x => x && (
+      (x.src && chosen.src && absUrl(x.src) === absUrl(chosen.src))
+      || (x.filename && chosen.filename && x.filename === chosen.filename)
+    ));
+  }
+  return idx;
+}
+
 function galleryGridSelect(i) {
   if (!(i >= 0) || i >= galleryEntries.length) return;
   const fromPane = _paneGridTab;
@@ -874,21 +904,27 @@ function galleryGridSelect(i) {
   galleryIdx = i;
   closeGalleryGrid();
   if (fromPane) {
-    // Identity by reference first, then by URL/filename (the compare gallery
-    // navigates a COLLECTED copy, so the object may differ).
-    const list = paneEntriesFor(fromPane);
-    let idx = list.indexOf(chosen);
-    if (idx < 0 && chosen) {
-      idx = list.findIndex(x => x && (
-        (x.src && chosen.src && absUrl(x.src) === absUrl(chosen.src))
-        || (x.filename && chosen.filename && x.filename === chosen.filename)
-      ));
-    }
+    // Opened from the pane's N/M button: paint the pane right away.
+    const idx = paneIndexOfEntry(fromPane, chosen);
     paneIdx[fromPane] = idx >= 0 ? idx : -1;
     closeGallery(); // clears _paneGridTab and restores the pane
     if (idx >= 0) renderPane(fromPane);
     if (typeof syncPaneNav === 'function') syncPaneNav(fromPane);
     return;
+  }
+  // Opened from the in-gallery counter: the pick must be what the pane shows
+  // after leaving fullscreen (plain ‹ › navigation leaves the pane untouched).
+  const tab = _galleryTab
+    || (galleryMode === 'video' ? 'video'
+      : galleryMode === 'lightbox' ? 'generate'
+      : (chosen && chosen.tab) || null);
+  if (tab) {
+    const idx = paneIndexOfEntry(tab, chosen);
+    if (idx >= 0) {
+      paneIdx[tab] = idx;
+      _paneRepaintOnClose = tab;
+      if (typeof syncPaneNav === 'function') syncPaneNav(tab);
+    }
   }
   resetGalleryZoom();
   renderGalleryItem();
@@ -955,6 +991,7 @@ async function openGenerateLightbox(img) {
   const all = window.galleryGenerated;
   if (!all.length) return showToast('Nothing to show yet');
   galleryMode = 'lightbox';
+  _galleryTab = 'generate';
   galleryEntries = all;
   galleryBig.style.display = '';
   gallerySlider.style.display = 'none';
@@ -997,6 +1034,7 @@ async function openFaceSwapGallery() {
   const comps = collectCompareEntries().filter(c => c.kind === 'face_swap');
   if (!comps.length) return showToast('No face-swapped image yet');
   galleryMode = 'compare';
+  _galleryTab = 'face_swap';
   galleryEntries = comps;
   galleryBig.style.display = 'none';
   gallerySlider.style.display = '';
@@ -1028,6 +1066,7 @@ async function openCompareFullscreen(kind) {
     return showToast(kind === 'upscale' ? 'No upscaled image yet' : 'No edited image yet');
   }
   galleryMode = 'compare';
+  _galleryTab = tab;
   galleryEntries = comps;
   galleryBig.style.display = 'none';
   gallerySlider.style.display = '';
@@ -1052,6 +1091,7 @@ async function openVideoGallery() {
   const all = window.galleryVideos;
   if (!all.length) return showToast(NO_VIDEOS_MSG);
   galleryMode = 'video';
+  _galleryTab = 'video';
   galleryEntries = all;
   galleryBig.style.display = 'none';
   gallerySlider.style.display = 'none';

@@ -98,3 +98,22 @@ def test_picking_from_the_pane_sheet_returns_to_the_pane():
     # Compare entries are matched by reference OR url/filename (collected copy).
     assert "absUrl(x.src) === absUrl(chosen.src)" in gallery
     assert "x.filename === chosen.filename" in gallery
+
+def test_fullscreen_pick_updates_the_pane_after_closing():
+    gallery = _read("static", "js", "gallery.js")
+    # The overlay knows which tab's gallery it is showing.
+    assert "let _galleryTab = null;" in gallery
+    assert "_galleryTab = 'generate';" in gallery
+    assert "_galleryTab = 'face_swap';" in gallery
+    assert "_galleryTab = tab;" in gallery
+    assert "_galleryTab = 'video';" in gallery
+    # A thumb PICKED (not ‹ › navigation) marks the pane to repaint on close.
+    assert "let _paneRepaintOnClose = null;" in gallery
+    assert "function paneIndexOfEntry(tab, chosen)" in gallery
+    assert "_paneRepaintOnClose = tab;" in gallery
+    assert "paneIdx[tab] = idx;" in gallery
+    # Closing the overlay repaints the pane with the picked entry.
+    assert "const repaintTab = _paneRepaintOnClose;" in gallery
+    assert "renderPane(repaintTab);" in gallery
+    # Opening never inherits a stale pick.
+    assert "_paneRepaintOnClose = null;" in gallery
