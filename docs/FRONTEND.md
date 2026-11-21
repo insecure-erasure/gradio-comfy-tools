@@ -1083,8 +1083,11 @@ push events, so nothing is hidden by age and nothing polls:
   **thumbnail sheet** (§7.1); picking a thumb then **closes the overlay and
   paints that entry IN THE PANE** (it sets `paneIdx[tab]`, closes the gallery
   and calls `renderPane`), never the fullscreen individual view — that is
-  reserved for the in-gallery counter. The pane buttons are hidden while a
-  generation runs (`.output-pane.generating`).
+  reserved for the in-gallery counter. While a generation runs, ℹ️ is hidden
+  (the pane shows the live preview, so there is no result to describe) but
+  **🗑️ and the N/M counter stay visible** like the other overlay buttons
+  (📁/🔗/🕘/⛶); their handlers refuse with a «Generation in progress…» toast
+  (`paneActionBlocked()`).
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M

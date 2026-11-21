@@ -58,8 +58,11 @@ def test_css_positions_and_hides_them_while_generating():
     # Nothing left on top of the ℹ️ column.
     assert "top-left-2" not in css
     assert "top-left-3" not in css
-    assert ".output-pane.generating .pane-delete-btn" in css
-    assert ".output-pane.generating .pane-grid-btn" in css
+    # During a generation ℹ️ hides (the pane shows the live preview) but 🗑️
+    # and the N/M counter stay visible like the other overlay buttons.
+    assert ".output-pane.generating .pane-info-btn { display: none !important; }" in css
+    assert ".output-pane.generating .pane-delete-btn" not in css
+    assert ".output-pane.generating .pane-grid-btn" not in css
     # Text pill (N/M), not the square icon shape.
     assert ".output-overlay-btn.pane-grid-btn {" in css
     assert "font-variant-numeric: tabular-nums;" in css
@@ -77,6 +80,11 @@ def test_pane_actions_are_wired():
     assert "pane.style.setProperty('--pane-counter-w', w + 'px');" in gallery
     assert "btn.getBoundingClientRect().width" in gallery
     assert "showToast('Nothing to delete')" in gallery
+    # Both pane actions refuse while a job runs (same message as the locks).
+    assert "function paneActionBlocked()" in gallery
+    assert "showToast('Generation in progress…');" in gallery
+    assert "if (paneActionBlocked()) return;" in gallery
+    assert "if (paneActionBlocked()) return;\n  if (!paneGalleryCount(tab)) {" in gallery
     assert "async function openPaneGrid(tab)" in gallery
     assert "showToast('Nothing to show yet')" in gallery
     # The sheet knows where it came from.

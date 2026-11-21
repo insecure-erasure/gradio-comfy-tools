@@ -52,11 +52,11 @@
   .output-overlay-btn.top-right-left2 { top: 12px; right: 84px; }
   .output-pane.generating #editCropBtn,
   .output-pane.generating #editAdjustBtn { display: none !important; }
-  /* The pane ℹ️/🗑️/▦ act on the result currently shown: hide them while a
-     generation runs (the pane shows the live preview instead). */
-  .output-pane.generating .pane-info-btn,
-  .output-pane.generating .pane-delete-btn,
-  .output-pane.generating .pane-grid-btn { display: none !important; }
+  /* The pane ℹ️ describes the result currently shown, so it is hidden while a
+     generation runs (the pane shows the live preview instead). 🗑️ and the
+     N/M counter STAY VISIBLE like the other overlay buttons (📁/🔗/🕘/⛶);
+     their handlers refuse with a "Generation in progress…" toast. */
+  .output-pane.generating .pane-info-btn { display: none !important; }
   /* The video player's fullscreen button renders an SVG icon (no emoji
      glyph — see player.js ICONS). */
   .video-fs-btn svg { width: 16px; height: 16px; }

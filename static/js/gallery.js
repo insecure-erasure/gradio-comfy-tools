@@ -935,6 +935,7 @@ function galleryGridSelect(i) {
 async function openPaneGrid(tab) {
   tab = tab || currentTab;
   if (!tab) return;
+  if (paneActionBlocked()) return;
   if (!paneGalleryCount(tab)) {
     showToast('Nothing to show yet');
     return;
@@ -1643,9 +1644,20 @@ function clearPaneResult(tab) {
 // Delete the generation SHOWN IN THE ACTIVE TOOL'S PANE (Delete key). Mirrors
 // the fullscreen 🗑️ for that single entry: forget the source-history entry,
 // remove it from its registry, then show the next survivor or the idle state.
+// A running job owns the pane (live preview + lock): the pane actions stay
+// visible (like 📁/🔗/🕘) but refuse, with the same message as the other locks.
+function paneActionBlocked() {
+  if (typeof progressTimer !== 'undefined' && progressTimer) {
+    showToast('Generation in progress…');
+    return true;
+  }
+  return false;
+}
+
 // Pane 🗑️ button: the same action as the Delete key, with feedback when the
 // pane has nothing to delete.
 function paneDeleteShown() {
+  if (paneActionBlocked()) return;
   if (typeof paneDeleteCurrent === 'function' && paneDeleteCurrent()) return;
   showToast('Nothing to delete');
 }
