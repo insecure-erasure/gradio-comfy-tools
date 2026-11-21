@@ -838,6 +838,15 @@ entering the gallery.
   overlay's own click-anywhere handler dismisses it.
 - Keys are never stolen while typing, and the panel is part of
   `KEY_BLOCKED_OVERLAYS` (`main.js`) so ←/→/Delete do not act behind it.
+- **Compact layout for workflows without a sampler** (`upscale`, `crop`,
+  `adjust` — matched on the comparison's `kind` or the generated entry's
+  `badge`, see `COMPACT_INFO_KINDS`/`_infoIsCompact()` in `gallery.js`): those
+  rows would all be `—` and the stored prompt belongs to the SOURCE image, so
+  the panel lists only `Resolution` and `Model` (the latter when the workflow
+  loads a model). No `Steps`/`Sampler`/`Scheduler`/`LoRAs`, no prompt rows.
+  The workflow's fixed constants (`resolution`, `max_resolution`,
+  `blend_factor`, `color_correction`) are config, not per-result data, so they
+  are not listed either. Every other tool keeps the full layout.
 
 ## 5. How the code is organized
 

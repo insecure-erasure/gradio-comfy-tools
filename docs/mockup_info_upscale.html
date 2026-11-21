@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — ℹ️ información de Upscale (propuesta 2: minimalista)</title>
+<style>
+  /* Mockup estático: reproduce las clases reales del panel
+     (.gallery-info-* de static/css/components.css) sobre un pane simulado.
+     NO es código de la app: no se carga desde templates/ ni static/. */
+  :root {
+    --accent: #6b8cff;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: #0b0d15;
+    color: #fff;
+    font: 400 13px/1.5 system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: center;
+    padding: 28px 20px 48px;
+  }
+  h1 { font: 600 15px/1.3 var(--font); margin: 0; color: #fff; text-align: center; }
+  h1 small { display: block; font-weight: 400; color: rgba(255,255,255,.5); font-size: 12px; margin-top: 4px; }
+  .row { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; align-items: flex-start; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+  .col-label { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+  .col-label.now { color: #ff9a7a; }
+  .col-label.next { color: #7fe0a0; }
+  .col-label.edge { color: #ffd479; }
+
+  /* Output pane simulado (la imagen) */
+  .pane {
+    position: relative;
+    width: 520px;
+    height: 320px;
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 90% at 30% 20%, #2a3350 0%, #141a2b 55%, #0d1120 100%);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .pane::after {
+    content: "2048 × 1364";
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    font: 400 12px/1 var(--font);
+    color: rgba(255,255,255,.28);
+    letter-spacing: .08em;
+  }
+  /* Botón ℹ️ del pane (top-left) — .output-overlay-btn.top-left */
+  .output-overlay-btn {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.15);
+    border-radius: 8px;
+    color: rgba(255,255,255,.7);
+    font-size: .9rem;
+  }
+  .output-overlay-btn.top-left { top: 12px; left: 12px; }
+  .output-overlay-btn.top-right { top: 12px; right: 12px; }
+  .output-overlay-btn.hot { border-color: var(--accent); color: #fff; }
+
+  /* ── Panel real ─────────────────────────────────────────────────────── */
+  .gallery-info-box {
+    width: min(440px, 90vw);
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    font: 400 13px/1.5 system-ui, sans-serif;
+    color: #fff;
+    background: rgba(28,28,28,.92);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    text-align: left;
+  }
+  .gallery-info-title {
+    margin: 0 0 8px;
+    color: rgba(255,255,255,.62);
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .gallery-info-row {
+    display: grid;
+    grid-template-columns: minmax(88px, 112px) 1fr;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+  .gallery-info-row:first-child { border-top: 0; }
+  .gallery-info-key { color: rgba(255,255,255,.55); }
+  .gallery-info-value { min-width: 0; word-break: break-word; }
+  .gallery-info-note {
+    margin-top: 10px;
+    color: rgba(255,255,255,.55);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .dim { color: rgba(255,255,255,.45); }
+  .legend {
+    max-width: 1140px;
+    color: rgba(255,255,255,.62);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .legend b { color: #fff; font-weight: 500; }
+  .legend li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h1>ℹ️ Información de Upscale — propuesta 2 (minimalista)
+  <small>Sólo Resolution + Model. Sin Steps/Sampler/Scheduler/LoRAs (no existen en este flujo), sin Seed, sin Prompt, sin Scale y sin las constantes del workflow (target, max, blend, color correction). Datos de un job real (fuente 1248 × 832).</small>
+</h1>
+
+<div class="row">
+
+  <!-- 1) HOY -->
+  <div class="col">
+    <div class="col-label now">Hoy — 7 filas (4 vacías)</div>
+    <div class="pane">
+      <span class="output-overlay-btn top-left">ℹ</span>
+      <span class="output-overlay-btn top-right">⛶</span>
+      <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
+        <div class="gallery-info-title">Image information</div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">2048 × 1364</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Steps</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Sampler</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Scheduler</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value">seedvr2_ema_7b-Q4_K_M.gguf</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">LoRAs</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Prompt</span><span class="gallery-info-value dim">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2) PROPUESTA 2 -->
+  <div class="col">
+    <div class="col-label next">Propuesta 2 — 2 filas</div>
+    <div class="pane">
+      <span class="output-overlay-btn top-left hot">ℹ</span>
+      <span class="output-overlay-btn top-right">⛶</span>
+      <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
+        <div class="gallery-info-title">Image information</div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">2048 × 1364</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value">seedvr2_ema_7b-Q4_K_M.gguf</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3) CASO LÍMITE -->
+  <div class="col">
+    <div class="col-label edge">Propuesta 2 — job fuera de /history</div>
+    <div class="pane">
+      <span class="output-overlay-btn top-left hot">ℹ</span>
+      <span class="output-overlay-btn top-right">⛶</span>
+      <div class="gallery-info-box" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)">
+        <div class="gallery-info-title">Image information</div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Resolution</span><span class="gallery-info-value">2048 × 1364</span></div>
+        <div class="gallery-info-row"><span class="gallery-info-key">Model</span><span class="gallery-info-value dim">—</span></div>
+        <div class="gallery-info-note">Technical metadata is not available for this entry.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <b>Reglas de la propuesta 2</b>
+  <ul>
+    <li><b>Upscale muestra sólo las filas con datos reales del resultado</b>: <code>Resolution</code> (cabecera PNG del archivo) y <code>Model</code> (prompt de ejecución).</li>
+    <li><b>Se omiten</b> las filas sin dato en este flujo (<code>Steps</code>, <code>Sampler</code>, <code>Scheduler</code>, <code>LoRAs</code>) y las constantes del workflow (<code>Resolution target</code>, <code>Max resolution</code>, <code>Blend</code>, <code>Color correction</code>): son iguales en todos los upscales, no describen esta imagen.</li>
+    <li><b>Sin</b> <code>Seed</code>, <b>sin</b> <code>Prompt</code>/<code>Source prompt</code> y <b>sin</b> <code>Scale</code>.</li>
+    <li>El resto de herramientas (Generate/Edit/Face swap/Video) <b>no cambian</b>: mismas filas y mismo orden que hoy.</li>
+    <li><b>Caso límite</b>: si el job ya no está en <code>/history</code> y el PNG no trae metadatos (el upscale no los trae), queda <code>Resolution</code> + la nota; no se inventan valores.</li>
+  </ul>
+</div>
+
+</body>
+</html>

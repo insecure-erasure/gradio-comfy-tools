@@ -66,3 +66,18 @@ def test_css_has_info_button_and_panel():
     assert ".gallery-info-panel" in CSS
     assert ".gallery-info-lora" in CSS
     assert ".gallery-info-prompt" in CSS
+
+def test_compact_info_for_workflows_without_sampler():
+    # Upscale/crop/adjust have no sampler: the panel keeps only the rows that
+    # describe the produced file (Resolution, Model) and drops the empty ones
+    # and the prompt (which belongs to the SOURCE image, not to the result).
+    assert "const COMPACT_INFO_KINDS" in GALLERY
+    for marker in ("'upscale'", "'upscaled'", "'crop'", "'cropped'", "'adjust'", "'adjusted'"):
+        assert marker in GALLERY, marker
+    assert "function _infoIsCompact(entry)" in GALLERY
+    assert "const compact = _infoIsCompact(entry);" in GALLERY
+    assert "if (!compact) {" in GALLERY
+    assert "_appendGalleryInfoLoraRow(loras);" in GALLERY
+    assert "_appendGalleryInfoPromptRows(entry);" in GALLERY
+    # The compact branch never renders the sampler rows.
+    assert "['Steps', _galleryInfoList" in GALLERY  # still there for the full layout

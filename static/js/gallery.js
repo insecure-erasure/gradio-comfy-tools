@@ -835,38 +835,20 @@ function _appendGalleryInfoTextRow(key, text, extraClass) {
   galleryInfoRows.appendChild(row);
 }
 
+// The entries whose workflow has no sampler: the ℹ️ panel is COMPACT for them
+// (Resolution + Model only). Compare entries carry `kind`, generated-history
+// entries carry `badge` — accept both.
+const COMPACT_INFO_KINDS = ['upscale', 'upscaled', 'crop', 'cropped', 'adjust', 'adjusted'];
+function _infoIsCompact(entry) {
+  if (!entry) return false;
+  return COMPACT_INFO_KINDS.includes(entry.kind) || COMPACT_INFO_KINDS.includes(entry.badge);
+}
+
 let _galleryInfoSnapshot = null;
 
-function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
-  if (!galleryInfoRows) return;
-  _galleryInfoSnapshot = { meta, fallbackW, fallbackH, note, entry };
-  const w = (meta && meta.width) || fallbackW || 0;
-  const h = (meta && meta.height) || fallbackH || 0;
-  const loras = (meta && Array.isArray(meta.loras)) ? meta.loras : [];
-  const rows = [
-    ['Resolution', w && h ? `${w} × ${h}` : '—'],
-    ['Steps', _galleryInfoList(meta && meta.steps)],
-    ['Sampler', _galleryInfoList(meta && meta.samplers)],
-    ['Scheduler', _galleryInfoList(meta && meta.schedulers)],
-    ['Model', _galleryInfoList(meta && meta.models)],
-  ];
-
-  galleryInfoRows.innerHTML = '';
-  rows.forEach(([key, value]) => {
-    const row = document.createElement('div');
-    row.className = 'gallery-info-row';
-    const keyEl = document.createElement('span');
-    keyEl.className = 'gallery-info-key';
-    keyEl.textContent = key;
-    const valueEl = document.createElement('span');
-    valueEl.className = 'gallery-info-value';
-    valueEl.textContent = value;
-    row.append(keyEl, valueEl);
-    galleryInfoRows.appendChild(row);
-  });
-
-  // LoRAs are the only multi-line row: one line per LoRA, name on the left
-  // and weight on the right ("—" when the image used none).
+// LoRAs are the only multi-line row: one line per LoRA, name on the left and
+// weight on the right ("—" when the image used none).
+function _appendGalleryInfoLoraRow(loras) {
   const loraRow = document.createElement('div');
   loraRow.className = 'gallery-info-row';
   const loraKey = document.createElement('span');
@@ -893,9 +875,12 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   }
   loraRow.append(loraKey, loraValue);
   galleryInfoRows.appendChild(loraRow);
+}
 
-  // The prompt moved here from the old Show-prompt button: the ℹ️ panel is
-  // now the single place to inspect an image (parameters + prompts).
+// The prompt moved here from the old Show-prompt button: the ℹ️ panel is the
+// single place to inspect an image (parameters + prompts). The transformation
+// prompt, plus the original generation prompt when it differs.
+function _appendGalleryInfoPromptRows(entry) {
   const prompt = entry && typeof entry.prompt === 'string' ? entry.prompt : '';
   _appendGalleryInfoTextRow('Prompt', prompt || '—',
     prompt ? 'gallery-info-prompt' : '');
@@ -903,6 +888,56 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
     ? entry.originalPrompt : '';
   if (originalPrompt && originalPrompt !== prompt) {
     _appendGalleryInfoTextRow('Original prompt', originalPrompt, 'gallery-info-prompt');
+  }
+}
+
+function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
+  if (!galleryInfoRows) return;
+  _galleryInfoSnapshot = { meta, fallbackW, fallbackH, note, entry };
+  const w = (meta && meta.width) || fallbackW || 0;
+  const h = (meta && meta.height) || fallbackH || 0;
+  const loras = (meta && Array.isArray(meta.loras)) ? meta.loras : [];
+  // COMPACT panels: the operations whose workflow has NO sampler (upscale,
+  // crop, adjust) have nothing to report for steps/sampler/scheduler/LoRAs
+  // and no prompt of their own — the panel shows only the rows that really
+  // describe the produced file: Resolution (PNG header) and Model (from the
+  // execution prompt, when the workflow loads one). Everything else keeps the
+  // full list untouched.
+  const compact = _infoIsCompact(entry);
+  const rows = compact
+    ? [
+        ['Resolution', w && h ? `${w} × ${h}` : '—'],
+        ...(_galleryInfoList(meta && meta.models) !== '—'
+          ? [['Model', _galleryInfoList(meta && meta.models)]]
+          : []),
+      ]
+    : [
+        ['Resolution', w && h ? `${w} × ${h}` : '—'],
+        ['Steps', _galleryInfoList(meta && meta.steps)],
+        ['Sampler', _galleryInfoList(meta && meta.samplers)],
+        ['Scheduler', _galleryInfoList(meta && meta.schedulers)],
+        ['Model', _galleryInfoList(meta && meta.models)],
+      ];
+
+  galleryInfoRows.innerHTML = '';
+  rows.forEach(([key, value]) => {
+    const row = document.createElement('div');
+    row.className = 'gallery-info-row';
+    const keyEl = document.createElement('span');
+    keyEl.className = 'gallery-info-key';
+    keyEl.textContent = key;
+    const valueEl = document.createElement('span');
+    valueEl.className = 'gallery-info-value';
+    valueEl.textContent = value;
+    row.append(keyEl, valueEl);
+    galleryInfoRows.appendChild(row);
+  });
+
+  // LoRAs and the prompt rows are skipped in the compact panels (their
+  // workflows load no LoRAs and have no prompt of their own).
+  if (!compact) {
+    _appendGalleryInfoLoraRow(loras);
+    _appendGalleryInfoPromptRows(entry);
   }
 
   if (galleryInfoNote) {
