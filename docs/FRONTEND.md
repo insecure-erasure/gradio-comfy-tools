@@ -1064,12 +1064,16 @@ push events, so nothing is hidden by age and nothing polls:
   cluster row** (`openPaneGrid()`; text pill instead of an icon — the same
   information as the fullscreen counter, kept in sync by `syncPaneCount()`
   from `syncPaneNav()`/`renderPane()`; `0/0` when the tool has no results).
-  To make room, the source URL field and the upload/🔗/🕘 cluster were
-  **raised one row (36px: `bottom: 48px`)** and the cluster **slid 60px left**
-  (counter at `right: 12px`; 🔗 72 · 📁 108 · 🕘 144, +36 per extra face-swap
-  button); the face-swap base field moved to `88px`, and the face
-  reference/extracted previews and the `W × H` badge above them; the live
-  Extend frame's safe bottom follows (`EXTEND_PREVIEW_SAFE.bottom = 92`). The counter button opens this tool's
+  The counter shares that bottom row (`bottom: 12px`, `right: 12px`) with a
+  **fixed 56px width** so the 6px gap to the next button stays identical to
+  the other buttons (an auto-width pill made it depend on the digits); the
+  cluster starts at `12 + 56 + 6 = 74` (🔗 74 · 📁 110 · 🕘 146, +36 per extra
+  face-swap button). Only the **source URL field was raised one row**
+  (`bottom: 48px`; 46 on phones) so the 🗑️ corner can breathe — the
+  face-swap face field follows at 48px, its base field at 88px, the face
+  reference preview at 128px and the live Extend frame's safe bottom at 92px.
+  The `W × H` badge and the extracted-face preview stay just above the button
+  row (52px / 56px). The counter button opens this tool's
   gallery positioned on the shown entry and goes straight to the
   **thumbnail sheet** (§7.1); picking a thumb then **closes the overlay and
   paints that entry IN THE PANE** (it sets `paneIdx[tab]`, closes the gallery

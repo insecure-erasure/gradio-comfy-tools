@@ -25,20 +25,25 @@
   .output-overlay-btn.top-left { top: 12px; left: 12px; }
   /* Pane actions: 🗑️ owns the bottom-LEFT corner (like the fullscreen
      gallery); the gallery counter is the RIGHTMOST button of the existing
-     source cluster row (one row up, bottom: 48px) — the cluster itself slides
+     source cluster row (same row, bottom: 12px) — the cluster itself slides
      left to leave it room. */
   .output-overlay-btn.pane-delete-btn { bottom: 12px; left: 12px; }
-  .output-overlay-btn.pane-grid-btn { bottom: 48px; right: 12px; }
+  .output-overlay-btn.pane-grid-btn { bottom: 12px; right: 12px; }
   /* The pane's thumbnail button shows the gallery position as N/M (same
-     information as the fullscreen counter), so it needs a text pill instead
-     of the square icon shape. */
+     information as the fullscreen counter). FIXED width so the 6px gap to
+     the next button in the row stays identical to the other buttons
+     (30px + 6px steps) — an auto-width pill made that gap vary with the
+     digits. */
   .output-overlay-btn.pane-grid-btn {
-    width: auto;
-    min-width: 38px;
-    padding: 0 8px;
-    font: 400 12px/1 system-ui, sans-serif;
+    width: 56px;
+    min-width: 56px;
+    padding: 0 6px;
+    justify-content: center;
+    font: 400 11px/1 system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
     letter-spacing: .02em;
+    white-space: nowrap;
+    overflow: hidden;
   }
   /* Top-right: the fullscreen/maximize buttons (gallery B5). Re-added
      after the C1 cleanup pruned it as dead — the gallery feature uses it. */
@@ -59,14 +64,13 @@
   /* Bottom-right cluster (right → left): 🔗 at the corner, then the
      upload/history buttons, 36px apart (30px button + 6px gap).
      Edit/Upscale/Video: 🔗 · 📁 · 🕘. Face swap: 🔗 · 👨🏻 · 🖼️ · 🕘. */
-  /* Source cluster: raised one row (36px) so the 🗑️ pane button owns the
-     bottom-left corner, and shifted 60px left so the N/M counter
-     (`.pane-grid-btn`, width up to ~60px) is the rightmost button of the
-     row. */
-  .output-overlay-btn.bottom-right { bottom: 48px; right: 72px; }
-  .output-overlay-btn.bottom-right-left { bottom: 48px; right: 108px; }
-  .output-overlay-btn.bottom-right-left2 { bottom: 48px; right: 144px; }
-  .output-overlay-btn.bottom-right-left3 { bottom: 48px; right: 180px; }
+  /* Source cluster: stays in the bottom row (only the 🗑️ corner needed the
+     field raised) and starts after the 56px counter + the SAME 6px gap as
+     between its own buttons: 12 + 56 + 6 = 74, then +36 per slot. */
+  .output-overlay-btn.bottom-right { bottom: 12px; right: 74px; }
+  .output-overlay-btn.bottom-right-left { bottom: 12px; right: 110px; }
+  .output-overlay-btn.bottom-right-left2 { bottom: 12px; right: 146px; }
+  .output-overlay-btn.bottom-right-left3 { bottom: 12px; right: 182px; }
   /* Pane navigation ‹ › (normal view): vertically-centered side buttons
      on the output pane — the same navigation as the fullscreen gallery
      but without leaving the app. Visible when the tool's gallery holds
@@ -182,7 +186,7 @@
   .source-dimensions {
     position: absolute;
     right: 12px;
-    bottom: 88px;   /* above the raised source cluster (48px + 30px) */
+    bottom: 52px;   /* above the source cluster row (12px + 30px) */
     z-index: 5;
     pointer-events: none;
     display: flex;
@@ -250,7 +254,7 @@
   .face-extract-overlay {
     position: absolute;
     right: 12px;
-    bottom: 92px;   /* above the raised source cluster (48px + 30px) */
+    bottom: 56px;   /* above the source cluster row (12px + 30px) */
     width: 10%;
     min-width: 48px;
     max-width: 140px;

@@ -43,13 +43,18 @@ def test_css_positions_and_hides_them_while_generating():
     # 🗑️ owns the bottom-left corner; the counter is the RIGHTMOST button of
     # the source cluster row (bottom 48), which slides left to make room.
     assert ".output-overlay-btn.pane-delete-btn { bottom: 12px; left: 12px; }" in css
-    assert ".output-overlay-btn.pane-grid-btn { bottom: 48px; right: 12px; }" in css
+    assert ".output-overlay-btn.pane-grid-btn { bottom: 12px; right: 12px; }" in css
     # The source field/cluster moved up one row (36px) to make room.
     assert ".source-url-field {\n    position: absolute;\n    /* Raised one row (36px)" in css
-    assert ".output-overlay-btn.bottom-right { bottom: 48px; right: 72px; }" in css
-    assert ".output-overlay-btn.bottom-right-left { bottom: 48px; right: 108px; }" in css
-    assert ".output-overlay-btn.bottom-right-left2 { bottom: 48px; right: 144px; }" in css
-    assert ".output-overlay-btn.bottom-right-left3 { bottom: 48px; right: 180px; }" in css
+    # The cluster keeps its row (bottom 12) and only slides left for the pill.
+    # 12 (inset) + 56 (fixed pill) + 6 (same gap as the other buttons) = 74,
+    # then +36 per slot.
+    assert ".output-overlay-btn.bottom-right { bottom: 12px; right: 74px; }" in css
+    assert ".output-overlay-btn.bottom-right-left { bottom: 12px; right: 110px; }" in css
+    assert ".output-overlay-btn.bottom-right-left2 { bottom: 12px; right: 146px; }" in css
+    assert ".output-overlay-btn.bottom-right-left3 { bottom: 12px; right: 182px; }" in css
+    # Fixed pill width: an auto-width pill made the gap depend on the digits.
+    assert "width: 56px;\n    min-width: 56px;" in css
     assert "bottom: 88px;   /* one row above the face field (48px) */" in css
     # Nothing left on top of the ℹ️ column.
     assert "top-left-2" not in css
