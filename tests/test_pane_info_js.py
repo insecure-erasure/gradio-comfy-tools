@@ -70,6 +70,12 @@ def test_pane_info_toggles_and_shares_the_panel():
     assert "galleryInfoPanel.classList.toggle('pane-mode', !!paneMode)" in gallery
     assert "galleryInfoPanel.classList.remove('pane-mode')" in gallery
     assert "galleryInfoPanel.addEventListener('click'" in gallery
+    # The Fullscreen API renders only the fullscreen element: the shared panel
+    # (body-level in the markup) is re-parented into it before showing.
+    assert "function _mountInfoPanel()" in gallery
+    assert "document.fullscreenElement || document.webkitFullscreenElement" in gallery
+    assert "if (galleryInfoPanel.parentElement !== parent) parent.appendChild(galleryInfoPanel);" in gallery
+    assert "_mountInfoPanel(); // a body-level panel would not render in fullscreen" in gallery
     # Videos in the pane: skip downloading the MP4.
     assert "skipMedia: isVideo" in gallery
     # Centered on the output pane (not the viewport) and kept in place when

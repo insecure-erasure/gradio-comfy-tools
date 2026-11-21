@@ -1380,6 +1380,19 @@ function _clearInfoAnchor() {
     .forEach(prop => galleryInfoPanel.style.removeProperty(prop));
 }
 
+// The Fullscreen API renders ONLY the fullscreen element and its descendants,
+// so a body-level panel is INVISIBLE while the gallery is fullscreen (that is
+// what happened on mobile, where requestFullscreen from a tap succeeds while
+// desktop often rejects it). The shared panel is therefore MOUNTED into
+// whichever element is fullscreen — and back on <body> otherwise — right
+// before it is shown. Moving the node keeps its listeners/classes intact.
+function _mountInfoPanel() {
+  if (!galleryInfoPanel) return;
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement || null;
+  const parent = fsEl || document.body;
+  if (galleryInfoPanel.parentElement !== parent) parent.appendChild(galleryInfoPanel);
+}
+
 // The SHARED panel (fullscreen gallery + normal view): technical parameters
 // (resolution, steps, sampler, scheduler, model, LoRAs/weights) AND the
 // prompt (plus the original prompt when the entry is a transformation). The
@@ -1402,6 +1415,7 @@ async function _openInfoPanel(opts) {
     closeGalleryInfo();
     return;
   }
+  _mountInfoPanel(); // a body-level panel would not render in fullscreen
   _infoSizeGetter = typeof getSize === 'function' ? getSize : null;
   _infoSourceGetter = typeof getSourceSize === 'function' ? getSourceSize : null;
   galleryInfoPanel.classList.toggle('pane-mode', !!paneMode);

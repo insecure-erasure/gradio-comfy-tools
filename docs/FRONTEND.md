@@ -816,7 +816,12 @@ The **same panel** (`#galleryInfoPanel`, `templates/partials/info_panel.html`)
 is used by the fullscreen gallery AND by the normal view. It lives at the
 top level (NOT inside `#galleryOverlay`, which is `display:none` when
 closed) and is positioned `fixed` over the app, so it can be opened without
-entering the gallery.
+entering the gallery. **Fullscreen caveat**: the Fullscreen API renders only
+the fullscreen element and its descendants, so before showing the panel
+`_mountInfoPanel()` re-parents it into `document.fullscreenElement` when the
+gallery is fullscreen (a body-level panel was invisible there — the Android/
+mobile case, where `requestFullscreen()` from a tap succeeds) and back on
+`<body>` otherwise.
 
 - **Normal view**: each output pane has a **ℹ️ button at its top-left**
   (`.output-overlay-btn.top-left.pane-info-btn`, hidden while a generation
