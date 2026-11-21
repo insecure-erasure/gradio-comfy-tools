@@ -96,6 +96,22 @@ def test_toggle_css_is_centered_and_above_the_image():
     assert "top: 12px" in block
 
 
+def test_compare_labels_sit_at_the_same_distance_on_both_sides():
+    css = _read("static", "css", "components.css")
+    assert ".compare-slider .label-before { left: 12px; right: auto; }" in css
+    assert ".compare-slider .label-after { right: 12px; left: auto; }" in css
+    # The old selectors never matched (the .before/.after elements ARE the
+    # <img> layers), which pushed the left label to the container edge.
+    assert ".compare-slider .before .label" not in css
+    assert ".compare-slider .after .label" not in css
+    for partial in ("gallery_overlay.html", "tab_edit.html", "tab_upscale.html", "tab_face_swap.html"):
+        body = _read("templates", "partials", partial)
+        assert 'class="label label-before"' in body, partial
+        assert 'class="label label-after"' in body, partial
+        # No per-side inline positioning: one rule owns both insets.
+        assert 'style="right:12px;left:auto"' not in body, partial
+
+
 def test_gallery_keeps_its_own_presentation():
     gallery = _read("static", "js", "gallery.js")
     # The fullscreen gallery switches to the toggle ONLY for the kinds that

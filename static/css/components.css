@@ -1309,8 +1309,15 @@
     text-align: left;
     pointer-events: none;
   }
-  .compare-slider .before .label { left: 12px; }
-  .compare-slider .after .label { right: 12px; }
+  /* Side labels: the distance to the container edge must be IDENTICAL on
+     both sides. The container IS the image box (the gallery slider is sized
+     to the image aspect ratio; the pane slider fills it and the toggle hides
+     the labels), so one inset for both. The old `.before .label` /
+     `.after .label` selectors never matched anything (the .before/.after
+     elements are the <img> layers), which left the LEFT label at its static
+     position (0px) while the right one used right:12px. */
+  .compare-slider .label-before { left: 12px; right: auto; }
+  .compare-slider .label-after { right: 12px; left: auto; }
   .compare-slider .divider {
     position: absolute;
     top: 0; bottom: 0;
