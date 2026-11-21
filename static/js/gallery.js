@@ -269,7 +269,7 @@ function collectCompareEntries() {
 // against the server on restore). Entry: { src (display URL), url, prompt,
 // filename }. Used by the future video gallery.
 window.galleryVideos = window.galleryVideos || [];
-function addGeneratedVideo(result, prompt) {
+function addGeneratedVideo(result, prompt, source) {
   const url = result.url || result.display;
   const display = result.display || url;
   // Defensive dedup by URL: a single generation must never appear twice in
@@ -284,6 +284,10 @@ function addGeneratedVideo(result, prompt) {
     url,                 // direct ComfyUI URL (chaining/copy)
     prompt: prompt || '',
     filename: filenameFromUrl(display),  // null for non-generated sources (defensive)
+    // Poster for the thumbnail sheet: the SOURCE image the video was made
+    // from (same-origin proxy URL). Entries persisted before this field
+    // simply show the ▶ tile.
+    source: source || '',
   });
   savePersistedState(); // persist immediately so a refresh keeps it
   paneIdx.video = -1;
@@ -701,7 +705,9 @@ function _pumpGridQueue() {
     _gridInFlight++;
     const settle = ok => {
       _gridInFlight = Math.max(0, _gridInFlight - 1);
-      if (!ok) tile.classList.add('broken');
+      // Dim only images that ARE still there: a video poster that fails is
+      // removed by its own handler so the tile falls back to the ▶ look.
+      if (!ok && img.isConnected) tile.classList.add('broken');
       _pumpGridQueue();
     };
     img.addEventListener('load', () => settle(true), { once: true });
@@ -758,7 +764,19 @@ function renderGalleryGrid() {
     tile.setAttribute('aria-current', i === galleryIdx ? 'true' : 'false');
     if (galleryMode === 'video') {
       // No <video> here on purpose: decoding N MP4s would be slow and heavy.
+      // The poster is the SOURCE image the video was generated from (stored
+      // on the entry); without it (old persisted entries) the tile stays the
+      // plain ▶ placeholder.
       tile.classList.add('is-video');
+      if (e.source) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.draggable = false;
+        img.decoding = 'async';
+        tile.appendChild(img);
+        tile._gridThumb = { img, url: e.source };
+        imageTiles.push({ tile, img, url: e.source });
+      }
       const play = document.createElement('span');
       play.className = 'gallery-thumb-play';
       play.setAttribute('aria-hidden', 'true');
@@ -774,6 +792,11 @@ function renderGalleryGrid() {
       tile.appendChild(img);
       tile._gridThumb = { img, url: e.src };
       imageTiles.push({ tile, img, url: e.src });
+    }
+    if (galleryMode === 'video' && e.source) {
+      // A poster that fails to load must not hide the ▶ affordance.
+      const poster = tile.querySelector('img');
+      if (poster) poster.addEventListener('error', () => { poster.remove(); });
     }
     const idx = document.createElement('span');
     idx.className = 'gallery-thumb-index';

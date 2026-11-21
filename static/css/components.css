@@ -2397,14 +2397,30 @@
     justify-content: center;
     background: radial-gradient(120% 100% at 30% 20%, #1b2338, #0a0d16);
   }
+  /* Plays badge: centered OVER the poster (the video entry stores the source
+     image it was generated from, so the tile shows it). */
   .gallery-thumb-play {
-    width: 34px; height: 34px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px; height: 30px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 50%;
     background: rgba(0,0,0,.55);
     border: 1px solid rgba(255,255,255,.35);
     color: #fff;
-    font-size: 13px;
+    font-size: 11px;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* The poster fills the cell like any other thumbnail. */
+  .gallery-thumb.is-video img {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
   }
   .gallery-thumb.broken { opacity: .35; }
   /* While the grid is open the individual-view controls would act behind it:

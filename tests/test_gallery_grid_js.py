@@ -125,3 +125,24 @@ def test_keyboard_behaviour_in_the_sheet():
     # No badges on the thumbs (decision) and no shortcut for the sheet.
     assert "gallery-thumb-badge" not in gallery
     assert "galleryGridBadge" not in gallery
+
+def test_video_thumbs_use_the_source_image_as_poster():
+    video = _read("static", "js", "video.js")
+    gallery = _read("static", "js", "gallery.js")
+    css = _read("static", "css", "components.css")
+    # The entry stores the SOURCE image the video was generated from.
+    assert "addGeneratedVideo(res, prompt, typeof beforeProxyUrl === 'function'" in video
+    assert "function addGeneratedVideo(result, prompt, source)" in gallery
+    assert "source: source || ''," in gallery
+    # The sheet shows it through the same lazy loader, with a ▶ badge on top.
+    assert "tile._gridThumb = { img, url: e.source };" in gallery
+    assert "galleryMode === 'video' && e.source" in gallery
+    assert "poster.addEventListener('error', () => { poster.remove(); });" in gallery
+    # A failed poster is removed (not dimmed), and the ▶ stays visible.
+    assert "if (!ok && img.isConnected) tile.classList.add('broken');" in gallery
+    # Overlay badge (no longer a flex child of a plain tile).
+    block = css[css.index(".gallery-thumb-play {"):]
+    block = block[: block.index("}")]
+    assert "position: absolute;" in block
+    assert "translate(-50%, -50%)" in block
+    assert "pointer-events: none;" in block

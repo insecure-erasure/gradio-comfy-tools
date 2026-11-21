@@ -27,12 +27,12 @@ def _function_body(source: str, signature: str) -> str:
 
 def test_video_finalizer_registers_the_generated_video():
     body = _function_body(VIDEO, "function finalizeVideo(res)")
-    assert "addGeneratedVideo(res, prompt)" in body
+    assert "addGeneratedVideo(res, prompt, typeof beforeProxyUrl === 'function'" in body
 
 
 def test_reload_adoption_registers_new_results_in_every_gallery():
     body = _function_body(API, "function finalizeRecoveredJob(tool, res, marker)")
-    assert "addGeneratedVideo(res, prompt)" in body
+    assert "addGeneratedVideo(res, prompt, poster)" in body
     assert "addGeneratedEntry(res, prompt)" in body
     assert "addCompareEntry(compareEntry)" in body
     assert "appendTransformedEntry(res, prompt, badge, source)" in body

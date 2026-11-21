@@ -788,7 +788,10 @@ function finalizeRecoveredJob(tool, res, marker) {
   // the fullscreen gallery still does not.
   let compareEntry = null;
   if (tool === 'video' && typeof addGeneratedVideo === 'function') {
-    addGeneratedVideo(res, prompt);
+    // Keep the SOURCE image as the gallery thumbnail poster (same as the
+    // normal finalizer in video.js).
+    const poster = typeof beforeProxyUrl === 'function' ? beforeProxyUrl(source) : source;
+    addGeneratedVideo(res, prompt, poster);
   } else if (tool === 'generate' && typeof addGeneratedEntry === 'function') {
     addGeneratedEntry(res, prompt);
   } else if (tool === 'edit' || tool === 'upscale' || tool === 'face_swap') {

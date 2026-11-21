@@ -76,7 +76,9 @@ function generateVideo() {
     // registry (analogous to the generated images).
     const vid = document.getElementById('videoOutputPane').querySelector('.result-video');
     if (vid) vid.dataset.videoGallery = '1';
-    addGeneratedVideo(res, prompt);
+    // Store the SOURCE image (proxied) with the entry: the video gallery's
+    // thumbnails show it as a poster (a video frame is never decoded).
+    addGeneratedVideo(res, prompt, typeof beforeProxyUrl === 'function' ? beforeProxyUrl(src) : '');
     stopProgressPolling(); // captures the total duration BEFORE the hint is painted
     syncResultUrl('video', { url: res.url });
     showToast('🎬 Video ready');

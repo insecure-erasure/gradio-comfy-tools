@@ -1026,8 +1026,13 @@ push events, so nothing is hidden by age and nothing polls:
   `env(safe-area-inset-*)`). Cells are **uniform with `object-fit: cover`**
   (fill the cell, crop the edges) so mixed orientations never reflow the
   layout; an incomplete last row stays centered (`flex-wrap` + `justify:
-  center`). Video entries are **tiles with ▶** (no `<video>`: decoding N
-  MP4s is slow/heavy). No type badges; a small index number per tile.
+  center`). Video entries use the **source image the video was generated
+  from** as the thumbnail (stored on the entry as `source` by the video
+  finalizer — and by the lost-job recovery — through `beforeProxyUrl()`),
+  with a **▶ badge overlaid** on it; entries persisted before that field
+  existed (or whose poster fails to load) fall back to the plain ▶ tile.
+  No `<video>` in the grid: decoding N MP4s is slow/heavy. No type badges; a
+  small index number per tile.
   **Thumbnails are loaded on demand, never preloaded**: each `<img>` is
   created WITHOUT `src` and an `IntersectionObserver` rooted on the sheet's
   scroll box assigns it when the tile is within ~240 px of the visible area,
