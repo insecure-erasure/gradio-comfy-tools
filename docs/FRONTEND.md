@@ -939,7 +939,7 @@ push events, so nothing is hidden by age and nothing polls:
 - The overlay (`#galleryOverlay`) opens fullscreen: lightbox for Generate
   (big image **edge to edge — `100vw/100vh`, no frame/radius** + Show
   prompt button + badge (click → original-prompt box) + ‹ › + N/M counter
-  bottom-right + download top-left + close ✕ top-right), compare slider for
+  bottom-right + ℹ️ info top-left + close ✕ top-right), compare slider for
   Edit/Restore/Upscale (interactive before/after, also maximized to the
   viewport). Extend entries use the top-center `Original | Extended` toggle
   instead of the slider.

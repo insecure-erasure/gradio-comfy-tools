@@ -523,8 +523,10 @@ this repo's workflows; the per-step emission is inferred from the node design.)
     It navigates the
     **generated history** — `window.galleryGenerated`, a session registry
     that survives the pane only showing the last result (the history no
-    longer gets lost). **Close ✕ is top-RIGHT, download top-LEFT** (inverted
-    vs the reference — project decision).
+    longer gets lost). **Close ✕ is top-RIGHT, ℹ️ image info top-LEFT**
+    (inverted vs the reference — project decision). The ℹ️ panel shows the
+    technical parameters embedded in the PNG (resolution, steps, sampler,
+    scheduler, model, LoRAs and weights) instead of downloading the image.
   - **Edit/Upscale (compare)**: the ⛶ button opens a fullscreen overlay with
     its own interactive slider; the gallery there **ONLY navigates the
     edited/restored/upscaled comparisons** (never generated images), the

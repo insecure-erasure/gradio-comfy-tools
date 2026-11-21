@@ -41,6 +41,19 @@
   or `{ok: false, error}` (always HTTP 200 so the UI distinguishes
   "not an image" from a transport failure).
 
+### Image information (fullscreen gallery ℹ️)
+- `GET /api/image-info?filename=...&type=output` fetches the image from
+  ComfyUI and reads the PNG metadata ComfyUI embeds (`prompt` / `workflow`
+  text chunks). The API prompt gives the parameters that ACTUALLY produced
+  the file: resolution (IHDR), steps, sampler, scheduler, diffusion model and
+  the enabled LoRAs with their weights. This also works for entries restored
+  from localStorage, where the request parameters are no longer in memory.
+- The parser resolves API-prompt links (e.g. Generate's steps live in an
+  `easy int` node) and follows the `Switch (SIGMAS)` node to report the
+  active scheduler (BasicScheduler vs Flux2Scheduler).
+- Images without embedded metadata still return their resolution; the UI
+  falls back to the `<img>` natural size and shows a short note.
+
 ### Live progress + per-step previews (B5)
 - `comfy_client.queue_prompt` **materializes the client_id** (random when not
   given) and fires module-level **prompt hooks** (`register_prompt_hook`,

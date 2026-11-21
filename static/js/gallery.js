@@ -29,8 +29,10 @@
 // prompt never goes stale) and gallery close. Click/tap still toggles it
 // for touch/keyboard.
 //
-// Close ✕ is top-RIGHT, download top-LEFT (inverted vs the reference —
-// project decision). Video results are only COLLECTED (data-video-gallery
+// Close ✕ is top-RIGHT, ℹ️ image info top-LEFT (inverted vs the reference —
+// project decision). The ℹ️ panel reads the parameters ComfyUI embeds in
+// the PNG (resolution, steps, sampler, scheduler, model, LoRAs/weights) via
+// GET /api/image-info. Video results are only COLLECTED (data-video-gallery
 // marker + window.galleryVideos) for a future video gallery — see docs/PLAN.md.
 
 const galleryOverlay = document.getElementById('galleryOverlay');
@@ -51,7 +53,10 @@ const galleryBadge = document.getElementById('galleryBadge');
 const galleryBadgeBox = document.getElementById('galleryBadgeBox');
 const galleryBadgeBoxText = document.getElementById('galleryBadgeBoxText');
 const galleryCloseBtn = document.getElementById('galleryClose');
-const galleryDlBtn = document.getElementById('galleryDl');
+const galleryInfoBtn = document.getElementById('galleryInfo');
+const galleryInfoPanel = document.getElementById('galleryInfoPanel');
+const galleryInfoRows = document.getElementById('galleryInfoRows');
+const galleryInfoNote = document.getElementById('galleryInfoNote');
 const galleryTrashBtn = document.getElementById('galleryTrash');
 const galleryPrevBtn = document.getElementById('galleryPrev');
 const galleryNextBtn = document.getElementById('galleryNext');
@@ -314,13 +319,14 @@ function closeBadgeBox() {
   if (galleryBadgeBox) galleryBadgeBox.classList.remove('show');
 }
 
-// Close BOTH text boxes (the badge prompt box and the Show-prompt panel)
-// and restore the badge that a box-open hid. Returns true when anything
-// was closed. Shared by click-outside and Escape.
+// Close EVERY gallery text box (the badge prompt box, the Show-prompt panel
+// and the ℹ️ image-info panel) and restore the badge that a box-open hid.
+// Returns true when anything was closed. Shared by click-outside and Escape.
 function closeTextBoxes() {
   let changed = false;
   if (galleryPromptModal.classList.contains('show')) { closeGalleryPrompt(); changed = true; }
   if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); changed = true; }
+  if (galleryInfoPanel.classList.contains('show')) { closeGalleryInfo(); changed = true; }
   // Re-render the CURRENT item from its data so the badge AND the
   // Show-prompt button always come back to their proper state (a badge
   // hidden by click must never stay gone — the render derives the
@@ -332,6 +338,7 @@ function closeTextBoxes() {
 function closeGallery() {
   closeGalleryPrompt();
   closeBadgeBox(); // a badge box opened by click must not survive the close
+  closeGalleryInfo(); // an info panel must not linger over the next opening
   configureGalleryExtendToggle(false);
   resetGalleryZoom(); // a closed gallery must never keep a transform
   // Destroy the video player of the OVERLAY (stops playback) and hide the
@@ -362,6 +369,7 @@ function closeGallery() {
       galleryMode = null;
       closeGalleryPrompt();
       closeBadgeBox();
+      closeGalleryInfo();
       resetGalleryZoom();
       if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
       if (typeof restoreTabResultChecked === 'function' && currentTab) restoreTabResultChecked(currentTab);
@@ -542,9 +550,11 @@ function configureGalleryExtendToggle(enabled, resultLabel) {
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
-  // Start clean: a badge box opened by click must not linger when
-  // navigating to another entry.
+  // Start clean: a badge box or info panel opened by click must not linger
+  // when navigating to another entry.
   closeBadgeBox();
+  closeGalleryInfo();
+  galleryInfoBtn.style.display = 'flex';
   if (galleryMode === 'lightbox') {
     configureGalleryExtendToggle(false);
     galleryBig.src = e.src;
@@ -585,6 +595,9 @@ function renderGalleryItem() {
     // overlay edge-to-edge and the button would overlap the controls.
     galleryPromptBtn.classList.remove('show');
     closeGalleryPrompt();
+    // No image metadata in the video gallery: hide the ℹ️ button instead of
+    // showing a panel full of dashes over the player controls.
+    galleryInfoBtn.style.display = 'none';
   } else {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;
@@ -784,24 +797,136 @@ galleryBefore.addEventListener('load', fitGallerySlider);
 galleryAfter.addEventListener('load', fitGallerySlider);
 window.addEventListener('resize', () => { if (galleryMode === 'compare') fitGallerySlider(); });
 
-// ── Download (currently shown image) ───────
-async function galleryDownload() {
+// ── Image information (currently shown image) ───────
+// The ℹ️ button replaces the old download button: it reads the technical
+// parameters ComfyUI embeds in the PNG (resolution, steps, sampler,
+// scheduler, model, LoRAs and weights) through GET /api/image-info. Reading
+// the file metadata (instead of the current tab controls) means an entry
+// restored from localStorage reports what REALLY produced it.
+let galleryInfoRequest = 0;
+
+function closeGalleryInfo() {
+  galleryInfoRequest++; // ignore an in-flight response for a closed panel
+  if (galleryInfoPanel) galleryInfoPanel.classList.remove('show');
+  if (galleryInfoBtn) galleryInfoBtn.setAttribute('aria-expanded', 'false');
+}
+
+function _formatLoraWeight(value) {
+  if (value === null || value === undefined || value === '') return '';
+  const n = Number(value);
+  if (!Number.isFinite(n)) return '';
+  return n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function _galleryInfoList(values) {
+  if (!Array.isArray(values) || !values.length) return '—';
+  return values.map(v => String(v)).join(' / ');
+}
+
+function _renderGalleryInfo(meta, fallbackW, fallbackH, note) {
+  if (!galleryInfoRows) return;
+  const w = (meta && meta.width) || fallbackW || 0;
+  const h = (meta && meta.height) || fallbackH || 0;
+  const loras = (meta && Array.isArray(meta.loras)) ? meta.loras : [];
+  const rows = [
+    ['Resolution', w && h ? `${w} × ${h}` : '—'],
+    ['Steps', _galleryInfoList(meta && meta.steps)],
+    ['Sampler', _galleryInfoList(meta && meta.samplers)],
+    ['Scheduler', _galleryInfoList(meta && meta.schedulers)],
+    ['Model', _galleryInfoList(meta && meta.models)],
+  ];
+
+  galleryInfoRows.innerHTML = '';
+  rows.forEach(([key, value]) => {
+    const row = document.createElement('div');
+    row.className = 'gallery-info-row';
+    const keyEl = document.createElement('span');
+    keyEl.className = 'gallery-info-key';
+    keyEl.textContent = key;
+    const valueEl = document.createElement('span');
+    valueEl.className = 'gallery-info-value';
+    valueEl.textContent = value;
+    row.append(keyEl, valueEl);
+    galleryInfoRows.appendChild(row);
+  });
+
+  // LoRAs are the only multi-line row: one line per LoRA, name on the left
+  // and weight on the right ("—" when the image used none).
+  const loraRow = document.createElement('div');
+  loraRow.className = 'gallery-info-row';
+  const loraKey = document.createElement('span');
+  loraKey.className = 'gallery-info-key';
+  loraKey.textContent = 'LoRAs';
+  const loraValue = document.createElement('span');
+  loraValue.className = 'gallery-info-value';
+  if (!loras.length) {
+    loraValue.textContent = '—';
+  } else {
+    loras.forEach(lora => {
+      const line = document.createElement('span');
+      line.className = 'gallery-info-lora';
+      const name = document.createElement('span');
+      name.className = 'gallery-info-lora-name';
+      name.textContent = lora && lora.name ? String(lora.name) : '—';
+      const weight = document.createElement('span');
+      weight.className = 'gallery-info-lora-weight';
+      const weightText = _formatLoraWeight(lora && lora.weight);
+      weight.textContent = weightText ? `× ${weightText}` : '';
+      line.append(name, weight);
+      loraValue.appendChild(line);
+    });
+  }
+  loraRow.append(loraKey, loraValue);
+  galleryInfoRows.appendChild(loraRow);
+
+  if (galleryInfoNote) {
+    galleryInfoNote.textContent = note || '';
+    galleryInfoNote.style.display = note ? 'block' : 'none';
+  }
+}
+
+async function galleryShowInfo() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
-  const src = galleryMode === 'lightbox' ? galleryBig.src
-    : galleryMode === 'video' ? (e.src || e.display || e.url)
-    : galleryAfter.src;
+  if (galleryInfoPanel.classList.contains('show')) {
+    closeGalleryInfo();
+    return;
+  }
+  closeGalleryPrompt();
+  closeBadgeBox();
+
+  const requestId = ++galleryInfoRequest;
+  const image = galleryMode === 'compare' ? galleryAfter : galleryBig;
+  const fallbackW = (image && image.naturalWidth) || 0;
+  const fallbackH = (image && image.naturalHeight) || 0;
+  // Show the panel immediately with what the browser knows (resolution),
+  // then fill the technical rows when the backend answers.
+  _renderGalleryInfo(null, fallbackW, fallbackH, '');
+  galleryInfoPanel.classList.add('show');
+  galleryInfoBtn.setAttribute('aria-expanded', 'true');
+
+  const src = e.src || (galleryMode === 'compare' ? galleryAfter.src : galleryBig.src);
+  const filename = e.filename || (src && typeof filenameFromUrl === 'function'
+    ? filenameFromUrl(src) : null);
+  if (!filename) {
+    _renderGalleryInfo(null, fallbackW, fallbackH,
+      'Technical metadata is not available for this image.');
+    return;
+  }
+  const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(src) : 'output';
   try {
-    const r = await fetch(src);
+    const r = await fetch('/api/image-info?filename=' + encodeURIComponent(filename)
+      + '&type=' + encodeURIComponent(type));
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const b = await r.blob();
-    const u = URL.createObjectURL(b);
-    const a = document.createElement('a');
-    a.href = u; a.download = 'image.png';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(u), 1000);
+    const meta = await r.json();
+    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    _renderGalleryInfo(meta, fallbackW, fallbackH,
+      meta && meta.has_metadata === false
+        ? 'No technical metadata is embedded in this image.' : '');
   } catch (err) {
-    const w = window.open(src, '_blank'); if (w) w.focus();
+    if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    _renderGalleryInfo(null, fallbackW, fallbackH,
+      'Technical metadata is not available for this image.');
   }
 }
 
@@ -1236,7 +1361,13 @@ function paneNav(tab, delta) {
 
 // ── Wiring ─────────────────────────────────
 galleryCloseBtn.addEventListener('click', closeGallery);
-galleryDlBtn.addEventListener('click', galleryDownload);
+// ℹ️ replaces the old download button: the panel shows the current image's
+// embedded parameters. Toggle from the button; any click/backdrop/Escape
+// closes it (closeTextBoxes).
+galleryInfoBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  galleryShowInfo();
+});
 galleryTrashBtn.addEventListener('click', e => { e.stopPropagation(); galleryDeleteCurrent(); });
 // ‹ › while the prompt panel is open: close it and navigate (one action —
 // the shown prompt never goes stale). The overlay is pointer-transparent,
@@ -1265,6 +1396,7 @@ galleryBadge.addEventListener('click', e => {
   if (e2.badge === 'upscaled') return; // informational only
   if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); renderGalleryItem(); return; }
   closeGalleryPrompt();
+  closeGalleryInfo(); // ONE box at a time — never over the ℹ️ panel
   if (!e2.originalPrompt) return; // nothing to show
   galleryBadgeBoxText.textContent = e2.originalPrompt;
   galleryBadge.classList.remove('show');
@@ -1287,6 +1419,7 @@ galleryPromptBtn.addEventListener('click', e => {
     renderGalleryItem();
     return;
   }
+  closeGalleryInfo(); // ONE box at a time — never over the ℹ️ panel
   promptPinned = true;
   galleryPromptBtn.classList.remove('show');
   openGalleryPrompt();
@@ -1305,10 +1438,12 @@ galleryOverlay.addEventListener('click', e => {
 // stays) and navigation is suspended so the shown prompt never goes stale.
 document.addEventListener('keydown', e => {
   if (!galleryOverlay.classList.contains('show')) return;
-  // While any text box is open, Escape closes it (both) and navigation is
-  // suspended so the shown prompt never goes stale.
+  // While any text box is open (prompt, badge or ℹ️ info), Escape closes it
+  // and navigation is suspended so the shown information never goes stale.
   if (closeTextBoxes() && e.key === 'Escape') return;
-  if (galleryPromptModal.classList.contains('show') || galleryBadgeBox.classList.contains('show')) return;
+  if (galleryPromptModal.classList.contains('show')
+      || galleryBadgeBox.classList.contains('show')
+      || galleryInfoPanel.classList.contains('show')) return;
   if (e.key === 'Escape') closeGallery();
   else if (e.key === 'ArrowLeft') galleryNav(-1);
   else if (e.key === 'ArrowRight') galleryNav(1);

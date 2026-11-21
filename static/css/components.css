@@ -1985,9 +1985,10 @@
 
   /* ── Fullscreen gallery overlay (B5) ──────── */
   /* Lightbox (Generate results) + compare (Edit/Upscale results). Close ✕
-     is top-RIGHT, download top-LEFT (inverted vs the reference — project
-     decision). The overlay element is fullscreened (not documentElement) so
-     the page layout is untouched; Escape / backdrop / ✕ close it. */
+     is top-RIGHT, ℹ️ image info top-LEFT (inverted vs the reference —
+     project decision). The overlay element is fullscreened (not
+     documentElement) so the page layout is untouched; Escape / backdrop /
+     ✕ close it. */
   .gallery-overlay {
     position: fixed;
     inset: 0;
@@ -2162,6 +2163,74 @@
     pointer-events: none;
   }
   .gallery-badge-box.show { display: flex; }
+  /* ℹ️ Image information panel (technical parameters of the shown image).
+     Same surface/font as the other gallery text boxes; the WRAPPER stays
+     pointer-transparent so a tap anywhere still closes it, while the box
+     itself takes pointer events to scroll long LoRA lists. */
+  .gallery-info-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    pointer-events: none;
+  }
+  .gallery-info-panel.show { display: flex; }
+  .gallery-info-box {
+    width: min(440px, 90vw);
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    font: 400 13px/1.5 system-ui, sans-serif;
+    color: #fff;
+    background: rgba(28,28,28,.92);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    text-align: left;
+    pointer-events: auto;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+  }
+  .gallery-info-title {
+    margin: 0 0 8px;
+    color: rgba(255,255,255,.62);
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .gallery-info-row {
+    display: grid;
+    grid-template-columns: minmax(88px, 112px) 1fr;
+    gap: 12px;
+    padding: 6px 0;
+    border-top: 1px solid rgba(255,255,255,.08);
+  }
+  .gallery-info-row:first-child { border-top: 0; }
+  .gallery-info-key { color: rgba(255,255,255,.55); }
+  .gallery-info-value { min-width: 0; word-break: break-word; }
+  .gallery-info-lora {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .gallery-info-lora + .gallery-info-lora { margin-top: 4px; }
+  .gallery-info-lora-name { word-break: break-all; }
+  .gallery-info-lora-weight {
+    color: rgba(255,255,255,.65);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .gallery-info-note {
+    margin-top: 10px;
+    color: rgba(255,255,255,.55);
+    font-size: 12px;
+    line-height: 1.45;
+  }
   .gallery-btn {
     position: absolute;
     /* BELOW the prompt boxes (z 1100): an open box must stay on top of
@@ -2186,7 +2255,7 @@
   .gallery-btn:disabled:hover { background: rgba(28,28,28,.72); color: #f5f5f5; } /* no hover paint when disabled */
   .gallery-btn svg { display: block; }
   .gallery-close { top: 14px; right: 14px; }
-  .gallery-dl { top: 14px; left: 14px; }
+  .gallery-info { top: 14px; left: 14px; }
   .gallery-prev { top: 50%; left: 14px; transform: translateY(-50%); }
   .gallery-next { top: 50%; right: 14px; transform: translateY(-50%); }
   /* Delete-current-entry — bottom-LEFT, same style as the other gallery

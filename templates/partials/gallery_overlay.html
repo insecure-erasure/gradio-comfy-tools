@@ -2,8 +2,11 @@
      viewers (../open-webui-comfy-tools smart_generate_image / edit_image /
      upscale_image). Two modes, one overlay:
        • lightbox (Generate): a centered big image + gallery navigation
-         (‹ ›, n/N counter, Show prompt button, download). Close ✕ is top-RIGHT,
-         download is top-LEFT (inverted vs the reference — project decision).
+         (‹ ›, n/N counter, Show prompt button, ℹ️ image info). Close ✕ is
+         top-RIGHT, info is top-LEFT (inverted vs the reference — project
+         decision). The ℹ️ button shows the technical parameters embedded in
+         the image (resolution, steps, sampler, scheduler, model, LoRAs and
+         weights) instead of downloading it.
          The prompt is NOT shown as a bottom caption anymore: a Show prompt
          button (visible only when the entry has a prompt) reveals it on
          hover — no click needed — as a semi-transparent BOTTOM panel with
@@ -49,9 +52,20 @@
   <button class="gallery-btn gallery-close" id="galleryClose" title="Close" aria-label="Close">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
   </button>
-  <button class="gallery-btn gallery-dl" id="galleryDl" title="Download" aria-label="Download">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+  <button class="gallery-btn gallery-info" id="galleryInfo" title="Image information" aria-label="Image information" aria-expanded="false" aria-controls="galleryInfoPanel">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg>
   </button>
+  <!-- Technical parameters of the CURRENT image, read from the PNG metadata
+       ComfyUI embeds (resolution, steps, sampler, scheduler, model, LoRAs).
+       Populated by gallery.js; hidden by default. Tap anywhere closes it,
+       exactly like the other gallery text boxes. -->
+  <div class="gallery-info-panel" id="galleryInfoPanel" role="dialog" aria-label="Image information">
+    <div class="gallery-info-box">
+      <div class="gallery-info-title">Image information</div>
+      <div class="gallery-info-rows" id="galleryInfoRows"></div>
+      <div class="gallery-info-note" id="galleryInfoNote" style="display:none"></div>
+    </div>
+  </div>
   <button class="gallery-btn gallery-trash" id="galleryTrash" title="Delete this entry" aria-label="Delete this entry">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
   </button>

@@ -15,6 +15,7 @@ Endpoints:
     POST /api/video               Video tab
     POST /api/upload              upload an image to ComfyUI (temp)
     GET  /media/{filename}?type=  proxy a result file from ComfyUI
+    GET  /api/image-info          technical parameters embedded in a PNG
     POST /api/check-image         validate that a URL/filename is an image
     GET/POST /api/settings        global settings (for the 🎨 menu)
     WS   /ws/progress             live generation progress push (frontend no longer polls)
@@ -33,6 +34,7 @@ import re
 import struct
 import threading
 import time
+import zlib
 from pathlib import Path
 
 import httpx
@@ -1168,6 +1170,305 @@ def api_media_exists(filename: str, type: str = "output") -> dict:
                 return {"exists": True, "unknown": True}
     except Exception:
         return {"exists": True, "unknown": True}
+
+
+# --------------------------------------------------------------------------- #
+# Image technical metadata (fullscreen gallery ℹ️)
+# --------------------------------------------------------------------------- #
+# ComfyUI embeds the API prompt (and the UI workflow) in PNG tEXt chunks
+# ("prompt" / "workflow"). Reading that chunk is the most reliable source:
+# it describes exactly what produced the file, even for entries restored
+# from localStorage in a later session (where the request parameters are no
+# longer in memory). We only need a tiny PNG chunk parser, so no Pillow.
+_PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def _png_image_info(data: bytes) -> tuple[int, int, dict[str, str]]:
+    """Return ``(width, height, text_chunks)`` from a PNG byte string.
+
+    Handles tEXt, zTXt and iTXt chunks (ComfyUI uses tEXt). Unknown chunks
+    are skipped; a non-PNG payload returns zeros and no chunks.
+    """
+    width = height = 0
+    chunks: dict[str, str] = {}
+    if not data.startswith(_PNG_SIGNATURE):
+        return width, height, chunks
+    pos = len(_PNG_SIGNATURE)
+    while pos + 8 <= len(data):
+        length = struct.unpack(">I", data[pos:pos + 4])[0]
+        ctype = data[pos + 4:pos + 8]
+        start = pos + 8
+        end = start + length
+        if end > len(data):
+            break
+        payload = data[start:end]
+        if ctype == b"IHDR" and length >= 8:
+            width, height = struct.unpack(">II", payload[:8])
+        elif ctype == b"tEXt":
+            key, _, value = payload.partition(b"\x00")
+            chunks[key.decode("latin-1", "replace")] = value.decode("utf-8", "replace")
+        elif ctype == b"zTXt":
+            key, _, rest = payload.partition(b"\x00")
+            value = b""
+            if len(rest) > 1:
+                try:
+                    value = zlib.decompress(rest[1:])
+                except zlib.error:
+                    value = b""
+            chunks[key.decode("latin-1", "replace")] = value.decode("utf-8", "replace")
+        elif ctype == b"iTXt":
+            key, _, rest = payload.partition(b"\x00")
+            value = b""
+            if len(rest) >= 2:
+                compressed, rest = rest[0], rest[2:]
+                _lang, _, rest = rest.partition(b"\x00")
+                _translated, _, text = rest.partition(b"\x00")
+                if compressed:
+                    try:
+                        text = zlib.decompress(text)
+                    except zlib.error:
+                        text = b""
+                value = text
+            chunks[key.decode("latin-1", "replace")] = value.decode("utf-8", "replace")
+        elif ctype == b"IEND":
+            break
+        pos = end + 4  # skip the 4-byte CRC
+    return width, height, chunks
+
+
+def _prompt_node_inputs(node: dict) -> dict:
+    inputs = node.get("inputs") if isinstance(node, dict) else None
+    return inputs if isinstance(inputs, dict) else {}
+
+
+def _prompt_node_class(node: dict) -> str:
+    return str(node.get("class_type") or "") if isinstance(node, dict) else ""
+
+
+def _prompt_linked_node(prompt: dict, value: object) -> dict | None:
+    """Follow an API-prompt link ``[node_id, output_index]`` to its node."""
+    if isinstance(value, (list, tuple)) and value:
+        node = prompt.get(str(value[0]))
+        return node if isinstance(node, dict) else None
+    return None
+
+
+def _prompt_value(prompt: dict, value: object, depth: int = 0) -> object:
+    """Resolve a widget value, following links through primitive nodes.
+
+    ComfyUI's API prompt uses ``["node_id", output]`` for linked inputs. A
+    value such as the Generate workflow's steps lives in an ``easy int``
+    node (``inputs.value``), so resolving the link is required.
+    """
+    if depth > 12:
+        return None
+    if isinstance(value, (list, tuple)) and len(value) >= 2:
+        node = _prompt_linked_node(prompt, value)
+        if not node:
+            return None
+        inputs = _prompt_node_inputs(node)
+        for key in ("value", "int", "float", "string", "seed", "noise_seed"):
+            if key in inputs:
+                return _prompt_value(prompt, inputs[key], depth + 1)
+        for candidate in inputs.values():
+            if not isinstance(candidate, (list, tuple, dict)):
+                return candidate
+        return None
+    return value
+
+
+def _prompt_active_scheduler_node(prompt: dict) -> dict | None:
+    """Pick the scheduler node the Generate workflow's SIGMAS switch selects.
+
+    smart_generate_image.json carries BOTH BasicScheduler and Flux2Scheduler;
+    an ``ImpactSwitch`` titled ``Switch (SIGMAS)`` picks one (1 = Basic,
+    2 = Flux2). Returning only the active one avoids reporting the unused
+    node's scheduler (e.g. "simple" for a FLUX.2 run).
+    """
+    for node in prompt.values():
+        if not isinstance(node, dict):
+            continue
+        cls = _prompt_node_class(node)
+        meta = node.get("_meta") if isinstance(node.get("_meta"), dict) else {}
+        title = str(meta.get("title") or "").upper()
+        inputs = _prompt_node_inputs(node)
+        if (cls == "ImpactSwitch" or "SIGMA" in title) and "input1" in inputs and "input2" in inputs:
+            try:
+                select = int(float(_prompt_value(prompt, inputs.get("select")) or 1))
+            except (TypeError, ValueError):
+                select = 1
+            return _prompt_linked_node(prompt, inputs.get("input2" if select == 2 else "input1"))
+    return None
+
+
+def _is_scheduler_node(node: dict) -> bool:
+    cls = _prompt_node_class(node).lower()
+    return "scheduler" in cls or ("ksampler" in cls and "scheduler" in _prompt_node_inputs(node))
+
+
+def _as_int(value: object) -> int | None:
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _as_number(value: object) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number
+
+
+def _unique(values: list) -> list:
+    out = []
+    for value in values:
+        if value not in out:
+            out.append(value)
+    return out
+
+
+def _image_prompt_metadata(prompt: dict) -> dict:
+    """Extract the technical parameters from a ComfyUI API prompt."""
+    nodes = [n for n in prompt.values() if isinstance(n, dict)]
+    selected_scheduler = _prompt_active_scheduler_node(prompt)
+    scheduler_nodes = [selected_scheduler] if selected_scheduler else [
+        n for n in nodes if _is_scheduler_node(n)
+    ]
+
+    steps: list[int] = []
+    samplers: list[str] = []
+    schedulers: list[str] = []
+    models: list[str] = []
+    loras: list[dict] = []
+
+    # Steps: from the ACTIVE scheduler when the workflow exposes a switch;
+    # otherwise from every KSampler/scheduler node (multi-stage video or
+    # variability workflows share the same value).
+    for node in scheduler_nodes:
+        raw = _prompt_value(prompt, _prompt_node_inputs(node).get("steps"))
+        number = _as_int(raw)
+        if number is not None:
+            steps.append(number)
+    if not steps:
+        for node in nodes:
+            cls = _prompt_node_class(node).lower()
+            inputs = _prompt_node_inputs(node)
+            if ("ksampler" in cls or "scheduler" in cls) and "steps" in inputs:
+                number = _as_int(_prompt_value(prompt, inputs.get("steps")))
+                if number is not None:
+                    steps.append(number)
+
+    for node in nodes:
+        cls = _prompt_node_class(node)
+        low = cls.lower()
+        inputs = _prompt_node_inputs(node)
+        if "sampler_name" in inputs and ("ksampler" in low or "samplerselect" in low):
+            raw = _prompt_value(prompt, inputs.get("sampler_name"))
+            if isinstance(raw, str) and raw.strip():
+                samplers.append(raw.strip())
+
+        # Diffusion model(s): UNETLoader / CheckpointLoader / DiT loaders.
+        if any(hint in low for hint in ("unet", "checkpoint", "ditmodel", "diffusion")):
+            for key in ("unet_name", "ckpt_name", "model", "model_name", "diffusion_model", "base_model"):
+                raw = _prompt_value(prompt, inputs.get(key))
+                if isinstance(raw, str) and raw.strip():
+                    models.append(raw.strip())
+                    break
+
+        # LoRAs: rgthree Power Lora Loader slots + standard LoraLoader nodes.
+        if "power lora loader" in low:
+            for key, item in inputs.items():
+                if not key.startswith("lora_") or not isinstance(item, dict):
+                    continue
+                name = item.get("lora")
+                enabled = item.get("on", True)
+                if isinstance(enabled, str):
+                    enabled = enabled.strip().lower() not in ("0", "false", "off")
+                if not enabled or not isinstance(name, str) or not name.strip():
+                    continue
+                weight = _as_number(_prompt_value(prompt, item.get("strength")))
+                loras.append({"name": name.strip(), "weight": weight})
+        elif "loraloader" in low:
+            name = _prompt_value(prompt, inputs.get("lora_name"))
+            if isinstance(name, str) and name.strip():
+                raw_weight = inputs.get("strength_model", inputs.get("strength", 1))
+                weight = _as_number(_prompt_value(prompt, raw_weight))
+                loras.append({"name": name.strip(), "weight": weight})
+
+    # Scheduler label(s): the ACTIVE scheduler node's explicit value, or the
+    # node class when it has no "scheduler" input (e.g. Flux2Scheduler).
+    for node in scheduler_nodes:
+        inputs = _prompt_node_inputs(node)
+        raw = _prompt_value(prompt, inputs.get("scheduler")) if "scheduler" in inputs else None
+        if isinstance(raw, str) and raw.strip():
+            schedulers.append(raw.strip())
+        else:
+            cls = _prompt_node_class(node)
+            if cls:
+                schedulers.append(cls)
+
+    # Deduplicate while preserving execution order; exact duplicate LoRAs
+    # (same name+weight in two slots) are dropped.
+    seen_loras = set()
+    unique_loras = []
+    for lora in loras:
+        key = (lora["name"], lora["weight"])
+        if key not in seen_loras:
+            seen_loras.add(key)
+            unique_loras.append(lora)
+
+    return {
+        "steps": _unique(steps),
+        "samplers": _unique(samplers),
+        "schedulers": _unique(schedulers),
+        "models": _unique(models),
+        "loras": unique_loras,
+    }
+
+
+@app.get("/api/image-info")
+def api_image_info(filename: str, type: str = "output") -> dict:
+    """Technical metadata of a generated image, read from its PNG chunks.
+
+    The fullscreen gallery's ℹ️ button calls this with the ComfyUI filename
+    of the currently shown entry. ``prompt`` is the API prompt ComfyUI
+    embeds in the PNG, so the reported steps/sampler/scheduler/model/LoRAs
+    describe the ACTUAL execution — not the parameters of the tab today.
+    """
+    from urllib.parse import urlencode
+
+    s = _settings()
+    url = f"{s.media_base_url}/view?{urlencode({'filename': filename, 'type': type})}"
+    try:
+        with httpx.Client(timeout=30) as client:
+            resp = client.get(url)
+            if resp.status_code in (404, 410):
+                raise HTTPException(404, f"{filename} is no longer available")
+            resp.raise_for_status()
+            data = resp.content
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(502, f"Could not fetch {url}: {e}") from e
+
+    width, height, chunks = _png_image_info(data)
+    metadata = {"steps": [], "samplers": [], "schedulers": [], "models": [], "loras": []}
+    try:
+        prompt = json.loads(chunks.get("prompt", ""))
+    except (TypeError, ValueError):
+        prompt = None
+    if isinstance(prompt, dict):
+        metadata = _image_prompt_metadata(prompt)
+
+    return {
+        "ok": True,
+        "width": width,
+        "height": height,
+        "has_metadata": isinstance(prompt, dict),
+        **metadata,
+    }
 
 
 # --------------------------------------------------------------------------- #
