@@ -76,7 +76,10 @@ def test_edit_exposes_the_adjust_trigger_and_request():
 def test_adjust_results_join_the_gallery_and_recovery():
     gallery = _read("static", "js", "gallery.js")
     assert "kind === 'adjust' ? 'Adjusted'" in gallery
-    assert "e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust'" in gallery
+    # Adjust preserves the source dimensions, so the FULLSCREEN gallery uses
+    # the draggable slider for it; only extend/crop need the toggle.
+    assert "e.kind === 'extend' || e.kind === 'crop'" in gallery
+    assert "e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust'" not in gallery
 
     api = _read("static", "js", "api.js")
     assert "mode === 'adjust' ? 'adjusted'" in api

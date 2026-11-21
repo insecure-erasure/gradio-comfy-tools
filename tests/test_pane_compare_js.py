@@ -98,6 +98,8 @@ def test_toggle_css_is_centered_and_above_the_image():
 
 def test_gallery_keeps_its_own_presentation():
     gallery = _read("static", "js", "gallery.js")
-    # The fullscreen gallery still switches to the toggle only for
-    # extend/crop/adjust (slider for the framing-preserving kinds).
-    assert "e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust'" in gallery
+    # The fullscreen gallery switches to the toggle ONLY for the kinds that
+    # change the canvas (extend/crop); edit/restore/upscale/face swap/adjust
+    # keep the draggable slider.
+    assert "e.kind === 'extend' || e.kind === 'crop'" in gallery
+    assert "e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust'" not in gallery

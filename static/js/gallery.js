@@ -593,7 +593,12 @@ function renderGalleryItem() {
     galleryAfter.src = e.src;
     gallerySlider.style.setProperty('--p', '50%');
     galleryLabelAfter.textContent = compareKindLabel(e.kind);
-    configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop' || e.kind === 'adjust', compareKindLabel(e.kind));
+    // Slider for the kinds that keep the source's canvas (edit, restore,
+    // upscale, face swap) AND for adjust (same dimensions, pixel-aligned —
+    // the divider compares corresponding areas). Only crop (different
+    // dimensions/aspect) and extend (new canvas + padding offset) need the
+    // one-image-at-a-time toggle.
+    configureGalleryExtendToggle(e.kind === 'extend' || e.kind === 'crop', compareKindLabel(e.kind));
     galleryBadge.classList.remove('show');
     fitGallerySlider();
   }

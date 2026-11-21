@@ -270,7 +270,9 @@ empty and the prompt fills it; see also deviation 14):
   disabled while all three are neutral. One `LayerColor: Brightness &
   Contrast` node applies all three in one job; the result lands as
   `kind="adjust"` with an `Original / Adjusted` toggle and an `adjusted`
-  badge.
+  badge. In the FULLSCREEN gallery the same entry is shown with the draggable
+  slider (adjust preserves the source dimensions, so the overlay is
+  pixel-aligned — see §4.4).
 - **Params**: two chips over the prompt textarea:
   - **👣 Steps & seed** — shows `steps 🎲` (steps only when the seed is
     fixed — the dice disappears). Its popover holds, in order, the `👣
@@ -516,14 +518,17 @@ center of the image** — `alignPaneCompareToggle()` (`pane-compare.js`) offsets
 it to the image's top edge instead of the pane's, since `object-fit: contain
 leaves letterbox bars. Labels follow the operation (Edited / Restored /
 Extended / Cropped / Adjusted / Upscaled / Face swapped), the result side is
-shown by default, and the toggle re-aligns per side because the two images can
-differ in aspect ratio (Crop/Adjust/Extend). Hide/reset paths: `setGenerating`
+shown by default, and the toggle re-aligns per side because the two images
+can differ in aspect ratio (Crop/Extend). Hide/reset paths: `setGenerating`
 (`.output-pane.generating` hides it), `clearPane` (`api.js`) and
 `previewSourceImage` (`source.js`).
 
 **The fullscreen gallery keeps its own presentation**: the draggable overlay
-slider (`#gallerySlider`) for the framing-preserving kinds (edit, restore,
-upscale, face swap) and the same toggle for extend/crop/adjust. Two stacked
+slider (`#gallerySlider`) for every kind that PRESERVES the source canvas —
+edit, restore, face swap, upscale (uniform 2× scale) **and adjust** (same
+dimensions, pixel-aligned) — and the same toggle only for the kinds that
+change the canvas: **extend** (new canvas + padding offset) and **crop**
+(different dimensions/aspect). Two stacked
 `<img>` with `clip-path` via `--p`, draggable divider, labels
 Original/<Result> — ported from the reference compare_images. The slider
 **fills the overlay** and the images use `object-fit: contain` (like the
@@ -946,10 +951,11 @@ push events, so nothing is hidden by age and nothing polls:
   (big image **edge to edge — `100vw/100vh`, no frame/radius** + badge
   (click → original-prompt box) + ‹ › + N/M counter bottom-right + ℹ️ info
   top-left, also opened with `i`, + close ✕ top-right), compare slider for
-  Edit/Restore/Upscale/Face swap (interactive before/after, also maximized to
-  the viewport). Extend/Crop/Adjust entries use the top-center
-  `Original | Extended/Cropped/Adjusted` toggle instead of the slider. (The
-  PANES are always the toggle — §4.4.)
+  Edit/Restore/Upscale/Face swap **and Adjust** (interactive before/after,
+  also maximized to the viewport — adjust keeps the source dimensions, so the
+  two sides are pixel-aligned). Only Extend/Crop entries use the top-center
+  `Original | Extended/Cropped` toggle instead of the slider. (The PANES are
+  always the toggle — §4.4.)
   The N/M counter and the ‹ › buttons are always visible; with a single
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate; `Delete` (or the 🗑️ button)
@@ -1116,4 +1122,5 @@ panes of Edit, Upscale and Face swap never show the draggable overlay
 slider — they show one image at a time with an `Original | <Result>` toggle
 centered at the TOP CENTER OF THE IMAGE (`pane-compare.js`,
 `alignPaneCompareToggle`). The fullscreen gallery keeps the slider for the
-framing-preserving kinds and the toggle for extend/crop/adjust (§4.4).
+framing-preserving kinds (edit, restore, face swap, upscale **and adjust**)
+and the toggle only for extend/crop (§4.4).
