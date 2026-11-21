@@ -46,6 +46,7 @@ const galleryInfoBtn = document.getElementById('galleryInfo');
 const galleryInfoPanel = document.getElementById('galleryInfoPanel');
 const galleryInfoRows = document.getElementById('galleryInfoRows');
 const galleryInfoNote = document.getElementById('galleryInfoNote');
+const galleryInfoTitle = document.getElementById('galleryInfoTitle');
 const galleryTrashBtn = document.getElementById('galleryTrash');
 const galleryPrevBtn = document.getElementById('galleryPrev');
 const galleryNextBtn = document.getElementById('galleryNext');
@@ -190,6 +191,19 @@ function appendTransformedEntry(res, prompt, badge, sourceSrc) {
 //          prompt, kind: edit|restore|upscale, tab }.
 window.galleryComparisons = [];
 
+// Prompt associated with a SOURCE image (used by compare galleries whose
+// transformation has no prompt of its own, e.g. Upscale): look the source up
+// in the generated history by ComfyUI filename. Returns '' when the source
+// is an upload/external URL or has no prompt.
+function sourceImagePrompt(sourceSrc) {
+  const fn = typeof mediaEntryFilename === 'function'
+    ? mediaEntryFilename({ src: sourceSrc })
+    : (typeof filenameFromUrl === 'function' ? filenameFromUrl(sourceSrc) : null);
+  if (!fn) return '';
+  const entry = (window.galleryGenerated || []).find(e => e.filename === fn);
+  return entry ? (entry.prompt || entry.originalPrompt || '') : '';
+}
+
 // Normalize a URL for comparison (the DOM absolutizes img.src while the
 // registry stores the relative /media/... display URL).
 function absUrl(u) {
@@ -313,13 +327,18 @@ function closeBadgeBox() {
 // when anything was closed. Shared by click-outside and Escape.
 function closeTextBoxes() {
   let changed = false;
-  if (galleryBadgeBox.classList.contains('show')) { closeBadgeBox(); changed = true; }
+  let restoreBadge = false;
+  if (galleryBadgeBox.classList.contains('show')) {
+    closeBadgeBox();
+    changed = true;
+    restoreBadge = true;
+  }
   if (galleryInfoPanel.classList.contains('show')) { closeGalleryInfo(); changed = true; }
-  // Re-render the CURRENT item from its data so the badge always comes back
-  // to its proper state (a badge hidden by click must never stay gone — the
-  // render derives the visibility from the entry, not from accumulated
-  // classList toggles).
-  if (changed) renderGalleryItem();
+  // Only the badge box HID the badge: re-render to restore it from the entry
+  // data. The ℹ️ panel changes nothing else, so closing it must NOT re-render
+  // the item — in the video gallery that would rebuild the player and restart
+  // playback.
+  if (restoreBadge) renderGalleryItem();
   return changed;
 }
 
@@ -569,9 +588,6 @@ function renderGalleryItem() {
     galleryVideoWrap.appendChild(createVideoPlayer(e.src || e.display || e.url, true));
     galleryBadge.classList.remove('show');
     galleryBadge.textContent = '';
-    // No image metadata in the video gallery: hide the ℹ️ button instead of
-    // showing a panel full of dashes over the player controls.
-    galleryInfoBtn.style.display = 'none';
   } else {
     galleryBefore.src = e.before || e.src;
     galleryAfter.src = e.src;
@@ -805,8 +821,11 @@ function _appendGalleryInfoTextRow(key, text, extraClass) {
   galleryInfoRows.appendChild(row);
 }
 
+let _galleryInfoSnapshot = null;
+
 function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   if (!galleryInfoRows) return;
+  _galleryInfoSnapshot = { meta, fallbackW, fallbackH, note, entry };
   const w = (meta && meta.width) || fallbackW || 0;
   const h = (meta && meta.height) || fallbackH || 0;
   const loras = (meta && Array.isArray(meta.loras)) ? meta.loras : [];
@@ -878,6 +897,36 @@ function _renderGalleryInfo(meta, fallbackW, fallbackH, note, entry) {
   }
 }
 
+// Resolution fallback while the backend does not know it: image natural
+// size, or the <video> element's dimensions in the video gallery.
+function _galleryInfoFallbackSize() {
+  if (galleryMode === 'video') {
+    const video = galleryVideoWrap
+      ? galleryVideoWrap.querySelector('video') : null;
+    return {
+      w: (video && video.videoWidth) || 0,
+      h: (video && video.videoHeight) || 0,
+    };
+  }
+  const image = galleryMode === 'compare' ? galleryAfter : galleryBig;
+  return {
+    w: (image && image.naturalWidth) || 0,
+    h: (image && image.naturalHeight) || 0,
+  };
+}
+
+// The video's dimensions are 0 until its metadata loads; refresh just the
+// resolution row when that happens (the panel may already be open).
+function _refreshGalleryInfoSize() {
+  if (galleryMode !== 'video' || !_galleryInfoSnapshot
+      || !galleryInfoPanel.classList.contains('show')) return;
+  const { w, h } = _galleryInfoFallbackSize();
+  if (!w || !h) return;
+  const s = _galleryInfoSnapshot;
+  if (w === s.fallbackW && h === s.fallbackH) return;
+  _renderGalleryInfo(s.meta, w, h, s.note, s.entry);
+}
+
 async function galleryShowInfo() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
@@ -885,40 +934,64 @@ async function galleryShowInfo() {
     closeGalleryInfo();
     return;
   }
-  closeBadgeBox();
+  if (galleryBadgeBox.classList.contains('show')) {
+    closeBadgeBox();
+    renderGalleryItem(); // restore the badge the box had hidden
+  }
 
   const requestId = ++galleryInfoRequest;
-  const image = galleryMode === 'compare' ? galleryAfter : galleryBig;
-  const fallbackW = (image && image.naturalWidth) || 0;
-  const fallbackH = (image && image.naturalHeight) || 0;
+  let fallbackW = 0;
+  let fallbackH = 0;
   // Show the panel immediately with what the browser knows (resolution),
   // then fill the technical rows when the backend answers.
+  ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
+  if (galleryInfoTitle) {
+    galleryInfoTitle.textContent = galleryMode === 'video'
+      ? 'Video information' : 'Image information';
+  }
   _renderGalleryInfo(null, fallbackW, fallbackH, '', e);
   galleryInfoPanel.classList.add('show');
   galleryInfoBtn.setAttribute('aria-expanded', 'true');
+  if (galleryMode === 'video') {
+    const video = galleryVideoWrap ? galleryVideoWrap.querySelector('video') : null;
+    if (video) {
+      if (video.videoWidth) _refreshGalleryInfoSize();
+      else video.addEventListener('loadedmetadata', _refreshGalleryInfoSize, { once: true });
+    }
+  }
 
-  const src = e.src || (galleryMode === 'compare' ? galleryAfter.src : galleryBig.src);
+  const src = e.src || (galleryMode === 'video' ? (e.url || e.src || '')
+    : galleryMode === 'compare' ? galleryAfter.src : galleryBig.src);
   const filename = e.filename || (src && typeof filenameFromUrl === 'function'
     ? filenameFromUrl(src) : null);
   if (!filename) {
     _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this image.', e);
+      'Technical metadata is not available for this entry.', e);
     return;
   }
   const type = typeof fileTypeFromUrl === 'function' ? fileTypeFromUrl(src) : 'output';
+  // Videos: do not download the (possibly large) MP4 just to read metadata —
+  // the <video> element already provides the resolution, and the parameters
+  // come from ComfyUI history.
+  const url = '/api/image-info?filename=' + encodeURIComponent(filename)
+    + '&type=' + encodeURIComponent(type)
+    + (galleryMode === 'video' ? '&skip_media=1' : '');
   try {
-    const r = await fetch('/api/image-info?filename=' + encodeURIComponent(filename)
-      + '&type=' + encodeURIComponent(type));
+    const r = await fetch(url);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const meta = await r.json();
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    // Recompute the fallback: the video's metadata may have loaded while
+    // the backend was answering, so the resolution is available now.
+    ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
     _renderGalleryInfo(meta, fallbackW, fallbackH,
       meta && meta.has_metadata === false
-        ? 'Technical metadata is not available for this image.' : '', e);
+        ? 'Technical metadata is not available for this entry.' : '', e);
   } catch (err) {
     if (requestId !== galleryInfoRequest || !galleryInfoPanel.classList.contains('show')) return;
+    ({ w: fallbackW, h: fallbackH } = _galleryInfoFallbackSize());
     _renderGalleryInfo(null, fallbackW, fallbackH,
-      'Technical metadata is not available for this image.', e);
+      'Technical metadata is not available for this entry.', e);
   }
 }
 

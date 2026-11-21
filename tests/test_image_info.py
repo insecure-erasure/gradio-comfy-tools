@@ -212,6 +212,27 @@ def test_image_info_falls_back_to_comfyui_history(client, monkeypatch):
     assert body["loras"] == [{"name": "style.safetensors", "weight": 0.75}]
 
 
+def test_image_info_skip_media_reads_history_without_downloading(client, monkeypatch):
+    """Video info: no MP4 download, only ComfyUI history."""
+    monkeypatch.setattr(
+        server, "_history_prompt_for_filename",
+        lambda filename: _prompt() if filename == "clip.mp4" else None,
+    )
+
+    class FailClient:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("skip_media must not create an HTTP client")
+
+    monkeypatch.setattr(server.httpx, "Client", FailClient)
+
+    body = client.get("/api/image-info?filename=clip.mp4&skip_media=1").json()
+    assert body["has_metadata"] is True
+    assert body["metadata_source"] == "history"
+    assert (body["width"], body["height"]) == (0, 0)
+    assert body["steps"] == [9]
+    assert body["samplers"] == ["euler"]
+
+
 def test_history_lookup_matches_the_output_filename(monkeypatch):
     import comfy_client
 

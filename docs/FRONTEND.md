@@ -892,7 +892,8 @@ push events, so nothing is hidden by age and nothing polls:
     place: the generation prompt stays as the ℹ️ panel's Prompt content,
     badge "Upscaled" — **informational only, no click action**
     (`.no-action`, default cursor; an upscale has no original prompt to
-    show).
+    show). Its compare-gallery entry also reuses the SOURCE image's prompt
+    (`sourceImagePrompt`) so the ℹ️ panel there is not blank.
   - **Prompt display**: the prompt is not a bottom caption and there is no
     separate Show-prompt button anymore. It lives inside the **ℹ️ image
     information panel** (`#galleryInfoPanel`), opened by the top-left ℹ️
@@ -945,9 +946,10 @@ push events, so nothing is hidden by age and nothing polls:
 - **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M
-  counter is bottom-right. The badge AND the ℹ️ info button are NOT shown in
-  video mode (the player fills the overlay; the info panel would overlap
-  the controls).
+  counter is bottom-right. The badge is not shown in video mode, but the
+  **ℹ️ info panel IS available** (button or `i`): resolution comes from the
+  `<video>` element, while steps/samplers/schedulers/models/LoRAs and the
+  prompt come from ComfyUI history (the endpoint skips downloading the MP4).
 
 ### 7.2 Media deletions (observed, never guessed)
 

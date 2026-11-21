@@ -1474,8 +1474,8 @@ def _image_prompt_metadata(prompt: dict) -> dict:
 
 
 @app.get("/api/image-info")
-def api_image_info(filename: str, type: str = "output") -> dict:
-    """Technical metadata of a generated image.
+def api_image_info(filename: str, type: str = "output", skip_media: bool = False) -> dict:
+    """Technical metadata of a generated image or video.
 
     The fullscreen gallery's ℹ️ button calls this with the ComfyUI filename
     of the currently shown entry. The API prompt is read from the PNG
@@ -1484,24 +1484,30 @@ def api_image_info(filename: str, type: str = "output") -> dict:
     ``/history`` by matching the filename in the outputs. Either way the
     reported steps/sampler/scheduler/model/LoRAs describe the ACTUAL
     execution — not the parameters of the tab today.
+
+    ``skip_media=1`` skips fetching the file body (videos can be huge): the
+    gallery already knows the video dimensions from the <video> element, so
+    only the history metadata is needed.
     """
     from urllib.parse import urlencode
 
-    s = _settings()
-    url = f"{s.media_base_url}/view?{urlencode({'filename': filename, 'type': type})}"
-    try:
-        with httpx.Client(timeout=30) as client:
-            resp = client.get(url)
-            if resp.status_code in (404, 410):
-                raise HTTPException(404, f"{filename} is no longer available")
-            resp.raise_for_status()
-            data = resp.content
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(502, f"Could not fetch {url}: {e}") from e
-
-    width, height, chunks = _png_image_info(data)
+    width = height = 0
+    chunks: dict[str, str] = {}
+    if not skip_media:
+        s = _settings()
+        url = f"{s.media_base_url}/view?{urlencode({'filename': filename, 'type': type})}"
+        try:
+            with httpx.Client(timeout=30) as client:
+                resp = client.get(url)
+                if resp.status_code in (404, 410):
+                    raise HTTPException(404, f"{filename} is no longer available")
+                resp.raise_for_status()
+                data = resp.content
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(502, f"Could not fetch {url}: {e}") from e
+        width, height, chunks = _png_image_info(data)
     metadata = {"steps": [], "samplers": [], "schedulers": [], "models": [], "loras": []}
     try:
         prompt = json.loads(chunks.get("prompt", ""))

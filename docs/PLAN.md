@@ -563,14 +563,17 @@ this repo's workflows; the per-step emission is inferred from the node design.)
       generation prompt stays as the ℹ️ **Prompt** content, badge
       "Upscaled" top-center, **informational only (`.no-action`, default
       cursor)** — no click action (an upscale has no original prompt to
-      show).
+      show). The compare-gallery entry reuses the source image's prompt
+      (`sourceImagePrompt`) for the ℹ️ panel.
     - Identification by ComfyUI filename (`filenameFromUrl` handles
       `/media/..`, `/view?filename=..`).
   - **Video**: now NAVIGABLE in the gallery — `openVideoGallery` (⛶ on
     the Video tab) shows `window.galleryVideos` in the overlay with the
     custom player edge-to-edge: ‹ › navigates, 🗑️ deletes the shown entry,
-    N/M counter bottom-right. The badge AND ℹ️ info button are NOT shown
-    in video mode (the player fills the overlay). The result still
+    N/M counter bottom-right. The badge is not shown in video mode, but the
+    ℹ️ info panel IS available (button or `i`): resolution from the
+    `<video>` element and the rest from ComfyUI history (`skip_media=1`
+    avoids downloading the MP4). The result still
     carries a `data-video-gallery="1"` marker; videos are collected in
     `window.galleryVideos` and persisted like the images (see docs/FRONTEND.md §7.1).
 - **FIX (2026-08-08, superseded 2026-08-11)**: **LoRA modals broken on Windows (dual-boot)** — the

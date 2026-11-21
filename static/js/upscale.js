@@ -55,7 +55,9 @@ function generateUpscale() {
       addCompareEntry({
         src: res.display,
         before: beforeSrc,
-        prompt: '',
+        // Upscale has no prompt of its own: show the SOURCE image's prompt
+        // in the ℹ️ panel when it came from a gallery generation.
+        prompt: (typeof sourceImagePrompt === 'function' ? sourceImagePrompt(src) : ''),
         kind: 'upscale',
         tab: 'upscale',
       });

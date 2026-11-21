@@ -41,7 +41,7 @@
   or `{ok: false, error}` (always HTTP 200 so the UI distinguishes
   "not an image" from a transport failure).
 
-### Image information (fullscreen gallery ℹ️)
+### Image/video information (fullscreen gallery ℹ️)
 - `GET /api/image-info?filename=...&type=output` fetches the image from
   ComfyUI and reads the PNG metadata ComfyUI's default save node embeds
   (`prompt` / `workflow` text chunks). The API prompt gives the parameters
@@ -53,11 +53,16 @@
   ComfyUI's `GET /history?max_items=200`, finds the entry whose outputs
   reference the filename and extracts the queued API prompt from it. No
   workflow/save-node change is required.
+- **Videos**: the gallery passes `skip_media=1`, so the endpoint does not
+  download the MP4. The video's resolution comes from the browser's
+  `<video>` element and the technical parameters (steps, samplers,
+  schedulers, models, LoRAs) from the same history lookup.
 - The parser resolves API-prompt links (e.g. Generate's steps live in an
   `easy int` node) and follows the `Switch (SIGMAS)` node to report the
   active scheduler (BasicScheduler vs Flux2Scheduler).
-- Images without embedded metadata still return their resolution; the UI
-  falls back to the `<img>` natural size and shows a short note.
+- Media without embedded metadata still returns its resolution through the
+  UI fallback (`<img>` natural size / `<video>` dimensions) and shows a
+  short note when the history lookup finds nothing.
 
 ### Live progress + per-step previews (B5)
 - `comfy_client.queue_prompt` **materializes the client_id** (random when not
