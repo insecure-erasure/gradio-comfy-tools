@@ -57,5 +57,22 @@
   <button class="gallery-btn gallery-next" id="galleryNext" title="Next" aria-label="Next">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
   </button>
-  <div class="gallery-counter" id="galleryCounter"></div>
+  <!-- Grid view (the counter button): a contact sheet of THIS gallery's
+       entries filling the visible area. Selecting a thumb closes the grid and
+       shows that image in the individual view. Cells are uniform and use
+       object-fit: cover (mixed orientations never reflow the layout). -->
+  <div class="gallery-grid" id="galleryGrid" aria-hidden="true">
+    <div class="gallery-grid-top">
+      <div class="gallery-grid-title" id="galleryGridTitle">Images</div>
+    </div>
+    <div class="gallery-grid-thumbs" id="galleryGridThumbs"></div>
+  </div>
+  <!-- Counter = grid toggle, bottom-right. The span holds N/M so repainting
+       the count never destroys the glyph. -->
+  <button class="gallery-counter" id="galleryCounter" type="button"
+          title="Thumbnails" aria-label="Thumbnails"
+          aria-expanded="false" aria-controls="galleryGrid">
+    <span id="galleryCounterText">0/0</span>
+    <span class="gallery-counter-glyph" aria-hidden="true">▦</span>
+  </button>
 </div>

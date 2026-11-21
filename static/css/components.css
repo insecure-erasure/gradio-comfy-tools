@@ -2263,13 +2263,129 @@
   .gallery-trash:hover { color: #e5484d; }
   .gallery-counter {
     position: absolute;
-    bottom: 14px; right: 14px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    right: calc(14px + env(safe-area-inset-right, 0px));
     z-index: 1000;              /* below the prompt boxes (z 1100) — see .gallery-btn */
     display: none;
     align-items: center;
     justify-content: flex-start;   /* left-aligned text (family rule) */
-    pointer-events: none;
+    gap: 8px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
   }
+  .gallery-counter:hover { border-color: var(--accent); background: rgba(40,40,46,.8); }
+  .gallery-counter-glyph { color: rgba(255,255,255,.6); font-size: 12px; line-height: 1; }
+  .gallery-counter[aria-expanded="true"] { border-color: var(--accent); }
+
+  /* ── Thumbnail grid (the counter button) ─────
+     Replaces the individual view: a contact sheet filling the visible area.
+     The cell size is computed by static/js/gallery-grid.js (adapts to the
+     entry count with MIN/MAX bounds; scrolls instead of shrinking below
+     MIN). Cells are uniform so mixed orientations never reflow the layout;
+     images use object-fit: cover (fill the cell, crop the edges) — the full
+     image is one click away. */
+  .gallery-grid {
+    position: absolute;
+    inset: 0;
+    z-index: 999;          /* above image/slider/video, below .gallery-btn (1000) */
+    display: none;
+    flex-direction: column;
+    background: rgba(8,10,20,.94);
+    padding: calc(58px + env(safe-area-inset-top, 0px))
+             calc(16px + env(safe-area-inset-right, 0px))
+             calc(16px + env(safe-area-inset-bottom, 0px))
+             calc(16px + env(safe-area-inset-left, 0px));
+  }
+  .gallery-grid.show { display: flex; }
+  .gallery-grid-top {
+    position: absolute;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+  }
+  .gallery-grid-title {
+    font: 400 13px/1.5 system-ui, sans-serif;
+    color: #fff;
+    background: rgba(28,28,28,.72);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    padding: 7px 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35);
+    white-space: nowrap;
+  }
+  .gallery-grid-thumbs {
+    --thumb: 96px;
+    --gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;   /* an incomplete last row stays centered */
+    align-content: flex-start;
+    gap: var(--gap);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  .gallery-thumb {
+    position: relative;
+    flex: 0 0 auto;
+    width: var(--thumb);
+    height: var(--thumb);
+    padding: 0;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    background: #0a0d16;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .gallery-thumb:hover { border-color: rgba(255,255,255,.4); }
+  .gallery-thumb.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(107,140,255,.55);
+  }
+  .gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;       /* decision: fill the cell (crop the edges) */
+    display: block;
+  }
+  .gallery-thumb-index {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    font: 400 10px/1 system-ui, sans-serif;
+    padding: 3px 5px;
+    border-radius: 6px;
+    background: rgba(0,0,0,.55);
+    color: rgba(255,255,255,.85);
+    letter-spacing: .04em;
+  }
+  .gallery-thumb.is-video {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(120% 100% at 30% 20%, #1b2338, #0a0d16);
+  }
+  .gallery-thumb-play {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.35);
+    color: #fff;
+    font-size: 13px;
+  }
+  .gallery-thumb.broken { opacity: .35; }
+  /* While the grid is open the individual-view controls would act behind it:
+     hide them (the counter stays: it toggles back, and ✕ still closes all). */
+  .gallery-overlay.grid-open .gallery-info,
+  .gallery-overlay.grid-open .gallery-trash,
+  .gallery-overlay.grid-open .gallery-prev,
+  .gallery-overlay.grid-open .gallery-next,
+  .gallery-overlay.grid-open .gallery-extend-toggle,
+  .gallery-overlay.grid-open .gallery-badge { display: none !important; }
 
   /* ── Crop editor ─────────────────────────────
      Desktop: absolute inside the Edit output pane. Below 1024px it becomes

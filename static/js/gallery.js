@@ -37,6 +37,10 @@ const galleryExtendToggle = document.getElementById('galleryExtendToggle');
 const galleryExtendOriginalBtn = document.getElementById('galleryExtendOriginalBtn');
 const galleryExtendResultBtn = document.getElementById('galleryExtendResultBtn');
 const galleryCounter = document.getElementById('galleryCounter');
+const galleryCounterText = document.getElementById('galleryCounterText');
+const galleryGrid = document.getElementById('galleryGrid');
+const galleryGridThumbs = document.getElementById('galleryGridThumbs');
+const galleryGridTitle = document.getElementById('galleryGridTitle');
 const galleryLabelAfter = document.getElementById('galleryLabelAfter');
 const galleryBadge = document.getElementById('galleryBadge');
 const galleryBadgeBox = document.getElementById('galleryBadgeBox');
@@ -310,6 +314,7 @@ function _stampLastEntryDuration(tab, durationSecs) {
 
 // ── Open / close ───────────────────────────
 function openGalleryOverlay() {
+  closeGalleryGrid(); // always open on the individual view
   galleryOverlay.classList.add('show');
   // Fullscreen the OVERLAY element (not documentElement): it is already
   // position:fixed inset:0, so the browser expands it to the window without
@@ -343,6 +348,7 @@ function closeTextBoxes() {
 }
 
 function closeGallery() {
+  closeGalleryGrid(); // the sheet never survives the overlay
   closeBadgeBox(); // a badge box opened by click must not survive the close
   closeGalleryInfo(); // an info panel must not linger over the next opening
   configureGalleryExtendToggle(false);
@@ -614,7 +620,169 @@ function renderGalleryItem() {
   galleryPrevBtn.disabled = !multi;
   galleryNextBtn.disabled = !multi;
   galleryCounter.style.display = 'flex';
-  galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
+  if (galleryCounterText) {
+    galleryCounterText.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
+  } else {
+    galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
+  }
+  syncGalleryGrid(); // rebuilds when the entry count changes, else syncs active
+}
+
+// ── Thumbnail grid (the counter button) ─────
+// The contact sheet REPLACES the individual view inside the same overlay: it
+// lists galleryEntries and selecting a thumb closes the grid and shows that
+// entry. The cell size comes from galleryGridMetrics() (gallery-grid.js), which
+// adapts to the entry count and the visible box with MIN/MAX bounds.
+let galleryGridOpen = false;
+let galleryGridCols = 1;
+let _galleryGridSignature = '';
+
+function galleryGridMetricsNow(n) {
+  // The grid's box = viewport − top bar (58) − padding (16/16). The SVG-free
+  // container is inset the same way in CSS, and visualViewport covers the
+  // mobile URL bar changing height while the gallery is open.
+  const vv = window.visualViewport;
+  const width = (vv && vv.width) || window.innerWidth || 0;
+  const height = (vv && vv.height) || window.innerHeight || 0;
+  return galleryGridMetrics(n, Math.max(0, width - 32), Math.max(0, height - 58 - 16));
+}
+
+function galleryGridTitleText() {
+  const label = galleryMode === 'video' ? 'Videos' : 'Images';
+  return `${label} · ${galleryIdx + 1}/${galleryEntries.length}`;
+}
+
+function renderGalleryGrid() {
+  if (!galleryGridOpen || !galleryGridThumbs) return;
+  const n = galleryEntries.length;
+  const m = galleryGridMetricsNow(n);
+  galleryGridCols = m.cols;
+  _galleryGridSignature = galleryMode + ':' + n;
+  galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
+  galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
+  if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+  galleryGridThumbs.innerHTML = '';
+  galleryEntries.forEach((e, i) => {
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.className = 'gallery-thumb' + (i === galleryIdx ? ' active' : '');
+    tile.dataset.index = String(i);
+    tile.setAttribute('aria-label', `Open ${i + 1} of ${n}`);
+    tile.setAttribute('aria-current', i === galleryIdx ? 'true' : 'false');
+    if (galleryMode === 'video') {
+      // No <video> here on purpose: decoding N MP4s would be slow and heavy.
+      tile.classList.add('is-video');
+      const play = document.createElement('span');
+      play.className = 'gallery-thumb-play';
+      play.setAttribute('aria-hidden', 'true');
+      play.textContent = '▶';
+      tile.appendChild(play);
+    } else {
+      const img = document.createElement('img');
+      img.src = e.src;
+      img.alt = '';
+      img.draggable = false;
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      // A file the cleanup removed stays as a dimmed slot (the /ws/events
+      // deletion prunes the registry and re-renders the grid).
+      img.addEventListener('error', () => tile.classList.add('broken'));
+      tile.appendChild(img);
+    }
+    const idx = document.createElement('span');
+    idx.className = 'gallery-thumb-index';
+    idx.textContent = String(i + 1);
+    tile.appendChild(idx);
+    tile.addEventListener('click', ev => {
+      ev.stopPropagation();
+      galleryGridSelect(i);
+    });
+    galleryGridThumbs.appendChild(tile);
+  });
+  _scrollActiveThumbIntoView(m.scroll);
+}
+
+function _scrollActiveThumbIntoView(force) {
+  if (!galleryGridOpen || !galleryGridThumbs) return;
+  const active = galleryGridThumbs.querySelector('.gallery-thumb.active');
+  if (!active) return;
+  if (force || galleryGridThumbs.scrollHeight > galleryGridThumbs.clientHeight) {
+    active.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function syncGalleryGridActive() {
+  if (!galleryGridOpen || !galleryGridThumbs) return;
+  galleryGridThumbs.querySelectorAll('.gallery-thumb').forEach(tile => {
+    const on = Number(tile.dataset.index) === galleryIdx;
+    tile.classList.toggle('active', on);
+    tile.setAttribute('aria-current', on ? 'true' : 'false');
+  });
+  if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+  _scrollActiveThumbIntoView(false);
+}
+
+// Rebuild only when the entry set changed (count/mode); a plain navigation
+// just moves the active ring (80 lazy <img> must not be recreated per arrow).
+function syncGalleryGrid() {
+  if (!galleryGridOpen) return;
+  const signature = galleryMode + ':' + galleryEntries.length;
+  if (signature !== _galleryGridSignature) {
+    renderGalleryGrid();
+    return;
+  }
+  syncGalleryGridActive();
+}
+
+function openGalleryGrid() {
+  if (!galleryGrid || !galleryEntries.length) return;
+  closeTextBoxes(); // one panel at a time
+  galleryGridOpen = true;
+  galleryGrid.classList.add('show');
+  galleryGrid.setAttribute('aria-hidden', 'false');
+  galleryOverlay.classList.add('grid-open');
+  galleryCounter.setAttribute('aria-expanded', 'true');
+  // A playing video must not keep decoding/playing behind the sheet.
+  if (galleryMode === 'video' && galleryVideoWrap) {
+    const video = galleryVideoWrap.querySelector('video');
+    if (video) video.pause();
+  }
+  renderGalleryGrid();
+}
+
+function closeGalleryGrid() {
+  if (!galleryGridOpen) return;
+  galleryGridOpen = false;
+  if (galleryGrid) {
+    galleryGrid.classList.remove('show');
+    galleryGrid.setAttribute('aria-hidden', 'true');
+  }
+  galleryOverlay.classList.remove('grid-open');
+  if (galleryCounter) galleryCounter.setAttribute('aria-expanded', 'false');
+  // Drop the thumbnails: a closed grid must not keep N images/decodes around.
+  if (galleryGridThumbs) galleryGridThumbs.innerHTML = '';
+  _galleryGridSignature = '';
+}
+
+function toggleGalleryGrid() {
+  if (galleryGridOpen) closeGalleryGrid();
+  else openGalleryGrid();
+}
+
+// Select a thumb: close the sheet and show that entry in the INDIVIDUAL view.
+function galleryGridSelect(i) {
+  if (!(i >= 0) || i >= galleryEntries.length) return;
+  galleryIdx = i;
+  closeGalleryGrid();
+  resetGalleryZoom();
+  renderGalleryItem();
+}
+
+// Resize/orientation (and the mobile URL bar) change the visible box: the
+// grid recomputes so the cells keep fitting.
+function refitGalleryGrid() {
+  if (!galleryGridOpen) return;
+  renderGalleryGrid();
 }
 
 function galleryNav(delta) {
@@ -1644,6 +1812,25 @@ galleryOverlay.addEventListener('click', e => {
   if (e.target === galleryOverlay) closeGallery();
 });
 
+// Counter button → thumbnail grid. While the grid is open, a click on its
+// empty area (not a thumb / its title bar) closes ONLY the grid.
+galleryCounter.addEventListener('click', e => {
+  e.stopPropagation();
+  toggleGalleryGrid();
+});
+galleryGrid.addEventListener('click', e => {
+  if (!galleryGridOpen) return;
+  if (e.target.closest('.gallery-thumb') || e.target.closest('.gallery-grid-top')) return;
+  closeGalleryGrid();
+});
+// The visible box changes with the window, the orientation AND the mobile URL
+// bar (visualViewport): recompute so the cells keep fitting the screen.
+window.addEventListener('resize', refitGalleryGrid);
+window.addEventListener('orientationchange', refitGalleryGrid);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', refitGalleryGrid);
+}
+
 // Pane-mode ℹ️ panel: the backdrop opts into pointer events (see
 // .gallery-info-panel.pane-mode), so the first click dismisses the panel
 // WITHOUT activating the control underneath. Clicks inside the box are
@@ -1669,7 +1856,30 @@ document.addEventListener('keydown', e => {
   if (!typing && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey
       && String(e.key).toLowerCase() === 'i') {
     e.preventDefault();
+    if (galleryGridOpen) closeGalleryGrid(); // progressive: the sheet first
     galleryShowInfo(); // toggles the panel: open when closed, close when open
+    return;
+  }
+  // Thumbnail grid: Escape closes it (not the gallery), arrows move the
+  // selection by one / by a row and Enter (or Space) opens it. Any other key
+  // is ignored so the sheet never triggers the individual-view shortcuts.
+  if (galleryGridOpen) {
+    if (e.key === 'Escape') { e.preventDefault(); closeGalleryGrid(); return; }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      galleryGridSelect(galleryIdx);
+      return;
+    }
+    const step = e.key === 'ArrowLeft' ? -1
+      : e.key === 'ArrowRight' ? 1
+      : e.key === 'ArrowUp' ? -galleryGridCols
+      : e.key === 'ArrowDown' ? galleryGridCols
+      : 0;
+    if (step) {
+      e.preventDefault();
+      galleryIdx = Math.max(0, Math.min(galleryEntries.length - 1, galleryIdx + step));
+      syncGalleryGrid();
+    }
     return;
   }
   // While any text box is open (badge or ℹ️ info), Escape closes it and

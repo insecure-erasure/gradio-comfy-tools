@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — minigalería de thumbnails a pantalla completa</title>
+<style>
+  /* Mockup estático (no se carga desde la app). Simula la galería a pantalla
+     completa: cada "stage" es el viewport; el grid se calcula con el mismo
+     algoritmo propuesto (cols adaptativas + celda con topes). */
+  :root {
+    --accent: #6b8cff;
+    --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --panel: rgba(28,28,28,.72);
+    --line: rgba(255,255,255,.16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 26px 20px 56px;
+    background: #070910;
+    color: #fff;
+    font: 400 13px/1.5 system-ui, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    align-items: center;
+  }
+  h1 { font: 600 15px/1.3 var(--font); margin: 0; text-align: center; }
+  h1 small { display: block; font-weight: 400; color: rgba(255,255,255,.5); font-size: 12px; margin-top: 4px; }
+  .case { display: flex; flex-direction: column; gap: 8px; }
+  .case-title { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.5); }
+  .case-title b { color: #7fe0a0; font-weight: 500; }
+
+  /* "Viewport" de la galería */
+  .stage {
+    position: relative;
+    width: min(1120px, 96vw);
+    aspect-ratio: 16 / 9;
+    /* en la app: padding-bottom: max(16px, env(safe-area-inset-bottom)) */
+
+    background: #0d1018;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  /* Barra superior del modo rejilla */
+  .grid-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    z-index: 3;
+    background: linear-gradient(180deg, rgba(7,9,16,.9), rgba(7,9,16,0));
+  }
+  .grid-title {
+    font: 400 13px/1.5 var(--font);
+    color: #fff;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px 12px;
+  }
+  .grid-title span { color: rgba(255,255,255,.55); }
+  .grid-close {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: #f5f5f5;
+    font-size: 15px;
+  }
+  /* Contador/botón de la vista normal (abajo-derecha) */
+  .counter-btn {
+    position: absolute;
+    bottom: 14px; right: 14px;
+    z-index: 3;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #fff;
+    font: 400 13px/1.5 var(--font);
+  }
+  .counter-btn.on { border-color: var(--accent); }
+  .counter-btn .glyph { color: rgba(255,255,255,.7); letter-spacing: 1px; }
+
+  /* Grid de thumbnails: ocupa el área visible bajo la barra */
+  /* flex-wrap (no grid): la última fila se CENTRA aunque esté incompleta, y
+     las celdas mantienen tamaño fijo → mezclar orientaciones no descoloca. */
+  .thumbs {
+    position: absolute;
+    inset: 58px 16px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: flex-start;
+    gap: 10px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+  .thumb {
+    position: relative;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0a0d16;
+    border: 1px solid rgba(255,255,255,.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thumb img {
+    width: 100%; height: 100%;
+    object-fit: contain;   /* por defecto: no recorta */
+    display: block;
+  }
+  .thumbs[data-fit="cover"] .thumb img { object-fit: cover; }
+  .thumb.active { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(107,140,255,.55); }
+  .thumb .idx {
+    position: absolute;
+    left: 6px; top: 6px;
+    font: 400 10px/1 var(--font);
+    padding: 3px 5px;
+    border-radius: 6px;
+    background: rgba(0,0,0,.55);
+    color: rgba(255,255,255,.85);
+    letter-spacing: .04em;
+  }
+  .thumb .kind {
+    position: absolute;
+    left: 6px; bottom: 6px;
+    font: 400 9px/1 var(--font);
+    padding: 3px 5px;
+    border-radius: 999px;
+    background: rgba(28,28,28,.8);
+    border: 1px solid rgba(255,255,255,.18);
+    color: rgba(255,255,255,.8);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .thumb .play {
+    position: absolute;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: #fff;
+  }
+  .thumb.video { background: radial-gradient(120% 100% at 30% 20%, #1b2338, #0a0d16); }
+
+  /* Simulación de móvil: vertical (9:19.5) y horizontal (19.5:9) */
+  .stage.portrait { width: 330px; aspect-ratio: 9 / 19.5; }
+  /* Comparativa contain vs cover (misma rejilla, mismo tamaño de celda) */
+  .stage.compare {
+    width: min(560px, 96vw);
+    aspect-ratio: 4 / 3;
+  }
+  .stage.compare .grid-top { padding: 10px 12px; }
+  .stage.compare .grid-title { font-size: 12px; padding: 5px 10px; }
+  .two { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+  .stage.landscape-phone { width: min(760px, 96vw); aspect-ratio: 19.5 / 9; }
+  .stats { color: rgba(255,255,255,.55); font-size: 12px; }
+  .stats code { color: #cfe0ff; }
+  .legend {
+    max-width: 1120px;
+    color: rgba(255,255,255,.62);
+    font-size: 12px;
+    line-height: 1.65;
+  }
+  .legend b { color: #fff; font-weight: 500; }
+  .legend li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<h1>Minigalería de thumbnails — a pantalla completa
+  <small>El contador <code>N/M</code> pasa a botón. Abre una rejilla que ocupa el área visible entera; el tamaño de celda se adapta al nº de elementos con topes, y las celdas son uniformes para mezclar orientaciones.</small>
+</h1>
+
+
+<div class="case">
+  <div class="case-title">Decisión 1 — <b>contain</b> vs <b>cover</b> (mismas 9 imágenes, mismo tamaño de celda)</div>
+  <div class="two">
+    <div class="case">
+      <div class="case-title"><b>contain</b> · imagen completa, con bandas</div>
+      <div class="stage compare" data-count="9" data-fit="contain"></div>
+    </div>
+    <div class="case">
+      <div class="case-title"><b>cover</b> · llena la celda, recorta bordes</div>
+      <div class="stage compare" data-count="9" data-fit="cover"></div>
+    </div>
+  </div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 1 — <b>5 imágenes</b> · orientaciones mezcladas (16:9, 9:16, 1:1, 4:3, 3:4)</div>
+  <div class="stage" data-count="5"></div>
+  <div class="stats" id="stats-5"></div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 2 — <b>24 imágenes</b> · más columnas, celdas menores</div>
+  <div class="stage" data-count="24"></div>
+  <div class="stats" id="stats-24"></div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 3 — <b>80 imágenes</b> · tope mínimo alcanzado, la rejilla hace scroll</div>
+  <div class="stage" data-count="80"></div>
+  <div class="stats" id="stats-80"></div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 4 — <b>12 vídeos</b> · tile con ▶ (no se decodifican 12 MP4)</div>
+  <div class="stage" data-count="12" data-video="1"></div>
+  <div class="stats" id="stats-12"></div>
+</div>
+
+
+<div class="case">
+  <div class="case-title">Caso 5 — <b>móvil vertical</b> (390 × 844) · 24 imágenes · columnas limitadas por el ancho</div>
+  <div class="stage portrait" data-count="24"></div>
+  <div class="stats"></div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 6 — <b>móvil vertical</b> · 80 imágenes · tope MIN + scroll vertical</div>
+  <div class="stage portrait" data-count="80"></div>
+  <div class="stats"></div>
+</div>
+
+<div class="case">
+  <div class="case-title">Caso 7 — <b>móvil horizontal</b> (844 × 390) · 24 imágenes · poca altura</div>
+  <div class="stage landscape-phone" data-count="24"></div>
+  <div class="stats"></div>
+</div>
+
+<div class="legend">
+  <b>Algoritmo de tamaño (propuesto)</b>
+  <ul>
+    <li>Área = viewport − barra superior (~58 px) − padding (16 px por lado, con <code>env(safe-area-inset-*)</code>).</li>
+    <li><code>cols = clamp(round(sqrt(n · W / H)), 1, 8)</code>.</li>
+    <li><b>Límite de ancho</b>: <code>cols = min(cols, floor((W + g) / (MIN + g)))</code>. Sin esto, en móvil vertical el tope MIN desbordaría en horizontal (p. ej. 6 cols × 64 px no caben en 358 px).</li>
+    <li><code>rows = ceil(n / cols)</code> y <code>cell = clamp(min((W − (cols−1)·g)/cols, (H − (rows−1)·g)/rows), MIN = 64, MAX = 200)</code> px (g = 10).</li>
+    <li>Si al llegar a <b>MIN</b> no caben todos → <b>scroll vertical</b> (nunca thumbs menores de 64 px, y nunca scroll horizontal). Si con <b>MAX</b> sobra espacio → rejilla centrada con aire.</li>
+    <li>Se recalcula al abrir, en <code>resize</code>, <code>orientationchange</code> y <code>visualViewport</code> (la barra de Safari/Chrome móvil cambia el alto visible al hacer scroll). Altura con <code>100dvh</code>, no <code>100vh</code>.</li>
+  </ul>
+  <b>Orientaciones mezcladas</b>
+  <ul>
+    <li>Celdas <b>uniformes</b> (cuadradas) → el layout no “salta” al mezclar retrato, cuadrado y paisaje (nada de masonry).</li>
+    <li><code>contain</code>: la imagen entera se ve, pero retrato/paisaje dejan bandas oscuras arriba-abajo o a los lados.</li>
+    <li><code>cover</code>: la celda queda siempre llena y homogénea, pero se recortan los bordes (p. ej. los lados de un paisaje 16:9). La imagen completa está a un clic.</li>
+    <li>La rejilla es <code>flex-wrap</code> centrada: si la última fila está incompleta, sus thumbs se centran (no quedan pegados a la izquierda).</li>
+    <li>Vídeos: tile oscuro con ▶ (sin decodificar nada). El poster real exigiría decodificar cada MP4; sólo tendría sentido para los visibles y con un límite de concurrencia.</li>
+  </ul>
+  <b>Interacción</b>
+  <ul>
+    <li>El grid sustituye a la imagen grande (sigue siendo la misma galería): el contador/botón queda activo y vuelve a la vista individual.</li>
+    <li>Clic en un thumb → salta a esa imagen (vista individual) manteniendo el índice; el thumb activo lleva anillo de acento.</li>
+    <li>Teclado: flechas mueven por la rejilla, <code>Enter</code> abre, <code>Esc</code> cierra la rejilla (no la galería), y el clic fuera del grid respeta el descarte progresivo.</li>
+    <li>Índice numérico por thumb; <b>sin badges de tipo</b> (decisión).</li>
+  </ul>
+</div>
+
+<script>
+// ── Generación del mockup (colores + relaciones de aspecto variadas) ──────
+const MIN = 64;
+const MAX = 200;
+const GAP = 10;
+const TOP = 58;   // barra superior
+const PAD = 16;
+
+// SVG data-URI con la relación indicada y un color de fondo distinto.
+function art(w, h, hue) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="hsl(${hue} 55% 42%)"/>
+      <stop offset="1" stop-color="hsl(${(hue + 40) % 360} 60% 18%)"/>
+    </linearGradient></defs>
+    <rect width="100%" height="100%" fill="url(#g)"/>
+    <circle cx="${w * 0.72}" cy="${h * 0.3}" r="${Math.min(w, h) * 0.12}" fill="rgba(255,255,255,.28)"/>
+    <path d="M0 ${h} L${w * 0.45} ${h * 0.45} L${w * 0.7} ${h} Z" fill="rgba(0,0,0,.35)"/>
+    <path d="M${w * 0.35} ${h} L${w * 0.72} ${h * 0.55} L${w} ${h} Z" fill="rgba(0,0,0,.5)"/>
+  </svg>`;
+  return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+const FORMATS = [
+  { w: 1600, h: 900 },   // 16:9
+  { w: 900, h: 1600 },   // 9:16
+  { w: 1024, h: 1024 },  // 1:1
+  { w: 1200, h: 900 },   // 4:3
+  { w: 900, h: 1200 },   // 3:4
+];
+const KINDS = [];   // decisión: sin badges de tipo
+
+function build(stage) {
+  const n = Number(stage.dataset.count);
+  const isVideo = stage.dataset.video === '1';
+  const W = stage.clientWidth - PAD * 2;
+  const H = stage.clientHeight - TOP - PAD;
+  let cols = Math.max(1, Math.min(8, Math.round(Math.sqrt(n * (W / H)))));
+  // LÍMITE DE ANCHO: con el tope mínimo, nunca puede haber más columnas de las
+  // que caben a MIN de ancho (si no, la rejilla desbordaría en horizontal —
+  // el caso típico en móvil vertical).
+  const maxColsByMin = Math.max(1, Math.floor((W + GAP) / (MIN + GAP)));
+  cols = Math.min(cols, maxColsByMin);
+  let rows = Math.ceil(n / cols);
+  let cell = Math.min((W - (cols - 1) * GAP) / cols, (H - (rows - 1) * GAP) / rows);
+  let scroll = false;
+  if (cell < MIN) { cell = MIN; scroll = true; }
+  if (cell > MAX) cell = MAX;
+  cell = Math.floor(cell);
+  rows = Math.ceil(n / cols);
+
+  stage.innerHTML = `
+    <div class="grid-top">
+      <div class="grid-title">${n} ${isVideo ? 'videos' : 'images'} <span>· ${Math.min(n, 12)}/${n}</span></div>
+      <div class="grid-close">✕</div>
+    </div>
+    <div class="thumbs"></div>
+    <button class="counter-btn on">${Math.min(n, 12)}/${n} <span class="glyph">▦</span></button>
+  `;
+
+  const grid = stage.querySelector('.thumbs');
+  if (stage.dataset.fit) grid.dataset.fit = stage.dataset.fit;
+  const statsEl = stage.parentElement.querySelector('.stats');
+  for (let i = 0; i < n; i++) {
+    const tile = document.createElement('div');
+    tile.className = 'thumb' + (i === 11 ? ' active' : '') + (isVideo ? ' video' : '');
+    tile.style.width = cell + 'px';
+    tile.style.height = cell + 'px';
+    if (isVideo) {
+      tile.innerHTML = `<div class="play">▶</div>`;
+    } else {
+      const f = FORMATS[i % FORMATS.length];
+      const img = document.createElement('img');
+      img.src = art(f.w, f.h, (i * 37) % 360);
+      img.loading = 'lazy';
+      img.alt = '';
+      tile.appendChild(img);
+    }
+    if (i < 24) {
+      const idx = document.createElement('span');
+      idx.className = 'idx';
+      idx.textContent = String(i + 1);
+      tile.appendChild(idx);
+    }
+    const kind = KINDS[i % KINDS.length];
+    if (kind) {
+      const k = document.createElement('span');
+      k.className = 'kind';
+      k.textContent = kind;
+      tile.appendChild(k);
+    }
+    grid.appendChild(tile);
+  }
+  if (statsEl) {
+    statsEl.innerHTML = `<code>n=${n}</code> · <code>cols=${cols}</code> (máx por ancho ${maxColsByMin}) · `
+      + `<code>rows=${rows}</code> · <code>cell=${cell}px</code> · `
+      + `${scroll ? '<b style="color:#ffd479">scroll (tope MIN)</b>' : 'cabe sin scroll'}`
+      + ` · W=${Math.round(W)} H=${Math.round(H)}`;
+  }
+}
+
+document.querySelectorAll('.stage').forEach(build);
+window.addEventListener('resize', () => document.querySelectorAll('.stage').forEach(build));
+</script>
+</body>
+</html>

@@ -867,12 +867,14 @@ entering the gallery.
   toast, tooltip.
 - **`static/css/`**: base, layout, components, responsive (split by role).
 - **`static/js/`** (plain scripts, shared global scope, load order matters):
-  state, media-events, storage, timing, api, seed, **pane-compare**, player,
-  refine, source, tabs, generate, edit, crop-geometry, crop, adjust-utils,
-  adjust, upscale, face_swap, video, gallery, restore, settings, modal, main.
+  state, media-events, storage, timing, api, seed, **pane-compare**,
+  **gallery-grid**, player, refine, source, tabs, generate, edit,
+  crop-geometry, crop, adjust-utils, adjust, upscale, face_swap, video,
+  gallery, restore, settings, modal, main.
   `pane-compare.js` owns the pane comparison presentation (always the
-  `Original | <Result>` toggle, top-center); the fullscreen gallery keeps its
-  own per-kind presentation in `gallery.js`.
+  `Original | <Result>` toggle, top-center); `gallery-grid.js` is the pure
+  geometry of the gallery's thumbnail sheet (unit-tested with node); the
+  fullscreen gallery keeps its own per-kind presentation in `gallery.js`.
 - **`static/js/storage.js`**: persists user config in localStorage
   (`comfyTools.userConfig`): per-tab params, advancedValues, toolbar
   selections, per-tab prompts, last loaded source per source tool, theme AND
@@ -1008,6 +1010,29 @@ push events, so nothing is hidden by age and nothing polls:
   entry ‹ › render disabled (greyed, no action) instead of disappearing.
   Escape/✕/backdrop close; ←/→ navigate; `Delete` (or the 🗑️ button)
   removes the shown entry immediately, without confirmation.
+- **Thumbnail grid (counter button, `⌗`)**: the N/M counter is a button that
+  turns the overlay into a **contact sheet** of the CURRENT gallery
+  (`galleryGenerated` / this tool's `galleryComparisons` / `galleryVideos`) —
+  it fills the visible area (not a small popover). Cell size comes from
+  `galleryGridMetrics()` (`static/js/gallery-grid.js`):
+  `cols = clamp(round(sqrt(n · W/H)), 1, 8)` then clamped by width
+  (`floor((W+g)/(MIN+g))`, so it never overflows sideways on phones),
+  `rows = ceil(n/cols)` and
+  `cell = clamp(min(...), MIN 64, MAX 200)`; if MIN does not fit the grid
+  **scrolls vertically** (never below 64 px, never horizontal scroll). It
+  recomputes on `resize`, `orientationchange` and `visualViewport` resize
+  (the mobile URL bar changes the visible box; the overlay uses `100dvh` and
+  `env(safe-area-inset-*)`). Cells are **uniform with `object-fit: cover`**
+  (fill the cell, crop the edges) so mixed orientations never reflow the
+  layout; an incomplete last row stays centered (`flex-wrap` + `justify:
+  center`). Video entries are **tiles with ▶** (no `<video>`: decoding N
+  MP4s is slow/heavy). No type badges; a small index number per tile.
+  Clicking a thumb **closes the sheet and shows that entry** in the
+  individual view. The counter toggles it; `Esc`/click on the sheet's empty
+  area close only the sheet, and the individual-view controls (‹ ›, ℹ️, 🗑️,
+  extend toggle, badge) are hidden while it is open. With the sheet open the
+  arrows move by one (←/→) or by a row (↑/↓), `Enter`/`Space` opens the
+  selection; other keys are ignored.
 - **Pane ‹ › navigation (normal view)**: each tool's output pane shows its
   gallery's most recent entry; when the tool's gallery holds more than one
   entry, ‹ › buttons appear vertically centered on the pane's sides
