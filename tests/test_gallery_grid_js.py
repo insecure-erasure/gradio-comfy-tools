@@ -69,7 +69,7 @@ def test_gallery_js_wiring():
     gallery = _read("static", "js", "gallery.js")
     for symbol in (
         "function openGalleryGrid(fromPane)",
-        "function closeGalleryGrid()",
+        "function closeGalleryGrid(restoreFocus = true)",
         "function toggleGalleryGrid()",
         "function renderGalleryGrid()",
         "function galleryGridSelect(i)",
@@ -87,8 +87,8 @@ def test_gallery_js_wiring():
     assert "closeGalleryGrid();" in gallery
     assert "resetGalleryZoom();\n  renderGalleryItem();" in gallery
     # The sheet never survives the overlay, and never opens with it.
-    assert "closeGalleryGrid(); // the sheet never survives the overlay" in gallery
-    assert "closeGalleryGrid(); // always open on the individual view" in gallery
+    assert "closeGalleryGrid(false); // the sheet never survives the overlay" in gallery
+    assert "closeGalleryGrid(false); // always open on the individual view" in gallery
     # Video tiles do not instantiate <video> (no decoding of N MP4s).
     assert "galleryMode === 'video'" in gallery
     assert "gallery-thumb-play" in gallery
@@ -116,15 +116,55 @@ def test_gallery_js_wiring():
 def test_keyboard_behaviour_in_the_sheet():
     gallery = _read("static", "js", "gallery.js")
     assert "if (galleryGridOpen) {" in gallery
-    # Escape closes the sheet, not the gallery; Enter/Space opens the selection.
+    # Escape closes the sheet, not the gallery; Enter/Space opens the FOCUSED
+    # tile (falling back to the sheet selection).
     assert "if (e.key === 'Escape') { e.preventDefault(); closeGalleryGrid(); return; }" in gallery
-    assert "galleryGridSelect(galleryIdx);" in gallery
-    # Arrows move by one / by a row.
+    assert "function _gridThumbIndexFromTarget(target)" in gallery
+    assert "const focused = _gridThumbIndexFromTarget(target);" in gallery
+    assert "galleryGridSelect(focused >= 0 ? focused : galleryGridIdx);" in gallery
+    # Arrows move the SHEET selection; the individual view (galleryIdx) is only
+    # committed by galleryGridSelect().
+    assert "galleryGridIdx = Math.max(0, Math.min(galleryEntries.length - 1, galleryGridIdx + step));" in gallery
     assert ": e.key === 'ArrowUp' ? -galleryGridCols" in gallery
     assert ": e.key === 'ArrowDown' ? galleryGridCols" in gallery
     # No badges on the thumbs (decision) and no shortcut for the sheet.
     assert "gallery-thumb-badge" not in gallery
     assert "galleryGridBadge" not in gallery
+
+
+def test_sheet_selection_does_not_touch_the_individual_view():
+    gallery = _read("static", "js", "gallery.js")
+    # A dedicated selection index, initialised from the shown entry.
+    assert "let galleryGridIdx = -1;" in gallery
+    assert "galleryGridIdx = galleryIdx;" in gallery
+    assert "galleryIdx = i;\n  galleryGridIdx = i;" in gallery
+    # The ring, title and counter follow the sheet selection.
+    assert "Number(tile.dataset.index) === galleryGridIdx" in gallery
+    assert "const idx = galleryGridIdx >= 0 ? galleryGridIdx : galleryIdx;" in gallery
+    assert "_paintGalleryCounter(galleryGridIdx);" in gallery
+    # Closing without picking drops the sheet selection and restores the
+    # individual view's counter.
+    assert "galleryGridIdx = -1; // closing without picking discards the sheet selection" in gallery
+    assert "_paintGalleryCounter(galleryIdx); // and restores the individual view's N/M" in gallery
+    # Opening moves the focus into the sheet; cancelling returns it to the
+    # visible counter.
+    assert "active.focus({ preventScroll: true });" in gallery
+    assert "galleryCounter.focus({ preventScroll: true });" in gallery
+
+
+def test_native_fullscreen_exit_runs_the_full_close():
+    gallery = _read("static", "js", "gallery.js")
+    # Both the explicit close and the browser fullscreen exit share one helper.
+    assert "function _finalizeGalleryClose()" in gallery
+    assert "_finalizeGalleryClose();" in gallery
+    assert "let _galleryClosePending = false;" in gallery
+    # Escape in native fullscreen never reaches keydown: the fullscreenchange
+    # path must close the sheet, apply the picked entry and clear the flags.
+    assert "const wasOpen = galleryOverlay.classList.contains('show') || _galleryClosePending;" in gallery
+    assert "if (_galleryClosePending) {" in gallery
+    assert "closeGalleryGrid(false); // the sheet never survives the overlay" in gallery
+    assert "const repaintTab = _paneRepaintOnClose;" in gallery
+    assert "renderPane(repaintTab);" in gallery
 
 def test_video_thumbs_use_the_source_image_as_poster():
     video = _read("static", "js", "video.js")

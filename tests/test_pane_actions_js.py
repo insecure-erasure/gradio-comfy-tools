@@ -87,12 +87,20 @@ def test_pane_actions_are_wired():
     assert "if (paneActionBlocked()) return;\n  if (!paneGalleryCount(tab)) {" in gallery
     assert "async function openPaneGrid(tab)" in gallery
     assert "showToast('Nothing to show yet')" in gallery
-    # The sheet knows where it came from.
+    # The sheet knows where it came from and KEEPS it across close/reopen
+    # (the counter is also the toggle).
     assert "let _paneGridTab = null;" in gallery
     assert "function openGalleryGrid(fromPane)" in gallery
     assert "_paneGridTab = fromPane || null;" in gallery
-    # The in-gallery counter keeps the fullscreen behaviour (no pane origin).
-    assert "function toggleGalleryGrid() {\n  if (galleryGridOpen) closeGalleryGrid();\n  else openGalleryGrid();" in gallery
+    assert "function toggleGalleryGrid() {\n  // Keep the pane origin across a close/reopen of the sheet.\n  if (galleryGridOpen) closeGalleryGrid();\n  else openGalleryGrid(_paneGridTab);\n}" in gallery
+
+
+def test_toggling_the_sheet_keeps_the_pane_origin():
+    gallery = _read("static", "js", "gallery.js")
+    # closeGalleryGrid() leaves _paneGridTab intact; reopening passes it back so
+    # a thumb picked after toggling still returns to the pane.
+    assert "else openGalleryGrid(_paneGridTab);" in gallery
+    assert "_paneGridTab = null; // a closed gallery never keeps the pane origin" in gallery
 
 
 def test_picking_from_the_pane_sheet_returns_to_the_pane():
@@ -103,6 +111,9 @@ def test_picking_from_the_pane_sheet_returns_to_the_pane():
     assert "closeGallery(); // clears _paneGridTab and restores the pane" in gallery
     assert "if (idx >= 0) renderPane(fromPane);" in gallery
     assert "syncPaneNav(fromPane);" in gallery
+    # Focus returns to the pane the pick landed in.
+    assert "const pane = document.getElementById(paneId);" in gallery
+    assert "pane.focus({ preventScroll: true });" in gallery
     # Compare entries are matched by reference OR url/filename (collected copy).
     assert "absUrl(x.src) === absUrl(chosen.src)" in gallery
     assert "x.filename === chosen.filename" in gallery

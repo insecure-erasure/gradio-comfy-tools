@@ -1055,11 +1055,17 @@ push events, so nothing is hidden by age and nothing polls:
   sets that entry as the tab's pane selection (`paneIdx[tab]`,
   `_paneRepaintOnClose`), so **leaving fullscreen shows the picked image in
   the pane** (✕/Esc/backdrop included). Plain ‹ › navigation still leaves the
-  pane untouched. The counter toggles it; `Esc`/click on the sheet's empty
-  area close only the sheet, and the individual-view controls (‹ ›, ℹ️, 🗑️,
+  pane untouched. The counter toggles it; a click on the sheet's empty area
+  closes only the sheet, and the individual-view controls (‹ ›, ℹ️, 🗑️,
   extend toggle, badge) are hidden while it is open. With the sheet open the
-  arrows move by one (←/→) or by a row (↑/↓), `Enter`/`Space` opens the
-  selection; other keys are ignored.
+  arrows move the sheet **selection** by one (←/→) or by a row (↑/↓) without
+  touching the individual view; `Enter`/`Space` opens the focused tile (or the
+  active one). Closing the sheet without picking discards that selection. The
+  bottom N/M pill follows the sheet selection while it is open and returns to
+  the individual view's position when it closes. **Escape is owned by the
+  browser in native fullscreen**: it exits fullscreen and closes the whole
+  gallery, not just the sheet; without native fullscreen the keydown handler
+  closes only the sheet.
 - **Pane ‹ › navigation (normal view)**: each tool's output pane shows its
   gallery's most recent entry; when the tool's gallery holds more than one
   entry, ‹ › buttons appear vertically centered on the pane's sides
@@ -1096,7 +1102,9 @@ push events, so nothing is hidden by age and nothing polls:
   **thumbnail sheet** (§7.1); picking a thumb then **closes the overlay and
   paints that entry IN THE PANE** (it sets `paneIdx[tab]`, closes the gallery
   and calls `renderPane`), never the fullscreen individual view — that is
-  reserved for the in-gallery counter. While a generation runs, ℹ️ is hidden
+  reserved for the in-gallery counter. Closing and reopening the sheet with
+  the counter keeps that pane origin, so the next pick still returns to the
+  pane. While a generation runs, ℹ️ is hidden
   (the pane shows the live preview, so there is no result to describe) but
   **🗑️ and the N/M counter stay visible** like the other overlay buttons
   (📁/🔗/🕘/⛶); their handlers refuse with a «Generation in progress…» toast

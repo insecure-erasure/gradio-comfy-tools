@@ -318,8 +318,9 @@ function _stampLastEntryDuration(tab, durationSecs) {
 
 // ── Open / close ───────────────────────────
 function openGalleryOverlay() {
-  closeGalleryGrid(); // always open on the individual view
+  closeGalleryGrid(false); // always open on the individual view
   _paneRepaintOnClose = null;
+  _galleryClosePending = false;
   galleryOverlay.classList.add('show');
   // Fullscreen the OVERLAY element (not documentElement): it is already
   // position:fixed inset:0, so the browser expands it to the window without
@@ -352,9 +353,15 @@ function closeTextBoxes() {
   return changed;
 }
 
-function closeGallery() {
+// Final cleanup shared by an explicit close (✕ / backdrop / keydown) and by
+// the browser leaving fullscreen. Escape in native fullscreen is consumed by
+// the UA (Chrome/Firefox never dispatch keydown), so the fullscreenchange
+// path must be able to finish the close on its own. This helper never touches
+// the Fullscreen API, so both callers can use it without re-entering
+// exitFullscreen.
+function _finalizeGalleryClose() {
   _paneGridTab = null; // a closed gallery never keeps the pane origin
-  closeGalleryGrid(); // the sheet never survives the overlay
+  closeGalleryGrid(false); // the sheet never survives the overlay
   closeBadgeBox(); // a badge box opened by click must not survive the close
   closeGalleryInfo(); // an info panel must not linger over the next opening
   configureGalleryExtendToggle(false);
@@ -363,12 +370,6 @@ function closeGallery() {
   // wrap. The pane's own player/result is untouched — closing the gallery
   // must not destroy the tool's last generation.
   if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
-  if (document.fullscreenElement || document.webkitFullscreenElement) {
-    try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
-    try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
-  } else {
-    galleryOverlay.classList.remove('show');
-  }
   galleryMode = null;
   // After closing, make sure the ACTIVE tool's pane still shows its last
   // generation (it normally does — the overlay never touches the pane — but
@@ -389,18 +390,35 @@ function closeGallery() {
   }
 }
 
+// closeGallery() requested a native-fullscreen exit; its fullscreenchange
+// event will fire later and must NOT finalize a second time.
+let _galleryClosePending = false;
+
+function closeGallery() {
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    _galleryClosePending = true;
+    try { document.exitFullscreen && document.exitFullscreen(); } catch (e) {}
+    try { document.webkitExitFullscreen && document.webkitExitFullscreen(); } catch (e) {}
+  } else {
+    galleryOverlay.classList.remove('show');
+  }
+  _finalizeGalleryClose();
+}
+
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev =>
   document.addEventListener(ev, () => {
-    if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
-      galleryOverlay.classList.remove('show');
-      galleryMode = null;
-      closeBadgeBox();
-      closeGalleryInfo();
-      resetGalleryZoom();
-      if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
-      if (typeof restoreTabResultChecked === 'function' && currentTab) restoreTabResultChecked(currentTab);
-      else if (typeof restoreTabResult === 'function' && currentTab) restoreTabResult(currentTab);
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const wasOpen = galleryOverlay.classList.contains('show') || _galleryClosePending;
+    if (!wasOpen) return; // another element's fullscreen ended
+    galleryOverlay.classList.remove('show');
+    if (_galleryClosePending) {
+      _galleryClosePending = false; // closeGallery() already finalized it
+      return;
     }
+    // Escape in native fullscreen never reaches keydown (Chrome/Firefox):
+    // finalize here so a picked thumb still lands in the pane and no state
+    // (sheet, flags, player) survives the exit.
+    _finalizeGalleryClose();
   })
 );
 
@@ -572,6 +590,16 @@ function configureGalleryExtendToggle(enabled, resultLabel) {
   if (on) setGalleryExtendView(false); // default: show the result side
 }
 
+// Paint the bottom-right N/M pill. While the sheet is open the pill follows
+// the sheet SELECTION (galleryGridIdx); the individual view keeps using
+// galleryIdx, so closing the sheet restores the pill to what is shown.
+function _paintGalleryCounter(idx) {
+  if (!galleryCounter || !galleryEntries.length || idx < 0) return;
+  const text = (idx + 1) + '/' + galleryEntries.length;
+  if (galleryCounterText) galleryCounterText.textContent = text;
+  else galleryCounter.textContent = text;
+}
+
 // ── Render the current gallery item ────────
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
@@ -635,11 +663,7 @@ function renderGalleryItem() {
   galleryPrevBtn.disabled = !multi;
   galleryNextBtn.disabled = !multi;
   galleryCounter.style.display = 'flex';
-  if (galleryCounterText) {
-    galleryCounterText.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
-  } else {
-    galleryCounter.textContent = (galleryIdx + 1) + '/' + galleryEntries.length;
-  }
+  _paintGalleryCounter(galleryIdx);
   syncGalleryGrid(); // rebuilds when the entry count changes, else syncs active
 }
 
@@ -656,6 +680,10 @@ function renderGalleryItem() {
 // so scrolling/decoding never restarts.
 let galleryGridOpen = false;
 let galleryGridCols = 1;
+// Keyboard/tap selection INSIDE the sheet. It is deliberately separate from
+// galleryIdx (the individual view): moving with the arrows must not change
+// what the big view/trash/info act on until a thumb is actually picked.
+let galleryGridIdx = -1;
 let _galleryGridSignature = '';
 // When the sheet was opened from a PANE (▦ button), picking a thumb must land
 // in the pane — not in the fullscreen individual view. Holds the tab.
@@ -683,7 +711,17 @@ function galleryGridMetricsNow(n) {
 
 function galleryGridTitleText() {
   const label = galleryMode === 'video' ? 'Videos' : 'Images';
-  return `${label} · ${galleryIdx + 1}/${galleryEntries.length}`;
+  const idx = galleryGridIdx >= 0 ? galleryGridIdx : galleryIdx;
+  return `${label} · ${idx + 1}/${galleryEntries.length}`;
+}
+
+// Tile under the keyboard focus, or -1 when the focus is elsewhere (counter,
+// document, etc.). Used by Enter/Space so a focused thumb is what opens.
+function _gridThumbIndexFromTarget(target) {
+  const tile = target && target.closest ? target.closest('.gallery-thumb') : null;
+  if (!tile) return -1;
+  const idx = Number(tile.dataset.index);
+  return Number.isInteger(idx) ? idx : -1;
 }
 
 // Drop the observer, the pending queue and the counters (closing the sheet or
@@ -746,6 +784,9 @@ function _observeGridTiles(tiles) {
 function renderGalleryGrid() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
   const n = galleryEntries.length;
+  if (!n) return;
+  // Keep the sheet selection valid across rebuilds (e.g. a media deletion).
+  if (galleryGridIdx < 0 || galleryGridIdx >= n) galleryGridIdx = n - 1;
   const m = galleryGridMetricsNow(n);
   galleryGridCols = m.cols;
   _galleryGridSignature = galleryMode + ':' + n;
@@ -758,10 +799,10 @@ function renderGalleryGrid() {
   galleryEntries.forEach((e, i) => {
     const tile = document.createElement('button');
     tile.type = 'button';
-    tile.className = 'gallery-thumb' + (i === galleryIdx ? ' active' : '');
+    tile.className = 'gallery-thumb' + (i === galleryGridIdx ? ' active' : '');
     tile.dataset.index = String(i);
     tile.setAttribute('aria-label', `Open ${i + 1} of ${n}`);
-    tile.setAttribute('aria-current', i === galleryIdx ? 'true' : 'false');
+    tile.setAttribute('aria-current', i === galleryGridIdx ? 'true' : 'false');
     if (galleryMode === 'video') {
       // No <video> here on purpose: decoding N MP4s would be slow and heavy.
       // The poster is the SOURCE image the video was generated from (stored
@@ -810,6 +851,7 @@ function renderGalleryGrid() {
   });
   _observeGridTiles(imageTiles);
   _scrollActiveThumbIntoView(m.scroll);
+  _paintGalleryCounter(galleryGridIdx);
 }
 
 // Re-layout WITHOUT rebuilding: update the cell size and the title, keep the
@@ -836,11 +878,12 @@ function _scrollActiveThumbIntoView(force) {
 function syncGalleryGridActive() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
   galleryGridThumbs.querySelectorAll('.gallery-thumb').forEach(tile => {
-    const on = Number(tile.dataset.index) === galleryIdx;
+    const on = Number(tile.dataset.index) === galleryGridIdx;
     tile.classList.toggle('active', on);
     tile.setAttribute('aria-current', on ? 'true' : 'false');
   });
   if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+  _paintGalleryCounter(galleryGridIdx);
   _scrollActiveThumbIntoView(false);
 }
 
@@ -863,6 +906,9 @@ function openGalleryGrid(fromPane) {
   _paneGridTab = fromPane || null;
   closeTextBoxes(); // one panel at a time
   galleryGridOpen = true;
+  // Start on the entry the individual view is showing. Arrows move this
+  // index only; galleryIdx is committed by galleryGridSelect().
+  galleryGridIdx = galleryIdx;
   galleryGrid.classList.add('show');
   galleryGrid.setAttribute('aria-hidden', 'false');
   galleryOverlay.classList.add('grid-open');
@@ -873,10 +919,16 @@ function openGalleryGrid(fromPane) {
     if (video) video.pause();
   }
   renderGalleryGrid();
+  // Move the keyboard focus into the sheet, on the active tile.
+  const active = galleryGridThumbs && galleryGridThumbs.querySelector('.gallery-thumb.active');
+  if (active && typeof active.focus === 'function') {
+    try { active.focus({ preventScroll: true }); } catch (e) { active.focus(); }
+  }
 }
 
-function closeGalleryGrid() {
+function closeGalleryGrid(restoreFocus = true) {
   if (!galleryGridOpen) return;
+  const focusInsideGrid = !!(galleryGrid && galleryGrid.contains(document.activeElement));
   galleryGridOpen = false;
   if (galleryGrid) {
     galleryGrid.classList.remove('show');
@@ -888,11 +940,19 @@ function closeGalleryGrid() {
   _resetGridLoader();
   if (galleryGridThumbs) galleryGridThumbs.innerHTML = '';
   _galleryGridSignature = '';
+  galleryGridIdx = -1; // closing without picking discards the sheet selection
+  _paintGalleryCounter(galleryIdx); // and restores the individual view's N/M
+  // Escape/empty-area/toggle closes keep the focus on a visible control.
+  if (restoreFocus && focusInsideGrid && galleryCounter
+      && typeof galleryCounter.focus === 'function') {
+    try { galleryCounter.focus({ preventScroll: true }); } catch (e) { galleryCounter.focus(); }
+  }
 }
 
 function toggleGalleryGrid() {
+  // Keep the pane origin across a close/reopen of the sheet.
   if (galleryGridOpen) closeGalleryGrid();
-  else openGalleryGrid();
+  else openGalleryGrid(_paneGridTab);
 }
 
 // Entries of a tab's pane gallery (the registries the pane navigates).
@@ -925,7 +985,8 @@ function galleryGridSelect(i) {
   const fromPane = _paneGridTab;
   const chosen = galleryEntries[i];
   galleryIdx = i;
-  closeGalleryGrid();
+  galleryGridIdx = i;
+  closeGalleryGrid(false); // a pick is committing, not cancelling
   if (fromPane) {
     // Opened from the pane's N/M button: paint the pane right away.
     const idx = paneIndexOfEntry(fromPane, chosen);
@@ -933,6 +994,13 @@ function galleryGridSelect(i) {
     closeGallery(); // clears _paneGridTab and restores the pane
     if (idx >= 0) renderPane(fromPane);
     if (typeof syncPaneNav === 'function') syncPaneNav(fromPane);
+    // Keep the keyboard in the pane the pick returned to.
+    const paneId = (typeof TAB_PANE_IDS !== 'undefined' && TAB_PANE_IDS[fromPane])
+      || (fromPane + 'OutputPane');
+    const pane = document.getElementById(paneId);
+    if (pane && typeof pane.focus === 'function') {
+      try { pane.focus({ preventScroll: true }); } catch (e) { pane.focus(); }
+    }
     return;
   }
   // Opened from the in-gallery counter: the pick must be what the pane shows
@@ -951,6 +1019,9 @@ function galleryGridSelect(i) {
   }
   resetGalleryZoom();
   renderGalleryItem();
+  if (galleryCounter && typeof galleryCounter.focus === 'function') {
+    try { galleryCounter.focus({ preventScroll: true }); } catch (e) { galleryCounter.focus(); }
+  }
 }
 
 // ▦ in a pane: open this tool's gallery positioned on the shown entry and go
@@ -2117,13 +2188,15 @@ document.addEventListener('keydown', e => {
     return;
   }
   // Thumbnail grid: Escape closes it (not the gallery), arrows move the
-  // selection by one / by a row and Enter (or Space) opens it. Any other key
-  // is ignored so the sheet never triggers the individual-view shortcuts.
+  // sheet SELECTION by one / by a row and Enter (or Space) opens the focused
+  // tile (falling back to the active one). The individual view is not touched
+  // until a tile is actually picked.
   if (galleryGridOpen) {
     if (e.key === 'Escape') { e.preventDefault(); closeGalleryGrid(); return; }
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      galleryGridSelect(galleryIdx);
+      const focused = _gridThumbIndexFromTarget(target);
+      galleryGridSelect(focused >= 0 ? focused : galleryGridIdx);
       return;
     }
     const step = e.key === 'ArrowLeft' ? -1
@@ -2133,7 +2206,7 @@ document.addEventListener('keydown', e => {
       : 0;
     if (step) {
       e.preventDefault();
-      galleryIdx = Math.max(0, Math.min(galleryEntries.length - 1, galleryIdx + step));
+      galleryGridIdx = Math.max(0, Math.min(galleryEntries.length - 1, galleryGridIdx + step));
       syncGalleryGrid();
     }
     return;
