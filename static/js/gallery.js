@@ -689,6 +689,9 @@ function renderGalleryItem() {
 let galleryGridOpen = false;
 let galleryGridCols = 1;
 let _galleryGridMode = null;
+// Window of entries currently rendered in the sheet (max 3×4 / 4×5 / 5×6).
+let _galleryGridStart = 0;
+let _galleryGridEnd = 0;
 // Keyboard/tap selection INSIDE the sheet. It is deliberately separate from
 // galleryIdx (the individual view): moving with the arrows must not change
 // what the big view/trash/info act on until a thumb is actually picked.
@@ -712,17 +715,36 @@ let _gridInFlight = 0;
 function galleryGridMetricsNow(n) {
   // The grid's box = viewport − top bar (58) − padding (16/16). The container
   // is inset the same way in CSS, and visualViewport covers the mobile URL bar
-  // changing height while the gallery is open.
+  // changing height while the gallery is open. The limits cap the number of
+  // cells actually rendered (3×4 portrait, 4×5 landscape, 5×6 wide).
   const vv = window.visualViewport;
   const width = (vv && vv.width) || window.innerWidth || 0;
   const height = (vv && vv.height) || window.innerHeight || 0;
-  return galleryGridMetrics(n, Math.max(0, width - 32), Math.max(0, height - 58 - 16));
+  const boxW = Math.max(0, width - 32);
+  const boxH = Math.max(0, height - 58 - 16);
+  return galleryGridMetrics(n, boxW, boxH, galleryGridLimits(boxW, boxH));
 }
 
 function galleryGridTitleText() {
   const label = galleryMode === 'video' ? 'Videos' : 'Images';
   const idx = galleryGridIdx >= 0 ? galleryGridIdx : galleryIdx;
-  return `${label} · ${idx + 1}/${galleryEntries.length}`;
+  const total = galleryEntries.length;
+  const shown = _galleryGridEnd - _galleryGridStart;
+  const range = shown > 0 && shown < total
+    ? ` · ${_galleryGridStart + 1}-${_galleryGridEnd}`
+    : '';
+  return `${label} · ${idx + 1}/${total}${range}`;
+}
+
+// First entry of the capped window. It follows the current selection, so a
+// gallery larger than the cap shows the entries around what the user is
+// looking at instead of always the first/last N.
+function _galleryGridWindowStart(n, idx, cap) {
+  const size = Math.max(1, Math.min(n, cap));
+  if (n <= size) return 0;
+  const i = idx < 0 ? n - 1 : Math.max(0, Math.min(n - 1, idx));
+  const half = Math.floor(size / 2);
+  return Math.max(0, Math.min(n - size, i - half));
 }
 
 // Tile under the keyboard focus, or -1 when the focus is elsewhere (counter,
@@ -892,6 +914,8 @@ function renderGalleryGrid() {
   if (galleryGridIdx < 0 || galleryGridIdx >= n) galleryGridIdx = n - 1;
   const m = galleryGridMetricsNow(n);
   galleryGridCols = m.cols;
+  _galleryGridStart = _galleryGridWindowStart(n, galleryGridIdx, m.shown);
+  _galleryGridEnd = Math.min(n, _galleryGridStart + m.shown);
   _galleryGridMode = galleryMode;
   _galleryGridSignature = galleryGridSignature();
   galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
@@ -900,13 +924,14 @@ function renderGalleryGrid() {
   _resetGridLoader();
   galleryGridThumbs.innerHTML = '';
   const imageTiles = [];
-  galleryEntries.forEach((e, i) => {
+  for (let i = _galleryGridStart; i < _galleryGridEnd; i++) {
+    const e = galleryEntries[i];
     const key = galleryGridEntryKey(e);
     const built = _createGalleryThumb(e, i, n, key);
     _updateGalleryThumb(built.tile, i, n, key);
     galleryGridThumbs.appendChild(built.tile);
     if (built.imageTile) imageTiles.push(built.imageTile);
-  });
+  }
   _observeGridTiles(imageTiles);
   _scrollActiveThumbIntoView(m.scroll);
   _paintGalleryCounter(galleryGridIdx);
@@ -924,6 +949,8 @@ function reconcileGalleryGrid() {
   if (galleryGridIdx < 0 || galleryGridIdx >= n) galleryGridIdx = n - 1;
   const m = galleryGridMetricsNow(n);
   galleryGridCols = m.cols;
+  _galleryGridStart = _galleryGridWindowStart(n, galleryGridIdx, m.shown);
+  _galleryGridEnd = Math.min(n, _galleryGridStart + m.shown);
   galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
   galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
   if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
@@ -937,7 +964,8 @@ function reconcileGalleryGrid() {
   });
   const keep = new Set();
   const imageTiles = [];
-  galleryEntries.forEach((e, i) => {
+  for (let i = _galleryGridStart; i < _galleryGridEnd; i++) {
+    const e = galleryEntries[i];
     const key = galleryGridEntryKey(e);
     let tile = byKey.get(key);
     if (tile) {
@@ -948,14 +976,14 @@ function reconcileGalleryGrid() {
     }
     keep.add(tile);
     _updateGalleryThumb(tile, i, n, key);
-    const current = galleryGridThumbs.children[i];
+    const current = galleryGridThumbs.children[i - _galleryGridStart];
     if (current !== tile) galleryGridThumbs.insertBefore(tile, current || null);
     // Observe only tiles that still need their image (a preserved loaded
     // tile keeps its decoded bitmap and must not be requested again).
     if (tile._gridThumb && !tile._gridThumb.img.getAttribute('src')) {
       imageTiles.push({ tile, img: tile._gridThumb.img, url: tile._gridThumb.url });
     }
-  });
+  }
   oldTiles.forEach(tile => { if (!keep.has(tile)) tile.remove(); });
   _observeGridTiles(imageTiles);
   _scrollActiveThumbIntoView(false);
@@ -964,16 +992,11 @@ function reconcileGalleryGrid() {
   _galleryGridSignature = galleryGridSignature();
 }
 
-// Re-layout WITHOUT rebuilding: update the cell size and the title, keep the
-// already-rendered tiles (and their loaded images / scroll position).
+// Resize/orientation can change the limit itself (portrait 3×4 ↔ landscape
+// 4×5 ↔ wide 5×6), so re-window in place instead of only changing CSS sizes.
 function layoutGalleryGrid() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
-  const m = galleryGridMetricsNow(galleryEntries.length);
-  galleryGridCols = m.cols;
-  galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
-  galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
-  if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
-  _scrollActiveThumbIntoView(false);
+  reconcileGalleryGrid();
 }
 
 function _scrollActiveThumbIntoView(force) {
@@ -987,6 +1010,11 @@ function _scrollActiveThumbIntoView(force) {
 
 function syncGalleryGridActive() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
+  // The arrows can move the selection past the capped window: recenter it.
+  if (galleryGridIdx < _galleryGridStart || galleryGridIdx >= _galleryGridEnd) {
+    reconcileGalleryGrid();
+    return;
+  }
   galleryGridThumbs.querySelectorAll('.gallery-thumb').forEach(tile => {
     const on = Number(tile.dataset.index) === galleryGridIdx;
     tile.classList.toggle('active', on);
@@ -1055,6 +1083,8 @@ function closeGalleryGrid(restoreFocus = true, renderPending = true) {
   if (galleryGridThumbs) galleryGridThumbs.innerHTML = '';
   _galleryGridSignature = '';
   _galleryGridMode = null;
+  _galleryGridStart = 0;
+  _galleryGridEnd = 0;
   galleryGridIdx = -1; // closing without picking discards the sheet selection
   _paintGalleryCounter(galleryIdx); // and restores the individual view's N/M
   // Opened from the pane without a full render: closing the sheet without

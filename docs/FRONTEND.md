@@ -1019,16 +1019,24 @@ push events, so nothing is hidden by age and nothing polls:
   (no icon) that
   turns the overlay into a **contact sheet** of the CURRENT gallery
   (`galleryGenerated` / this tool's `galleryComparisons` / `galleryVideos`) —
-  it fills the visible area (not a small popover). Cell size comes from
-  `galleryGridMetrics()` (`static/js/gallery-grid.js`):
-  `cols = clamp(round(sqrt(n · W/H)), 1, 8)` then clamped by width
+  it fills the visible area (not a small popover). The number of cells is
+  **capped** by `galleryGridLimits()` / `galleryGridMetrics()`
+  (`static/js/gallery-grid.js`): **3×4** on portrait/mobile, **4×5** on
+  landscape and **5×6** on landscape boxes where a 5×6 cell still keeps
+  ≥96 px. The sheet renders only a **window** of at most that many entries,
+  centered on the current selection (`_galleryGridWindowStart`), so a
+  300-image gallery never becomes a wall of thumbnails; the title shows the
+  window range (e.g. `Images · 12/40 · 5-16`) while the counter keeps
+  `current/total`. Within the cap:
+  `cols = clamp(round(sqrt(shown · W/H)), 1, colsCap)` then clamped by width
   (`floor((W+g)/(MIN+g))`, so it never overflows sideways on phones),
-  `rows = ceil(n/cols)` and
+  `rows = ceil(shown/cols)` (widened when needed to stay within maxRows) and
   `cell = clamp(min(...), MIN 64, MAX 200)`; if MIN does not fit the grid
   **scrolls vertically** (never below 64 px, never horizontal scroll). It
   recomputes on `resize`, `orientationchange` and `visualViewport` resize
   (the mobile URL bar changes the visible box; the overlay uses `100dvh` and
-  `env(safe-area-inset-*)`). Cells are **uniform with `object-fit: cover`**
+  `env(safe-area-inset-*)`); a resize also re-windows in place, it never
+  rebuilds the whole sheet. Cells are **uniform with `object-fit: cover`**
   (fill the cell, crop the edges) so mixed orientations never reflow the
   layout; an incomplete last row stays centered (`flex-wrap` + `justify:
   center`). Video entries use the **source image the video was generated

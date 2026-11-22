@@ -10,7 +10,7 @@ const assert = require('assert');
 const SRC = path.join(__dirname, '..', '..', 'static', 'js', 'gallery-grid.js');
 vm.runInThisContext(fs.readFileSync(SRC, 'utf8'), { filename: SRC });
 
-const { galleryGridMetrics } = global;
+const { galleryGridMetrics, galleryGridLimits } = global;
 
 // Boxes below are the AREA handed to the grid: viewport minus the top bar
 // (58px) and the horizontal/vertical padding (16px each side).
@@ -101,6 +101,60 @@ test('rows is exactly the rows needed at the chosen column count', () => {
     const m = galleryGridMetrics(n, PHONE.w, PHONE.h);
     assert.strictEqual(m.rows, Math.ceil(n / m.cols), 'n=' + n);
   }
+});
+
+
+test('caps: portrait 3x4, landscape 4x5, wide 5x6', () => {
+  assert.deepStrictEqual(galleryGridLimits(390, 844), { maxCols: 3, maxRows: 4 });
+  assert.deepStrictEqual(galleryGridLimits(1088, 556), { maxCols: 4, maxRows: 5 });
+  assert.deepStrictEqual(galleryGridLimits(1888, 1006), { maxCols: 5, maxRows: 6 });
+  // Portrait/square never gets the landscape cap.
+  assert.deepStrictEqual(galleryGridLimits(800, 800), { maxCols: 3, maxRows: 4 });
+});
+
+test('capped window: portrait shows at most 12 cells', () => {
+  const limits = galleryGridLimits(390, 844);
+  const m = galleryGridMetrics(24, PHONE.w, PHONE.h, limits);
+  assert.strictEqual(m.shown, 12);
+  assert.strictEqual(m.cols, 3);
+  assert.strictEqual(m.rows, 4);
+  assert.strictEqual(m.cell, 112);
+});
+
+test('capped window: landscape shows at most 20 cells', () => {
+  const limits = galleryGridLimits(1088, 556);
+  const m = galleryGridMetrics(30, DESKTOP.w, DESKTOP.h, limits);
+  assert.strictEqual(m.shown, 20);
+  assert.strictEqual(m.cols, 4);
+  assert.strictEqual(m.rows, 5);
+  assert.strictEqual(m.cell, 103);
+});
+
+test('capped window: wide landscape shows at most 30 cells', () => {
+  const limits = galleryGridLimits(1888, 1006);
+  const m = galleryGridMetrics(60, 1888, 1006, limits);
+  assert.strictEqual(m.shown, 30);
+  assert.strictEqual(m.cols, 5);
+  assert.strictEqual(m.rows, 6);
+  assert.strictEqual(m.cell, 159);
+});
+
+test('capped window respects the width clamp', () => {
+  const limits = galleryGridLimits(200, 800);
+  const m = galleryGridMetrics(24, 200, 800, limits);
+  assert.strictEqual(m.shown, 8);   // only 2 cols fit at MIN -> 2x4
+  assert.strictEqual(m.cols, 2);
+  assert.strictEqual(m.rows, 4);
+  assert.ok(m.cols * m.cell + (m.cols - 1) * m.gap <= 200);
+});
+
+test('capped window keeps counting only the shown entries', () => {
+  // Small galleries are not padded: shown === n and the old geometry applies.
+  const limits = galleryGridLimits(390, 844);
+  const m = galleryGridMetrics(5, PHONE.w, PHONE.h, limits);
+  assert.strictEqual(m.shown, 5);
+  assert.ok(m.rows <= limits.maxRows);
+  assert.strictEqual(m.rows, Math.ceil(m.shown / m.cols));
 });
 
 let failed = 0;

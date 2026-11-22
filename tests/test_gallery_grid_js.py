@@ -152,6 +152,26 @@ def test_loader_keeps_the_global_concurrency_cap():
     assert "timer = setTimeout(() => settle(false), GALLERY_GRID_TIMEOUT);" in gallery
 
 
+
+def test_sheet_caps_the_number_of_visible_thumbnails():
+    gallery = _read("static", "js", "gallery.js")
+    grid = _read("static", "js", "gallery-grid.js")
+    # 3x4 portrait / 4x5 landscape / 5x6 wide are pure geometry decisions.
+    assert "function galleryGridLimits(width, height)" in grid
+    assert "GALLERY_GRID_LIMITS_PORTRAIT" in grid
+    assert "GALLERY_GRID_LIMITS_LANDSCAPE" in grid
+    assert "GALLERY_GRID_LIMITS_WIDE" in grid
+    assert "GALLERY_GRID_WIDE_MIN_CELL = 96" in grid
+    # The UI renders only a window around the current entry, never all entries.
+    assert "let _galleryGridStart = 0;" in gallery
+    assert "function _galleryGridWindowStart(n, idx, cap)" in gallery
+    assert "const shown = _galleryGridEnd - _galleryGridStart;" in gallery
+    assert "for (let i = _galleryGridStart; i < _galleryGridEnd; i++)" in gallery
+    assert "galleryGridIdx < _galleryGridStart || galleryGridIdx >= _galleryGridEnd" in gallery
+    # A resize may change the cap (portrait <-> landscape <-> wide): re-window.
+    assert "function layoutGalleryGrid() {\n  if (!galleryGridOpen || !galleryGridThumbs) return;\n  reconcileGalleryGrid();" in gallery
+
+
 def test_keyboard_behaviour_in_the_sheet():
     gallery = _read("static", "js", "gallery.js")
     assert "if (galleryGridOpen) {" in gallery
