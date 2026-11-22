@@ -107,13 +107,15 @@ def test_pane_sheet_does_not_wait_for_the_full_verification():
     gallery = _read("static", "js", "gallery.js")
     # The pane ▦ path opens the sheet immediately; the openers receive
     # verify=false instead of awaiting verifyStoredGalleries(true).
-    assert "openGenerateLightbox(undefined, { verify: false })" in gallery
-    assert "openFaceSwapGallery({ verify: false })" in gallery
-    assert "openCompareFullscreen(tab, { verify: false })" in gallery
+    assert "openGenerateLightbox(undefined, { verify: false, render: false })" in gallery
+    assert "openFaceSwapGallery({ verify: false, render: false })" in gallery
+    assert "openCompareFullscreen(tab, { verify: false, render: false })" in gallery
+    assert "openVideoGallery({ render: false })" in gallery
     # The fullscreen buttons keep the blocking verification as the default.
-    assert "async function openGenerateLightbox(img, { verify = true } = {})" in gallery
-    assert "async function openFaceSwapGallery({ verify = true } = {})" in gallery
-    assert "async function openCompareFullscreen(kind, { verify = true } = {})" in gallery
+    assert "async function openGenerateLightbox(img, { verify = true, render = true } = {})" in gallery
+    assert "async function openFaceSwapGallery({ verify = true, render = true } = {})" in gallery
+    assert "async function openCompareFullscreen(kind, { verify = true, render = true } = {})" in gallery
+    assert "async function openVideoGallery({ render = true } = {})" in gallery
     # The probe starts AFTER the sheet is visible and is never awaited.
     assert "openGalleryGrid(tab);\n  // The sheet is already visible" in gallery
     assert "if (tab !== 'video') _verifyGalleriesInBackground();" in gallery
@@ -121,6 +123,25 @@ def test_pane_sheet_does_not_wait_for_the_full_verification():
     # Rapid reopenings share one background probe.
     assert "function _verifyGalleriesInBackground()" in gallery
     assert "if (_galleryVerifyPromise) return;" in gallery
+
+
+def test_pane_sheet_does_not_load_the_full_media_first():
+    gallery = _read("static", "js", "gallery.js")
+    # The openers can prepare the gallery state without setting galleryBig/
+    # galleryAfter src or creating a video player.
+    assert "let _galleryItemPending = false;" in gallery
+    assert "_galleryItemPending = !render;" in gallery
+    assert "if (render) renderGalleryItem();" in gallery
+    # Closing the sheet without picking paints the individual view then; a
+    # pick/overlay close must not render the full media first.
+    assert "function closeGalleryGrid(restoreFocus = true, renderPending = true)" in gallery
+    assert "if (renderPending && _galleryItemPending && galleryMode" in gallery
+    # A background dropMedia while the sheet is up must not load the full media
+    # behind it either.
+    assert "if (galleryGridOpen && _galleryItemPending) {" in gallery
+    assert "syncGalleryGrid();" in gallery
+    assert "closeGalleryGrid(false, false); // a pick is committing, not cancelling" in gallery
+    assert "closeGalleryGrid(false, false); // the sheet never survives the overlay" in gallery
 
 
 def test_picking_from_the_pane_sheet_returns_to_the_pane():

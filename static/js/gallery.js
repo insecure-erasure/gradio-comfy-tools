@@ -318,7 +318,7 @@ function _stampLastEntryDuration(tab, durationSecs) {
 
 // ── Open / close ───────────────────────────
 function openGalleryOverlay() {
-  closeGalleryGrid(false); // always open on the individual view
+  closeGalleryGrid(false, false); // always open on the individual view
   _paneRepaintOnClose = null;
   _galleryClosePending = false;
   galleryOverlay.classList.add('show');
@@ -361,7 +361,7 @@ function closeTextBoxes() {
 // exitFullscreen.
 function _finalizeGalleryClose() {
   _paneGridTab = null; // a closed gallery never keeps the pane origin
-  closeGalleryGrid(false); // the sheet never survives the overlay
+  closeGalleryGrid(false, false); // the sheet never survives the overlay
   closeBadgeBox(); // a badge box opened by click must not survive the close
   closeGalleryInfo(); // an info panel must not linger over the next opening
   configureGalleryExtendToggle(false);
@@ -371,6 +371,7 @@ function _finalizeGalleryClose() {
   // must not destroy the tool's last generation.
   if (galleryVideoWrap) { galleryVideoWrap.innerHTML = ''; galleryVideoWrap.style.display = 'none'; }
   galleryMode = null;
+  _galleryItemPending = false;
   // After closing, make sure the ACTIVE tool's pane still shows its last
   // generation (it normally does — the overlay never touches the pane — but
   // if the user deleted the shown entry via 🗑️, restore from the gallery).
@@ -600,10 +601,17 @@ function _paintGalleryCounter(idx) {
   else galleryCounter.textContent = text;
 }
 
+// True when a gallery was opened WITHOUT painting the individual item (the
+// pane ▦ path). If the sheet is then closed without picking, the individual
+// view must be painted before it becomes visible. Kept separate from
+// galleryIdx so nothing loads the full image/video while the sheet is up.
+let _galleryItemPending = false;
+
 // ── Render the current gallery item ────────
 function renderGalleryItem() {
   const e = galleryEntries[galleryIdx];
   if (!e) return;
+  _galleryItemPending = false;
   // Start clean: a badge box or info panel opened by click must not linger
   // when navigating to another entry.
   closeBadgeBox();
@@ -926,7 +934,7 @@ function openGalleryGrid(fromPane) {
   }
 }
 
-function closeGalleryGrid(restoreFocus = true) {
+function closeGalleryGrid(restoreFocus = true, renderPending = true) {
   if (!galleryGridOpen) return;
   const focusInsideGrid = !!(galleryGrid && galleryGrid.contains(document.activeElement));
   galleryGridOpen = false;
@@ -942,6 +950,13 @@ function closeGalleryGrid(restoreFocus = true) {
   _galleryGridSignature = '';
   galleryGridIdx = -1; // closing without picking discards the sheet selection
   _paintGalleryCounter(galleryIdx); // and restores the individual view's N/M
+  // Opened from the pane without a full render: closing the sheet without
+  // picking lands back in the individual view, so paint it now (and only now).
+  if (renderPending && _galleryItemPending && galleryMode
+      && galleryOverlay.classList.contains('show')) {
+    resetGalleryZoom();
+    renderGalleryItem();
+  }
   // Escape/empty-area/toggle closes keep the focus on a visible control.
   if (restoreFocus && focusInsideGrid && galleryCounter
       && typeof galleryCounter.focus === 'function') {
@@ -986,7 +1001,7 @@ function galleryGridSelect(i) {
   const chosen = galleryEntries[i];
   galleryIdx = i;
   galleryGridIdx = i;
-  closeGalleryGrid(false); // a pick is committing, not cancelling
+  closeGalleryGrid(false, false); // a pick is committing, not cancelling
   if (fromPane) {
     // Opened from the pane's N/M button: paint the pane right away.
     const idx = paneIndexOfEntry(fromPane, chosen);
@@ -1034,10 +1049,10 @@ async function openPaneGrid(tab) {
     showToast('Nothing to show yet');
     return;
   }
-  if (tab === 'generate') await openGenerateLightbox(undefined, { verify: false });
-  else if (tab === 'video') await openVideoGallery();
-  else if (tab === 'face_swap') await openFaceSwapGallery({ verify: false });
-  else await openCompareFullscreen(tab, { verify: false });
+  if (tab === 'generate') await openGenerateLightbox(undefined, { verify: false, render: false });
+  else if (tab === 'video') await openVideoGallery({ render: false });
+  else if (tab === 'face_swap') await openFaceSwapGallery({ verify: false, render: false });
+  else await openCompareFullscreen(tab, { verify: false, render: false });
   if (!galleryOverlay.classList.contains('show')) return; // the opener toasted
   openGalleryGrid(tab);
   // The sheet is already visible: probe the stored files in the background
@@ -1096,7 +1111,7 @@ function indexOfPaneEntry(collection, tab) {
 // so the history survives the pane only showing the last result. Called with
 // the clicked img (to position on it) or nothing (⛶ → the entry the pane
 // is currently showing, or the most recent).
-async function openGenerateLightbox(img, { verify = true } = {}) {
+async function openGenerateLightbox(img, { verify = true, render = true } = {}) {
   // Re-verify the persisted gallery against the server (cache-busted so a
   // file deleted mid-session is dropped before the overlay opens). Cheap:
   // one HEAD per unique filename, concurrency 5 — a few entries → <100ms.
@@ -1135,8 +1150,9 @@ async function openGenerateLightbox(img, { verify = true } = {}) {
     if (pi >= 0) idx = pi;
   }
   galleryIdx = idx;
+  _galleryItemPending = !render;
   resetGalleryZoom(); // opening always starts at 1x
-  renderGalleryItem();
+  if (render) renderGalleryItem();
   openGalleryOverlay();
 }
 
@@ -1144,7 +1160,7 @@ async function openGenerateLightbox(img, { verify = true } = {}) {
 // COMPARE gallery of this tab's before/after comparisons (kind
 // 'face_swap'), mirroring Edit/Upscale. Positions on the comparison the
 // pane is currently showing, like the other openers.
-async function openFaceSwapGallery({ verify = true } = {}) {
+async function openFaceSwapGallery({ verify = true, render = true } = {}) {
   if (verify) await verifyStoredGalleries(true); // drop dead files before showing
   const comps = collectCompareEntries().filter(c => c.kind === 'face_swap');
   if (!comps.length) return showToast('No face-swapped image yet');
@@ -1156,7 +1172,9 @@ async function openFaceSwapGallery({ verify = true } = {}) {
   galleryVideoWrap.style.display = 'none';
   const i = indexOfPaneEntry(comps, 'face_swap');
   galleryIdx = i >= 0 ? i : comps.length - 1;
-  renderGalleryItem();
+  _galleryItemPending = !render;
+  resetGalleryZoom();
+  if (render) renderGalleryItem();
   openGalleryOverlay();
 }
 
@@ -1166,7 +1184,7 @@ async function openFaceSwapGallery({ verify = true } = {}) {
 // (edited/restored/upscaled with a badge), it falls back to a lightbox of
 // those — so the button NEVER says "No comparison" while the tool has
 // gallery content.
-async function openCompareFullscreen(kind, { verify = true } = {}) {
+async function openCompareFullscreen(kind, { verify = true, render = true } = {}) {
   if (verify) await verifyStoredGalleries(true); // drop dead files before showing
   const tab = kind === 'upscale' ? 'upscale' : 'edit';
   // Comparisons belonging to THIS tool (the registry carries .tab; the DOM
@@ -1192,14 +1210,16 @@ async function openCompareFullscreen(kind, { verify = true } = {}) {
   // to the most recent one.
   const i = indexOfPaneEntry(comps, tab);
   galleryIdx = i >= 0 ? i : comps.length - 1;
-  renderGalleryItem();
+  _galleryItemPending = !render;
+  resetGalleryZoom();
+  if (render) renderGalleryItem();
   openGalleryOverlay();
 }
 
 // Video fullscreen: the ⛶ button on the Video tab opens the generated
 // videos gallery (window.galleryVideos) — the custom player fills the
 // overlay, ‹› navigates and the 🗑️ deletes the shown entry.
-async function openVideoGallery() {
+async function openVideoGallery({ render = true } = {}) {
   // NO existence verification here: videos are ComfyUI temp files that get
   // cleaned on server restart, and the user wants the gallery to show every
   // entry from the session/localStorage — a missing file just won't play.
@@ -1217,7 +1237,9 @@ async function openVideoGallery() {
   // recent one.
   const i = indexOfPaneEntry(all, 'video');
   galleryIdx = i >= 0 ? i : all.length - 1;
-  renderGalleryItem();
+  _galleryItemPending = !render;
+  resetGalleryZoom();
+  if (render) renderGalleryItem();
   openGalleryOverlay();
 }
 
@@ -1910,8 +1932,15 @@ function dropMedia(filenames, opts) {
       closeGallery();
     } else {
       if (galleryIdx >= galleryEntries.length) galleryIdx = galleryEntries.length - 1;
-      resetGalleryZoom();
-      renderGalleryItem(); // repaints N/M (galleryCounter)
+      if (galleryGridOpen && _galleryItemPending) {
+        // The pane ▦ path has not painted the individual view yet. Keep it
+        // that way while the sheet is up (no full image/video load behind
+        // it); the grid rebuild below updates the counter and thumbnails.
+        syncGalleryGrid();
+      } else {
+        resetGalleryZoom();
+        renderGalleryItem(); // repaints N/M (galleryCounter)
+      }
     }
   }
 

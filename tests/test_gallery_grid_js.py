@@ -69,7 +69,7 @@ def test_gallery_js_wiring():
     gallery = _read("static", "js", "gallery.js")
     for symbol in (
         "function openGalleryGrid(fromPane)",
-        "function closeGalleryGrid(restoreFocus = true)",
+        "function closeGalleryGrid(restoreFocus = true, renderPending = true)",
         "function toggleGalleryGrid()",
         "function renderGalleryGrid()",
         "function galleryGridSelect(i)",
@@ -87,8 +87,8 @@ def test_gallery_js_wiring():
     assert "closeGalleryGrid();" in gallery
     assert "resetGalleryZoom();\n  renderGalleryItem();" in gallery
     # The sheet never survives the overlay, and never opens with it.
-    assert "closeGalleryGrid(false); // the sheet never survives the overlay" in gallery
-    assert "closeGalleryGrid(false); // always open on the individual view" in gallery
+    assert "closeGalleryGrid(false, false); // the sheet never survives the overlay" in gallery
+    assert "closeGalleryGrid(false, false); // always open on the individual view" in gallery
     # Video tiles do not instantiate <video> (no decoding of N MP4s).
     assert "galleryMode === 'video'" in gallery
     assert "gallery-thumb-play" in gallery
@@ -162,7 +162,7 @@ def test_native_fullscreen_exit_runs_the_full_close():
     # path must close the sheet, apply the picked entry and clear the flags.
     assert "const wasOpen = galleryOverlay.classList.contains('show') || _galleryClosePending;" in gallery
     assert "if (_galleryClosePending) {" in gallery
-    assert "closeGalleryGrid(false); // the sheet never survives the overlay" in gallery
+    assert "closeGalleryGrid(false, false); // the sheet never survives the overlay" in gallery
     assert "const repaintTab = _paneRepaintOnClose;" in gallery
     assert "renderPane(repaintTab);" in gallery
 
