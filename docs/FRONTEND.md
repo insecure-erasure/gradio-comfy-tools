@@ -1148,7 +1148,11 @@ they are real:
    - `restoreTabResultChecked()` probes the entry a pane is about to
      restore (`GET /api/media-exists`, one cached HEAD);
    - `pruneSourceHistory(tab)` probes the 🕘 grid before it paints;
-   - opening an image/comparison gallery awaits `verifyStoredGalleries(true)`.
+   - opening an image/comparison gallery from a FULLSCREEN button awaits
+     `verifyStoredGalleries(true)`. The pane's ▦ path deliberately opens the
+     **thumbnail sheet first** and runs the same probe in the background, so
+     a slow ComfyUI never delays the first paint; `dropMedia()` still removes
+     a confirmed-missing entry from the open sheet, counter and pane.
    A confirmed-missing file goes through the same `dropMedia()`, so the
    pane restores the nearest survivor (or its idle state) instead of ever
    requesting a 404. An **inconclusive** probe (`unknown`: ComfyUI

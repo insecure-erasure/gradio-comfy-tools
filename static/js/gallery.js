@@ -1034,12 +1034,30 @@ async function openPaneGrid(tab) {
     showToast('Nothing to show yet');
     return;
   }
-  if (tab === 'generate') await openGenerateLightbox();
+  if (tab === 'generate') await openGenerateLightbox(undefined, { verify: false });
   else if (tab === 'video') await openVideoGallery();
-  else if (tab === 'face_swap') await openFaceSwapGallery();
-  else await openCompareFullscreen(tab);
+  else if (tab === 'face_swap') await openFaceSwapGallery({ verify: false });
+  else await openCompareFullscreen(tab, { verify: false });
   if (!galleryOverlay.classList.contains('show')) return; // the opener toasted
   openGalleryGrid(tab);
+  // The sheet is already visible: probe the stored files in the background
+  // so a slow ComfyUI can never delay the first paint. dropMedia() updates
+  // the open sheet, the counter and the pane if something is really gone.
+  if (tab !== 'video') _verifyGalleriesInBackground();
+}
+
+let _galleryVerifyPromise = null;
+// One background probe at a time. Opened from the pane's ▦ we deliberately do
+// not await verifyStoredGalleries(): it probes every stored file (HEADs with
+// concurrency 5) and used to delay the sheet. The fullscreen buttons keep the
+// blocking behavior (verify defaults to true in the openers).
+function _verifyGalleriesInBackground() {
+  if (typeof verifyStoredGalleries !== 'function') return;
+  if (_galleryVerifyPromise) return;
+  _galleryVerifyPromise = Promise.resolve()
+    .then(() => verifyStoredGalleries(true))
+    .catch(() => {})
+    .finally(() => { _galleryVerifyPromise = null; });
 }
 
 // Resize/orientation (and the mobile URL bar) change the visible box: only
@@ -1078,11 +1096,13 @@ function indexOfPaneEntry(collection, tab) {
 // so the history survives the pane only showing the last result. Called with
 // the clicked img (to position on it) or nothing (⛶ → the entry the pane
 // is currently showing, or the most recent).
-async function openGenerateLightbox(img) {
+async function openGenerateLightbox(img, { verify = true } = {}) {
   // Re-verify the persisted gallery against the server (cache-busted so a
   // file deleted mid-session is dropped before the overlay opens). Cheap:
   // one HEAD per unique filename, concurrency 5 — a few entries → <100ms.
-  await verifyStoredGalleries(true);
+  // The pane ▦ passes verify=false: it opens the sheet first and probes in
+  // the background (openPaneGrid → _verifyGalleriesInBackground).
+  if (verify) await verifyStoredGalleries(true);
   const all = window.galleryGenerated;
   if (!all.length) return showToast('Nothing to show yet');
   galleryMode = 'lightbox';
@@ -1124,8 +1144,8 @@ async function openGenerateLightbox(img) {
 // COMPARE gallery of this tab's before/after comparisons (kind
 // 'face_swap'), mirroring Edit/Upscale. Positions on the comparison the
 // pane is currently showing, like the other openers.
-async function openFaceSwapGallery() {
-  await verifyStoredGalleries(true); // drop dead files before showing
+async function openFaceSwapGallery({ verify = true } = {}) {
+  if (verify) await verifyStoredGalleries(true); // drop dead files before showing
   const comps = collectCompareEntries().filter(c => c.kind === 'face_swap');
   if (!comps.length) return showToast('No face-swapped image yet');
   galleryMode = 'compare';
@@ -1146,8 +1166,8 @@ async function openFaceSwapGallery() {
 // (edited/restored/upscaled with a badge), it falls back to a lightbox of
 // those — so the button NEVER says "No comparison" while the tool has
 // gallery content.
-async function openCompareFullscreen(kind) {
-  await verifyStoredGalleries(true); // drop dead files before showing
+async function openCompareFullscreen(kind, { verify = true } = {}) {
+  if (verify) await verifyStoredGalleries(true); // drop dead files before showing
   const tab = kind === 'upscale' ? 'upscale' : 'edit';
   // Comparisons belonging to THIS tool (the registry carries .tab; the DOM
   // fallback entries map kind → tab).

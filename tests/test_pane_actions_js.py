@@ -103,6 +103,26 @@ def test_toggling_the_sheet_keeps_the_pane_origin():
     assert "_paneGridTab = null; // a closed gallery never keeps the pane origin" in gallery
 
 
+def test_pane_sheet_does_not_wait_for_the_full_verification():
+    gallery = _read("static", "js", "gallery.js")
+    # The pane ▦ path opens the sheet immediately; the openers receive
+    # verify=false instead of awaiting verifyStoredGalleries(true).
+    assert "openGenerateLightbox(undefined, { verify: false })" in gallery
+    assert "openFaceSwapGallery({ verify: false })" in gallery
+    assert "openCompareFullscreen(tab, { verify: false })" in gallery
+    # The fullscreen buttons keep the blocking verification as the default.
+    assert "async function openGenerateLightbox(img, { verify = true } = {})" in gallery
+    assert "async function openFaceSwapGallery({ verify = true } = {})" in gallery
+    assert "async function openCompareFullscreen(kind, { verify = true } = {})" in gallery
+    # The probe starts AFTER the sheet is visible and is never awaited.
+    assert "openGalleryGrid(tab);\n  // The sheet is already visible" in gallery
+    assert "if (tab !== 'video') _verifyGalleriesInBackground();" in gallery
+    assert "await _verifyGalleriesInBackground" not in gallery
+    # Rapid reopenings share one background probe.
+    assert "function _verifyGalleriesInBackground()" in gallery
+    assert "if (_galleryVerifyPromise) return;" in gallery
+
+
 def test_picking_from_the_pane_sheet_returns_to_the_pane():
     gallery = _read("static", "js", "gallery.js")
     assert "function paneEntriesFor(tab)" in gallery
