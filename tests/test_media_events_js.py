@@ -62,6 +62,31 @@ def test_restore_probe_goes_through_drop_media_instead_of_splicing():
     assert "entries.splice(" not in storage
 
 
+
+def test_verify_probes_videos_and_last_sources():
+    storage = _read("static", "js", "storage.js")
+    block = storage[storage.index("async function verifyStoredGalleries("):]
+    block = block[: block.index("// Re-apply persisted per-tab params")]
+    # Videos and the last source per tool are part of the cold-start probe too;
+    # otherwise a deleted MP4 (or a dead source field) would survive forever.
+    assert "(window.galleryVideos || []).forEach(addEntry);" in block
+    assert "Object.values(typeof lastSourceByTab === 'object'" in block
+    # Old/recovered entries may only carry display/url instead of src.
+    assert "probes.add(e.src);" in block
+    assert "probes.add(e.display);" in block
+    assert "probes.add(e.url);" in block
+
+
+def test_video_gallery_verifies_and_the_pane_path_defers_it():
+    gallery = _read("static", "js", "gallery.js")
+    assert "async function openVideoGallery({ verify = true, render = true } = {})" in gallery
+    assert "if (verify) await verifyStoredGalleries(true); // drop dead videos before showing" in gallery
+    assert "openVideoGallery({ verify: false, render: false })" in gallery
+    # The pane ▦ path starts the background probe for every tool, video included.
+    assert "openGalleryGrid(tab);\n  // The sheet is already visible" in gallery
+    assert "\n  _verifyGalleriesInBackground();" in gallery
+
+
 def test_ws_events_client_drops_pushed_filenames():
     events = _read("static", "js", "media-events.js")
     assert "/ws/events" in events

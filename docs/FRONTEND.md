@@ -1131,10 +1131,12 @@ push events, so nothing is hidden by age and nothing polls:
   **🗑️ and the N/M counter stay visible** like the other overlay buttons
   (📁/🔗/🕘/⛶); their handlers refuse with a «Generation in progress…» toast
   (`paneActionBlocked()`).
-- **Video gallery (fullscreen ⛶)**: `openVideoGallery` shows
+- **Video gallery (fullscreen ⛶)**: `openVideoGallery` verifies the stored
+  videos (one `GET /api/media-exists` HEAD each) before showing
   `window.galleryVideos` in the overlay with the custom player (edge to
   edge) — ‹ › navigates, `Delete`/the 🗑️ deletes the shown entry, the N/M
-  counter is bottom-right. The badge is not shown in video mode, but the
+  counter is bottom-right. The pane ▦ path opens first and verifies in the
+  background. The badge is not shown in video mode, but the
   **ℹ️ info panel IS available** (button or `i`): resolution comes from the
   `<video>` element, while steps/samplers/schedulers/models/LoRAs and the
   prompt come from ComfyUI history (the endpoint skips downloading the MP4).
@@ -1170,17 +1172,18 @@ they are real:
    - `restoreTabResultChecked()` probes the entry a pane is about to
      restore (`GET /api/media-exists`, one cached HEAD);
    - `pruneSourceHistory(tab)` probes the 🕘 grid before it paints;
-   - opening an image/comparison gallery from a FULLSCREEN button awaits
-     `verifyStoredGalleries(true)`. The pane's ▦ path deliberately opens the
-     **thumbnail sheet first** and runs the same probe in the background, so
-     a slow ComfyUI never delays the first paint; `dropMedia()` still removes
-     a confirmed-missing entry from the open sheet, counter and pane.
+   - opening an image/comparison/video gallery from a FULLSCREEN button
+     awaits `verifyStoredGalleries(true)`. The pane's ▦ path deliberately
+     opens the **thumbnail sheet first** and runs the same probe in the
+     background, so a slow ComfyUI never delays the first paint;
+     `dropMedia()` still removes a confirmed-missing entry from the open
+     sheet, counter and pane.
    A confirmed-missing file goes through the same `dropMedia()`, so the
    pane restores the nearest survivor (or its idle state) instead of ever
    requesting a 404. An **inconclusive** probe (`unknown`: ComfyUI
    unreachable) keeps the entry — "cannot ask" is never "deleted".
-   Videos are NOT cold-probed (a missing video would simply not play), but a
-   confirmed event still drops them.
+   Videos are probed too: a missing MP4 is dropped from the video gallery,
+   the sheet, the pane and the persisted registries like an image.
 5. **Socket down?** An `error` on any `/media` image/video triggers ONE
    probe (bypassing the session cache) and drops only a confirmed-missing
    file.

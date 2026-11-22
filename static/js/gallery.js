@@ -1187,7 +1187,7 @@ async function openPaneGrid(tab) {
     return;
   }
   if (tab === 'generate') await openGenerateLightbox(undefined, { verify: false, render: false });
-  else if (tab === 'video') await openVideoGallery({ render: false });
+  else if (tab === 'video') await openVideoGallery({ verify: false, render: false });
   else if (tab === 'face_swap') await openFaceSwapGallery({ verify: false, render: false });
   else await openCompareFullscreen(tab, { verify: false, render: false });
   if (!galleryOverlay.classList.contains('show')) return; // the opener toasted
@@ -1195,7 +1195,7 @@ async function openPaneGrid(tab) {
   // The sheet is already visible: probe the stored files in the background
   // so a slow ComfyUI can never delay the first paint. dropMedia() updates
   // the open sheet, the counter and the pane if something is really gone.
-  if (tab !== 'video') _verifyGalleriesInBackground();
+  _verifyGalleriesInBackground();
 }
 
 let _galleryVerifyPromise = null;
@@ -1356,10 +1356,8 @@ async function openCompareFullscreen(kind, { verify = true, render = true } = {}
 // Video fullscreen: the ⛶ button on the Video tab opens the generated
 // videos gallery (window.galleryVideos) — the custom player fills the
 // overlay, ‹› navigates and the 🗑️ deletes the shown entry.
-async function openVideoGallery({ render = true } = {}) {
-  // NO existence verification here: videos are ComfyUI temp files that get
-  // cleaned on server restart, and the user wants the gallery to show every
-  // entry from the session/localStorage — a missing file just won't play.
+async function openVideoGallery({ verify = true, render = true } = {}) {
+  if (verify) await verifyStoredGalleries(true); // drop dead videos before showing
   const all = window.galleryVideos;
   if (!all.length) return showToast(NO_VIDEOS_MSG);
   galleryMode = 'video';

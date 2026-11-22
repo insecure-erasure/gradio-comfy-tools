@@ -262,19 +262,29 @@ async function pruneSourceHistory(tab) {
 }
 
 // One-shot validation of everything persisted: generated results, comparison
-// after/before sides and the 🕘 source history. Only CONFIRMED-missing files
-// are reported, and they all go through dropMedia() so the galleries' N/M,
-// the pane ‹ › navigation and the 🕘 grid update together (never a silent
-// splice that leaves the UI showing a ghost). Videos are NOT probed here
-// (a missing one would simply not play); confirmed deletions still drop
-// them through dropMedia().
+// after/before sides, generated videos, the last loaded source per tool and
+// the 🕘 source history. Only CONFIRMED-missing files are reported, and they
+// all go through dropMedia() so the galleries' N/M, the pane ‹ › navigation
+// and the 🕘 grid update together (never a silent splice that leaves the UI
+// showing a ghost).
 async function verifyStoredGalleries(force) {
   const probes = _probeCollector();
-  (window.galleryGenerated || []).forEach(e => probes.add(e && e.src));
+  // src is the display URL, but older/recovered entries may only carry
+  // display/url; probing all three is cheap (the collector dedupes).
+  const addEntry = e => {
+    if (!e) return;
+    probes.add(e.src);
+    probes.add(e.display);
+    probes.add(e.url);
+  };
+  (window.galleryGenerated || []).forEach(addEntry);
   (window.galleryComparisons || []).forEach(e => {
-    probes.add(e && e.src);
+    addEntry(e);
     probes.add(e && e.before);
   });
+  (window.galleryVideos || []).forEach(addEntry);
+  Object.values(typeof lastSourceByTab === 'object' && lastSourceByTab ? lastSourceByTab : {})
+    .forEach(value => probes.add(value));
   Object.values(typeof sourceHistory === 'object' && sourceHistory ? sourceHistory : {})
     .forEach(list => (list || []).forEach(e => {
       if (!e) return;

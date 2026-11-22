@@ -155,9 +155,9 @@ age and never polls. The proxy is the sensor:
   that reject HEAD or answer something unexpected) — never in a periodic
   sweep. Confirmed misses go through the same `dropMedia()`. Transport
   failures, 401/403 and 5xx return `{"exists": true, "unknown": true}`: the
-  UI keeps the entry, because "cannot ask" is not "deleted". Videos are not
-  cold-probed (a missing one would simply not play); a confirmed event still
-  drops them.
+  UI keeps the entry, because "cannot ask" is not "deleted". Videos are
+  cold-probed too (the same HEAD), so a missing MP4 is pruned from the video
+  gallery, the sheet, the pane and the persisted registries.
 
 Optional fast path — the cleanup task announces its deletions itself, which
 avoids even the first 404:

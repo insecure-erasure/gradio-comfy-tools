@@ -110,15 +110,15 @@ def test_pane_sheet_does_not_wait_for_the_full_verification():
     assert "openGenerateLightbox(undefined, { verify: false, render: false })" in gallery
     assert "openFaceSwapGallery({ verify: false, render: false })" in gallery
     assert "openCompareFullscreen(tab, { verify: false, render: false })" in gallery
-    assert "openVideoGallery({ render: false })" in gallery
+    assert "openVideoGallery({ verify: false, render: false })" in gallery
     # The fullscreen buttons keep the blocking verification as the default.
     assert "async function openGenerateLightbox(img, { verify = true, render = true } = {})" in gallery
     assert "async function openFaceSwapGallery({ verify = true, render = true } = {})" in gallery
     assert "async function openCompareFullscreen(kind, { verify = true, render = true } = {})" in gallery
-    assert "async function openVideoGallery({ render = true } = {})" in gallery
+    assert "async function openVideoGallery({ verify = true, render = true } = {})" in gallery
     # The probe starts AFTER the sheet is visible and is never awaited.
     assert "openGalleryGrid(tab);\n  // The sheet is already visible" in gallery
-    assert "if (tab !== 'video') _verifyGalleriesInBackground();" in gallery
+    assert "\n  _verifyGalleriesInBackground();" in gallery
     assert "await _verifyGalleriesInBackground" not in gallery
     # Rapid reopenings share one background probe.
     assert "function _verifyGalleriesInBackground()" in gallery
