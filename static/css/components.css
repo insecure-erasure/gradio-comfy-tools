@@ -2361,6 +2361,10 @@
     flex: 0 0 auto;
     width: var(--thumb);
     height: var(--thumb);
+    /* Keep hundreds of uniform cells in the DOM but skip their layout/paint
+       while they are offscreen (the intrinsic size reserves the cell). */
+    content-visibility: auto;
+    contain-intrinsic-size: var(--thumb) var(--thumb);
     padding: 0;
     border: 1px solid rgba(255,255,255,.12);
     border-radius: 8px;

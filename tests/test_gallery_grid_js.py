@@ -60,6 +60,9 @@ def test_css_uses_cover_cells_and_hides_the_individual_controls():
     assert "gallery-counter-glyph" not in css
     assert ".gallery-thumb.is-video" in css
     assert ".gallery-thumb-index" in css
+    # Hundreds of offscreen cells are kept in the DOM but skipped by layout/paint.
+    assert "content-visibility: auto;" in css
+    assert "contain-intrinsic-size: var(--thumb) var(--thumb);" in css
     # While the sheet is open the individual-view buttons would act behind it.
     assert ".gallery-overlay.grid-open .gallery-prev" in css
     assert ".gallery-overlay.grid-open .gallery-info" in css
@@ -132,6 +135,21 @@ def test_entry_changes_reconcile_the_sheet_in_place():
     # Picking is delegated so a reconciled tile reads its CURRENT index.
     assert "galleryGridThumbs.addEventListener('click'" in gallery
     assert "const idx = Number(tile.dataset.index);" in gallery
+
+
+def test_loader_keeps_the_global_concurrency_cap():
+    gallery = _read("static", "js", "gallery.js")
+    # Closing/rebuilding drops the pending queue but NOT the in-flight count:
+    # old downloads must keep their slots until they settle.
+    reset = gallery[gallery.index("function _resetGridLoader()"):]
+    reset = reset[: reset.index("function _pumpGridQueue()")]
+    assert "_gridInFlight = 0;" not in reset
+    assert "_gridQueue = [];" in reset
+    assert "const GALLERY_GRID_CONCURRENCY = 6;" in gallery
+    assert "const GALLERY_GRID_TIMEOUT = 20000;" in gallery
+    # A load/error/timeout race must free the slot only once.
+    assert "if (done) return; // load/error/timeout race — free the slot once" in gallery
+    assert "timer = setTimeout(() => settle(false), GALLERY_GRID_TIMEOUT);" in gallery
 
 
 def test_keyboard_behaviour_in_the_sheet():

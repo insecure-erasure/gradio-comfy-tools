@@ -704,6 +704,7 @@ let _galleryTab = null;
 let _paneRepaintOnClose = null;
 
 const GALLERY_GRID_CONCURRENCY = 6;   // simultaneous thumbnail requests
+const GALLERY_GRID_TIMEOUT = 20000;   // ms — a detached <img> must not pin a slot
 let _gridObserver = null;
 let _gridQueue = [];
 let _gridInFlight = 0;
@@ -733,15 +734,17 @@ function _gridThumbIndexFromTarget(target) {
   return Number.isInteger(idx) ? idx : -1;
 }
 
-// Drop the observer, the pending queue and the counters (closing the sheet or
-// rebuilding it). Detached tiles are skipped by _pumpGridQueue().
+// Drop the observer and the PENDING queue (closing/rebuilding the sheet).
+// _gridInFlight is deliberately NOT reset: the old <img> downloads are still
+// alive after their tiles are detached, so they keep occupying their slots
+// until load/error/timeout. Zeroing it here allowed a quick close/reopen to
+// start another 6 requests on top of the old ones.
 function _resetGridLoader() {
   if (_gridObserver) {
     try { _gridObserver.disconnect(); } catch (e) {}
     _gridObserver = null;
   }
   _gridQueue = [];
-  _gridInFlight = 0;
 }
 
 function _pumpGridQueue() {
@@ -750,13 +753,21 @@ function _pumpGridQueue() {
     const { tile, img, url } = job;
     if (!tile || !img || !img.isConnected) continue;
     _gridInFlight++;
+    let done = false;
+    let timer = 0;
     const settle = ok => {
+      if (done) return; // load/error/timeout race — free the slot once
+      done = true;
+      if (timer) clearTimeout(timer);
       _gridInFlight = Math.max(0, _gridInFlight - 1);
       // Dim only images that ARE still there: a video poster that fails is
       // removed by its own handler so the tile falls back to the ▶ look.
       if (!ok && img.isConnected) tile.classList.add('broken');
       _pumpGridQueue();
     };
+    // A detached/aborted <img> may never fire load/error; the timeout keeps
+    // the global concurrency slot from being pinned forever.
+    timer = setTimeout(() => settle(false), GALLERY_GRID_TIMEOUT);
     img.addEventListener('load', () => settle(true), { once: true });
     img.addEventListener('error', () => settle(false), { once: true });
     img.src = url;

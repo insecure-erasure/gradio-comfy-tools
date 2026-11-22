@@ -1045,8 +1045,14 @@ push events, so nothing is hidden by age and nothing polls:
   created WITHOUT `src` and an `IntersectionObserver` rooted on the sheet's
   scroll box assigns it when the tile is within ~240 px of the visible area,
   with at most 6 requests in flight (a FIFO queue in `_pumpGridQueue()`); a
-  failed load dims the tile and frees the slot. Closing the sheet disconnects
-  the observer, clears the queue and drops the tiles. `resize` /
+  failed load dims the tile and frees the slot. The cap is **global**: closing
+  the sheet clears pending jobs but does NOT zero the in-flight counter; the
+  old downloads keep their slots until load/error or a 20s timeout, so a
+  quick close/reopen cannot start another 6 on top of them. Closing also
+  disconnects the observer and drops the tiles. Offscreen cells stay in the
+  DOM but `content-visibility: auto` + `contain-intrinsic-size` make the
+  browser skip their layout/paint, so a large sheet does not pay for the
+  whole contact sheet. `resize` /
   `orientationchange` / `visualViewport` resize only **re-lay out**
   (`layoutGalleryGrid()`: cell size + title) — they never rebuild, so images,
   decodes and the scroll position survive. A change in the entry list (a
