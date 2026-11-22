@@ -72,6 +72,7 @@ def test_gallery_js_wiring():
         "function closeGalleryGrid(restoreFocus = true, renderPending = true)",
         "function toggleGalleryGrid()",
         "function renderGalleryGrid()",
+        "function reconcileGalleryGrid()",
         "function galleryGridSelect(i)",
         "function syncGalleryGrid()",
         "function refitGalleryGrid()",
@@ -111,6 +112,26 @@ def test_gallery_js_wiring():
     assert "function refitGalleryGrid() {\n  if (!galleryGridOpen) return;\n  layoutGalleryGrid();" in gallery
     # Closing frees the observer/queue and the tiles.
     assert "_resetGridLoader();" in gallery
+
+
+def test_entry_changes_reconcile_the_sheet_in_place():
+    gallery = _read("static", "js", "gallery.js")
+    # A count/entry change is reconciled, not fully rebuilt; only a MODE change
+    # needs renderGalleryGrid() (video tiles are built differently).
+    assert "if (galleryMode !== _galleryGridMode) {" in gallery
+    assert "if (galleryGridSignature() !== _galleryGridSignature) {" in gallery
+    assert "reconcileGalleryGrid();" in gallery
+    # Tiles are matched by stable identity and moved only when their index
+    # changes; loaded <img> nodes are never recreated.
+    assert "function galleryGridEntryKey(e)" in gallery
+    assert "tile.dataset.key = key;" in gallery
+    assert "galleryGridThumbs.insertBefore(tile, current || null);" in gallery
+    assert "oldTiles.forEach(tile => { if (!keep.has(tile)) tile.remove(); });" in gallery
+    # Re-observing a queued tile must not enqueue the same request twice.
+    assert "img.dataset.gridQueued" in gallery
+    # Picking is delegated so a reconciled tile reads its CURRENT index.
+    assert "galleryGridThumbs.addEventListener('click'" in gallery
+    assert "const idx = Number(tile.dataset.index);" in gallery
 
 
 def test_keyboard_behaviour_in_the_sheet():

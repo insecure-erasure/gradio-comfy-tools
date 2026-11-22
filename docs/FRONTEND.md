@@ -1049,7 +1049,12 @@ push events, so nothing is hidden by age and nothing polls:
   the observer, clears the queue and drops the tiles. `resize` /
   `orientationchange` / `visualViewport` resize only **re-lay out**
   (`layoutGalleryGrid()`: cell size + title) — they never rebuild, so images,
-  decodes and the scroll position survive.
+  decodes and the scroll position survive. A change in the entry list (a
+  deletion, a background prune or an in-place src replacement) is
+  **reconciled in place** (`reconcileGalleryGrid()`): tiles are matched by
+  filename/URL identity, only added/removed cells are created/destroyed and
+  loaded thumbnails are not re-requested. Only a MODE change (image ↔ video)
+  rebuilds the sheet.
   Clicking a thumb **closes the sheet and shows that entry** in the
   individual view, and — because picking is an explicit choice — it also
   sets that entry as the tab's pane selection (`paneIdx[tab]`,

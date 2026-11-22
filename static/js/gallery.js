@@ -688,6 +688,7 @@ function renderGalleryItem() {
 // so scrolling/decoding never restarts.
 let galleryGridOpen = false;
 let galleryGridCols = 1;
+let _galleryGridMode = null;
 // Keyboard/tap selection INSIDE the sheet. It is deliberately separate from
 // galleryIdx (the individual view): moving with the arrows must not change
 // what the big view/trash/info act on until a thumb is actually picked.
@@ -763,14 +764,21 @@ function _pumpGridQueue() {
 }
 
 function _requestGridThumb(tile, img, url) {
-  if (!url || !img || img.getAttribute('src')) return;
+  if (!url || !img || img.getAttribute('src') || img.dataset.gridQueued) return;
+  img.dataset.gridQueued = '1'; // a re-observed tile must not enqueue twice
   _gridQueue.push({ tile, img, url });
   _pumpGridQueue();
 }
 
 // Observe every image tile: the request happens only when the tile is within
 // ~240px of the visible area (prefetch margin), so scrolling loads as you go.
+// Replacing the observer is cheap and does NOT touch the queue/in-flight
+// counter, so an incremental reconcile keeps the current loads.
 function _observeGridTiles(tiles) {
+  if (_gridObserver) {
+    try { _gridObserver.disconnect(); } catch (e) {}
+    _gridObserver = null;
+  }
   if (!galleryGridThumbs || !tiles.length) return;
   if (typeof IntersectionObserver !== 'function') {
     // Very old browser: fall back to loading them (still bounded by the queue).
@@ -789,6 +797,82 @@ function _observeGridTiles(tiles) {
   tiles.forEach(({ tile }) => _gridObserver.observe(tile));
 }
 
+// Stable identity for a tile across registry updates. Filename first (the
+// same relative/absolute URL may be written either way); URL otherwise. The
+// video poster and the tool/kind are part of it because they change the tile.
+function galleryGridEntryKey(e) {
+  if (!e) return '';
+  const src = e.src || e.display || e.url || '';
+  const fn = e.filename
+    || (src && typeof filenameFromUrl === 'function' ? filenameFromUrl(src) : null);
+  const base = fn ? 'f:' + fn : 'u:' + absUrl(src);
+  const poster = galleryMode === 'video' && e.source ? '|p:' + absUrl(e.source) : '';
+  return base + '|t:' + (e.tab || '') + '|k:' + (e.kind || '') + poster;
+}
+
+function galleryGridSignature() {
+  return galleryMode + ':' + galleryEntries.map(galleryGridEntryKey).join('\u0001');
+}
+
+function _createGalleryThumb(e, i, n, key) {
+  const tile = document.createElement('button');
+  tile.type = 'button';
+  tile.className = 'gallery-thumb';
+  tile.dataset.key = key;
+  let imageTile = null;
+  if (galleryMode === 'video') {
+    // No <video> here on purpose: decoding N MP4s would be slow and heavy.
+    // The poster is the SOURCE image the video was generated from (stored
+    // on the entry); without it (old persisted entries) the tile stays the
+    // plain ▶ placeholder.
+    tile.classList.add('is-video');
+    if (e.source) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.draggable = false;
+      img.decoding = 'async';
+      tile.appendChild(img);
+      tile._gridThumb = { img, url: e.source };
+      imageTile = { tile, img, url: e.source };
+    }
+    const play = document.createElement('span');
+    play.className = 'gallery-thumb-play';
+    play.setAttribute('aria-hidden', 'true');
+    play.textContent = '▶';
+    tile.appendChild(play);
+    if (e.source) {
+      // A poster that fails to load must not hide the ▶ affordance.
+      const poster = tile.querySelector('img');
+      if (poster) poster.addEventListener('error', () => { poster.remove(); });
+    }
+  } else {
+    // The <img> exists immediately (so the cell is laid out) but has NO src
+    // yet: the observer above assigns it when the tile gets near the view.
+    const img = document.createElement('img');
+    img.alt = '';
+    img.draggable = false;
+    img.decoding = 'async';
+    tile.appendChild(img);
+    tile._gridThumb = { img, url: e.src };
+    imageTile = { tile, img, url: e.src };
+  }
+  const idx = document.createElement('span');
+  idx.className = 'gallery-thumb-index';
+  tile.appendChild(idx);
+  return { tile, imageTile };
+}
+
+function _updateGalleryThumb(tile, i, n, key) {
+  const on = i === galleryGridIdx;
+  tile.dataset.index = String(i);
+  tile.dataset.key = key;
+  tile.classList.toggle('active', on);
+  tile.setAttribute('aria-label', `Open ${i + 1} of ${n}`);
+  tile.setAttribute('aria-current', on ? 'true' : 'false');
+  const idx = tile.querySelector('.gallery-thumb-index');
+  if (idx) idx.textContent = String(i + 1);
+}
+
 function renderGalleryGrid() {
   if (!galleryGridOpen || !galleryGridThumbs) return;
   const n = galleryEntries.length;
@@ -797,7 +881,8 @@ function renderGalleryGrid() {
   if (galleryGridIdx < 0 || galleryGridIdx >= n) galleryGridIdx = n - 1;
   const m = galleryGridMetricsNow(n);
   galleryGridCols = m.cols;
-  _galleryGridSignature = galleryMode + ':' + n;
+  _galleryGridMode = galleryMode;
+  _galleryGridSignature = galleryGridSignature();
   galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
   galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
   if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
@@ -805,61 +890,67 @@ function renderGalleryGrid() {
   galleryGridThumbs.innerHTML = '';
   const imageTiles = [];
   galleryEntries.forEach((e, i) => {
-    const tile = document.createElement('button');
-    tile.type = 'button';
-    tile.className = 'gallery-thumb' + (i === galleryGridIdx ? ' active' : '');
-    tile.dataset.index = String(i);
-    tile.setAttribute('aria-label', `Open ${i + 1} of ${n}`);
-    tile.setAttribute('aria-current', i === galleryGridIdx ? 'true' : 'false');
-    if (galleryMode === 'video') {
-      // No <video> here on purpose: decoding N MP4s would be slow and heavy.
-      // The poster is the SOURCE image the video was generated from (stored
-      // on the entry); without it (old persisted entries) the tile stays the
-      // plain ▶ placeholder.
-      tile.classList.add('is-video');
-      if (e.source) {
-        const img = document.createElement('img');
-        img.alt = '';
-        img.draggable = false;
-        img.decoding = 'async';
-        tile.appendChild(img);
-        tile._gridThumb = { img, url: e.source };
-        imageTiles.push({ tile, img, url: e.source });
-      }
-      const play = document.createElement('span');
-      play.className = 'gallery-thumb-play';
-      play.setAttribute('aria-hidden', 'true');
-      play.textContent = '▶';
-      tile.appendChild(play);
-    } else {
-      // The <img> exists immediately (so the cell is laid out) but has NO src
-      // yet: the observer above assigns it when the tile gets near the view.
-      const img = document.createElement('img');
-      img.alt = '';
-      img.draggable = false;
-      img.decoding = 'async';
-      tile.appendChild(img);
-      tile._gridThumb = { img, url: e.src };
-      imageTiles.push({ tile, img, url: e.src });
-    }
-    if (galleryMode === 'video' && e.source) {
-      // A poster that fails to load must not hide the ▶ affordance.
-      const poster = tile.querySelector('img');
-      if (poster) poster.addEventListener('error', () => { poster.remove(); });
-    }
-    const idx = document.createElement('span');
-    idx.className = 'gallery-thumb-index';
-    idx.textContent = String(i + 1);
-    tile.appendChild(idx);
-    tile.addEventListener('click', ev => {
-      ev.stopPropagation();
-      galleryGridSelect(i);
-    });
-    galleryGridThumbs.appendChild(tile);
+    const key = galleryGridEntryKey(e);
+    const built = _createGalleryThumb(e, i, n, key);
+    _updateGalleryThumb(built.tile, i, n, key);
+    galleryGridThumbs.appendChild(built.tile);
+    if (built.imageTile) imageTiles.push(built.imageTile);
   });
   _observeGridTiles(imageTiles);
   _scrollActiveThumbIntoView(m.scroll);
   _paintGalleryCounter(galleryGridIdx);
+}
+
+// Update the existing sheet IN PLACE when the entry list changes (a deletion,
+// a background prune or an in-place src replacement). Tiles are matched by
+// identity, so every already-loaded <img> and the scroll position survive;
+// only the added/removed cells are created/destroyed. A mode change still
+// needs a full render (video/image tiles are built differently).
+function reconcileGalleryGrid() {
+  if (!galleryGridOpen || !galleryGridThumbs) return;
+  const n = galleryEntries.length;
+  if (!n) return;
+  if (galleryGridIdx < 0 || galleryGridIdx >= n) galleryGridIdx = n - 1;
+  const m = galleryGridMetricsNow(n);
+  galleryGridCols = m.cols;
+  galleryGridThumbs.style.setProperty('--thumb', m.cell + 'px');
+  galleryGridThumbs.style.setProperty('--gap', m.gap + 'px');
+  if (galleryGridTitle) galleryGridTitle.textContent = galleryGridTitleText();
+
+  const oldTiles = Array.from(galleryGridThumbs.children)
+    .filter(el => el.classList && el.classList.contains('gallery-thumb'));
+  const byKey = new Map();
+  oldTiles.forEach(tile => {
+    const k = tile.dataset.key;
+    if (k && !byKey.has(k)) byKey.set(k, tile);
+  });
+  const keep = new Set();
+  const imageTiles = [];
+  galleryEntries.forEach((e, i) => {
+    const key = galleryGridEntryKey(e);
+    let tile = byKey.get(key);
+    if (tile) {
+      byKey.delete(key);
+    } else {
+      const built = _createGalleryThumb(e, i, n, key);
+      tile = built.tile;
+    }
+    keep.add(tile);
+    _updateGalleryThumb(tile, i, n, key);
+    const current = galleryGridThumbs.children[i];
+    if (current !== tile) galleryGridThumbs.insertBefore(tile, current || null);
+    // Observe only tiles that still need their image (a preserved loaded
+    // tile keeps its decoded bitmap and must not be requested again).
+    if (tile._gridThumb && !tile._gridThumb.img.getAttribute('src')) {
+      imageTiles.push({ tile, img: tile._gridThumb.img, url: tile._gridThumb.url });
+    }
+  });
+  oldTiles.forEach(tile => { if (!keep.has(tile)) tile.remove(); });
+  _observeGridTiles(imageTiles);
+  _scrollActiveThumbIntoView(false);
+  _paintGalleryCounter(galleryGridIdx);
+  _galleryGridMode = galleryMode;
+  _galleryGridSignature = galleryGridSignature();
 }
 
 // Re-layout WITHOUT rebuilding: update the cell size and the title, keep the
@@ -895,13 +986,17 @@ function syncGalleryGridActive() {
   _scrollActiveThumbIntoView(false);
 }
 
-// Rebuild only when the entry set changed (count/mode); a plain navigation
-// just moves the active ring (80 lazy <img> must not be recreated per arrow).
+// Re-render only when the MODE changed (video/image tiles differ); a change
+// in the entry list is reconciled in place, so loaded thumbnails and the
+// scroll position survive. A plain arrow navigation just moves the ring.
 function syncGalleryGrid() {
   if (!galleryGridOpen) return;
-  const signature = galleryMode + ':' + galleryEntries.length;
-  if (signature !== _galleryGridSignature) {
+  if (galleryMode !== _galleryGridMode) {
     renderGalleryGrid();
+    return;
+  }
+  if (galleryGridSignature() !== _galleryGridSignature) {
+    reconcileGalleryGrid();
     return;
   }
   syncGalleryGridActive();
@@ -948,6 +1043,7 @@ function closeGalleryGrid(restoreFocus = true, renderPending = true) {
   _resetGridLoader();
   if (galleryGridThumbs) galleryGridThumbs.innerHTML = '';
   _galleryGridSignature = '';
+  _galleryGridMode = null;
   galleryGridIdx = -1; // closing without picking discards the sheet selection
   _paintGalleryCounter(galleryIdx); // and restores the individual view's N/M
   // Opened from the pane without a full render: closing the sheet without
@@ -2199,6 +2295,15 @@ galleryGrid.addEventListener('click', e => {
   if (e.target.closest('.gallery-thumb') || e.target.closest('.gallery-grid-top')) return;
   closeGalleryGrid();
 });
+// Delegated pick: a reconciled tile keeps its DOM node (and its loaded <img>),
+// so the click must read the CURRENT data-index instead of a closure index.
+galleryGridThumbs.addEventListener('click', e => {
+  const tile = e.target && e.target.closest ? e.target.closest('.gallery-thumb') : null;
+  if (!tile) return;
+  e.stopPropagation();
+  const idx = Number(tile.dataset.index);
+  if (Number.isInteger(idx)) galleryGridSelect(idx);
+});
 // The visible box changes with the window, the orientation AND the mobile URL
 // bar (visualViewport): recompute so the cells keep fitting the screen.
 window.addEventListener('resize', refitGalleryGrid);
@@ -2256,7 +2361,7 @@ document.addEventListener('keydown', e => {
     if (step) {
       e.preventDefault();
       galleryGridIdx = Math.max(0, Math.min(galleryEntries.length - 1, galleryGridIdx + step));
-      syncGalleryGrid();
+      syncGalleryGridActive();
     }
     return;
   }
